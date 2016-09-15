@@ -1,0 +1,6 @@
+if( ${UNIX} )
+	include_directories("${PROJECT_SOURCE_DIR}/lib" "${PROJECT_BINARY_DIR}/lib/")
+	link_directories("${PROJECT_BINARY_DIR}/lib/NGT")
+	add_subdirectory("${PROJECT_SOURCE_DIR}/bin/ngt")
+	add_subdirectory("${PROJECT_SOURCE_DIR}/bin/search")
+endif()

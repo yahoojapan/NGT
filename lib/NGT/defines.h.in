@@ -1,0 +1,27 @@
+
+//
+// Copyright (C) 2015-2016 Yahoo! JAPAN Research
+//
+// This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License. 
+// To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-sa/4.0/.
+//
+
+#pragma once
+
+// Begin of cmake defines
+#cmakedefine NGT_SHARED_MEMORY_ALLOCATOR	// use shared memory for indexes
+#cmakedefine NGT_GRAPH_CHECK_VECTOR		// use vector to check whether accessed
+// End of cmake defines
+
+//////////////////////////////////////////////////////////////////////////
+// Release Definitions
+
+#define		NGT_CREATION_EDGE_SIZE			10
+#define		NGT_EXPLORATION_COEFFICIENT		1.1
+#define		NGT_INSERTION_EXPLORATION_COEFFICIENT	1.1
+#define		NGT_FORCED_REMOVE
+#define		NGT_SHARED_MEMORY_MAX_SIZE		1024	// MB
+
+#define		NGT_GRAPH_CHECK_VECTOR		// use vector to check whether nodes were accessed.
+#define		NGT_GRAPH_CHECK_BOOLEANSET	// use original booleanset to check whether nodes were accessed.
+
