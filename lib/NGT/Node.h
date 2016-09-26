@@ -54,7 +54,7 @@ namespace NGT {
     public:
       Object():object(0) {}
       bool operator<(const Object &o) const { return distance < o.distance; }
-      static constexpr double	Pivot = -1.0;
+      static const double	Pivot;
       ObjectID		id;
       PersistentObject	*object;
       Distance		distance;
