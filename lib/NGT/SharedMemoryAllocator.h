@@ -8,15 +8,17 @@
 
 #pragma once
 
+#include	"NGT/defines.h"
+#include	"NGT/MmapManager.h"
+
+#include	<unistd.h>
 #include	<cstdlib>
+#include	<cstring>
 #include	<string>
 #include	<iostream>
 #include	<vector>
 #include	<exception>
 #include	<cassert>
-
-#include	"NGT/defines.h"
-#include	"NGT/MmapManager.h"
 
 #define		MMAP_MANAGER
 
