@@ -22,8 +22,8 @@ if( ${UNIX} )
 	set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 	set(CMAKE_INSTALL_RPATH "/home/y/lib64")
 
-	set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall -std=gnu++0x") # for std::unordered_set
-	set(CMAKE_CXX_FLAGS_RELEASE "-Wall -O2 -std=gnu++0x") # for std::unordered_set
+	set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall -std=gnu++0x") # for std::unordered_set, std::unique_ptr
+	set(CMAKE_CXX_FLAGS_RELEASE "-Wall -O2 -std=gnu++0x") # for std::unordered_set, std::unique_ptr
 
 	add_subdirectory("${PROJECT_SOURCE_DIR}/lib")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/bin")
