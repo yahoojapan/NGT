@@ -61,7 +61,6 @@ namespace MemoryManager{
     size_t getMaxHeapValue(free_queue_st *free_queue) const;
     void dumpHeap() const;
     
-    bool jointChunk(const off_t chunk_offset);
     void divChunk(const off_t chunk_offset, const size_t size);
   };
 
@@ -598,11 +597,6 @@ namespace MemoryManager{
       std::cout << "[" << chunk_offset << "(" << payload_offset << "), " << size << "] ";
     }
     std::cout << std::endl;
-  }
-  
-  bool MmapManager::Impl::jointChunk(const off_t chunk_offset)
-  {
-    return true;
   }
 
   void MmapManager::Impl::divChunk(const off_t chunk_offset, const size_t size)

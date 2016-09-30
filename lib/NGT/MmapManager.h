@@ -79,8 +79,6 @@ namespace MemoryManager{
     static size_t getAlignSize(size_t size);
 
   private:
-    //    static const uint64_t VERSION = 5;
-    
     class Impl;
     std::unique_ptr<Impl> _impl;
   };
