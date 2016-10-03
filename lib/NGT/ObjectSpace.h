@@ -186,6 +186,7 @@ namespace NGT {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
       SharedMemoryAllocator &allocator;
 #endif
+      virtual ~Comparator(){}
     };
     enum DistanceType {
       DistanceTypeNone		= -1,
@@ -196,7 +197,7 @@ namespace NGT {
     };
     typedef priority_queue<ObjectDistance, vector<ObjectDistance>, less<ObjectDistance> > ResultSet;
     ObjectSpace(size_t d):dimension(d), distanceType(DistanceTypeNone), comparator(0) {}
-    ~ObjectSpace() { if (comparator != 0) { delete comparator; } }
+    virtual ~ObjectSpace() { if (comparator != 0) { delete comparator; } }
     
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
     virtual void open(const string &f, size_t shareMemorySize) = 0;
