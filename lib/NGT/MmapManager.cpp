@@ -97,8 +97,8 @@ namespace MemoryManager{
       
       boot_st bootStruct = {0};
       control_st controlStruct = {0};
-      _impl->initBootStruct(bootStruct, size); 
-      _impl->initControlStruct(controlStruct, size);     
+      _impl->initBootStruct(bootStruct, size);  
+      _impl->initControlStruct(controlStruct, size); 
       
       char *cntl_head = cntl_p;
       cntl_head += sizeof(boot_st);
@@ -166,7 +166,7 @@ namespace MemoryManager{
       
       _impl->mmapCntlHead = (control_st*)( (char *)boot_p + sizeof(boot_st)); 
       _impl->mmapCntlAddr = (void *)boot_p;
-      
+
       for(uint64_t i = 0; i < _impl->mmapCntlHead->unit_num; i++){
         off_t offset = _impl->mmapCntlHead->base_size * i;
         errno = 0;
@@ -240,6 +240,7 @@ namespace MemoryManager{
         std::cerr << "not open this file" << std::endl;
         return -1;
       }
+
       if(size > _impl->mmapCntlHead->base_size + sizeof(chunk_head_st)){
         std::cerr << "alloc size over. size=" << size << "." << std::endl;
         return -1;
@@ -276,7 +277,7 @@ namespace MemoryManager{
       
       const off_t file_offset = _impl->mmapCntlHead->active_unit * _impl->mmapCntlHead->base_size;
       const off_t ret_p = file_offset + ( unit_header->break_p + sizeof(chunk_head_st) );
-      
+
       chunk_head_st *chunk_head = (chunk_head_st*)(unit_header->break_p + (char *)_impl->mmapDataAddr[_impl->mmapCntlHead->active_unit]);
       _impl->setupChunkHead(chunk_head, false, _impl->mmapCntlHead->active_unit, -1, alloc_size);
       unit_header->break_p += alloc_size + sizeof(chunk_head_st);
@@ -345,6 +346,7 @@ namespace MemoryManager{
   {
     const chunk_head_st *chunk_head = (chunk_head_st *)((char *)p - sizeof(chunk_head_st));
     const uint16_t unit_id = chunk_head->unit_id;
+
     const off_t file_offset = unit_id * _impl->mmapCntlHead->base_size;
     off_t ret_p = (off_t)((char *)p - (char *)_impl->mmapDataAddr[unit_id]);
     ret_p += file_offset;
@@ -433,7 +435,6 @@ namespace MemoryManager{
 
     while(current_chunk_head != NULL){
       count++;
-
       current_off = current_chunk_head->free_next;
       current_chunk_head = (chunk_head_st *)getAbsAddr(current_off);
     }

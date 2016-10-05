@@ -65,8 +65,8 @@ namespace MemoryManager{
     uint64_t getFreeNum() const; 
     uint16_t getUnitNum() const; 
     size_t getQueueCapacity() const; 
-    uint64_t getQueueNum() const;
-    uint64_t getLargeListNum() const;
+    uint64_t getQueueNum() const; 
+    uint64_t getLargeListNum() const;    
 
     void dumpHeap() const;
 
