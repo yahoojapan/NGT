@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.8)
 project( ngt )
 
 set(ngt_VERSION_MAJOR 0 )
-set(ngt_VERSION_MINOR 4 )
+set(ngt_VERSION_MINOR 5 )
 set(ngt_VERSION_PATCH 0 )
 
 set( ngt_VERSION ${ngt_VERSION_MAJOR}.${ngt_VERSION_MINOR}.${ngt_VERSION_PATCH} )

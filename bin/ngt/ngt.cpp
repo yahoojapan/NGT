@@ -588,6 +588,106 @@ public:
 
   }
 
+  void
+  prune(Args &args)
+  {
+    const string usage = "Usage: ngt prune -e #-of-forcedly-pruned-edges -s #-of-selecively-pruned-edge";
+    string indexName;
+    try {
+      indexName = args.get("#1");
+    } catch (...) {
+      cerr << "Index is not specified" << endl;
+      cerr << usage << endl;
+      return;
+    }
+
+    // the number of forcedly pruned edges
+    size_t forcedlyPrunedEdgeSize	= args.getl("e", 0);
+    // the number of selectively pruned edges
+    size_t selectivelyPrunedEdgeSize	= args.getl("s", 0);
+
+    cerr << "forcedly pruned edge size=" << forcedlyPrunedEdgeSize << endl;
+    cerr << "selectively pruned edge size=" << selectivelyPrunedEdgeSize << endl;
+
+    if (selectivelyPrunedEdgeSize == 0 && forcedlyPrunedEdgeSize == 0) {
+      cerr << "prune: Error! Either of selective edge size or remaining edge size should be specified." << endl;
+      cerr << usage << endl;
+      return;
+    }
+
+    if (forcedlyPrunedEdgeSize != 0 && selectivelyPrunedEdgeSize != 0 && selectivelyPrunedEdgeSize >= forcedlyPrunedEdgeSize) {
+      cerr << "prune: Error! selective edge size is less than remaining edge size." << endl;
+      cerr << usage << endl;
+      return;
+    }
+
+    NGT::Index	index(indexName);
+    cerr << "loaded the input index." << endl;
+
+    NGT::GraphIndex	&graph = (NGT::GraphIndex&)index.getIndex();
+
+    for (size_t id = 1; id < graph.repository.size(); id++) {
+      try {
+	NGT::GraphNode &node = *graph.getNode(id);
+	if (id % 1000000 == 0) {
+	  cerr << "Processed " << id << endl;
+	}
+	if (forcedlyPrunedEdgeSize > 0 && node.size() >= forcedlyPrunedEdgeSize) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	  node.resize(forcedlyPrunedEdgeSize, graph.repository.allocator);
+#else
+	  node.resize(forcedlyPrunedEdgeSize);
+#endif
+	}
+	if (selectivelyPrunedEdgeSize > 0 && node.size() >= selectivelyPrunedEdgeSize) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	  cerr << "not implemented" << endl;
+	  abort();
+#else
+	  size_t rank = 0;
+	  for (NGT::GraphNode::iterator i = node.begin(); i != node.end(); ++rank) {
+	  //for (size_t i = 0; i < node.size(); ++i) {
+	    if (rank >= selectivelyPrunedEdgeSize) {
+	      bool found = false;
+	      for (size_t t1 = 0; t1 < node.size() && found == false; ++t1) {
+		if (t1 >= selectivelyPrunedEdgeSize) {
+		  break;
+		}
+		if (rank == t1) {
+		  continue;
+		}
+		NGT::GraphNode &node2 = *graph.getNode(node[t1].id);
+		for (size_t t2 = 0; t2 < node2.size(); ++t2) {		
+		  if (t2 >= selectivelyPrunedEdgeSize) {
+		    break;
+		  }
+		  if (node2[t2].id == (*i).id) {
+		    found = true;
+		    break;
+		  }
+		} // for
+	      } // for
+	      if (found) {
+		//remove
+		i = node.erase(i);
+		continue;
+	      }
+	    }
+	    i++;
+	  } // for
+#endif
+	}
+	  
+      } catch(NGT::Exception &err) {
+	cerr << "Graph::search: Warning. Cannot get the node. ID=" << id << ":" << err.what() << endl;
+	continue;
+      }
+    }
+
+    graph.saveIndex(indexName);
+
+  }
+
 
   void
   info(Args &args)
@@ -708,8 +808,8 @@ public:
   //////////////////////////////////////////////////////////////
 
   void help() {
-    cerr << "Usage : ngt command database data" << endl;
-    cerr << "           command : create search remove append export import" << endl;
+    cerr << "Usage : ngt command database [data]" << endl;
+    cerr << "           commands : create search remove append export import prune" << endl;
   }
 
   void execute(Args args) {
@@ -739,6 +839,8 @@ public:
 	exportIndex(args);
       } else if (command == "import") {
 	importIndex(args);
+      } else if (command == "prune") {
+	prune(args);
       } else if (command == "info") {
 	info(args);
       } else {
