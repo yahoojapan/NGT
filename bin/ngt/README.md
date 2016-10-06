@@ -252,7 +252,7 @@ Perform a neighborhood search by three queries specified in a file:
       Query Time= 0.00018 (sec), 0.18 (msec)
       Average Query Time= 0.000376667 (sec), 0.376667 (msec), (0.00113/3)
 
-### How to construct the indexes for the [publications](/README.md#publications)
+### How to construct the indexes for our [publications](/README.md#publications)
 
 ##### [PANNG](/README.md#panng)
 ```
