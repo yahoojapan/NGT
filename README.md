@@ -7,11 +7,10 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
 **NGT** provides commands and a library for performing high-speed approximate nearest neighbor searches against a large volume of data (several million to several 10 million items of data) in high dimensional vector data space (several ten to several thousand dimensions).
 
-The experimental code used in our [ACL 2016](http://acl2016.org/) paper will be available by the end of October 2016.
+#### Downloads
 
-#### Download
-
-- [NGT GitHub](https://github.com/yahoojapan/NGT/)
+- [Source code](https://github.com/yahoojapan/NGT/)
+- [Experimental software](https://s.yimg.jp/dl/docs/research_lab/ngt-experimental-1.0.zip) : This software was used in our [ACL 2016](http://acl2016.org/) [paper](https://aclweb.org/anthology/P/P16/P16-1214.pdf).
 
 Build
 -----------------
@@ -36,18 +35,25 @@ Note: Since there is no lock function, the index should be used only for referen
 License
 -------
 
-This software in part uses patents held by Yahoo Japan Corporation and therefore 
-adopts the license shown below. For this reason, please refrain from commercial 
-use.
+Copyright (C) 2015-2016 Yahoo Japan Corporation
 
-This work is licensed under the Creative Commons  Attribution-NonCommercial-ShareAlike 
-4.0 International License. To view a copy of this license, visit 
-http://creativecommons.org/licenses/by-nc-sa/4.0/.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this software except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 Publications
 ------------
 
 ##### PANNG
+- Iwasaki, M.: Pruned Bi-directed K-nearest Neighbor Graph for Proximity Search. Proc. of SISAP2016 (2016) 20-33.
 - Sugawara, K., Kobayashi, H. and Iwasaki, M.: On Approximately Searching for Similar Word Embeddings. Proc. of ACL2016 (2016) 2265-2275. ([pdf](https://aclweb.org/anthology/P/P16/P16-1214.pdf))
 
 ##### ANNGT

@@ -1,9 +1,17 @@
-
 //
-// Copyright (C) 2015-2016 Yahoo! JAPAN Research
+// Copyright (C) 2015-2016 Yahoo Japan Corporation
 //
-// This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License. 
-// To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-sa/4.0/.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 //
 
 #pragma once
@@ -48,7 +56,7 @@ class SharedMemoryAllocator {
     if(!isValid){
       return NULL;
     }
-    off_t file_offset = mmanager->alloc(size, false);	
+    off_t file_offset = mmanager->alloc(size, true);	
     if (file_offset == -1) {
       std::cerr << "Fatal Error: Allocating memory size is too big for this settings." << std::endl;
       std::cerr << "             Max allocation size should be enlarged." << std::endl;
@@ -102,7 +110,7 @@ class SharedMemoryAllocator {
     MemoryManager::init_option_st option;
     MemoryManager::MmapManager::setDefaultOptionValue(option);
     option.use_expand = true;
-    option.reuse_type = MemoryManager::REUSE_DATA_QUEUE_PLUS;
+    option.reuse_type = MemoryManager::REUSE_DATA_CLASSIFY;
     bool create = true;
     if(!mmanager->init(filePath, size, &option)){
 #ifdef SMA_TRACE

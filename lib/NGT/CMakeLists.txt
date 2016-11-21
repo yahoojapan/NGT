@@ -4,6 +4,7 @@ if( ${UNIX} )
 	include_directories("${CMAKE_CURRENT_BINARY_DIR}" "${PROJECT_SOURCE_DIR}/lib" "${PROJECT_BINARY_DIR}/lib/")
 
 	file(GLOB NGT_SOURCES *.cpp)
+	file(GLOB HEADER_FILES *.h *.hpp)
 
 	add_library(ngtstatic STATIC ${NGT_SOURCES})
 	set_target_properties(ngtstatic PROPERTIES OUTPUT_NAME ngt) 
@@ -18,4 +19,5 @@ if( ${UNIX} )
 
 	install(TARGETS ngt LIBRARY DESTINATION lib64)
 	install(TARGETS ngtstatic ARCHIVE DESTINATION lib64)
+	install(FILES ${HEADER_FILES}  ${CMAKE_CURRENT_BINARY_DIR}/defines.h DESTINATION include/NGT)
 endif()

@@ -283,17 +283,10 @@ ngt コマンド使用例
 
 ライセンス
 
- 本ソフトウェアはヤフー（株）が保有する特許権を一部利用しておりますので、以下に
- 示しますライセンスを採用しております。したがいまして商用利用はお控えください。
+  ヤフー株式会社はApacheライセンスバージョン2.0の下で本ソフトウェアを公開致します。
+　以下のサイトよりライセンスの内容をご確認頂けます。
 
- この作品はクリエイティブ・コモンズ・表示 - 非営利 - 継承 4.0 国際・ライセンスで
- 提供されています。このライセンスの詳細は
- http://creativecommons.org/licenses/by-nc-sa/4.0/deed.ja
- をご覧ください。
-
- This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 
- 4.0 International License. To view a copy of this license, visit 
- http://creativecommons.org/licenses/by-nc-sa/4.0/.
+   http://www.apache.org/licenses/LICENSE-2.0
 
 ---
 Copyright (C) 2015-2016 Yahoo! JAPAN Research
