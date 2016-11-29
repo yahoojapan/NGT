@@ -16,6 +16,14 @@ Command
 
       $ ngt command [option] index [data]
         
+**Note:**
+
+The getopt function of the POSIX specification, all options must appear before positional arguments.
+For example, the cygwin is one of the these environments.
+In these environments, you must write command as below:
+
+      $ ngt [option] command index [data]
+
 
 ### Description
 
