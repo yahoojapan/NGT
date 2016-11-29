@@ -20,8 +20,11 @@ if( ${UNIX} )
 		add_compile_options(-Wall)
 	endif()
 
-	set(CMAKE_CXX_FLAGS_DEBUG "-g -std=gnu++0x") # for std::unordered_set, std::unique_ptr
-	set(CMAKE_CXX_FLAGS_RELEASE "-O2 -std=gnu++0x") # for std::unordered_set, std::unique_ptr
+	set(CMAKE_CXX_STANDARD 11) # for std::unordered_set, std::unique_ptr
+	set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+	set(CMAKE_CXX_FLAGS_DEBUG "-g")
+	set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
 	add_subdirectory("${PROJECT_SOURCE_DIR}/lib")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/bin")
