@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.1)
 
 project( ngt )
 
@@ -20,6 +20,7 @@ if( ${UNIX} )
 		add_compile_options(-Wall)
 	endif()
 
+	# CMAKE_CXX_STANDARD is supported from CMake 3.1
 	set(CMAKE_CXX_STANDARD 11) # for std::unordered_set, std::unique_ptr
 	set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
