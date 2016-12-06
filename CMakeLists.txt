@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.1)
 
 project( ngt )
 
@@ -15,15 +15,14 @@ endif (NOT CMAKE_BUILD_TYPE)
 message(STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 
 if( ${UNIX} )
-	include_directories("/home/y/include64/" "/home/y/include/")
-	link_directories("/home/y/lib64" "/usr/lib64")
+	option(WALL "enable all warnings" ON)
+	if( ${WALL} )
+		add_compile_options(-Wall)
+	endif()
 
-	set(CMAKE_SKIP_BUILD_RPATH TRUE)
-	set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-	set(CMAKE_INSTALL_RPATH "/home/y/lib64")
-
-	set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall -std=gnu++0x") # for std::unordered_set, std::unique_ptr
-	set(CMAKE_CXX_FLAGS_RELEASE "-Wall -O2 -std=gnu++0x") # for std::unordered_set, std::unique_ptr
+	# CMAKE_CXX_STANDARD is supported from CMake 3.1
+	set(CMAKE_CXX_STANDARD 11) # for std::unordered_set, std::unique_ptr
+	set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 	add_subdirectory("${PROJECT_SOURCE_DIR}/lib")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/bin")

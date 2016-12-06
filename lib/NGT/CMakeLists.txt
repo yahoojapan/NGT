@@ -17,7 +17,11 @@ if( ${UNIX} )
 	add_dependencies(ngt ngtstatic) 
 	target_link_libraries(ngt)
 
-	install(TARGETS ngt LIBRARY DESTINATION lib64)
-	install(TARGETS ngtstatic ARCHIVE DESTINATION lib64)
+	install(TARGETS
+		ngt
+		ngtstatic
+		RUNTIME DESTINATION bin
+		LIBRARY DESTINATION lib
+		ARCHIVE DESTINATION lib)
 	install(FILES ${HEADER_FILES}  ${CMAKE_CURRENT_BINARY_DIR}/defines.h DESTINATION include/NGT)
 endif()
