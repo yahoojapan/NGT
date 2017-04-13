@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2016 Yahoo Japan Corporation
+// Copyright (C) 2015-2017 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,11 @@
 //
 
 #pragma once
+
+
+#if !defined(NGT_AVX_DISABLED) && defined(__AVX__)
+#include	<immintrin.h>
+#endif
 
 #include	"Common.h"
 
@@ -35,7 +40,6 @@ namespace NGT {
       } else {
 	return distance < o.distance;
       }
-
     }
     bool operator>(const ObjectDistance &o) const {
       if (distance == o.distance) {
@@ -201,7 +205,8 @@ namespace NGT {
       DistanceTypeL1		= 0,
       DistanceTypeL2		= 1,
       DistanceTypeHamming	= 2,
-      DistanceTypeAngle		= 3
+      DistanceTypeAngle		= 3,
+      DistanceTypeCosine	= 4
     };
     typedef priority_queue<ObjectDistance, vector<ObjectDistance>, less<ObjectDistance> > ResultSet;
     ObjectSpace(size_t d):dimension(d), distanceType(DistanceTypeNone), comparator(0) {}
@@ -247,6 +252,8 @@ namespace NGT {
     virtual ObjectRepository &getRepository() = 0;
 
     virtual void setDistanceType(DistanceType t) = 0;
+
+    virtual void *getObject(size_t idx) = 0;
 
     size_t getDimension() { return dimension; }
 
@@ -370,6 +377,8 @@ namespace NGT {
       construct(s, allocator);
     }
 
+    virtual ~PersistentObject() {}
+
     uint8_t &at(size_t idx, SharedMemoryAllocator &allocator) const { 
       uint8_t *a = (uint8_t *)allocator.getAddr(array);
       return a[idx];
@@ -377,6 +386,8 @@ namespace NGT {
     uint8_t &operator[](size_t idx) const {
       cerr << "not implemented" << endl;
       assert(0);
+      uint8_t *a = 0;
+      return a[idx];
     }
 
     // set v in objectspace to this object using allocator.
@@ -733,6 +744,27 @@ namespace NGT {
 #endif
     };
 
+    class ComparatorCosineSimilarity : public Comparator {
+      public:
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+        ComparatorCosineSimilarity(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
+	double operator()(Object &objecta, Object &objectb) {
+	  return ObjectSpaceT::compareCosineSimilarity((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
+	}
+	double operator()(Object &objecta, PersistentObject &objectb) {
+	  return ObjectSpaceT::compareCosineSimilarity((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
+	}
+	double operator()(PersistentObject &objecta, PersistentObject &objectb) {
+	  return ObjectSpaceT::compareCosineSimilarity((OBJECT_TYPE*)&objecta.at(0, allocator), (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
+	}
+#else
+        ComparatorCosineSimilarity(size_t d) : Comparator(d) {}
+	double operator()(Object &objecta, Object &objectb) {
+	  return ObjectSpaceT::compareAngleDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
+	}
+#endif
+    };
+
     ObjectSpaceT(size_t d, const type_info &ot, DistanceType t) : ObjectSpace(d), ObjectRepository(d, ot) {
      size_t objectSize = 0;
      if (ot == typeid(uint8_t)) {
@@ -804,6 +836,10 @@ namespace NGT {
 	break;
       case DistanceTypeAngle:
 	comparator = new ObjectSpaceT::ComparatorAngleDistance(ObjectSpace::dimension, ObjectRepository::allocator);
+	break;
+      case DistanceTypeCosine:
+	comparator = new ObjectSpaceT::ComparatorCosineSimilarity(ObjectSpace::dimension, ObjectRepository::allocator);
+	break;
 #else
       case DistanceTypeL1:
 	comparator = new ObjectSpaceT::ComparatorL1(ObjectSpace::dimension);
@@ -816,8 +852,11 @@ namespace NGT {
 	break;
       case DistanceTypeAngle:
 	comparator = new ObjectSpaceT::ComparatorAngleDistance(ObjectSpace::dimension);
-#endif
 	break;
+      case DistanceTypeCosine:
+	comparator = new ObjectSpaceT::ComparatorCosineSimilarity(ObjectSpace::dimension);
+	break;
+#endif
       default:
 	cerr << "Distance type is not specified" << endl;
 	assert(distanceType != DistanceTypeNone);
@@ -827,7 +866,7 @@ namespace NGT {
 
     static COMPARE_TYPE absolute(int v) { return abs(v); }
     static COMPARE_TYPE absolute(double v) { return fabs(v); }
-
+#if defined(NGT_AVX_DISABLED) || !defined(__AVX__)
     inline static double compareL2(OBJECT_TYPE *a, OBJECT_TYPE *b, size_t size) {
       assert(a != 0);
       assert(b != 0);
@@ -850,7 +889,52 @@ namespace NGT {
       }
       return sqrt((double)d);
     }
-
+#else
+    inline static double compareL2(float *a, float *b, size_t size) {
+      __m256 sum = _mm256_setzero_ps();
+      float *last = a + size;
+      float *lastgroup = last - 7;
+      while (a < lastgroup) {
+	__m256 v = _mm256_sub_ps(_mm256_loadu_ps(a), _mm256_loadu_ps(b));
+	sum = _mm256_add_ps(sum, _mm256_mul_ps(v, v));
+	a += 8;
+	b += 8;
+      }
+      __attribute__((aligned(32))) float f[8];
+      _mm256_store_ps(f, sum);
+      double s = f[0] + f[1] + f[2] + f[3] + f[4] + f[5] + f[6] + f[7];
+      while (a < last) {
+	double d = *a++ - *b++;
+	s += d * d;
+      }
+      return sqrt(s);
+    }
+    inline static double compareL2(unsigned char *a, unsigned char *b, size_t size) {
+      __m128 sum = _mm_setzero_ps();
+      unsigned char *last = a + size;
+      OBJECT_TYPE *lastgroup = last - 7;
+      const __m128i zero = _mm_setzero_si128();
+      while (a < lastgroup) {
+	__m128i x1 = _mm_cvtepu8_epi16(*(__m128i const*)a);
+	__m128i x2 = _mm_cvtepu8_epi16(*(__m128i const*)b);
+	x1 = _mm_subs_epi16(x1, x2);
+	__m128i v = _mm_mullo_epi16(x1, x1);
+	sum = _mm_add_ps(sum, _mm_cvtepi32_ps(_mm_unpacklo_epi16(v, zero)));
+	sum = _mm_add_ps(sum, _mm_cvtepi32_ps(_mm_unpackhi_epi16(v, zero)));
+	a += 8;
+	b += 8;
+      }
+      __attribute__((aligned(32))) float f[4];
+      _mm_store_ps(f, sum);
+      double s = f[0] + f[1] + f[2] + f[3];
+      while (a < last) {
+	int d = (int)*a++ - (int)*b++;
+	s += d * d;
+      }
+      return sqrt(s);
+    }
+#endif
+#if defined(NGT_AVX_DISABLED) || !defined(__AVX__)
     static double compareL1(OBJECT_TYPE *a, OBJECT_TYPE *b, size_t size) {
       assert(a != 0);
       assert(b != 0);
@@ -873,7 +957,53 @@ namespace NGT {
       }
       return d;
     }
-
+#else
+    inline static double compareL1(float *a, float *b, size_t size) {
+      __m256 sum = _mm256_setzero_ps();
+      float *last = a + size;
+      float *lastgroup = last - 7;
+      while (a < lastgroup) {
+	__m256 x1 = _mm256_sub_ps(_mm256_loadu_ps(a), _mm256_loadu_ps(b));
+	const __m256 mask = _mm256_set1_ps(-0.0f);
+	__m256 v = _mm256_andnot_ps(mask, x1);
+	sum = _mm256_add_ps(sum, v);
+	a += 8;
+	b += 8;
+      }
+      __attribute__((aligned(32))) float f[8];
+      _mm256_store_ps(f, sum);
+      double s = f[0] + f[1] + f[2] + f[3] + f[4] + f[5] + f[6] + f[7];
+      while (a < last) {
+	double d = fabs(*a++ - *b++);
+	s += d;
+      }
+      return s;
+    }
+    inline static double compareL1(unsigned char *a, unsigned char *b, size_t size) {
+      __m128 sum = _mm_setzero_ps();
+      unsigned char *last = a + size;
+      OBJECT_TYPE *lastgroup = last - 7;
+      const __m128i zero = _mm_setzero_si128();
+      while (a < lastgroup) {
+	__m128i x1 = _mm_cvtepu8_epi16(*(__m128i const*)a);
+	__m128i x2 = _mm_cvtepu8_epi16(*(__m128i const*)b);
+	x1 = _mm_subs_epi16(x1, x2);
+	x1 = _mm_sign_epi16(x1, x1);
+	sum = _mm_add_ps(sum, _mm_cvtepi32_ps(_mm_unpacklo_epi16(x1, zero)));
+	sum = _mm_add_ps(sum, _mm_cvtepi32_ps(_mm_unpackhi_epi16(x1, zero)));
+	a += 8;
+	b += 8;
+      }
+      __attribute__((aligned(32))) float f[4];
+      _mm_store_ps(f, sum);
+      double s = f[0] + f[1] + f[2] + f[3];
+      while (a < last) {
+	double d = fabs((double)*a++ - (double)*b++);
+	s += d;
+      }
+      return s;
+    }
+#endif
     inline static double popCount(uint32_t x) {
       x = (x & 0x55555555) + (x >> 1 & 0x55555555);
       x = (x & 0x33333333) + (x >> 2 & 0x33333333);
@@ -899,33 +1029,21 @@ namespace NGT {
     }
 
     inline static double compareAngleDistance(OBJECT_TYPE *a, OBJECT_TYPE *b, size_t size) {
-      size_t loc = 0;
-      double cosine = 0.0F;
-      // Calculate the norm of A
+      // Calculate the norm of A and B (the supplied vector).
       double normA = 0.0F;
-      for (loc = 0; loc < size; loc++) {
-	normA += ((double) a[loc]) * a[loc];
+      double normB = 0.0F;
+      double sum = 0.0F;
+      for (size_t loc = 0; loc < size; loc++) {
+	normA += (double)a[loc] * (double)a[loc];
+	normB += (double)b[loc] * (double)b[loc];
+	sum += (double)a[loc] * (double)b[loc];
       }
 
       assert(normA > 0.0F);
-      normA = sqrt (normA);
-
-      // Calculate the norm of the supplied vector.
-      double normB = 0.0F;
-      for (loc = 0; loc < size; loc++) {
-	normB += ((double) b[loc]) * b[loc];
-      }
-
       assert(normB > 0.0F);
-      normB = sqrt (normB);
 
       // Compute the dot product of the two vectors. 
-      cosine = 0.0F;
-
-      for (loc = 0; loc < size; loc++) {
-	cosine += (a[loc] / normA) * (b[loc] / normB);
-      }
-
+      double cosine = sum / (sqrt(normA) * sqrt(normB));
       // Compute the vector angle from the cosine value, and return.
       // Roundoff error could have put the cosine value out of range.
       // Handle these cases explicitly.
@@ -937,6 +1055,26 @@ namespace NGT {
 	return acos (cosine);
       }
 
+    }
+
+    inline static double compareCosineSimilarity(OBJECT_TYPE *a, OBJECT_TYPE *b, size_t size) {
+      // Calculate the norm of A and B (the supplied vector).
+      double normA = 0.0F;
+      double normB = 0.0F;
+      double sum = 0.0F;
+      for (size_t loc = 0; loc < size; loc++) {
+	normA += (double)a[loc] * (double)a[loc];
+	normB += (double)b[loc] * (double)b[loc];
+	sum += (double)a[loc] * (double)b[loc];
+      }
+
+      assert(normA > 0.0F);
+      assert(normB > 0.0F);
+
+      // Compute the dot product of the two vectors. 
+      double cosine = sum / (sqrt(normA) * sqrt(normB));
+
+      return 1.0 - cosine;
     }
 
     void serialize(const string &ofile) { ObjectRepository::serialize(ofile, this); }
@@ -982,6 +1120,20 @@ namespace NGT {
 	}
       }
       return;
+    }
+
+    void *getObject(size_t idx) {
+      if (idx >= ObjectRepository::size()) {
+	stringstream msg;
+	msg << "NGT::ObjectSpaceT: Out of range. " << idx << ":" << ObjectRepository::size() << ".";
+	NGTThrowException(msg);
+      }
+      PersistentObject &obj = *(*this)[idx];
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+      return reinterpret_cast<OBJECT_TYPE*>(&obj.at(0, allocator));
+#else
+      return reinterpret_cast<OBJECT_TYPE*>(&obj[0]);
+#endif
     }
 
     Object *allocateObject() { return ObjectRepository::allocateObject(); }

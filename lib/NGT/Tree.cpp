@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2016 Yahoo Japan Corporation
+// Copyright (C) 2015-2017 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -36,7 +36,6 @@ DVPTree::insert(InsertContainer &iobj) {
 
   assert(q.nodeID.getType() == Node::ID::Leaf);
   LeafNode *ln = (LeafNode*)getNode(q.nodeID);
-  Node::ID lid = q.nodeID;
   insert(iobj, ln);
 
   return;
@@ -94,7 +93,7 @@ DVPTree::insert(InsertContainer &iobj,  LeafNode *leafNode)
   }
 
   if (leaf.getObjectSize() >= leafObjectsSize) {
-    Node::ID nid = split(iobj, leaf);
+    split(iobj, leaf);
   } else {
     insertObject(iobj, leaf);
   }

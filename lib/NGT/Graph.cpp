@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2016 Yahoo Japan Corporation
+// Copyright (C) 2015-2017 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -146,13 +146,6 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
       GraphNode &neighbors = *rsptr;
       if (neighbors.size() == 0) {
 	// When the only one object is in the DB, the node has no neighbors.
-	if ((repository.size() != 1) && (target.id != 1)) {
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-	  cerr << "Graph::search: Warning! The node has no neighbors. Node id=" << target.id << " " << repository.allocator.file << endl;
-#else
-	  cerr << "Graph::search: Warning! The node has no neighbors. Node id=" << target.id << endl;
-#endif
-	}
 	continue;
       }
 #ifdef NGT_GRAPH_UNCHECK_STACK_SORT
@@ -186,10 +179,10 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 	}
 	distanceChecked.insert(neighbor.id);
 #endif // NGT_GRAPH_CHECK_VECTOR
+
 #ifdef NGT_EXPLORATION_COEFFICIENT_OPTIMIZATION
 	sc.explorationCoefficient = exp(-(double)distanceChecked.size() / 20000.0) / 10.0 + 1.0;
 #endif
-
 
 	Distance distance = comparator(sc.object, *getObjectRepository().get(neighbor.id));
 	ObjectDistance r(neighbor.id, distance);
@@ -213,9 +206,10 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 	      sc.radius = results.top().distance;
 	      explorationRadius = sc.explorationCoefficient * sc.radius;
 	    }
-	  } // if (distance <= sc.radius) {
-	} // if (distance <= explorationRadius) {
-      } // for (Results::iterator ni = neighbors.begin(); ni != neighbors.end(); ni++) {
+	  } 
+	} 
+      } 
+
 #ifdef NGT_GRAPH_UNCHECK_STACK_SORT
       // sort is not effectictive.
       std::sort(sort.begin(), sort.end());
@@ -223,7 +217,7 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 	unchecked.push(*si);
       }
 #endif
-    }
+    } 
     {
       ObjectDistances &qresults = sc.getResult();
       qresults.moveFrom(results);
@@ -569,7 +563,6 @@ NeighborhoodGraph::truncateEdgesOptimally(
     for (size_t i = 0; i < delNodes.size(); i++) {
       GraphNode::iterator j;
       GraphNode &res = *getNode(delNodes[i].id);
-      bool find = false;
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
       for (j = res.begin(repository.allocator); j != res.end(repository.allocator); j++) {
 #else
@@ -581,7 +574,6 @@ NeighborhoodGraph::truncateEdgesOptimally(
 #else
 	  res.erase(j);
 #endif
-	  find = true;
 	  break;
 	}
       }

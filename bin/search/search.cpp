@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2016 Yahoo Japan Corporation
+// Copyright (C) 2015-2017 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,14 +19,14 @@
 int
 main(int argc, char **argv)
 {
-  string	database	= "index";	// Index.
+  string	indexFile	= "index";	// Index.
   string	query		= "./data/sift-query-3.tsv";	// Query file.
   int		size		= 20;		// The number of resultant objects.
   float		radius		= FLT_MAX;	// Radius of search range.
   float		epsilon		= 0.1;		// Epsilon to expand explored range.
 
   try {
-    NGT::Index	index(database);		// open the specified index.
+    NGT::Index	index(indexFile);		// open the specified index.
     ifstream	is(query);			// open a query file.
     if (!is) {
       cerr << "Cannot open the specified file. " << query << endl;

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2016 Yahoo Japan Corporation
+// Copyright (C) 2015-2017 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -67,7 +67,7 @@ namespace NGT {
       void setDefault() {
 	dimension 	= 0;
 	threadPoolSize	= 32;
-	objectType	= ObjectType::Uint8;
+	objectType	= ObjectType::Float;
 	distanceType	= DistanceType::DistanceTypeL2;
 	indexType	= IndexType::GraphAndTree;
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
@@ -79,7 +79,7 @@ namespace NGT {
 	databaseType	= DatabaseType::Memory;
 #endif
       }
-      void setNotAvailable() {
+      void clear() {
 	dimension 	= -1;
 	threadPoolSize	= -1;
 	objectType	= ObjectTypeNone;
@@ -108,6 +108,7 @@ namespace NGT {
 	case DistanceType::DistanceTypeL2:	p.set("DistanceType", "L2"); break;
 	case DistanceType::DistanceTypeHamming:	p.set("DistanceType", "Hamming"); break;
 	case DistanceType::DistanceTypeAngle:	p.set("DistanceType", "Angle"); break;
+	case DistanceType::DistanceTypeCosine:	p.set("DistanceType", "Cosine"); break;
 	default : cerr << "Fatal error. Invalid distance type. " << distanceType <<endl; abort();
 	}
 	switch (indexType) {      
@@ -155,6 +156,8 @@ namespace NGT {
 	    distanceType = DistanceType::DistanceTypeHamming;
 	  } else if (it->second == "Angle") {
 	    distanceType = DistanceType::DistanceTypeAngle;
+	  } else if (it->second == "Cosine") {
+	    distanceType = DistanceType::DistanceTypeCosine;
 	  } else {
 	    cerr << "Invalid Distance Type in the property. " << it->first << ":" << it->second << endl;
 	  }
@@ -227,6 +230,8 @@ namespace NGT {
     }
     static void mkdir(const string &dir) { ::mkdir(dir.c_str(), S_IRWXU | S_IRGRP | S_IXGRP |  S_IROTH | S_IXOTH); }
     static void createGraphAndTree(const string &database, NGT::Property &prop, const string &dataFile, size_t dataSize = 0);
+    void createGraphAndTree(const string &database, NGT::Property &prop);
+    size_t insert(vector<double> &object) ;
     static void createGraph(const string &database, NGT::Property &prop, const string &dataFile, size_t dataSize = 0);
     static void append(const string &database, const string &dataFile, size_t threadSize, size_t dataSize);
     static void remove(const string &database, vector<ObjectID> &objects);
@@ -451,6 +456,7 @@ namespace NGT {
       for (si = seeds.begin(); si != seeds.end(); si++) {
 	(*si).distance = -1.0;
       }
+#if 0
       NGT::SearchContainer so(sc.object);
       ObjectDistances &rs = sc.getResult();
 
@@ -460,6 +466,10 @@ namespace NGT {
       so.size = sc.size;
       so.radius = sc.radius;
       so.explorationCoefficient = sc.explorationCoefficient;
+#else
+      NGT::SearchContainer so(sc);
+      so.getResult().clear();
+#endif
       try {
 	NeighborhoodGraph::search(so, seeds);
       } catch(Exception &err) {
@@ -820,9 +830,9 @@ namespace NGT {
       Index::Property::setDefault();
       NeighborhoodGraph::Property::setDefault();
     }
-    void setNotAvailable() {
-      Index::Property::setNotAvailable();
-      NeighborhoodGraph::Property::setNotAvailable();
+    void clear() {
+      Index::Property::clear();
+      NeighborhoodGraph::Property::clear();
     }
     void set(NGT::Property &p) {
       Index::Property::set(p);
@@ -897,6 +907,34 @@ inline void
   delete idx;
 }
 
+inline void
+  NGT::Index::createGraphAndTree(const string &database, NGT::Property &prop) {
+  if (prop.dimension == 0) {
+    NGTThrowException("Index::createGraphAndTree. Dimension is not specified.");
+  }
+  prop.indexType = NGT::Index::Property::IndexType::GraphAndTree;
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+  mkdir(database);
+  index = new NGT::GraphAndTreeIndex(database, prop);
+#else
+  index = new NGT::GraphAndTreeIndex(prop);
+#endif
+  assert(index != 0);
+}
+
+inline size_t
+  NGT::Index::insert(vector<double> &object) 
+{
+  if (getObjectSpace().getRepository().size() == 0) {
+    getObjectSpace().getRepository().initialize();
+  }
+
+  PersistentObject *o = getObjectSpace().getRepository().allocatePersistentObject(object);
+  getObjectSpace().getRepository().push_back(o);
+
+  return getObjectSpace().getRepository().size() - 1;
+}
+
 inline void 
   NGT::Index::createGraph(const string &database, NGT::Property &prop, const string &dataFile, size_t dataSize) {
   if (prop.dimension == 0) {
@@ -939,8 +977,8 @@ NGT::Index::loadAndCreateIndex(Index &index, const string &database, const strin
   timer.start();
   index.createIndex(threadSize);
   timer.stop();
-  cerr << "Index creation time=" << timer.time << " (sec) " << timer.time * 1000.0 << " (msec)" << endl;
   index.saveIndex(database);
+  cerr << "Index creation time=" << timer.time << " (sec) " << timer.time * 1000.0 << " (msec)" << endl;
 }
 
 inline void 
@@ -960,8 +998,8 @@ NGT::Index::append(const string &database, const string &dataFile, size_t thread
   timer.start();
   index.createIndex(threadSize);
   timer.stop();
-  cerr << "Index creation time=" << timer.time << " (sec) " << timer.time * 1000.0 << " (msec)" << endl;
   index.saveIndex(database);
+  cerr << "Index creation time=" << timer.time << " (sec) " << timer.time * 1000.0 << " (msec)" << endl;
   return;
 }
 

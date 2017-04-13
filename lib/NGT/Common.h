@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2016 Yahoo Japan Corporation
+// Copyright (C) 2015-2017 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -343,6 +343,7 @@ namespace NGT {
     vector<uint64_t>	bitvec;
     uint64_t		size;
   };
+
 
   class PropertySet : public map<string, string> {
   public:
@@ -1581,6 +1582,7 @@ namespace NGT {
   class Container {
   public:
     Container(Object &o, ObjectID i):object(o), id(i) {}
+    Container(Container &c):object(c.object), id(c.id) {}
     Object		&object;
     ObjectID		id;
   };
@@ -1589,6 +1591,14 @@ namespace NGT {
   public:
     SearchContainer(Object &f, ObjectID i): Container(f, i) { initialize(); }
     SearchContainer(Object &f): Container(f, 0) { initialize(); }
+    SearchContainer(SearchContainer &sc): Container(sc) { *this = sc; }
+    SearchContainer &operator=(SearchContainer &sc) {
+      size = sc.size;
+      radius = sc.radius;
+      explorationCoefficient = sc.explorationCoefficient;
+      result = sc.result;
+      return *this;
+    }
     virtual ~SearchContainer() {}
     virtual void initialize() {
       size = 10;
@@ -1608,9 +1618,11 @@ namespace NGT {
       return *result;
     }
 
+
     size_t		size;
     Distance		radius;
     float		explorationCoefficient;
+
   private:
     ObjectDistances	*result;
   };
@@ -1625,26 +1637,29 @@ namespace NGT {
   public:
   Timer():time(0) {}
 
-    void reset() { time = 0; }
+    void reset() { time = 0; ntime = 0; }
 
     void start() {
+      struct timespec res;
+      clock_getres(CLOCK_REALTIME, &res);
       reset();
-      gettimeofday(&startTime, 0);
+      clock_gettime(CLOCK_REALTIME, &startTime);
     }
 
     void restart() {
-      gettimeofday(&startTime, 0);
+      clock_gettime(CLOCK_REALTIME, &startTime);
     }
 
     void stop() {
-      gettimeofday(&stopTime, 0);
+      clock_gettime(CLOCK_REALTIME, &stopTime);
       sec = stopTime.tv_sec - startTime.tv_sec;
-      usec = stopTime.tv_usec - startTime.tv_usec;
-      if (usec < 0) {
+      nsec = stopTime.tv_nsec - startTime.tv_nsec;
+      if (nsec < 0) {
 	sec -= 1;
-	usec += 1000000;
+	nsec += 1000000000L;
       }
-      time += (double)sec + (double)usec / 1000000.0;
+      time += (double)sec + (double)nsec / 1000000000.0;
+      ntime += sec * 1000000000L + nsec;
     }
 
     friend ostream &operator<<(ostream &os, Timer &t) {
@@ -1652,12 +1667,13 @@ namespace NGT {
       return os;
     }
 
-    struct timeval startTime;
-    struct timeval stopTime;
+    struct timespec startTime;
+    struct timespec stopTime;
 
-    int		sec;
-    int		usec;
-    double	time;
+    int64_t	sec;
+    int64_t	nsec;
+    int64_t	ntime;	// nano second
+    double      time;	// second
   };
 
 } // namespace NGT

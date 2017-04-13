@@ -18,12 +18,10 @@ Command
         
 **Note:**
 
-The getopt function of the POSIX specification, all options must appear before positional arguments.
-For example, the cygwin is one of the these environments.
-In these environments, you must write command as below:
+When the environment variable POSIXLY_CORERECT is set on some platforms such as Cygwin, you should specifiy options 
+before the command as follows.
 
       $ ngt [option] command index [data]
-
 
 ### Description
 

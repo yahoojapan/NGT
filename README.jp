@@ -288,5 +288,14 @@ ngt コマンド使用例
 
    http://www.apache.org/licenses/LICENSE-2.0
 
+貢献者ライセンス同意(CLA)
+
+  本ソフトウェアへのソースコードのご提供者は以下の貢献者ライセンスに同意して頂きます。
+
+   https://gist.github.com/ydnjp/3095832f100d5c3d2592
+
+  なお、GitHub (https://github.com/yahoojapan/NGT) へのご提供の場合のみ、個別の同意書面なしに、
+  上記貢献者ライセンスに同意して頂いたと見なしますので、ご注意ください。
+
 ---
-Copyright (C) 2015-2016 Yahoo! JAPAN Research
+Copyright (C) 2015-2017 Yahoo! JAPAN Research

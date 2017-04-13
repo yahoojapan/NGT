@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2016 Yahoo Japan Corporation
+// Copyright (C) 2015-2017 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 // Begin of cmake defines
 #cmakedefine NGT_SHARED_MEMORY_ALLOCATOR	// use shared memory for indexes
 #cmakedefine NGT_GRAPH_CHECK_VECTOR		// use vector to check whether accessed
+#cmakedefine NGT_AVX_DISABLED			// not use avx to compare
 // End of cmake defines
 
 //////////////////////////////////////////////////////////////////////////

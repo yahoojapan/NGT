@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2016 Yahoo Japan Corporation
+// Copyright (C) 2015-2017 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -212,7 +212,7 @@ namespace NGT {
 	  batchSizeForCreation		= 200;
 	  graphType			= GraphTypeANNG;
 	}
-	void setNotAvailable() {
+	void clear() {
 	  truncationThreshold		= -1;
 	  edgeSizeForCreation		= -1;
 	  edgeSizeForSearch		= -1;
@@ -488,26 +488,6 @@ namespace NGT {
       bool addEdge(ObjectID target, ObjectID addID, Distance addDistance,  bool identityCheck = true) {
 	size_t minsize = 0;
 	GraphNode &node = property.truncationThreshold == 0 ? *getNode(target) : *getNode(target, minsize);
-#ifdef NGT_CHECK
-	bool found = false;
-	for (int i = 0; i < node.size(); i++) {
-	  if (node[i].id == addID) {
-	    cerr << "already existed. " << node[i].id << " " << node[i].distance << ":" << addID << " " << addDistance << endl;
-	    for (int i = 0; i < node.size(); i++) {
-	      cerr << i << " " << node[i].id << ":" << node[i].distance << endl;
-	    }
-	    found = true;
-	  }
-	}
-	for (int i = 0; i < (int)node.size() - 1; i++) {
-	  cerr << node[i].distance << ":" << node[i + 1].distance << endl;
-	  assert(node[i].distance <= node[i + 1].distance);
-	  if (node[i].id == node[i + 1].id) {
-	    cerr << "before insert: " << target << " " << node[i].id << ":" << node[i + 1].id << " " << node[i].distance << ":" << node[i + 1].distance << endl;
-	  }
-	  assert(node[i].id != node[i + 1].id);
-	}
-#endif
 	ObjectDistance obj(addID, addDistance);
 	// this seach ocuppies about 1% of total insertion time.
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
@@ -527,45 +507,11 @@ namespace NGT {
 	  return false;
 	}
 #endif
-#ifdef NGT_CHECK
-	if (found) {
-	  cerr << "Found!" << endl;
-	  cerr << target << ":" << addID << " " << addDistance << endl;
-	  cerr << (*ni).id << " " << (*ni).distance<< endl;
-	  for (int i = 0; i < node.size(); i++) {
-	    cerr << i << " " << node[i].id << ":" << node[i].distance << endl;
-	  }
-	}
-	int nodeSize = node.size();
-#endif
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
 	node.insert(ni, obj, repository.allocator);
 #else
 	node.insert(ni, obj);
 #endif
-#ifdef NGT_CHECK
-	assert(nodeSize + 1 == node.size());
-	for (int i = 0; i < (int)node.size() - 1; i++) {
-	  if (node[i].distance > node[i + 1].distance) {
-	    cerr << i << ":" << node[i].distance << "," << node[i + 1].distance << endl;
-	    cerr << node[i].id << "," << node[i + 1].id << endl;
-	  }
-	  assert(node[i].distance <= node[i + 1].distance);
-	  if (node[i].id == node[i + 1].id) {
-	    for (int i = 0; i < node.size(); i++) {
-	      cerr << i << " " << node[i].id << ":" << node[i].distance << endl;
-	    }
-	    cerr << "after insert: " << target << " " << node[i].id << ":" << node[i + 1].id << " " << node[i].distance << ":" << node[i + 1].distance << endl;
-	    cerr << (*ni).id << ":" << addID << endl;
-	    cerr << (*ni).distance << ":" << addDistance << endl;
-	    if (ni == node.end()) {
-	      cerr << "object of end" << endl;
-	    }
-	  }
-	  assert(node[i].id != node[i + 1].id);
-	}
-#endif
-
 	if ((size_t)property.truncationThreshold != 0 && node.size() - minsize > 
 	    (size_t)property.truncationThreshold) {
 	  return true;

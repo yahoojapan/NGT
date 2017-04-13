@@ -35,7 +35,7 @@ Note: Since there is no lock function, the index should be used only for referen
 License
 -------
 
-Copyright (C) 2015-2016 Yahoo Japan Corporation
+Copyright (C) 2015-2017 Yahoo Japan Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this software except in compliance with the License.
@@ -48,6 +48,13 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+Contributor License Agreement
+-----------------------------
+
+This project requires contributors to agree to a [Contributor License Agreement (CLA)](https://gist.github.com/ydnjp/3095832f100d5c3d2592).
+
+Note that only for contributions to the NGT repository on the GitHub (https://github.com/yahoojapan/NGT), the contibutors of them shall be deemed to have agreed to the CLA without individual written agreements.
 
 Publications
 ------------
@@ -63,5 +70,5 @@ Publications
 ##### ANNG
 - Iwasaki, M.: Proximity search in metric spaces using approximate k nearest neigh-bor graph (in Japanese). IPSJ Trans. on Database 3(1) (2010) 18-28. ([pdf](http://i.yimg.jp/i/docs/research_lab/articles/miwasaki-ipsj-tod-2010.pdf))
 
-Copyright &copy; 2015-2016 Yahoo Japan Corporation All Rights Reserved.
+Copyright &copy; 2015-2076 Yahoo Japan Corporation All Rights Reserved.
 
