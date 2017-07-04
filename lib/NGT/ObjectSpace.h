@@ -116,6 +116,9 @@ namespace NGT {
 
     void moveFrom(priority_queue<ObjectDistance, vector<ObjectDistance>, less<ObjectDistance> > &pq, unsigned int id) {
       this->clear();
+      if (pq.size() == 0) {
+	return;
+      }
       this->resize(pq.size() - 1);
       for (int i = this->size() - 1; i >= 0;) {
 	if (pq.top().id != id) {
@@ -219,7 +222,7 @@ namespace NGT {
     virtual PersistentObject *allocatePersistentObject(Object &obj) = 0;
     virtual void deleteObject(PersistentObject *) = 0;
     virtual void copy(PersistentObject &objecta, PersistentObject &objectb) = 0;
-    virtual void show(PersistentObject &object) = 0;
+    virtual void show(ostream &os, PersistentObject &object) = 0;
     virtual size_t insert(PersistentObject *obj) = 0;
 #else
     virtual size_t insert(Object *obj) = 0;
@@ -239,7 +242,7 @@ namespace NGT {
 			      ObjectSpace::ResultSet &results) = 0;
 
     virtual const std::type_info &getObjectType() = 0;
-    virtual void show(Object &object) = 0;
+    virtual void show(ostream &os, Object &object) = 0;
     virtual size_t getSize() = 0;
     virtual size_t getSizeOfElement() = 0;
     virtual size_t getByteSizeOfObject() = 0;
@@ -344,7 +347,10 @@ namespace NGT {
 
     virtual ~Object() { clear(); }
 
-    uint8_t &operator[](size_t idx) const { return ((uint8_t*)vector)[idx]; }
+    //uint8_t &operator[](size_t idx) const { return ((uint8_t*)vector)[idx]; }
+    uint8_t &operator[](size_t idx) const { return vector[idx]; }
+
+    void *getPointer(size_t idx = 0) const { return vector + idx; }
 
     static Object *allocate(ObjectSpace &objectspace) { return new Object(&objectspace); }
   private:
@@ -377,7 +383,7 @@ namespace NGT {
       construct(s, allocator);
     }
 
-    virtual ~PersistentObject() {}
+    ~PersistentObject() {}
 
     uint8_t &at(size_t idx, SharedMemoryAllocator &allocator) const { 
       uint8_t *a = (uint8_t *)allocator.getAddr(array);
@@ -388,6 +394,11 @@ namespace NGT {
       assert(0);
       uint8_t *a = 0;
       return a[idx];
+    }
+
+    void *getPointer(size_t idx, SharedMemoryAllocator &allocator) {
+      uint8_t *a = (uint8_t *)allocator.getAddr(array);
+      return a + idx; 
     }
 
     // set v in objectspace to this object using allocator.
@@ -781,18 +792,26 @@ namespace NGT {
    }
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-      void open(const string &f, size_t sharedMemorySize) { ObjectRepository::open(f, sharedMemorySize); };
-    void copy(PersistentObject &objecta, PersistentObject &objectb) {
-      objecta = objectb;
+    void open(const string &f, size_t sharedMemorySize) { ObjectRepository::open(f, sharedMemorySize); }
+    void copy(PersistentObject &objecta, PersistentObject &objectb) { objecta = objectb; }
+
+    void show(ostream &os, PersistentObject &object) {
+      const std::type_info &t = getObjectType();
+      if (t == typeid(uint8_t)) {
+	unsigned char *optr = static_cast<unsigned char*>(&object.at(0,allocator));
+	for (size_t i = 0; i < getDimension(); i++) {
+	  os << (int)optr[i] << " ";
+	}
+      } else if (t == typeid(float)) {
+	float *optr = reinterpret_cast<float*>(&object.at(0,allocator));
+	for (size_t i = 0; i < getDimension(); i++) {
+	  os << optr[i] << " ";
+	}
+      } else {
+	os << " not implement for the type.";
+      }
     }
 
-    void show(PersistentObject &object) {
-      cerr << "PersistentObject ";
-      for (size_t i = 0; i < getByteSizeOfObject(); i++) {
-	cerr << (float)object[i] << " ";
-      }
-      cerr << endl;
-    }
     Object *allocateObject(Object &o) { 
       Object *po = new Object(getByteSizeOfObject());
       for (size_t i = 0; i < getByteSizeOfObject(); i++) {
@@ -1153,12 +1172,21 @@ namespace NGT {
 
     ObjectRepository &getRepository() { return *this; };
 
-    void show(Object &object) {
-      cerr << "Object ";
-      for (size_t i = 0; i < getByteSizeOfObject(); i++) {
-	cerr << (float)object[i] << " ";
+    void show(ostream &os, Object &object) {
+      const std::type_info &t = getObjectType();
+      if (t == typeid(uint8_t)) {
+	unsigned char *optr = static_cast<unsigned char*>(&object[0]);
+	for (size_t i = 0; i < getDimension(); i++) {
+	  os << (int)optr[i] << " ";
+	}
+      } else if (t == typeid(float)) {
+	float *optr = reinterpret_cast<float*>(&object[0]);
+	for (size_t i = 0; i < getDimension(); i++) {
+	  os << optr[i] << " ";
+	}
+      } else {
+	os << " not implement for the type.";
       }
-      cerr << endl;
     }
   };
 

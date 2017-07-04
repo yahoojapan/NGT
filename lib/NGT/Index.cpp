@@ -26,7 +26,7 @@ using namespace NGT;
 class CreateIndexJob {
 public:
   CreateIndexJob() {}
-  CreateIndexJob &operator=(CreateIndexJob &d) {
+  CreateIndexJob &operator=(const CreateIndexJob &d) {
     id = d.id;
     results = d.results;
     object = d.object;
@@ -75,7 +75,7 @@ CreateIndexThread::run() {
     ObjectDistances *rs = new ObjectDistances;
     Object &obj = *job.object;
     if (graphIndex.NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeKNNG) {
-      graphIndex.searchForKNNGInsertion(obj, job.id, *rs);
+      graphIndex.searchForKNNGInsertion(obj, job.id, *rs);	// linear search
     } else {
       graphIndex.searchForNNGInsertion(obj, *rs);
     }

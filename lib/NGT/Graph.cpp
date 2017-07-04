@@ -227,7 +227,6 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 
   void
   NeighborhoodGraph::removeEdgesReliably(ObjectID id) {
-    cerr << "Graph::removeEdgesReliably" << endl;
     GraphNode *nodetmp = 0;
     try {
       nodetmp = getNode(id);

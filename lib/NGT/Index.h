@@ -228,7 +228,13 @@ namespace NGT {
 	index = 0;
       } 
     }
-    static void mkdir(const string &dir) { ::mkdir(dir.c_str(), S_IRWXU | S_IRGRP | S_IXGRP |  S_IROTH | S_IXOTH); }
+    static void mkdir(const string &dir) { 
+      if (::mkdir(dir.c_str(), S_IRWXU | S_IRGRP | S_IXGRP |  S_IROTH | S_IXOTH) != 0) {
+	stringstream msg;
+	msg << "NGT::Index::mkdir: Cannot make the specified directory. " << dir;
+	NGTThrowException(msg);	
+      }
+    }
     static void createGraphAndTree(const string &database, NGT::Property &prop, const string &dataFile, size_t dataSize = 0);
     void createGraphAndTree(const string &database, NGT::Property &prop);
     size_t insert(vector<double> &object) ;
@@ -303,10 +309,7 @@ namespace NGT {
 #endif // NGT_SHARED_MEMORY_ALLOCATOR
 
     virtual ~GraphIndex() {
-      if (objectSpace != 0) {
-	destructObjectSpace();
-	objectSpace = 0;
-      }
+      destructObjectSpace();
     }
     void constructObjectSpace(NGT::Property &prop);
 
@@ -320,17 +323,17 @@ namespace NGT {
 	os->deleteAll();
 #endif
 	delete os;
-	os = 0;
       } else if (property.objectType == NGT::Index::Property::ObjectType::Uint8) {
 	ObjectSpaceT<unsigned char, int> *os = (ObjectSpaceT<unsigned char, int>*)objectSpace;
 #ifndef NGT_SHARED_MEMORY_ALLOCATOR
 	os->deleteAll();
 #endif
 	delete os;
-	os = 0;
       } else {
 	cerr << "Cannot find Object Type in the property. " << property.objectType << endl;
+	return;
       }
+      objectSpace = 0;
     }
 
     virtual void load(const string &ifile, size_t dataSize = 0) {
@@ -1119,9 +1122,6 @@ NGT::Index::Property::get(NGT::Property &prop) {
 
 inline void 
 NGT::GraphIndex::loadIndex(const string &ifile) {
-  NGT::Property prop;
-  prop.load(ifile);
-  constructObjectSpace(prop);
   objectSpace->deserialize(ifile + "/obj");
   ifstream isg(ifile + "/grp");
   repository.deserialize(isg);

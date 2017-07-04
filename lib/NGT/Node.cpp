@@ -174,14 +174,31 @@ LeafNode::splitObjects(Container &c, Objects &fs, int pv)
 
   if (cid != 0) {
     stringstream msg;
-    msg << "LeafNode::splitObjects: Too many same distances. Reduce internal children size! ";
-    msg << "childrenSize=" << childrenSize << endl;
-    msg << "Show distances for debug." << endl;
-    msg << "Size=" << fsize << endl;
+    msg << "LeafNode::splitObjects: Too many same distances. Reduce internal children size for the tree index or not use the tree index." << endl;
+    msg << "  internalChildrenSize=" << childrenSize << endl;
+    msg << "  # of the children=" << (childrenSize - cid) << endl;
+    msg << "  Size=" << fsize << endl;
+    msg << "  pivot=" << pv << endl;
+    msg << "  cluster id=" << cid << endl;
+    msg << "  Show distances for debug." << endl;
     for (int i = 0; i < fsize; i++) {
-      msg << fs[i].id << ":" << fs[i].distance << endl;
+      msg << "  " << fs[i].id << ":" << fs[i].distance << endl;
+      msg << "  ";
+      PersistentObject &po = *fs[i].object;
+      iobj.vptree->objectSpace->show(msg, po);
+      msg << endl;
     }
-    NGTThrowException(msg.str());
+    if (fs[fsize - 1].clusterID == cid) {
+      msg << "LeafNode::splitObjects: All of the object distances are the same!" << endl;;
+      NGTThrowException(msg.str());
+    } else {
+      cerr << msg.str() << endl;
+      cerr << "LeafNode::splitObjects: Anyway, continue..." << endl;
+      // sift the cluster IDS to start from 0.
+      for (int i = 0; i < fsize; i++) {
+	fs[i].clusterID -= cid;
+      }
+    }
   }
 
   long long	*pivots = new long long[childrenSize];
@@ -189,7 +206,7 @@ LeafNode::splitObjects(Container &c, Objects &fs, int pv)
     pivots[i] = -1;
   }
 
-
+  // find the boundaries for the subspaces
   for (int i = 0; i < fsize; i++) {
     if (pivots[fs[i].clusterID] == -1) {
       pivots[fs[i].clusterID] = i;

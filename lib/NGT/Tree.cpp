@@ -113,7 +113,9 @@ DVPTree::split(InsertContainer &iobj, LeafNode &leaf)
     pv = LeafNode::selectPivotByMaxDistance(iobj, *fs);
     break;
   }
+
   LeafNode::splitObjects(iobj, *fs, pv);
+
   Node::ID nid = recombineNodes(iobj, *fs, leaf);
   delete fs;
 
@@ -188,8 +190,12 @@ DVPTree::recombineNodes(InsertContainer &ic, Node::Objects &fs, LeafNode &leaf)
       NGTThrowException("recombineNodes: internal error : illegal pivot.");
     }
     ln[cid]->parent = inid;
+    int maxClusterID = cid;
     for (int i = 1; i < fsize; i++) {
       int clusterID = fs[i].clusterID;
+      if (clusterID > maxClusterID) {
+	maxClusterID = clusterID;
+      }
       Distance ld;
       if (fs[i].leafDistance == Node::Object::Pivot) {
         // pivot
@@ -226,6 +232,25 @@ DVPTree::recombineNodes(InsertContainer &ic, Node::Objects &fs, LeafNode &leaf)
         cid = fs[i].clusterID;
       }
     }
+    // When the number of the children is less than the expected,
+    // proper values are set to the empty children.
+    for (size_t i = maxClusterID + 1; i < internalChildrenSize; i++) {
+      ln[i]->parent = inid;
+      // dummy
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+      ln[i]->setPivot(*getObjectRepository().get(fs[0].id), *objectSpace, leafNodes.allocator);
+#else
+      ln[i]->setPivot(*getObjectRepository().get(fs[0].id), *objectSpace);
+#endif
+      if (i < (internalChildrenSize - 1)) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	in->getBorders(internalNodes.allocator)[i] = FLT_MAX;
+#else
+	in->getBorders()[i] = FLT_MAX;
+#endif
+      }
+    }
+
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
     in->getChildren(internalNodes.allocator)[0] = targetId;
 #else

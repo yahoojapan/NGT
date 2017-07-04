@@ -10,7 +10,7 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 #### Downloads
 
 - [Source code](https://github.com/yahoojapan/NGT/)
-- [Experimental software](https://s.yimg.jp/dl/docs/research_lab/ngt-experimental-1.0.zip) : This software was used in our [ACL 2016](http://acl2016.org/) [paper](https://aclweb.org/anthology/P/P16/P16-1214.pdf).
+- [Releases](https://github.com/yahoojapan/NGT/releases)
 
 Build
 -----------------
@@ -30,7 +30,7 @@ The index can be placed in shared memory. Using shared memory can reduce the amo
 
       $ cmake -DNGT_SHARED_MEMORY_ALLOCATOR=ON ..
 
-Note: Since there is no lock function, the index should be used only for reference when multiple processes are using the same index,
+Note: Since there is no lock function, the index should be used only for reference when multiple processes are using the same index.
 
 License
 -------
@@ -70,5 +70,5 @@ Publications
 ##### ANNG
 - Iwasaki, M.: Proximity search in metric spaces using approximate k nearest neigh-bor graph (in Japanese). IPSJ Trans. on Database 3(1) (2010) 18-28. ([pdf](http://i.yimg.jp/i/docs/research_lab/articles/miwasaki-ipsj-tod-2010.pdf))
 
-Copyright &copy; 2015-2076 Yahoo Japan Corporation All Rights Reserved.
+Copyright &copy; 2015-2017 Yahoo Japan Corporation All Rights Reserved.
 

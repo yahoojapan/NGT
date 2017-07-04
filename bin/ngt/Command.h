@@ -885,7 +885,7 @@ public:
   void
   info(Args &args)
   {
-    const string usage = "Usage: ngt info [-E #-of edges] [-g virtually-created-graph-type] [-m h|e] index";
+    const string usage = "Usage: ngt info [-E #-of-edges] [-m h|e] index";
 
     string database;
     try {

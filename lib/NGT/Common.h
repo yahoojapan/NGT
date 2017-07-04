@@ -355,13 +355,9 @@ namespace NGT {
 	(*it).second = value;
       }
     }
-    void set(const string &key, size_t value) { set(key, (long long) value); }
-    void set(const string &key, int16_t value) { set(key, (long long) value); }
-    void set(const string &key, long value) { set(key, (long long) value); }
-    void set(const string &key, int value) { set(key, (long long) value); }
-
-    void set(const string &key, long long value) {
+    template <class VALUE_TYPE> void set(const string &key, VALUE_TYPE value) {
       stringstream vstr;
+      //vstr << setprecision(8) << value;
       vstr << value;
       iterator it = find(key);
       if (it == end()) {
@@ -370,16 +366,7 @@ namespace NGT {
 	(*it).second = vstr.str();
       }
     }
-    void set(const string &key, double value) {
-      stringstream vstr;
-      vstr << setprecision(8) << value;
-      iterator it = find(key);
-      if (it == end()) {
-	insert(pair<string, string>(key, vstr.str()));
-      } else {
-	(*it).second = vstr.str();
-      }
-    }
+
     string get(const string &key) {
       iterator it = find(key);
       if (it != end()) {
@@ -924,6 +911,7 @@ namespace NGT {
     void removedListPush(size_t id) {
       if (removedList->size() == 0) {
 	removedList->push_back(id, allocator);
+	return;
       }
       Vector<size_t>::iterator rmi
 	= std::lower_bound(removedList->begin(allocator), removedList->end(allocator), id, greater<size_t>());

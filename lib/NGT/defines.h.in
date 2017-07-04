@@ -28,9 +28,13 @@
 #define		NGT_CREATION_EDGE_SIZE			10
 #define		NGT_EXPLORATION_COEFFICIENT		1.1
 #define		NGT_INSERTION_EXPLORATION_COEFFICIENT	1.1
-#define		NGT_FORCED_REMOVE
 #define		NGT_SHARED_MEMORY_MAX_SIZE		1024	// MB
+#define		NGT_FORCED_REMOVE		// When errors occurs due to the index inconsistency, ignore them.
 
-#define		NGT_GRAPH_CHECK_VECTOR		// use vector to check whether nodes were accessed.
+
+#define		NGT_COMPACT_VECTOR
 #define		NGT_GRAPH_CHECK_BOOLEANSET	// use original booleanset to check whether nodes were accessed.
+#if defined(NGT_GRAPH_CHECK_BOOLEANSET) || defined(NGT_GRAPH_CHECK_BITSET)
+#define		NGT_GRAPH_CHECK_VECTOR		// use vector to check whether nodes were accessed.
+#endif
 
