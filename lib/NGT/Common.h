@@ -1027,6 +1027,11 @@ namespace NGT {
 	case '-':
 	  {
 	    (*this).push_back((TYPE*)0);
+#ifdef ADVANCED_USE_REMOVED_LIST
+	    if (i != 0) {
+	      removedListPush(i);
+	    }
+#endif
 	  }
 	  break;
 	case '+':
@@ -1095,6 +1100,11 @@ namespace NGT {
 	case '-':
 	  {
 	    (*this).push_back((TYPE*)0);
+#ifdef ADVANCED_USE_REMOVED_LIST
+	    if (i != 0) {
+	      removedListPush(i);
+	    }
+#endif
 	  }
 	  break;
 	case '+':
@@ -1125,6 +1135,9 @@ namespace NGT {
 	}
       }
       array->clear(allocator);
+#ifdef ADVANCED_USE_REMOVED_LIST
+      while (!removedList->empty()) { removedListPop(); }
+#endif
     }
 
     void set(size_t idx, TYPE *n) {
@@ -1154,6 +1167,7 @@ namespace NGT {
     SharedMemoryAllocator allocator;
 
 #ifdef ADVANCED_USE_REMOVED_LIST
+    size_t count() { return size() == 0 ? 0 : size() - removedList->size() - 1; }
   protected:
     Vector<size_t>	*removedList;
 #endif
@@ -1452,6 +1466,11 @@ namespace NGT {
 	case '-':
 	  {
 	    vector<TYPE*>::push_back(0);
+#ifdef ADVANCED_USE_REMOVED_LIST
+	    if (i != 0) {
+	      removedList.push(i);
+	    }
+#endif
 	  }
 	  break;
 	case '+':
@@ -1521,6 +1540,11 @@ namespace NGT {
 	case '-':
 	  {
 	    vector<TYPE*>::push_back(0);
+#ifdef ADVANCED_USE_REMOVED_LIST
+	    if (i != 0) {
+	      removedList.push(i);
+	    }
+#endif
 	  }
 	  break;
 	case '+':
@@ -1549,9 +1573,13 @@ namespace NGT {
       for (size_t i = 0; i < this->size(); i++) {
 	if ((*this)[i] != 0) {
 	  delete (*this)[i];
+	  (*this)[i] = 0;
 	}
       }
       this->clear();
+#ifdef ADVANCED_USE_REMOVED_LIST
+      while(!removedList.empty()){ removedList.pop(); };
+#endif
     }
 
     void set(size_t idx, TYPE *n) {
@@ -1559,6 +1587,7 @@ namespace NGT {
     }
 
 #ifdef ADVANCED_USE_REMOVED_LIST
+    size_t count() { return vector<TYPE*>::size() == 0 ? 0 : vector<TYPE*>::size() - removedList.size() - 1; }
   protected:
     priority_queue<size_t, vector<size_t>, greater<size_t> >	removedList;
 #endif
@@ -1585,6 +1614,8 @@ namespace NGT {
       radius = sc.radius;
       explorationCoefficient = sc.explorationCoefficient;
       result = sc.result;
+      distanceComputationCount = sc.distanceComputationCount;
+      edgeSize = sc.edgeSize;
       return *this;
     }
     virtual ~SearchContainer() {}
@@ -1593,11 +1624,13 @@ namespace NGT {
       radius = FLT_MAX;
       explorationCoefficient = 1.1;
       result = 0;
+      edgeSize = -1;	// dynamically prune the edges during search. -1 means following the index property. 0 means using all edges.
     }
     void setSize(size_t s) { size = s; };
     void setResults(ObjectDistances *r) { result = r; }
     void setRadius(Distance r) { radius = r; }
     void setEpsilon(float e) { explorationCoefficient = e + 1.0; }
+    void setEdgeSize(int e) { edgeSize = e; }
 
     ObjectDistances &getResult() {
       if (result == 0) {
@@ -1610,6 +1643,8 @@ namespace NGT {
     size_t		size;
     Distance		radius;
     float		explorationCoefficient;
+    int			edgeSize;
+    size_t		distanceComputationCount;
 
   private:
     ObjectDistances	*result;

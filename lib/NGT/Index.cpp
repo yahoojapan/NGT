@@ -30,11 +30,14 @@ public:
     id = d.id;
     results = d.results;
     object = d.object;
+    batchIdx = d.batchIdx;
     return *this;
   }
+  friend bool operator<(const CreateIndexJob &ja, const CreateIndexJob &jb) { return ja.batchIdx < jb.batchIdx; }
   NGT::ObjectID		id;
   NGT::Object		*object;	// this will be a node of the graph later.
   NGT::ObjectDistances	*results;
+  size_t		batchIdx;
 };
 
 class CreateIndexSharedData {
@@ -154,6 +157,7 @@ searchMultipleQueryForCreation(GraphIndex &neighborhoodGraph,
 #else
     job.object = repo[id];
 #endif
+    job.batchIdx = cnt;
     threads.pushInputQueue(job);
     cnt++;
     if (cnt >= (size_t)neighborhoodGraph.NeighborhoodGraph::property.batchSizeForCreation) {
@@ -175,55 +179,41 @@ insertMultipleSearchResults(GraphIndex &neighborhoodGraph,
     // This processing occupies about 30% of total indexing time when batch size is 200.
     // Only initial batch objects should be connected for each other.
     // The number of nodes in the graph is checked to know whether the batch is initial.
+    //size_t size = NeighborhoodGraph::property.edgeSizeForCreation;
     size_t size = neighborhoodGraph.NeighborhoodGraph::property.edgeSizeForCreation;
-    vector<Distance> distances;
-    distances.reserve(dataSize * dataSize);
-    for (size_t i = 0; i < dataSize; i++) {
-      for (size_t j = 0; j < dataSize; j++) {
-	Distance d;
-	if (i == j) {
-	  d = 0;
-	  distances.push_back(d);
-	  continue;
-	} else if (i > j) {
-	  d = distances[j * dataSize + i];
-	  distances.push_back(d);
-	  continue;
-	} else {
-	  d = neighborhoodGraph.objectSpace->getComparator()(*output[i].object, *output[j].object);
-	  distances.push_back(d);
-	}
-      }
-    }
     // add distances from a current object to subsequence objects to imitate of sequential insertion.
-    for (size_t i = 0; i < dataSize; i++) {
-      for (size_t j = i + 1; j < dataSize; j++) {
+
+    sort(output.begin(), output.end());	// sort by batchIdx
+
+    for (size_t idxi = 0; idxi < dataSize; idxi++) {
+      // add distances
+      ObjectDistances &objs = *output[idxi].results;
+      for (size_t idxj = 0; idxj < idxi; idxj++) {
 	ObjectDistance	r;
-	r.distance = distances[i * dataSize + j];
-	r.id = output[i].id;
-	output[j].results->push_back(r);
+	r.distance = neighborhoodGraph.objectSpace->getComparator()(*output[idxi].object, *output[idxj].object);
+	r.id = output[idxj].id;
+	objs.push_back(r);
       }
-    }
-    // sort and cut excess edges
-    for (size_t i = 0; i < dataSize; i++) {
-      ObjectDistances &objs = *output[i].results;
+      // sort and cut excess edges	    
       std::sort(objs.begin(), objs.end());
       if (objs.size() > size) {
 	objs.resize(size);
       }
-    }
+    } // for (size_t idxi ....
   } // if (neighborhoodGraph.graphType == NeighborhoodGraph::GraphTypeUDNNG)
   // insert resultant objects into the graph as edges
   for (size_t i = 0; i < dataSize; i++) {
-    CreateIndexJob &gr = output.front();
-#ifdef NGT_SHARED_MEMORY_ALLOCATOR
-    neighborhoodGraph.objectSpace->deleteObject(gr.object);
-#endif
+    CreateIndexJob &gr = output[i];
     if ((*gr.results).size() == 0) {
     }
+    if (static_cast<int>(gr.id) > neighborhoodGraph.NeighborhoodGraph::property.edgeSizeForCreation &&
+	static_cast<int>(gr.results->size()) < neighborhoodGraph.NeighborhoodGraph::property.edgeSizeForCreation) {
+      cerr << "CreateIndex: The specified number of edges could not be acquired, because the pruned parameter [-S] might be set." << endl;
+      cerr << "  The node id=" << gr.id << endl;
+      cerr << "  The number of edges for the node=" << gr.results->size() << endl;
+      cerr << "  The pruned parameter (edgeSizeForSearch [-S])=" << neighborhoodGraph.NeighborhoodGraph::property.edgeSizeForSearch << endl;
+    }
     neighborhoodGraph.insertNode(gr.id, *gr.results);
-    delete gr.results;
-    output.pop_front();
   }
 }
 
@@ -261,6 +251,15 @@ GraphIndex::createIndex(size_t threadPoolSize)
 	}
 	// insertion
 	insertMultipleSearchResults(*this, output, cnt);
+
+	while (!output.empty()) {
+	  delete output.front().results;
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	  GraphIndex::objectSpace->deleteObject(output.front().object);
+#endif
+	  output.pop_front();
+	}
+
 	count += cnt;
 	if (timerCount <= count) {
 	  timer.stop();
@@ -312,6 +311,8 @@ GraphAndTreeIndex::createIndex(size_t threadPoolSize)
 	  cnt = output.size();
 	}
 
+	insertMultipleSearchResults(*this, output, cnt);
+
 	for (size_t i = 0; i < cnt; i++) {
 	  CreateIndexJob &job = output[i];
 	  if (((job.results->size() > 0) && ((*job.results)[0].distance != 0.0)) ||
@@ -340,7 +341,14 @@ GraphAndTreeIndex::createIndex(size_t threadPoolSize)
 	    }
 	  }
 	} // for
-	insertMultipleSearchResults(*this, output, cnt);
+
+	while (!output.empty()) {
+	  delete output.front().results;
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	  GraphIndex::objectSpace->deleteObject(output.front().object);
+#endif
+	  output.pop_front();
+	}
 
 	count += cnt;
 	if (timerCount <= count) {

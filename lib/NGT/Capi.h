@@ -20,7 +20,9 @@
 extern "C" {
 #endif
 
+#include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef unsigned int ObjectID;
 typedef void* NGTIndex;
@@ -40,55 +42,57 @@ NGTIndex ngt_create_graph_and_tree(const char *, NGTProperty, NGTError);
 
 NGTProperty ngt_create_property(NGTError);
 
-int ngt_save_index(const NGTIndex, const char *, NGTError);
+bool ngt_save_index(const NGTIndex, const char *, NGTError);
 
-int ngt_get_property(const NGTIndex, NGTProperty, NGTError);
+bool ngt_get_property(const NGTIndex, NGTProperty, NGTError);
 
-int ngt_get_property_dimension(NGTProperty, NGTError);
+int32_t ngt_get_property_dimension(NGTProperty, NGTError);
 
-int ngt_set_property_dimension(NGTProperty, int, NGTError);
+bool ngt_set_property_dimension(NGTProperty, int32_t, NGTError);
 
-int ngt_set_property_edge_size_for_creation(NGTProperty, int, NGTError);
+bool ngt_set_property_edge_size_for_creation(NGTProperty, int16_t, NGTError);
 
-int ngt_set_property_edge_size_for_search(NGTProperty, int, NGTError);
+bool ngt_set_property_edge_size_for_search(NGTProperty, int16_t, NGTError);
 
-int ngt_get_property_object_type(NGTProperty, NGTError);
+int32_t ngt_get_property_object_type(NGTProperty, NGTError);
 
-int ngt_is_property_object_type_float(int);
+bool ngt_is_property_object_type_float(int32_t);
 
-int ngt_is_property_object_type_integer(int);
+bool ngt_is_property_object_type_integer(int32_t);
 
-int ngt_set_property_object_type_float(NGTProperty, NGTError);
+bool ngt_set_property_object_type_float(NGTProperty, NGTError);
 
-int ngt_set_property_object_type_integer(NGTProperty, NGTError);
+bool ngt_set_property_object_type_integer(NGTProperty, NGTError);
 
-int ngt_set_property_distance_type_l1(NGTProperty, NGTError);
+bool ngt_set_property_distance_type_l1(NGTProperty, NGTError);
 
-int ngt_set_property_distance_type_l2(NGTProperty, NGTError);
+bool ngt_set_property_distance_type_l2(NGTProperty, NGTError);
 
-int ngt_set_property_distance_type_angle(NGTProperty, NGTError);
+bool ngt_set_property_distance_type_angle(NGTProperty, NGTError);
 
-int ngt_set_property_distance_type_hamming(NGTProperty, NGTError);
+bool ngt_set_property_distance_type_hamming(NGTProperty, NGTError);
 
 NGTObjectDistances ngt_create_empty_results(NGTError);
 
-int ngt_search_index(NGTIndex, double*, int, int, float, NGTObjectDistances, NGTError);
+bool ngt_search_index(NGTIndex, double*, int32_t, size_t, float, NGTObjectDistances, NGTError);
 
-int ngt_get_size(NGTObjectDistances, NGTError);
+int32_t ngt_get_size(NGTObjectDistances, NGTError); // deprecated
+  
+uint32_t ngt_get_result_size(NGTObjectDistances, NGTError); 
 
-NGTObjectDistance ngt_get_result(const NGTObjectDistances, const int, NGTError);
+NGTObjectDistance ngt_get_result(const NGTObjectDistances, const uint32_t, NGTError);
 
-ObjectID ngt_insert_index(NGTIndex, double*, int, NGTError);
+ObjectID ngt_insert_index(NGTIndex, double*, uint32_t, NGTError);
 
-int ngt_create_index(NGTIndex, int, NGTError);
+bool ngt_create_index(NGTIndex, uint32_t, NGTError);
 
-int ngt_remove_index(NGTIndex, ObjectID, NGTError);
+bool ngt_remove_index(NGTIndex, ObjectID, NGTError);
 
 NGTObjectSpace ngt_get_object_space(NGTIndex, NGTError);
 
-float* ngt_get_object_as_float(NGTObjectSpace, int, NGTError);
+float* ngt_get_object_as_float(NGTObjectSpace, ObjectID, NGTError);
 
-uint8_t* ngt_get_object_as_integer(NGTObjectSpace, int, NGTError);
+uint8_t* ngt_get_object_as_integer(NGTObjectSpace, ObjectID, NGTError);
 
 void ngt_destroy_results(NGTObjectDistances);
 
@@ -96,11 +100,11 @@ void ngt_destroy_property(NGTProperty);
 
 void ngt_close_index(NGTIndex);
 
-int ngt_get_property_edge_size_for_creation(NGTProperty, NGTError);
+int16_t ngt_get_property_edge_size_for_creation(NGTProperty, NGTError);
 
-int ngt_get_property_edge_size_for_search(NGTProperty, NGTError);
+int16_t ngt_get_property_edge_size_for_search(NGTProperty, NGTError);
 
-int ngt_get_property_distance_type(NGTProperty, NGTError);
+int32_t ngt_get_property_distance_type(NGTProperty, NGTError);
 
 NGTError ngt_create_error_object();
 

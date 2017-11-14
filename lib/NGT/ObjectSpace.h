@@ -112,6 +112,7 @@ namespace NGT {
 	(*this)[i] = pq.top();
 	pq.pop();
       }
+      assert(pq.size() == 0);
     }
 
     void moveFrom(priority_queue<ObjectDistance, vector<ObjectDistance>, less<ObjectDistance> > &pq, unsigned int id) {
@@ -119,13 +120,18 @@ namespace NGT {
       if (pq.size() == 0) {
 	return;
       }
-      this->resize(pq.size() - 1);
-      for (int i = this->size() - 1; i >= 0;) {
+      this->resize(id == 0 ? pq.size() : pq.size() - 1);
+      int i = this->size() - 1;
+      while (pq.size() != 0 && i >= 0) {
 	if (pq.top().id != id) {
 	  (*this)[i] = pq.top();
 	  i--;
 	}
 	pq.pop();
+      }
+      if (pq.size() != 0 && pq.top().id != id) {
+	cerr << "moveFrom: Fatal error: somethig wrong! " << pq.size() << ":" << this->size() << ":" << id << ":" << pq.top().id << endl;
+	assert(pq.size() == 0 || pq.top().id == id);
       }
     }
 
@@ -234,7 +240,7 @@ namespace NGT {
     virtual void deserialize(const string &ifile) = 0;
     virtual void serializeAsText(const string &of) = 0;
     virtual void deserializeAsText(const string &of) = 0;
-    virtual void readText(ifstream &is, size_t dataSize) = 0;
+    virtual void readText(istream &is, size_t dataSize) = 0;
     virtual void appendText(ifstream &is, size_t dataSize) = 0;
     virtual void copy(Object &objecta, Object &objectb) = 0;
 
@@ -347,7 +353,6 @@ namespace NGT {
 
     virtual ~Object() { clear(); }
 
-    //uint8_t &operator[](size_t idx) const { return ((uint8_t*)vector)[idx]; }
     uint8_t &operator[](size_t idx) const { return vector[idx]; }
 
     void *getPointer(size_t idx = 0) const { return vector + idx; }
@@ -502,15 +507,12 @@ namespace NGT {
       Parent::deserializeAsText(objs, ospace); 
     }
 
-    void readText(ifstream &is, size_t dataSize = 0) {
+    void readText(istream &is, size_t dataSize = 0) {
       initialize();
       appendText(is, dataSize);
     }
 
-    void appendText(ifstream &is, size_t dataSize = 0) {
-      if (!is.is_open()) {
-	NGTThrowException("ObjectSpace::readText: Cannot open the specified file.");
-      }
+    void appendText(istream &is, size_t dataSize = 0) {
       if (dimension == 0) {
 	NGTThrowException("ObjectSpace::readText: Dimension is not specified.");
       }
@@ -1100,7 +1102,7 @@ namespace NGT {
     void deserialize(const string &ifile) { ObjectRepository::deserialize(ifile, this); }
     void serializeAsText(const string &ofile) { ObjectRepository::serializeAsText(ofile, this); }
     void deserializeAsText(const string &ifile) { ObjectRepository::deserializeAsText(ifile, this); }
-    void readText(ifstream &is, size_t dataSize) { ObjectRepository::readText(is, dataSize); }
+    void readText(istream &is, size_t dataSize) { ObjectRepository::readText(is, dataSize); }
     void appendText(ifstream &is, size_t dataSize) { ObjectRepository::appendText(is, dataSize); }
     
 

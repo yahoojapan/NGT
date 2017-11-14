@@ -7,7 +7,6 @@ if( ${UNIX} )
 	add_dependencies(ngt_exe ngt)
         set_target_properties(ngt_exe PROPERTIES OUTPUT_NAME ngt) 
 	target_link_libraries(ngt_exe ngt pthread)
-
 	install(TARGETS ngt_exe RUNTIME DESTINATION bin)
 
 endif()

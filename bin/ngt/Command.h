@@ -13,16 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#pragma once
 
 #include	"NGT/Index.h"
 
 
 namespace NGT {
-
-static float roundFloat(float f, int digit)
-{
-  return roundf(f * pow(10.0, digit)) / pow(10.0, digit);
-}
 
 class Args : public map<string, string>
 {
@@ -293,7 +289,7 @@ public:
       // edgeSize
       // -1 : using the size which was specified at the index creation.
       //  0 : no limitation for the edge size.
-      edgeSize		= args.getl("E", -1);
+      edgeSize	= args.getl("E", -1);
       outputMode	= args.getString("o", "-");
       radius		= args.getf("r", FLT_MAX);
       trial		= args.getl("t", 1);
@@ -316,9 +312,9 @@ public:
     long	edgeSize;
     string	outputMode;
     float	radius;
-    double	beginOfEpsilon;
-    double	endOfEpsilon;
-    double	stepOfEpsilon;
+    float	beginOfEpsilon;
+    float	endOfEpsilon;
+    float	stepOfEpsilon;
     size_t	step;
     size_t	trial;
   };
@@ -347,6 +343,7 @@ public:
       queryCount++;
       size_t step = searchParameter.step == 0 ? UINT_MAX : searchParameter.step;
       for (size_t n = 0; n <= step; n++) {
+	NGT::SearchContainer sc(*object);
 	double epsilon;
 	if (searchParameter.step != 0) {
 	  epsilon = searchParameter.beginOfEpsilon + (searchParameter.endOfEpsilon - searchParameter.beginOfEpsilon) * n / step; 
@@ -356,13 +353,12 @@ public:
 	    break;
 	  }
 	}
-	//epsilon = roundFloat(epsilon, 6);
-	NGT::SearchContainer sc(*object);
 	NGT::ObjectDistances objects;
 	sc.setResults(&objects);
 	sc.setSize(searchParameter.size);
 	sc.setRadius(searchParameter.radius);
 	sc.setEpsilon(epsilon);
+	sc.setEdgeSize(searchParameter.edgeSize);
 	NGT::Timer timer;
 	try {
 	  if (searchParameter.outputMode[0] == 'e') {
@@ -405,6 +401,7 @@ public:
 	  stream << "# Radius=" << searchParameter.radius << endl;
 	  stream << "# Epsilon=" << epsilon << endl;
 	  stream << "# Query Time (msec)=" << timer.time * 1000.0 << endl;
+	  stream << "# Distance Computation=" << sc.distanceComputationCount << endl;
 	} else {
 	  stream << "Query No." << queryCount << endl;
 	  stream << "Rank\tID\tDistance" << endl;
@@ -474,9 +471,11 @@ public:
     }
   }
 
+
   void
   search(Args &args) {
-    const string usage = "Usage: ngt search [-i g|t|s] [-n result-size] [-e epsilon] [-E edge-size] [-o output-mode] index(input) query.tsv(input)";
+    const string usage = "Usage: ngt search [-i g|t|s] [-n result-size] [-e epsilon] [-E edge-size] "
+      "[-o output-mode] index(input) query.tsv(input)";
 
     string database;
     try {
@@ -500,9 +499,6 @@ public:
     try {
       NGT::Property property;
       property.clear();
-      if (searchParameter.edgeSize >= 0) {
-	property.edgeSizeForSearch = searchParameter.edgeSize;
-      }
       NGT::Index	index(database, property);
       search(index, searchParameter, cout);
     } catch (NGT::Exception &err) {
@@ -716,7 +712,6 @@ public:
 #else
 	  size_t rank = 0;
 	  for (NGT::GraphNode::iterator i = node.begin(); i != node.end(); ++rank) {
-	  //for (size_t i = 0; i < node.size(); ++i) {
 	    if (rank >= selectivelyPrunedEdgeSize) {
 	      bool found = false;
 	      for (size_t t1 = 0; t1 < node.size() && found == false; ++t1) {
@@ -759,128 +754,6 @@ public:
   }
 
 
-  static void showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode = '-', size_t edgeSize = UINT_MAX)
-  {
-    long double distance = 0.0;
-    size_t numberOfNodes = 0;
-    size_t numberOfOutdegree = 0;
-    size_t numberOfNodesWithoutEdges = 0;
-    size_t maxNumberOfOutdegree = 0;
-    size_t minNumberOfOutdegree = SIZE_MAX;
-    vector<uint64_t> indegreeCount;
-    vector<size_t> outdegreeHistogram;
-    vector<size_t> indegreeHistogram;
-    NGT::GraphRepository &graph = outGraph.repository;
-    indegreeCount.resize(graph.size(), 0);
-    for (size_t id = 1; id < graph.size(); id++) {
-      NGT::GraphNode *node = 0;
-      try {
-	node = outGraph.getNode(id);
-      } catch(NGT::Exception &err) {
-	cerr << "ngt info: Warning. Cannot get the node. ID=" << id << ":" << err.what() << endl;
-	continue;
-      }
-      numberOfNodes++;
-      if (numberOfNodes % 1000000 == 0) {
-	cerr << "Processed " << numberOfNodes << endl;
-      }
-      size_t esize = node->size() > edgeSize ? edgeSize : node->size();
-      if (esize == 0) {
-	numberOfNodesWithoutEdges++;
-      }
-      if (esize > maxNumberOfOutdegree) {
-	maxNumberOfOutdegree = esize;
-      }
-      if (esize < minNumberOfOutdegree) {
-	minNumberOfOutdegree = esize;
-      }
-      if (outdegreeHistogram.size() <= esize) {
-	outdegreeHistogram.resize(esize + 1);
-      }
-      outdegreeHistogram[esize]++;
-      if (mode == 'e') {
-	cout << id << "," << esize << ": ";
-      }
-      for (size_t i = 0; i < esize; i++) {
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-	NGT::ObjectDistance &n = (*node).at(i, graph.allocator);
-#else
-	NGT::ObjectDistance &n = (*node)[i];
-#endif
-	if (n.id == 0) {
-	  cerr << "ngt info: Warning. id is zero." << endl;
-	}
-	indegreeCount[n.id]++;
-	numberOfOutdegree++;
-	double d = n.distance;
-	if (mode == 'e') {
-	  cout << d << " ";
-	}
-	distance += d;
-      }
-      if (mode == 'e') {
-	cout << endl;
-      }
-    }
-
-    // calculate variance
-    double averageNumberOfOutdegree = (double)numberOfOutdegree / (double)numberOfNodes;
-    double sumOfSquareOfOutdegree = 0;
-    double sumOfSquareOfIndegree = 0;
-    for (size_t id = 1; id < graph.size(); id++) {
-      NGT::GraphNode *node = 0;
-      try {
-	node = outGraph.getNode(id);
-      } catch(NGT::Exception &err) {
-	cerr << "ngt info: Warning. Cannot get the node. ID=" << id << ":" << err.what() << endl;
-	continue;
-      }
-      size_t esize = node->size();
-      sumOfSquareOfOutdegree += ((double)esize - averageNumberOfOutdegree) * ((double)esize - averageNumberOfOutdegree);
-      sumOfSquareOfIndegree += ((double)indegreeCount[id] - averageNumberOfOutdegree) * ((double)indegreeCount[id] - averageNumberOfOutdegree);	
-    }
-
-    size_t numberOfNodesWithoutIndegree = 0;
-    size_t maxNumberOfIndegree = 0;
-    size_t minNumberOfIndegree = SIZE_MAX;
-    for (size_t id = 1; id < graph.size(); id++) {
-      if (indegreeCount[id] == 0) {
-	numberOfNodesWithoutIndegree++;
-      }
-      if (indegreeCount[id] > maxNumberOfIndegree) {
-	maxNumberOfIndegree = indegreeCount[id];
-      }
-      if (indegreeCount[id] < minNumberOfIndegree) {
-	minNumberOfIndegree = indegreeCount[id];
-      }
-      if (indegreeHistogram.size() <= indegreeCount[id]) {
-	indegreeHistogram.resize(indegreeCount[id] + 1);
-      }
-      indegreeHistogram[indegreeCount[id]]++;
-    }
-    cerr << "# of nodes=" << numberOfNodes << endl;
-    cerr << "# of edges=" << numberOfOutdegree << endl;
-    cerr << "# of nodes without edges=" << numberOfNodesWithoutEdges << endl;
-    cerr << "Max outdegree=" << maxNumberOfOutdegree << endl;
-    cerr << "Min outdegree=" << minNumberOfOutdegree << endl;
-    cerr << "Average number of edges=" << (double)numberOfOutdegree / (double)numberOfNodes << endl;
-    cerr << "Average distance of edges=" << setprecision(10) << distance / (double)numberOfOutdegree << endl;
-    cerr << "# of nodes where indegree is 0=" << numberOfNodesWithoutIndegree << endl;
-    cerr << "Max indegree=" << maxNumberOfIndegree << endl;
-    cerr << "Min indegree=" << minNumberOfIndegree << endl;
-    cerr << "max-out,min-out,v-out,max-in,min-in,v-in:" 
-	 << maxNumberOfOutdegree << ":" << minNumberOfOutdegree << ":" << sumOfSquareOfOutdegree / (double)numberOfOutdegree<< ":"
-	 << maxNumberOfIndegree << ":" << minNumberOfIndegree << ":" << sumOfSquareOfIndegree / (double)numberOfOutdegree << endl;
-
-    if (mode == 'h') {
-      cerr << "#\tout\tin" << endl;
-      for (size_t i = 0; i < outdegreeHistogram.size() || i < indegreeHistogram.size(); i++) {
-	size_t out = outdegreeHistogram.size() <= i ? 0 : outdegreeHistogram[i];
-	size_t in = indegreeHistogram.size() <= i ? 0 : indegreeHistogram[i];
-	cerr << i << "\t" << out << "\t" << in << endl;
-      }
-    }
-  }
 
   void
   info(Args &args)
@@ -901,7 +774,7 @@ public:
 
     try {
       NGT::GraphIndex	index(database);
-      showStatisticsOfGraph(index, mode, edgeSize);
+      NGT::GraphIndex::showStatisticsOfGraph(index, mode, edgeSize);
     } catch (NGT::Exception &err) {
       cerr << "ngt: Error " << err.what() << endl;
       cerr << usage << endl;

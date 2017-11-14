@@ -23,13 +23,13 @@
 // End of cmake defines
 
 //////////////////////////////////////////////////////////////////////////
-// Release Definitions
+// Release Definitions for OSS
 
 #define		NGT_CREATION_EDGE_SIZE			10
 #define		NGT_EXPLORATION_COEFFICIENT		1.1
 #define		NGT_INSERTION_EXPLORATION_COEFFICIENT	1.1
 #define		NGT_SHARED_MEMORY_MAX_SIZE		1024	// MB
-#define		NGT_FORCED_REMOVE		// When errors occurs due to the index inconsistency, ignore them.
+#define		NGT_FORCED_REMOVE		// When errors occur due to the index inconsistency, ignore them.
 
 
 #define		NGT_COMPACT_VECTOR

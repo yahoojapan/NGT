@@ -77,7 +77,7 @@ NGTProperty ngt_create_property(NGTError error) {
   }
 }
 
-int ngt_save_index(const NGTIndex index, const char *database, NGTError error) {
+bool ngt_save_index(const NGTIndex index, const char *database, NGTError error) {
   try{
     std::string database_str(database);
     (static_cast<NGT::Index*>(index))->saveIndex(database_str);
@@ -85,17 +85,17 @@ int ngt_save_index(const NGTIndex index, const char *database, NGTError error) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
     operate_error_string_(ss, error);    
-    return 0;
+    return false;
   }
-  return 1;
+  return true;
 }
 
-int ngt_get_property(NGTIndex index, NGTProperty prop, NGTError error) {
+bool ngt_get_property(NGTIndex index, NGTProperty prop, NGTError error) {
   if(index == NULL || prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " prop = " << prop;
     operate_error_string_(ss, error);        
-    return 0;
+    return false;
   }
   
   try{
@@ -104,12 +104,12 @@ int ngt_get_property(NGTIndex index, NGTProperty prop, NGTError error) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
     operate_error_string_(ss, error);
-    return 0;
+    return false;
   }
-  return 1;
+  return true;
 }
 
-int ngt_get_property_dimension(NGTProperty prop, NGTError error) {
+int32_t ngt_get_property_dimension(NGTProperty prop, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
@@ -119,40 +119,40 @@ int ngt_get_property_dimension(NGTProperty prop, NGTError error) {
   return (*static_cast<NGT::Property*>(prop)).dimension;      
 }
 
-int ngt_set_property_dimension(NGTProperty prop, int value, NGTError error) {
+bool ngt_set_property_dimension(NGTProperty prop, int32_t value, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;            
     operate_error_string_(ss, error);
-    return 0;
+    return false;
   }
   (*static_cast<NGT::Property*>(prop)).dimension = value;
-  return 1;
+  return true;
 }
 
-int ngt_set_property_edge_size_for_creation(NGTProperty prop, int value, NGTError error) {
+bool ngt_set_property_edge_size_for_creation(NGTProperty prop, int16_t value, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
     operate_error_string_(ss, error);    
-    return 0;
+    return false;
   }
   (*static_cast<NGT::Property*>(prop)).edgeSizeForCreation = value;
-  return 1;
+  return true;
 }
 
-int ngt_set_property_edge_size_for_search(NGTProperty prop, int value, NGTError error) {
+bool ngt_set_property_edge_size_for_search(NGTProperty prop, int16_t value, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;            
     operate_error_string_(ss, error);        
-    return 0;
+    return false;
   }
   (*static_cast<NGT::Property*>(prop)).edgeSizeForSearch = value;
-  return 1;
+  return true;
 }
 
-int ngt_get_property_object_type(NGTProperty prop, NGTError error) {
+int32_t ngt_get_property_object_type(NGTProperty prop, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
@@ -162,84 +162,84 @@ int ngt_get_property_object_type(NGTProperty prop, NGTError error) {
   return (*static_cast<NGT::Property*>(prop)).objectType;
 }
 
-int ngt_is_property_object_type_float(int object_type) {
+bool ngt_is_property_object_type_float(int32_t object_type) {
     return (object_type == NGT::Index::Property::ObjectType::Float);
 }
 
-int ngt_is_property_object_type_integer(int object_type) {
+bool ngt_is_property_object_type_integer(int32_t object_type) {
     return (object_type == NGT::Index::Property::ObjectType::Uint8);
 }
 
-int ngt_set_property_object_type_float(NGTProperty prop, NGTError error) {
+bool ngt_set_property_object_type_float(NGTProperty prop, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
     operate_error_string_(ss, error);                    
-    return 0;
+    return false;
   }
   
   (*static_cast<NGT::Property*>(prop)).objectType = NGT::Index::Property::ObjectType::Float;
-  return 1;
+  return true;
 }
 
-int ngt_set_property_object_type_integer(NGTProperty prop, NGTError error) {
+bool ngt_set_property_object_type_integer(NGTProperty prop, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
     operate_error_string_(ss, error);
-    return 0;
+    return false;
   }
   
   (*static_cast<NGT::Property*>(prop)).objectType = NGT::Index::Property::ObjectType::Uint8;
-  return 1;
+  return true;
 }
 
-int ngt_set_property_distance_type_l1(NGTProperty prop, NGTError error) {
+bool ngt_set_property_distance_type_l1(NGTProperty prop, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
     operate_error_string_(ss, error);      
-    return 0;
+    return false;
   }
   
   (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeL1;
-  return 1;
+  return true;
 }
 
-int ngt_set_property_distance_type_l2(NGTProperty prop, NGTError error) {
+bool ngt_set_property_distance_type_l2(NGTProperty prop, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
     operate_error_string_(ss, error);            
-    return 0;
+    return false;
   }
   
   (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeL2;
-  return 1;
+  return true;
 }
 
-int ngt_set_property_distance_type_angle(NGTProperty prop, NGTError error) {
+bool ngt_set_property_distance_type_angle(NGTProperty prop, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
     operate_error_string_(ss, error);                  
-    return 0;
+    return false;
   }
   
   (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeAngle;
-  return 1;
+  return true;
 }
 
-int ngt_set_property_distance_type_hamming(NGTProperty prop, NGTError error) {
+bool ngt_set_property_distance_type_hamming(NGTProperty prop, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
     operate_error_string_(ss, error);                        
-    return 0;
+    return false;
   }
   
   (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeHamming;
-  return 1;
+  return true;
 }
 
 NGTObjectDistances ngt_create_empty_results(NGTError error) {
@@ -253,12 +253,12 @@ NGTObjectDistances ngt_create_empty_results(NGTError error) {
   }
 }
 
-int ngt_search_index(NGTIndex index, double *query, int query_dim, int size, float epsilon, NGTObjectDistances results, NGTError error) {
+bool ngt_search_index(NGTIndex index, double *query, int32_t query_dim, size_t size, float epsilon, NGTObjectDistances results, NGTError error) {
   if(index == NULL || query == NULL || results == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " query = " << query << " results = " << results;
     operate_error_string_(ss, error);
-    return 0;
+    return false;
   }
   
   NGT::Index* pindex = static_cast<NGT::Index*>(index);    
@@ -287,12 +287,13 @@ int ngt_search_index(NGTIndex index, double *query, int query_dim, int size, flo
     if(ngtquery != NULL){
       pindex->deleteObject(ngtquery);
     }
-    return 0;
+    return false;
   }
-  return 1;
+  return true;
 }
 
-int ngt_get_size(NGTObjectDistances results, NGTError error) {
+// * deprecated *
+int32_t ngt_get_size(NGTObjectDistances results, NGTError error) {
   if(results == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: results = " << results;
@@ -303,7 +304,18 @@ int ngt_get_size(NGTObjectDistances results, NGTError error) {
   return (static_cast<NGT::ObjectDistances*>(results))->size();
 }
 
-NGTObjectDistance ngt_get_result(const NGTObjectDistances results, const int i, NGTError error) {
+uint32_t ngt_get_result_size(NGTObjectDistances results, NGTError error) {
+  if(results == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: results = " << results;
+    operate_error_string_(ss, error);            
+    return 0;
+  }
+  
+  return (static_cast<NGT::ObjectDistances*>(results))->size();
+}
+
+NGTObjectDistance ngt_get_result(const NGTObjectDistances results, const uint32_t i, NGTError error) {
   try{
     NGT::ObjectDistances objects = *(static_cast<NGT::ObjectDistances*>(results));
     NGTObjectDistance ret_val = {objects[i].id, objects[i].distance};
@@ -318,7 +330,7 @@ NGTObjectDistance ngt_get_result(const NGTObjectDistances results, const int i, 
   }
 }
 
-ObjectID ngt_insert_index(NGTIndex index, double *obj, int obj_dim, NGTError error) {
+ObjectID ngt_insert_index(NGTIndex index, double *obj, uint32_t obj_dim, NGTError error) {
   try{
     NGT::Index* pindex = static_cast<NGT::Index*>(index);
     std::vector<double> vobj(&obj[0], &obj[obj_dim]);
@@ -331,12 +343,12 @@ ObjectID ngt_insert_index(NGTIndex index, double *obj, int obj_dim, NGTError err
   }
 }
 
-int ngt_create_index(NGTIndex index, int pool_size, NGTError error) {
+bool ngt_create_index(NGTIndex index, uint32_t pool_size, NGTError error) {
   if(index == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: idnex = " << index;
     operate_error_string_(ss, error);            
-    return 0;
+    return false;
   }
   
   try{
@@ -345,17 +357,17 @@ int ngt_create_index(NGTIndex index, int pool_size, NGTError error) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
     operate_error_string_(ss, error);                  
-    return 0;
+    return false;
   }
-  return 1;
+  return true;
 }
 
-int ngt_remove_index(NGTIndex index, ObjectID id, NGTError error) {
+bool ngt_remove_index(NGTIndex index, ObjectID id, NGTError error) {
   if(index == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: idnex = " << index;
     operate_error_string_(ss, error);                        
-    return 0;
+    return false;
   }
   
   try{
@@ -364,9 +376,9 @@ int ngt_remove_index(NGTIndex index, ObjectID id, NGTError error) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
     operate_error_string_(ss, error);                              
-    return 0;
+    return false;
   }
-  return 1;
+  return true;
 }
 
 NGTObjectSpace ngt_get_object_space(NGTIndex index, NGTError error) {
@@ -387,7 +399,7 @@ NGTObjectSpace ngt_get_object_space(NGTIndex index, NGTError error) {
   }
 }
 
-float* ngt_get_object_as_float(NGTObjectSpace object_space, int id, NGTError error) {
+float* ngt_get_object_as_float(NGTObjectSpace object_space, ObjectID id, NGTError error) {
   if(object_space == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: object_space = " << object_space;
@@ -405,7 +417,7 @@ float* ngt_get_object_as_float(NGTObjectSpace object_space, int id, NGTError err
   }
 }
 
-uint8_t* ngt_get_object_as_integer(NGTObjectSpace object_space, int id, NGTError error) {
+uint8_t* ngt_get_object_as_integer(NGTObjectSpace object_space, ObjectID id, NGTError error) {
   if(object_space == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: object_space = " << object_space;
@@ -439,7 +451,7 @@ void ngt_close_index(NGTIndex index) {
     delete(static_cast<NGT::Index*>(index));
 }
 
-int ngt_get_property_edge_size_for_creation(NGTProperty prop, NGTError error) {
+int16_t ngt_get_property_edge_size_for_creation(NGTProperty prop, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
@@ -449,7 +461,7 @@ int ngt_get_property_edge_size_for_creation(NGTProperty prop, NGTError error) {
   return (*static_cast<NGT::Property*>(prop)).edgeSizeForCreation;
 }
 
-int ngt_get_property_edge_size_for_search(NGTProperty prop, NGTError error) {
+int16_t ngt_get_property_edge_size_for_search(NGTProperty prop, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
@@ -459,7 +471,7 @@ int ngt_get_property_edge_size_for_search(NGTProperty prop, NGTError error) {
   return (*static_cast<NGT::Property*>(prop)).edgeSizeForSearch;
 }
 
-int ngt_get_property_distance_type(NGTProperty prop, NGTError error){
+int32_t ngt_get_property_distance_type(NGTProperty prop, NGTError error){
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;

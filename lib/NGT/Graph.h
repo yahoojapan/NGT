@@ -276,6 +276,20 @@ namespace NGT {
 	    else { cerr << "Fatal error! Invalid Seed Type. " << it->second << endl; abort(); }
 	  }
 	}
+	friend ostream & operator<<(ostream& os, const Property& p) {
+	  os << "truncationThreshold="		<< p.truncationThreshold << endl;
+	  os << "edgeSizeForCreation="		<< p.edgeSizeForCreation << endl;
+	  os << "edgeSizeForSearch="		<< p.edgeSizeForSearch << endl;
+	  os << "edgeSizeLimitForCreation="	<< p.edgeSizeLimitForCreation << endl;
+	  os << "insertionRadiusCoefficient="	<< p.insertionRadiusCoefficient << endl;
+	  os << "insertionRadiusCoefficient="	<< p.insertionRadiusCoefficient << endl;
+	  os << "seedSize="			<< p.seedSize << endl;
+	  os << "seedType="			<< p.seedType << endl;
+	  os << "truncationThreadPoolSize="	<< p.truncationThreadPoolSize << endl;
+	  os << "batchSizeForCreation="		<< p.batchSizeForCreation << endl;
+	  os << "graphType="			<< p.graphType << endl;
+	  return os;
+	}
 
 	int16_t		truncationThreshold;
 	int16_t		edgeSizeForCreation;
@@ -428,8 +442,12 @@ namespace NGT {
 	removeNode(ObjectID id) {
 	repository.remove(id);
       }
-
+#ifdef NGT_GRAPH_VECTOR_RESULT
+      typedef ObjectDistances ResultSet;
+#else
       typedef priority_queue<ObjectDistance, vector<ObjectDistance>, less<ObjectDistance> > ResultSet;
+#endif
+
 #ifdef NGT_GRAPH_CHECK_VECTOR
 #if defined(NGT_GRAPH_CHECK_BITSET)
       typedef bitset<10000001> DistanceCheckedSet;
@@ -483,7 +501,7 @@ namespace NGT {
       }
 
     public:
-      // indentityCheck is checking whether the same edge has already added to the node.
+      // identityCheck is checking whether the same edge has already added to the node.
       // return whether truncation is needed that means the node has too many edges.
       bool addEdge(ObjectID target, ObjectID addID, Distance addDistance,  bool identityCheck = true) {
 	size_t minsize = 0;
@@ -494,7 +512,9 @@ namespace NGT {
 	GraphNode::iterator ni = std::lower_bound(node.begin(repository.allocator), node.end(repository.allocator), obj);
 	if ((ni != node.end(repository.allocator)) && ((*ni).id == addID)) {
 	  if (identityCheck) {
-	    NGTThrowException("NGT::addEdge: already existed!");
+	    stringstream msg;
+	    msg << "NGT::addEdge: already existed! " << (*ni).id << ":" << addID;
+	    NGTThrowException(msg);
 	  }
 	  return false;
 	}
@@ -502,7 +522,9 @@ namespace NGT {
 	GraphNode::iterator ni = std::lower_bound(node.begin(), node.end(), obj);
 	if ((ni != node.end()) && ((*ni).id == addID)) {
 	  if (identityCheck) {
-	    NGTThrowException("NGT::addEdge: already existed!");
+	    stringstream msg;
+	    msg << "NGT::addEdge: already existed! " << (*ni).id << ":" << addID;
+	    NGTThrowException(msg);
 	  }
 	  return false;
 	}

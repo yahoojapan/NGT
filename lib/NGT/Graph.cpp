@@ -51,7 +51,7 @@ NeighborhoodGraph::Property::get(NGT::Property &prop) {
 }
 
 void 
-NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, ResultSet &result, 
+NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, ResultSet &results, 
 			      UncheckedSet &unchecked, DistanceCheckedSet &distanceChecked)
 {
 
@@ -67,6 +67,10 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
     result.distance = d;
     tmp.push_back(result);
   }
+#ifdef NGT_DISTANCE_COMPUTATION_COUNT
+  sc.distanceComputationCount += seeds.size();
+#endif
+
   std::sort(tmp.begin(), tmp.end());
 
   if (tmp.size() > (size_t)property.seedSize) {
@@ -88,8 +92,12 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
   assert(sc.size > 0);
   assert(sc.radius >= 0.0);
   for (ObjectDistances::iterator ri = tmp.begin(); ri != tmp.end(); ri++) {
-    if ((result.size() < (unsigned int)sc.size) && ((*ri).distance <= sc.radius)) {
-      result.push((*ri));
+    if ((results.size() < (unsigned int)sc.size) && ((*ri).distance <= sc.radius)) {
+#ifdef NGT_GRAPH_VECTOR_RESULT
+      results.push_back((*ri));
+#else
+      results.push((*ri));
+#endif
     } else {
       break;
     }
@@ -100,6 +108,8 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
   void
     NeighborhoodGraph::search(NGT::SearchContainer &sc, ObjectDistances &seeds)
   {
+    size_t edgeSize = sc.edgeSize < 0 ? property.edgeSizeForSearch : sc.edgeSize;
+
     if (sc.explorationCoefficient == 0.0) {
       sc.explorationCoefficient = NGT_EXPLORATION_COEFFICIENT;
     }
@@ -108,8 +118,6 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
       cerr << "Graph::search: Warning : A set of the resuts is not empty" << endl;
     }
     UncheckedSet unchecked;
-
-    ResultSet results;
 
 #ifdef NGT_GRAPH_CHECK_VECTOR
 #if defined(NGT_GRAPH_CHECK_BITSET)
@@ -123,7 +131,13 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
     DistanceCheckedSet distanceChecked;
 #endif  // NGT_GRAPH_CHECK_VECTOR
 
+#ifdef NGT_GRAPH_VECTOR_RESULT
+    ObjectDistances &results = sc.getResult();
+#else
+    ResultSet results;
+#endif
     setupSeeds(sc, seeds, results, unchecked, distanceChecked);
+
     Distance explorationRadius = sc.explorationCoefficient * sc.radius;
     NGT::ObjectSpace::Comparator &comparator = objectSpace->getComparator();
     while (!unchecked.empty()) {
@@ -157,12 +171,15 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
       ObjectDistance *neighborptr = &neighbors[0];
 #endif
       ObjectDistance *neighborendptr = neighborptr;
-      if (property.edgeSizeForSearch == 0) {
+      if (edgeSize == 0) {
 	neighborendptr += neighbors.size();
       } else {
-	neighborendptr += (neighbors.size() < (size_t)property.edgeSizeForSearch ? neighbors.size() : (size_t)property.edgeSizeForSearch);
+	neighborendptr += (neighbors.size() < edgeSize ? neighbors.size() : edgeSize);
       }
       for (; neighborptr < neighborendptr; ++neighborptr) {
+#ifdef NGT_VISIT_COUNT
+	sc.visitCount++;
+#endif
 	ObjectDistance &neighbor = *neighborptr;
 #ifdef NGT_GRAPH_CHECK_VECTOR
 	if (distanceChecked[neighbor.id]) {
@@ -197,6 +214,9 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 	  unchecked.push(r);
 #endif // NGT_GRAPH_UNCHECK_STACK
 	  if (distance <= sc.radius) {
+#ifdef NGT_GRAPH_VECTOR_RESULT
+	    results.push_back(r);
+#else
 	    results.push(r);
 	    // This part has been already optimized. No space to improve.
 	    if (results.size() > sc.size) {
@@ -206,9 +226,20 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 	      sc.radius = results.top().distance;
 	      explorationRadius = sc.explorationCoefficient * sc.radius;
 	    }
+#endif
 	  } 
 	} 
       } 
+#ifdef NGT_GRAPH_VECTOR_RESULT
+      std::sort(results.begin(), results.end());
+      if (results.size() > sc.size) {
+	results.resize(sc.size);
+      } 
+      if (results.size() == sc.size) {
+	sc.radius = results.back().distance;
+	explorationRadius = sc.explorationCoefficient * sc.radius;
+      }
+#endif
 
 #ifdef NGT_GRAPH_UNCHECK_STACK_SORT
       // sort is not effectictive.
@@ -218,10 +249,12 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
       }
 #endif
     } 
+#ifndef NGT_GRAPH_VECTOR_RESULT
     {
       ObjectDistances &qresults = sc.getResult();
       qresults.moveFrom(results);
     }
+#endif
 
   }
 
@@ -323,7 +356,6 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 	}
 	i++;
       }
-
       for (unsigned int i = 0; i < node.size() - 1; i++) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
 	assert(node.at(i, repository.allocator).id != id);
@@ -355,12 +387,12 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 	  GraphNode &n = *nodetbl[i];
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
 	  GraphNode::iterator ei = std::lower_bound(n.begin(repository.allocator), n.end(repository.allocator), obj);
-	  if (ei == n.end(repository.allocator) || (*ei).id != obj.id) {
+	  if ((*ei).id != obj.id) {
 	    n.insert(ei, obj, repository.allocator);
 	  }
 #else
 	  GraphNode::iterator ei = std::lower_bound(n.begin(), n.end(), obj);
-	  if (ei == n.end() || (*ei).id != obj.id) {
+	  if ((*ei).id != obj.id) {
 	    n.insert(ei, obj);
 	  }
 #endif
@@ -375,11 +407,11 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 	  GraphNode &n = *nodetbl[minj];
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
 	  GraphNode::iterator ei = std::lower_bound(n.begin(repository.allocator), n.end(repository.allocator), obj);
-	  if (ei == n.end(repository.allocator) || (*ei).id != obj.id) {
+	  if ((*ei).id != obj.id) {
 	    n.insert(ei, obj, repository.allocator);
 #else
 	  GraphNode::iterator ei = std::lower_bound(n.begin(), n.end(), obj);
-	  if (ei == n.end() || (*ei).id != obj.id) {
+	  if ((*ei).id != obj.id) {
 	    n.insert(ei, obj);
 #endif
 	  }
@@ -638,11 +670,11 @@ NeighborhoodGraph::truncateEdgesOptimally(
 	  {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
 	    GraphNode::iterator ei = std::lower_bound(delres.begin(repository.allocator), delres.end(repository.allocator), ojob.nearest);
-	    if (ei == delres.end(repository.allocator) || (*ei).id != ojob.nearest.id) {
+	    if ((*ei).id != ojob.nearest.id) {
 	      delres.insert(ei, ojob.nearest, repository.allocator);
 #else
 	    GraphNode::iterator ei = std::lower_bound(delres.begin(), delres.end(), ojob.nearest);
-	    if (ei == delres.end() || (*ei).id != ojob.nearest.id) {
+	    if ((*ei).id != ojob.nearest.id) {
 	      delres.insert(ei, ojob.nearest);
 #endif
 	    } else {

@@ -417,6 +417,9 @@ DVPTree::search(SearchContainer &sc, InternalNode &node, UncheckedNode &unchecke
 #else
   Distance d = objectSpace->getComparator()(sc.object, node.getPivot());
 #endif
+#ifdef NGT_DISTANCE_COMPUTATION_COUNT
+  sc.distanceComputationCount++;
+#endif
 
   int bsize = internalChildrenSize - 1;
 
@@ -526,6 +529,9 @@ DVPTree::search(SearchContainer &so, LeafNode &node, UncheckedNode &uncheckedNod
 #else
   Distance pq = objectSpace->getComparator()(q.object, node.getPivot());
 #endif
+#ifdef NGT_DISTANCE_COMPUTATION_COUNT
+  so.distanceComputationCount++;
+#endif
 
   ObjectDistance r;
 
@@ -543,6 +549,9 @@ DVPTree::search(SearchContainer &so, LeafNode &node, UncheckedNode &uncheckedNod
 	d = objectSpace->getComparator()(q.object, *q.vptree->getObjectRepository().get(node.getObjectIDs(leafNodes.allocator)[i].id));
 #else
 	d = objectSpace->getComparator()(q.object, *q.vptree->getObjectRepository().get(node.getObjectIDs()[i].id));
+#endif
+#ifdef NGT_DISTANCE_COMPUTATION_COUNT
+	so.distanceComputationCount++;
 #endif
       } catch(...) {
         NGTThrowException("VpTree::LeafNode::search: Internal fatal error : Cannot get object");
