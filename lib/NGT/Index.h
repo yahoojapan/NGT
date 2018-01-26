@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2017 Yahoo Japan Corporation
+// Copyright (C) 2015-2018 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@
 
 #include	<sys/time.h>
 #include	<sys/stat.h>
+#include	<stdint.h>
 
 #include	"NGT/defines.h"
 #include	"NGT/Common.h"
@@ -233,15 +234,17 @@ namespace NGT {
       }
     }
     static void createGraphAndTree(const string &database, NGT::Property &prop, const string &dataFile, size_t dataSize = 0);
-    void createGraphAndTree(const string &database, NGT::Property &prop);
+    static void createGraphAndTree(const string &database, NGT::Property &prop) { createGraphAndTree(database, prop, ""); }
     size_t insert(vector<double> &object) ;
     static void createGraph(const string &database, NGT::Property &prop, const string &dataFile, size_t dataSize = 0);
     static void append(const string &database, const string &dataFile, size_t threadSize, size_t dataSize);
+    static void append(const string &database, const float *data, size_t dataSize, size_t threadSize);
     static void remove(const string &database, vector<ObjectID> &objects);
     static void exportIndex(const string &database, const string &file);
     static void importIndex(const string &database, const string &file);
     virtual void load(const string &ifile, size_t dataSize) { getIndex().load(ifile, dataSize); }
     virtual void append(const string &ifile, size_t dataSize) { getIndex().append(ifile, dataSize); }
+    virtual void append(const float *data, size_t dataSize) { getIndex().append(data, dataSize); }
     virtual size_t getObjectRepositorySize() { return getIndex().getObjectRepositorySize(); }
     virtual void createIndex(size_t threadNumber) { getIndex().createIndex(threadNumber); }
     virtual void saveIndex(const string &ofile) { getIndex().saveIndex(ofile); }
@@ -258,7 +261,18 @@ namespace NGT {
     virtual void remove(ObjectID id) { getIndex().remove(id); }
     virtual void exportIndex(const string &file) { getIndex().exportIndex(file); }
     virtual void importIndex(const string &file) { getIndex().importIndex(file); }
+    virtual void verify() { getIndex().verify(); }
     virtual ObjectSpace &getObjectSpace() { return getIndex().getObjectSpace(); };
+    virtual size_t getSharedMemorySize(ostream &os, SharedMemoryAllocator::GetMemorySizeType t = SharedMemoryAllocator::GetTotalMemorySize) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+      size_t osize = getObjectSpace().getRepository().getAllocator().getMemorySize(t);
+#else
+      size_t osize = 0;
+#endif
+      os << "object=" << osize << endl;
+      size_t isize = getIndex().getSharedMemorySize(os, t); 
+      return osize + isize;
+    }
     void searchUsingOnlyGraph(NGT::SearchContainer &sc) { 
       sc.distanceComputationCount = 0;
       ObjectDistances seeds; 
@@ -271,7 +285,8 @@ namespace NGT {
       }
       return *index;
     }
-
+    
+    static void version(ostream &os);
   protected:
     static void loadAndCreateIndex(Index &index, const string &database, const string &dataFile,
 				   size_t threadSize, size_t dataSize);
@@ -334,6 +349,9 @@ namespace NGT {
     }
 
     virtual void load(const string &ifile, size_t dataSize = 0) {
+      if (ifile.empty()) {
+	return;
+      }
       istream *is;
       ifstream *ifs = 0;
       if (ifile == "-") {
@@ -364,6 +382,10 @@ namespace NGT {
     virtual void append(const string &ifile, size_t dataSize = 0) {
       ifstream is(ifile.c_str());
       objectSpace->appendText(is, dataSize);
+    }
+
+    virtual void append(const float *data, size_t dataSize) {
+      objectSpace->append(data, dataSize);
     }
 
     virtual void saveIndex(const string &ofile) {
@@ -474,7 +496,8 @@ namespace NGT {
       if (seeds.size() == 0 && repository.size() != 0) {
 	size_t seedSize = repository.size() - 1 < (size_t)NeighborhoodGraph::property.seedSize ? 
 	  repository.size() - 1 : (size_t)NeighborhoodGraph::property.seedSize;
-	if (NeighborhoodGraph::property.seedType == NeighborhoodGraph::SeedTypeRandomNodes) {
+	if (NeighborhoodGraph::property.seedType == NeighborhoodGraph::SeedTypeRandomNodes ||
+	    NeighborhoodGraph::property.seedType == NeighborhoodGraph::SeedTypeNone) {
 	  getRandomSeeds(seeds, seedSize);
 	} else if (NeighborhoodGraph::property.seedType == NeighborhoodGraph::SeedTypeFixedNodes) {
 	  // To check speed using fixed seeds.
@@ -642,6 +665,57 @@ namespace NGT {
 	}
       }
     }
+
+    virtual void verify()
+    {
+      cerr << "Started verifying graph and objects" << endl;
+      GraphRepository &repo = repository;
+      ObjectRepository &fr = objectSpace->getRepository();
+      for (size_t id = 1; id < fr.size(); id++){
+	if (repo[id] == 0) {
+	  cerr << "No." << id << " is empty." << endl;
+	  if (fr[id] != 0) {
+	    cerr << "Graph and object set are inconsistency." << endl;
+	  }
+	  continue;
+	}
+	if ((id % 1000000) == 0) {
+	  cerr << "  verified " << id << " entries." << endl;
+	}
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	Object *po = objectSpace->allocateObject(*fr[id]);
+#else
+	Object *po = fr[id];
+#endif
+	if (po == 0) {
+	  cerr << "Cannot get the object." << endl;
+	  continue;
+	}
+	GraphNode *objects = getNode(id);
+	if (objects == 0) {
+	  cerr << "Cannot get the node." << endl;
+	}
+
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	objectSpace->deleteObject(po);
+#endif
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	for (GraphNode::iterator ri = objects->begin(repo.allocator);
+	     ri != objects->end(repo.allocator); ++ri) {
+#else
+	for (GraphNode::iterator ri = objects->begin();
+	     ri != objects->end(); ++ri) {
+#endif
+	  if ((*ri).id == 0 || (*ri).id >= repo.size()) {
+	    cerr << "Neighbor's ID of the node is wrong." << endl;
+	  }
+	  if ((*ri).distance < 0.0) {
+	    cerr << "Neighbor's distance is munus." << endl;
+	  }
+	}
+      }
+    }
+
 
     static void showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode = '-', size_t edgeSize = UINT_MAX)
     {
@@ -930,6 +1004,16 @@ namespace NGT {
       NeighborhoodGraph::property.get(prop);
     }
 
+    virtual size_t getSharedMemorySize(ostream &os, SharedMemoryAllocator::GetMemorySizeType t) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+      size_t size = repository.getAllocator().getMemorySize(t);
+#else
+      size_t size = 0;
+#endif
+      os << "graph=" << size << endl;
+      return size;
+    }
+
     Index::Property			property;
   };
 
@@ -1105,7 +1189,8 @@ namespace NGT {
 
     void createTreeIndex();
 
-    void getSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds) {
+    // GraphAndTreeIndex
+    void getSeedsFromTree(NGT::SearchContainer &sc, ObjectDistances &seeds) {
       DVPTree::SearchContainer tso(sc.object);
       tso.mode = DVPTree::SearchContainer::SearchLeaf;
       tso.radius = 0.0;
@@ -1127,25 +1212,42 @@ namespace NGT {
 	NGTThrowException(msg);
       }
       sc.distanceComputationCount += tso.distanceComputationCount;
-
+      if (NeighborhoodGraph::property.seedType == NeighborhoodGraph::SeedTypeAllLeafNodes) {
+	return;
+      }
       // if seedSize is zero, the result size of the query is used as seedSize.
       size_t seedSize = NeighborhoodGraph::property.seedSize == 0 ? sc.size : NeighborhoodGraph::property.seedSize;
       if (seeds.size() > seedSize) {
-	seeds.resize(NeighborhoodGraph::property.seedSize);
+	srand(tso.nodeID.getID());
+	// to accelerate thinning data.
+	for (size_t i = seeds.size(); i > seedSize; i--) {
+	  double random = ((double)rand() + 1.0) / ((double)RAND_MAX + 2.0);
+	  size_t idx = floor(i * random);
+	  seeds[idx] = seeds[i - 1];
+	}
+	seeds.resize(seedSize);
       } else if (seeds.size() < seedSize) {
 	// A lack of the seeds is compansated by random seeds.
 	sc.distanceComputationCount += seedSize - seeds.size();
 	getRandomSeeds(seeds, seedSize);
       }
-
     }
 
     // GraphAndTreeIndex
     void search(NGT::SearchContainer &sc) {
       sc.distanceComputationCount = 0;
       ObjectDistances	seeds;
-      getSeeds(sc, seeds);
+      getSeedsFromTree(sc, seeds);
       GraphIndex::search(sc, seeds);
+    }
+
+    size_t getSharedMemorySize(ostream &os, SharedMemoryAllocator::GetMemorySizeType t) {
+      return GraphIndex::getSharedMemorySize(os, t) + DVPTree::getSharedMemorySize(os, t);
+    }
+
+    void verify() {
+      DVPTree::verify(GraphIndex::objectSpace->getRepository().size());
+      GraphIndex::verify();
     }
 
   };
@@ -1233,21 +1335,6 @@ inline void
   delete idx;
 }
 
-inline void
-  NGT::Index::createGraphAndTree(const string &database, NGT::Property &prop) {
-  if (prop.dimension == 0) {
-    NGTThrowException("Index::createGraphAndTree. Dimension is not specified.");
-  }
-  prop.indexType = NGT::Index::Property::IndexType::GraphAndTree;
-#ifdef NGT_SHARED_MEMORY_ALLOCATOR
-  mkdir(database);
-  index = new NGT::GraphAndTreeIndex(database, prop);
-#else
-  index = new NGT::GraphAndTreeIndex(prop);
-#endif
-  assert(index != 0);
-}
-
 inline size_t
   NGT::Index::insert(vector<double> &object) 
 {
@@ -1291,7 +1378,8 @@ NGT::Index::loadAndCreateIndex(Index &index, const string &database, const strin
   if (dataFile.size() != 0) {
     index.load(dataFile, dataSize);
   } else {
-    NGTThrowException("Index::create: No data file.");
+    index.saveIndex(database);
+    return;
   }
   timer.stop();
   cerr << "Data loading time=" << timer.time << " (sec) " << timer.time * 1000.0 << " (msec)" << endl;
@@ -1316,6 +1404,28 @@ NGT::Index::append(const string &database, const string &dataFile, size_t thread
     index.append(dataFile, dataSize);
   } else {
     NGTThrowException("Index::create: No data file.");
+  }
+  timer.stop();
+  cerr << "Data loading time=" << timer.time << " (sec) " << timer.time * 1000.0 << " (msec)" << endl;
+  cerr << "# of objects=" << index.getObjectRepositorySize() - 1 << endl;
+  timer.reset();
+  timer.start();
+  index.createIndex(threadSize);
+  timer.stop();
+  index.saveIndex(database);
+  cerr << "Index creation time=" << timer.time << " (sec) " << timer.time * 1000.0 << " (msec)" << endl;
+  return;
+}
+
+inline void 
+NGT::Index::append(const string &database, const float *data, size_t dataSize, size_t threadSize) {
+  NGT::Index	index(database);
+  NGT::Timer	timer;
+  timer.start();
+  if (data != 0 && dataSize != 0) {
+    index.append(data, dataSize);
+  } else {
+    NGTThrowException("Index::create: No data.");
   }
   timer.stop();
   cerr << "Data loading time=" << timer.time << " (sec) " << timer.time * 1000.0 << " (msec)" << endl;

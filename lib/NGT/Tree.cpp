@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2017 Yahoo Japan Corporation
+// Copyright (C) 2015-2018 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -601,6 +601,7 @@ DVPTree::search(SearchContainer &sc) {
     } else if (cnode->id.getType() == Node::ID::Leaf) {
       search(sc, (LeafNode&)*cnode, uncheckedNode);
     } else {
+      cerr << "Tree: Inner fatal error!: Node type error!" << endl;
       abort();
     }
   }

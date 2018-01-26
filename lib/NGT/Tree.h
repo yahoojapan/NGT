@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2017 Yahoo Japan Corporation
+// Copyright (C) 2015-2018 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -305,6 +305,29 @@ namespace NGT {
       }
     }
 
+    void verify(size_t objCount) {
+      cerr << "Started verifying internal nodes..." << endl;
+      for (size_t i = 0; i < internalNodes.size(); i++) {
+	if (internalNodes[i] != 0) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	  (*internalNodes[i]).verify(internalNodes.size(), leafNodes.size(), internalNodes.allocator);
+#else
+	  (*internalNodes[i]).verify(internalNodes.size(), leafNodes.size());
+#endif
+	}
+      }
+      cerr << "Started verifying leaf nodes..." << endl;
+      for (size_t i = 0; i < leafNodes.size(); i++) {
+	if (leafNodes[i] != 0) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	  (*leafNodes[i]).verify(objCount, leafNodes.allocator);
+#else
+	  (*leafNodes[i]).verify(objCount);
+#endif
+	}
+      }
+    }
+
     void deleteInMemory() {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
       assert(0);
@@ -326,6 +349,17 @@ namespace NGT {
 
     ObjectRepository &getObjectRepository() { return objectSpace->getRepository(); }
 
+    size_t getSharedMemorySize(ostream &os, SharedMemoryAllocator::GetMemorySizeType t) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+      size_t isize = internalNodes.getAllocator().getMemorySize(t);
+      os << "internal=" << isize << endl;
+      size_t lsize = leafNodes.getAllocator().getMemorySize(t);
+      os << "leaf=" << lsize << endl;
+      return isize + lsize;
+#else
+      return 0;
+#endif
+    }
 
   public:
     size_t		internalChildrenSize;

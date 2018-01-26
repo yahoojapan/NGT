@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2017 Yahoo Japan Corporation
+// Copyright (C) 2015-2018 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -117,7 +117,7 @@ public:
       "-d dimension [-p #-of-thread] [-i index-type(t|g)] [-g graph-type(a|k|b)] "
       "[-t truncation-edge-limit] [-E edge-size] [-S edge-size-for-search] [-L edge-size-limit] "
       "[-e epsilon] [-o object-type(f|c)] [-D distance-function] [-n data-size] "
-      "index(output) data.tsv(input)";
+      "index(output) [data.tsv(input)]";
     string database;
     try {
       database = args.get("#1");
@@ -129,9 +129,7 @@ public:
     string data;
     try {
       data = args.get("#2");
-    } catch (...) {
-      cerr << "ngt: Error: Data is not specified." << endl;
-    }
+    } catch (...) {}
 
     NGT::Property property;
 
@@ -161,12 +159,14 @@ public:
       return;
     }    
 
-    char seedType = args.getChar("s", 'r');
+    char seedType = args.getChar("s", '-');
     switch(seedType) {
     case 'f': property.seedType = NGT::Property::SeedType::SeedTypeFixedNodes; break;
     case '1': property.seedType = NGT::Property::SeedType::SeedTypeFirstNode; break;
-    default:
     case 'r': property.seedType = NGT::Property::SeedType::SeedTypeRandomNodes; break;
+    case 'l': property.seedType = NGT::Property::SeedType::SeedTypeAllLeafNodes; break;
+    default:
+    case '-': property.seedType = NGT::Property::SeedType::SeedTypeNone; break;
     }
 
     char objectType = args.getChar("o", 'f');
@@ -262,6 +262,7 @@ public:
       cerr << "thread size=" << threadSize << endl;
       cerr << "dimension=" << dimension << endl;
     }
+
 
     try {
       NGT::Index::append(database, data, threadSize, dataSize);	
@@ -773,8 +774,11 @@ public:
     char mode = args.getChar("m", '-');
 
     try {
-      NGT::GraphIndex	index(database);
-      NGT::GraphIndex::showStatisticsOfGraph(index, mode, edgeSize);
+      NGT::Index	index(database);
+      stringstream msg;
+      size_t smsize = index.getSharedMemorySize(msg);
+      cerr << "SharedMemorySize=" << smsize << endl;
+      NGT::GraphIndex::showStatisticsOfGraph(static_cast<NGT::GraphIndex&>(index.getIndex()), mode, edgeSize);
     } catch (NGT::Exception &err) {
       cerr << "ngt: Error " << err.what() << endl;
       cerr << usage << endl;

@@ -3,13 +3,12 @@ NGT
 
 Neighborhood Graph and Tree for Indexing High-dimensional Data
 
-[Home](/README.md) / [Build](/README.md#build) / [Command](/bin/ngt/README.md#command) / [License](/README.md#license) / [Publications](/README.md#publications) / [About Us](http://research-lab.yahoo.co.jp/)
+[Home](/README.md) / [Build](/README.md#build) / [Command](/bin/ngt/README.md#command) / [License](/README.md#license) / [Publications](/README.md#publications) / [About Us](http://research-lab.yahoo.co.jp/en/)
 
 **NGT** provides commands and a library for performing high-speed approximate nearest neighbor searches against a large volume of data (several million to several 10 million items of data) in high dimensional vector data space (several ten to several thousand dimensions).
 
 #### Downloads
 
-- [Source code](https://github.com/yahoojapan/NGT/)
 - [Releases](https://github.com/yahoojapan/NGT/releases)
 
 Build
@@ -35,7 +34,7 @@ Note: Since there is no lock function, the index should be used only for referen
 License
 -------
 
-Copyright (C) 2015-2017 Yahoo Japan Corporation
+Copyright (C) 2015-2018 Yahoo Japan Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this software except in compliance with the License.
@@ -70,5 +69,5 @@ Publications
 ##### ANNG
 - Iwasaki, M.: Proximity search in metric spaces using approximate k nearest neigh-bor graph (in Japanese). IPSJ Trans. on Database 3(1) (2010) 18-28. ([pdf](http://i.yimg.jp/i/docs/research_lab/articles/miwasaki-ipsj-tod-2010.pdf))
 
-Copyright &copy; 2015-2017 Yahoo Japan Corporation All Rights Reserved.
+Copyright &copy; 2015-2018 Yahoo Japan Corporation All Rights Reserved.
 

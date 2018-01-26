@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2017 Yahoo Japan Corporation
+// Copyright (C) 2015-2018 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -242,6 +242,7 @@ namespace NGT {
     virtual void deserializeAsText(const string &of) = 0;
     virtual void readText(istream &is, size_t dataSize) = 0;
     virtual void appendText(ifstream &is, size_t dataSize) = 0;
+    virtual void append(const float *data, size_t dataSize) = 0;
     virtual void copy(Object &objecta, Object &objectb) = 0;
 
     virtual void linearSearch(Object &query, double radius, size_t size,  
@@ -544,6 +545,28 @@ namespace NGT {
       }
     }
 
+    template <typename T>
+    void append(T *data, size_t objectCount) {
+      if (dimension == 0) {
+	NGTThrowException("ObjectSpace::readText: Dimension is not specified.");
+      }
+      if (size() == 0) {
+	// First entry should be always a dummy entry.
+	// If it is empty, the dummy entry should be inserted.
+	push_back((PersistentObject*)0);
+      }
+      if (objectCount > 0) {
+	reserve(size() + objectCount);
+      }
+      for (size_t idx = 0; idx < objectCount; idx++, data += dimension) {
+	try {
+	  push_back((PersistentObject*)allocatePersistentObject(data));
+	} catch (Exception &err) {
+	  std::cerr << "ObjectSpace::readText: Warning! Invalid data. Skip the data no. " << idx << " and continue." << std::endl;
+	}
+      }
+    }
+
     Object *allocateObject() {
       return (Object*) new Object(getByteSize());
     }
@@ -584,57 +607,13 @@ namespace NGT {
       }
     }
 
-#ifdef NGT_SHARED_MEMORY_ALLOCATOR
-    PersistentObject *allocatePersistentObject(Object &o) {
-      SharedMemoryAllocator &objectAllocator = getAllocator();
-      size_t cpsize = dimension;
-      if (type == typeid(uint8_t)) {
-	cpsize *= sizeof(uint8_t);
-      } else if (type == typeid(float)) {
-	cpsize *= sizeof(float);
-      } else {
-	cerr << "ObjectSpace::allocate: Fatal error: unsupported type!" << endl;
-	abort();
-      }
-      PersistentObject *po = new (objectAllocator) PersistentObject(objectAllocator, byteSize);
-      void *dsto = &(*po).at(0, allocator);
-      void *srco = &o[0];
-      memcpy(dsto, srco, cpsize);
-      return po;
-    }
-
-    PersistentObject *allocatePersistentObject(vector<double> &o) {
-      SharedMemoryAllocator &objectAllocator = getAllocator();
-      PersistentObject *po = new (objectAllocator) PersistentObject(objectAllocator, byteSize);
-      void *object = (void*)(&(*po).at(0, allocator));
-      if (type == typeid(uint8_t)) {
-	uint8_t *obj = (uint8_t*)object;
-	for (size_t i = 0; i < dimension; i++) {
-	  obj[i] = (uint8_t)o[i];
-	}
-      } else if (type == typeid(float)) {
-	float *obj = (float*)object;
-	for (size_t i = 0; i < dimension; i++) {
-	  obj[i] = (float)o[i];
-	}
-      } else {
-	cerr << "ObjectSpace::allocate: Fatal error: unsupported type!" << endl;
-	abort();
-      }
-      return po;
-    }
-#else
-    Object *allocatePersistentObject(vector<double> &o) {
-      return allocateObject(o);
-    }
-#endif
-
-    Object *allocateObject(vector<double> &o) {
+    template <typename T>
+      Object *allocateObject(T *o, size_t size = 0) {
       Object *po = new Object(byteSize);
-      if (dimension != o.size()) {
+      if (size != 0 && dimension != size) {
 	cerr << "ObjectSpace::allocateObject: Fatal error! dimension is invalid. The indexed objects=" 
-	     << dimension << " The specified object=" << o.size() << endl;
-	assert(dimension == o.size());
+	     << dimension << " The specified object=" << size << endl;
+	assert(dimension == size);
       }
       void *object = (void*)(&(*po)[0]);
       if (type == typeid(uint8_t)) {
@@ -654,9 +633,108 @@ namespace NGT {
       return (Object*)po;
     }
 
+    template <typename T>
+      Object *allocateObject(vector<T> &o) {
+      return allocateObject(o.data(), o.size());
+    }
+
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+    PersistentObject *allocatePersistentObject(Object &o) {
+      SharedMemoryAllocator &objectAllocator = getAllocator();
+      size_t cpsize = dimension;
+      if (type == typeid(uint8_t)) {
+	cpsize *= sizeof(uint8_t);
+      } else if (type == typeid(float)) {
+	cpsize *= sizeof(float);
+      } else {
+	cerr << "ObjectSpace::allocate: Fatal error: unsupported type!" << endl;
+	abort();
+      }
+      PersistentObject *po = new (objectAllocator) PersistentObject(objectAllocator, byteSize);
+      void *dsto = &(*po).at(0, allocator);
+      void *srco = &o[0];
+      memcpy(dsto, srco, cpsize);
+      return po;
+    }
+
+    template <typename T>
+      PersistentObject *allocatePersistentObject(T *o, size_t size = 0) {
+      SharedMemoryAllocator &objectAllocator = getAllocator();
+      PersistentObject *po = new (objectAllocator) PersistentObject(objectAllocator, byteSize);
+      if (size != 0 && dimension != size) {
+	cerr << "ObjectSpace::allocateObject: Fatal error! dimension is invalid. The indexed objects=" 
+	     << dimension << " The specified object=" << size << endl;
+	assert(dimension == size);
+      }
+      void *object = (void*)(&(*po).at(0, allocator));
+      if (type == typeid(uint8_t)) {
+	uint8_t *obj = (uint8_t*)object;
+	for (size_t i = 0; i < dimension; i++) {
+	  obj[i] = (uint8_t)o[i];
+	}
+      } else if (type == typeid(float)) {
+	float *obj = (float*)object;
+	for (size_t i = 0; i < dimension; i++) {
+	  obj[i] = (float)o[i];
+	}
+      } else {
+	cerr << "ObjectSpace::allocate: Fatal error: unsupported type!" << endl;
+	abort();
+      }
+      return po;
+    }
+
+    template <typename T>
+    PersistentObject *allocatePersistentObject(vector<T> &o) {
+      return allocatePersistentObject(o.data(), o.size());
+    }
+
+#else
+    template <typename T>
+    PersistentObject *allocatePersistentObject(vector<T> &o) {
+      return allocateObject(o);
+    }
+
+    template <typename T>
+      PersistentObject *allocatePersistentObject(T *o, size_t size = 0) {
+      return allocateObject(o, size);
+    }
+#endif
+
     void deleteObject(Object *po) {
       delete po;
     }
+
+    private:
+    void extractObject(void *object, vector<double> &d) {
+      if (type == typeid(uint8_t)) {
+	uint8_t *obj = (uint8_t*)object;
+	for (size_t i = 0; i < dimension; i++) {
+	  d.push_back(obj[i]);
+	}
+      } else if (type == typeid(float)) {
+	float *obj = (float*)object;
+	for (size_t i = 0; i < dimension; i++) {
+	  d.push_back(obj[i]);
+	}
+      } else {
+	cerr << "ObjectSpace::allocate: Fatal error: unsupported type!" << endl;
+	abort();
+      }
+    }
+    public:
+    void extractObject(Object *o, vector<double> &d) {
+      void *object = (void*)(&(*o)[0]);
+      extractObject(object, d);
+    }
+
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+    void extractObject(PersistentObject *o, vector<double> &d) {
+      SharedMemoryAllocator &objectAllocator = getAllocator();
+      void *object = (void*)(&(*o).at(0, objectAllocator));
+      extractObject(object, d);
+    }
+#endif
 
     void setLength(size_t l) {
       byteSize = l;
@@ -1104,6 +1182,7 @@ namespace NGT {
     void deserializeAsText(const string &ifile) { ObjectRepository::deserializeAsText(ifile, this); }
     void readText(istream &is, size_t dataSize) { ObjectRepository::readText(is, dataSize); }
     void appendText(ifstream &is, size_t dataSize) { ObjectRepository::appendText(is, dataSize); }
+    void append(const float *data, size_t dataSize) { ObjectRepository::append(data, dataSize); }
     
 
 
@@ -1144,9 +1223,9 @@ namespace NGT {
     }
 
     void *getObject(size_t idx) {
-      if (idx >= ObjectRepository::size()) {
+      if (idx >= ObjectRepository::size() || idx == 0) {
 	stringstream msg;
-	msg << "NGT::ObjectSpaceT: Out of range. " << idx << ":" << ObjectRepository::size() << ".";
+	msg << "NGT::ObjectSpaceT: The specified ID is out of the range. Object ID is greater than zero. " << idx << ":" << ObjectRepository::size() << ".";
 	NGTThrowException(msg);
       }
       PersistentObject &obj = *(*this)[idx];

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2017 Yahoo Japan Corporation
+// Copyright (C) 2015-2018 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -370,6 +370,26 @@ namespace NGT {
       cout << endl;
     }
 
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+    void verify(size_t isize, size_t lsize, SharedMemoryAllocator &allocator) {
+#else
+      void verify(size_t isize, size_t lsize) {
+#endif
+      for (size_t i = 0; i < childrenSize; i++) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	size_t nid = getChildren(allocator)[i].getID();
+	ID::Type type = getChildren(allocator)[i].getType();
+#else
+	size_t nid = getChildren()[i].getID();
+	ID::Type type = getChildren()[i].getType();
+#endif
+	size_t size = type == ID::Leaf ? lsize : isize;
+	if (nid >= size) {
+	  cerr << "Internal children node id is too big." << nid << ":" << size << endl;
+	}
+      }
+    }
+
     static const int InternalChildrenSizeMax	= 5;
     const size_t	childrenSize;
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
@@ -595,6 +615,24 @@ namespace NGT {
       }
       cout << endl;
     }
+
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+    void verify(size_t size, SharedMemoryAllocator &allocator) {
+#else
+    void verify(size_t size) {
+#endif
+      for (size_t i = 0; i < objectSize; i++) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	size_t nid = getObjectIDs(allocator)[i].id;
+#else
+	size_t nid = getObjectIDs()[i].id;
+#endif
+	if (nid >= size) {
+	  cerr << "Object id is too big. " << nid << ":" << size << endl;
+	}
+      }
+    }
+
 #ifdef NGT_NODE_USE_VECTOR
     size_t getObjectSize() { return objectIDs.size(); }
 #else

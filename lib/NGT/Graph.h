@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2017 Yahoo Japan Corporation
+// Copyright (C) 2015-2018 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -194,7 +194,8 @@ namespace NGT {
 	SeedTypeNone		= 0,
 	SeedTypeRandomNodes	= 1,
 	SeedTypeFixedNodes	= 2,
-	SeedTypeFirstNode	= 3
+	SeedTypeFirstNode	= 3,
+	SeedTypeAllLeafNodes	= 4
       };
 
       class Property {
@@ -207,7 +208,7 @@ namespace NGT {
 	  edgeSizeLimitForCreation 	= 5;
 	  insertionRadiusCoefficient 	= NGT_INSERTION_EXPLORATION_COEFFICIENT;
 	  seedSize			= NGT_SEED_SIZE;
-	  seedType			= SeedTypeRandomNodes;
+	  seedType			= SeedTypeNone;
 	  truncationThreadPoolSize	= 8;
 	  batchSizeForCreation		= 200;
 	  graphType			= GraphTypeANNG;
@@ -247,6 +248,8 @@ namespace NGT {
 	  case NeighborhoodGraph::SeedTypeRandomNodes: p.set("SeedType", "RandomNodes"); break;
 	  case NeighborhoodGraph::SeedTypeFixedNodes: p.set("SeedType", "FixedNodes"); break;
 	  case NeighborhoodGraph::SeedTypeFirstNode: p.set("SeedType", "FirstNode"); break;
+	  case NeighborhoodGraph::SeedTypeNone: p.set("SeedType", "None"); break;
+	  case NeighborhoodGraph::SeedTypeAllLeafNodes: p.set("SeedType", "AllLeafNodes"); break;
 	  default: cerr << "Invalid Seed Type." << endl; abort();
 	  }
 	}
@@ -273,6 +276,8 @@ namespace NGT {
 	    if (it->second == "RandomNodes")		seedType = NeighborhoodGraph::SeedTypeRandomNodes;
 	    else if (it->second == "FixedNodes")	seedType = NeighborhoodGraph::SeedTypeFixedNodes;
 	    else if (it->second == "FirstNode")		seedType = NeighborhoodGraph::SeedTypeFirstNode;
+	    else if (it->second == "None")		seedType = NeighborhoodGraph::SeedTypeNone;
+	    else if (it->second == "AllLeafNodes")	seedType = NeighborhoodGraph::SeedTypeAllLeafNodes;
 	    else { cerr << "Fatal error! Invalid Seed Type. " << it->second << endl; abort(); }
 	  }
 	}

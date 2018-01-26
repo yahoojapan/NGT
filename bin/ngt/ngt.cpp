@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2017 Yahoo Japan Corporation
+// Copyright (C) 2015-2018 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,29 @@
 //
 
 #include	"Command.h"
+
+#ifndef BUILD_DATE
+#define BUILD_DATE	"-"
+#endif
+#ifndef GIT_HASH
+#define GIT_HASH	"-"
+#endif
+#ifndef GIT_DATE
+#define GIT_DATE	"-"
+#endif
+#ifndef GIT_TAG
+#define GIT_TAG	"-"
+#endif
+
+static void
+version(ostream &os)
+{
+  os << "ngt:" << endl;
+  os << "  Built date:" << BUILD_DATE << endl;
+  os << "  The last tag:" << GIT_TAG << endl;
+  os << "  The last git commit hash:" << GIT_HASH << endl;
+  os << "  The last git commit date:" << GIT_DATE << endl;
+}
 
 void help() {
   cerr << "Usage : ngt command database data" << endl;
@@ -57,6 +80,8 @@ main(int argc, char **argv)
     } else if (command == "prune") {
       ngt.prune(args);
     } else if (command == "info") {
+      version(cerr);
+      NGT::Index::version(cerr);
       ngt.info(args);
     } else {
       cerr << "ngt: Error: Illegal command. " << command << endl;

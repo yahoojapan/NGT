@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2017 Yahoo Japan Corporation
+// Copyright (C) 2015-2018 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,6 +22,29 @@
 
 using namespace NGT;
 
+
+#ifndef BUILD_DATE
+#define BUILD_DATE	"-"
+#endif
+#ifndef GIT_HASH
+#define GIT_HASH	"-"
+#endif
+#ifndef GIT_DATE
+#define GIT_DATE	"-"
+#endif
+#ifndef GIT_TAG
+#define GIT_TAG	"-"
+#endif
+
+void
+NGT::Index::version(ostream &os)
+{
+  os << "libngt:" << endl;
+  os << "  Built date:" << BUILD_DATE << endl;
+  os << "  The last git tag:" << GIT_TAG << endl;
+  os << "  The last git commit hash:" << GIT_HASH << endl;
+  os << "  The last git commit date:" << GIT_DATE << endl;
+}
 
 class CreateIndexJob {
 public:

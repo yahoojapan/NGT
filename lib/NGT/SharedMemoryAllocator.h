@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2017 Yahoo Japan Corporation
+// Copyright (C) 2015-2018 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,6 +35,12 @@
 ///////////////////////////////////////////////////////////////////////
 class SharedMemoryAllocator {
  public:
+  enum GetMemorySizeType {
+    GetTotalMemorySize		= 0,
+    GetAllocatedMemorySize	= 1,
+    GetFreedMemorySize		= 2
+  };
+
   SharedMemoryAllocator():isValid(false) { 
 #ifdef SMA_TRACE
     std::cerr << "SharedMemoryAllocatorSiglton::constructor" << std::endl; 
@@ -177,6 +183,14 @@ class SharedMemoryAllocator {
 #else
     return (off_t)adr;
 #endif
+  }
+  size_t getMemorySize(GetMemorySizeType t) {
+    switch (t) {
+    case GetTotalMemorySize : 	  return getTotalSize();
+    case GetAllocatedMemorySize : return getAllocatedSize();
+    case GetFreedMemorySize :	  return getAllocatedSize();
+    }
+    return getTotalSize();
   }
   size_t getTotalSize() { return mmanager->getTotalSize(); }
   size_t getAllocatedSize() { return mmanager->getUseSize(); }

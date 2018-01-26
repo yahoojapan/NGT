@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2017 Yahoo Japan Corporation
+// Copyright (C) 2015-2018 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -53,9 +53,9 @@ NGTIndex ngt_create_graph_and_tree(const char *database, NGTProperty prop, NGTEr
   try{
     std::string database_str(database);
     NGT::Property prop_i = *(static_cast<NGT::Property*>(prop));    
-    
-    index = new NGT::Index();
-    index->createGraphAndTree(database_str, prop_i);
+
+    NGT::Index::createGraphAndTree(database_str, prop_i);    
+    index = new NGT::Index(database_str);
     return static_cast<NGTIndex>(index);
   }catch(std::exception &err){
     std::stringstream ss;
@@ -340,6 +340,19 @@ ObjectID ngt_insert_index(NGTIndex index, double *obj, uint32_t obj_dim, NGTErro
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
     operate_error_string_(ss, error);      
     return 0;
+  }
+}
+
+bool ngt_append_index(NGTIndex index, float *obj, uint32_t data_count, NGTError error) {
+  try{
+    NGT::Index* pindex = static_cast<NGT::Index*>(index);
+    pindex->append(obj, data_count);
+    return true;
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);      
+    return false;
   }
 }
 

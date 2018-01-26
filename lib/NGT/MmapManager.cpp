@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2017 Yahoo Japan Corporation
+// Copyright (C) 2015-2018 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -363,8 +363,8 @@ namespace MemoryManager{
   }
 
   std::string getErrorStr(int32_t err_num){
-    char err_msg[256];
-    strerror_r(err_num, err_msg, 256);
+    char msg_buf[256];
+    char *err_msg = strerror_r(err_num, msg_buf, 256);
     return std::string(err_msg);
   }
 

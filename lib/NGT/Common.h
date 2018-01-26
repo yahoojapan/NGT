@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2017 Yahoo Japan Corporation
+// Copyright (C) 2015-2018 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -106,6 +106,33 @@ namespace NGT {
       return val;
     }
 
+    static string getProcessStatus(const string &stat) {
+      pid_t pid = getpid();
+      stringstream str;
+      str << "/proc/" << pid << "/status";
+      ifstream procStatus(str.str());
+      if (!procStatus.fail()) {
+	string line;
+	while (getline(procStatus, line)) {
+	  vector<string> tokens;
+	  NGT::Common::tokenize(line, tokens, ": \t");
+	  if (tokens[0] == stat) {
+	    for (size_t i = 1; i < tokens.size(); i++) {
+	      if (tokens[i].empty()) {
+		continue;
+	      }
+	      return tokens[i];
+	    }
+	  }
+	}
+      }
+      return "-1";
+    }
+
+    // size unit is kbyte
+    static int getProcessVmSize() { return strtol(getProcessStatus("VmSize")); }
+    static int getProcessVmPeak() { return strtol(getProcessStatus("VmPeak")); }
+    static int getProcessVmRSS() { return strtol(getProcessStatus("VmRSS")); }
   };
 
 

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2017 Yahoo Japan Corporation
+// Copyright (C) 2015-2018 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -83,6 +83,8 @@ uint32_t ngt_get_result_size(NGTObjectDistances, NGTError);
 NGTObjectDistance ngt_get_result(const NGTObjectDistances, const uint32_t, NGTError);
 
 ObjectID ngt_insert_index(NGTIndex, double*, uint32_t, NGTError);
+
+bool ngt_append_index(NGTIndex, float*, uint32_t, NGTError);
 
 bool ngt_create_index(NGTIndex, uint32_t, NGTError);
 
