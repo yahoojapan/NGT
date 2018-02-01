@@ -12,7 +12,7 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 - [Releases](https://github.com/yahoojapan/NGT/releases)
 
 Build
------------------
+-----
 
       $ unzip NGT-x.x.x.zip
       $ cd NGT-x.x.x
@@ -30,6 +30,13 @@ The index can be placed in shared memory. Using shared memory can reduce the amo
       $ cmake -DNGT_SHARED_MEMORY_ALLOCATOR=ON ..
 
 Note: Since there is no lock function, the index should be used only for reference when multiple processes are using the same index.
+
+Supported Programming Languages
+-------------------------------
+
+- [Python](/python/README.md)
+- C
+- C++
 
 License
 -------

@@ -6,7 +6,7 @@
 ```
 cd NGT_ROOT/python
 python setup.py sdist
-pip install dist/ngt-0.1.tar.gz
+pip install dist/ngt-1.0.0.tar.gz
 ```
 
 ## Usage
@@ -25,7 +25,7 @@ pip install dist/ngt-0.1.tar.gz
   index = ngt.Index.create("tmp", dim)
   index.insert(objects)
   # You can also insert objects from a file like this.
-  # index.insert_from_tsv('list.dat') 
+  # index.insert_from_tsv('list.tsv') 
 
   index.save()
 

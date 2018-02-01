@@ -363,8 +363,8 @@ namespace MemoryManager{
   }
 
   std::string getErrorStr(int32_t err_num){
-    char msg_buf[256];
-    char *err_msg = strerror_r(err_num, msg_buf, 256);
+    char err_msg[256];
+    strerror_r(err_num, err_msg, 256);
     return std::string(err_msg);
   }
 
