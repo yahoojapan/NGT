@@ -4,7 +4,7 @@ project( ngt )
 
 set(ngt_VERSION_MAJOR 1 )
 set(ngt_VERSION_MINOR 3 )
-set(ngt_VERSION_PATCH 1 )
+set(ngt_VERSION_PATCH 2 )
 
 set( ngt_VERSION ${ngt_VERSION_MAJOR}.${ngt_VERSION_MINOR}.${ngt_VERSION_PATCH} )
 set( ngt_SOVERSION ${ngt_VERSION_MAJOR} )

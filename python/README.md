@@ -3,6 +3,8 @@
 
 ## Install
 
+You **MUST** install the NGT library according to the [README](../README.md#build) before installing the following python NGT.
+
 ```
 cd NGT_ROOT/python
 python setup.py sdist

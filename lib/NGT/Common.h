@@ -106,6 +106,7 @@ namespace NGT {
       return val;
     }
 
+
     static string getProcessStatus(const string &stat) {
       pid_t pid = getpid();
       stringstream str;

@@ -34,7 +34,7 @@ version(ostream &os)
 {
   os << "ngt:" << endl;
   os << "  Built date:" << BUILD_DATE << endl;
-  os << "  The last tag:" << GIT_TAG << endl;
+  os << "  The last git tag:" << GIT_TAG << endl;
   os << "  The last git commit hash:" << GIT_HASH << endl;
   os << "  The last git commit date:" << GIT_DATE << endl;
 }

@@ -188,7 +188,7 @@ class SharedMemoryAllocator {
     switch (t) {
     case GetTotalMemorySize : 	  return getTotalSize();
     case GetAllocatedMemorySize : return getAllocatedSize();
-    case GetFreedMemorySize :	  return getAllocatedSize();
+    case GetFreedMemorySize :	  return getFreedSize();
     }
     return getTotalSize();
   }

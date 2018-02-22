@@ -509,8 +509,7 @@ namespace NGT {
 	  ObjectDistance obj(1, 0.0);
 	  seeds.push_back(obj);
 	} else {
-	  cerr << "NGT::GraphIndex::search: Fatal Error. Invalid seed type" << endl;
-	  abort();
+	  getRandomSeeds(seeds, seedSize);
 	}
       }
 

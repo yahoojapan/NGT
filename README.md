@@ -31,10 +31,17 @@ The index can be placed in shared memory. Using shared memory can reduce the amo
 
 Note: Since there is no lock function, the index should be used only for reference when multiple processes are using the same index.
 
+Utilities
+---------
+
+- Command : [ngt](/bin/ngt/README.md#command)
+- Server : [ngtd](https://github.com/yahoojapan/ngtd)
+
 Supported Programming Languages
 -------------------------------
 
 - [Python](/python/README.md)
+- [Go](https://github.com/yahoojapan/gongt)
 - C
 - C++
 

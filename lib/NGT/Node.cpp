@@ -145,6 +145,7 @@ LeafNode::splitObjects(Container &c, Objects &fs, int pv)
 {
   DVPTree::InsertContainer &iobj = (DVPTree::InsertContainer&)c;
 
+  // sort the objects by distance
   int fsize = fs.size();
   for (int i = 0; i < fsize; i++) {
     if (i == pv) {
@@ -161,6 +162,7 @@ LeafNode::splitObjects(Container &c, Objects &fs, int pv)
   int cid = childrenSize - 1;
   int cms = (fsize * cid) / childrenSize;
 
+  // divide the objects into child clusters.
   fs[fsize - 1].clusterID = cid;
   for (int i = fsize - 2; i >= 0; i--) {
     if (i < cms && cid > 0) {
@@ -173,6 +175,7 @@ LeafNode::splitObjects(Container &c, Objects &fs, int pv)
   }
 
   if (cid != 0) {
+    // the required number of child nodes could not be acquired
     stringstream msg;
     msg << "LeafNode::splitObjects: Too many same distances. Reduce internal children size for the tree index or not use the tree index." << endl;
     msg << "  internalChildrenSize=" << childrenSize << endl;
@@ -194,7 +197,7 @@ LeafNode::splitObjects(Container &c, Objects &fs, int pv)
     } else {
       cerr << msg.str() << endl;
       cerr << "LeafNode::splitObjects: Anyway, continue..." << endl;
-      // sift the cluster IDS to start from 0.
+      // sift the cluster IDs to start from 0 to continue.
       for (int i = 0; i < fsize; i++) {
 	fs[i].clusterID -= cid;
       }
