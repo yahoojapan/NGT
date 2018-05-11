@@ -245,12 +245,14 @@ namespace NGT {
     virtual void load(const string &ifile, size_t dataSize) { getIndex().load(ifile, dataSize); }
     virtual void append(const string &ifile, size_t dataSize) { getIndex().append(ifile, dataSize); }
     virtual void append(const float *data, size_t dataSize) { getIndex().append(data, dataSize); }
+    virtual void append(const double *data, size_t dataSize) { getIndex().append(data, dataSize); }
     virtual size_t getObjectRepositorySize() { return getIndex().getObjectRepositorySize(); }
     virtual void createIndex(size_t threadNumber) { getIndex().createIndex(threadNumber); }
     virtual void saveIndex(const string &ofile) { getIndex().saveIndex(ofile); }
     virtual void loadIndex(const string &ofile) { getIndex().loadIndex(ofile); }
     virtual Object *allocateObject(const string &textLine, const string &sep) { return getIndex().allocateObject(textLine, sep); }
     virtual Object *allocateObject(vector<double> &obj) { return getIndex().allocateObject(obj); }
+    virtual Object *allocateObject(vector<float> &obj) { return getIndex().allocateObject(obj); }
     virtual size_t getSizeOfElement() { return getIndex().getSizeOfElement(); }
     virtual void setProperty(NGT::Property &prop) { getIndex().setProperty(prop); }
     virtual void getProperty(NGT::Property &prop) { getIndex().getProperty(prop); }
@@ -384,9 +386,8 @@ namespace NGT {
       objectSpace->appendText(is, dataSize);
     }
 
-    virtual void append(const float *data, size_t dataSize) {
-      objectSpace->append(data, dataSize);
-    }
+    virtual void append(const float *data, size_t dataSize) { objectSpace->append(data, dataSize); }
+    virtual void append(const double *data, size_t dataSize) { objectSpace->append(data, dataSize); }
 
     virtual void saveIndex(const string &ofile) {
 #ifndef NGT_SHARED_MEMORY_ALLOCATOR
@@ -982,9 +983,8 @@ namespace NGT {
       return objectSpace->allocateObject(textLine, sep);
     }
 
-    Object *allocateObject(vector<double> &obj) {
-      return objectSpace->allocateObject(obj);
-    }
+    Object *allocateObject(vector<double> &obj) { return objectSpace->allocateObject(obj); }
+    Object *allocateObject(vector<float> &obj) { return objectSpace->allocateObject(obj); }
 
     void deleteObject(Object *po) {
       return objectSpace->deleteObject(po);
@@ -1216,6 +1216,7 @@ namespace NGT {
       }
       // if seedSize is zero, the result size of the query is used as seedSize.
       size_t seedSize = NeighborhoodGraph::property.seedSize == 0 ? sc.size : NeighborhoodGraph::property.seedSize;
+      seedSize = seedSize > sc.size ? sc.size : seedSize;
       if (seeds.size() > seedSize) {
 	srand(tso.nodeID.getID());
 	// to accelerate thinning data.
@@ -1402,7 +1403,7 @@ NGT::Index::append(const string &database, const string &dataFile, size_t thread
   if (dataFile.size() != 0) {
     index.append(dataFile, dataSize);
   } else {
-    NGTThrowException("Index::create: No data file.");
+    NGTThrowException("Index::append: No data file.");
   }
   timer.stop();
   cerr << "Data loading time=" << timer.time << " (sec) " << timer.time * 1000.0 << " (msec)" << endl;
@@ -1424,7 +1425,7 @@ NGT::Index::append(const string &database, const float *data, size_t dataSize, s
   if (data != 0 && dataSize != 0) {
     index.append(data, dataSize);
   } else {
-    NGTThrowException("Index::create: No data.");
+    NGTThrowException("Index::append: No data.");
   }
   timer.stop();
   cerr << "Data loading time=" << timer.time << " (sec) " << timer.time * 1000.0 << " (msec)" << endl;

@@ -658,7 +658,7 @@ public:
   void
   prune(Args &args)
   {
-    const string usage = "Usage: ngt prune -e #-of-forcedly-pruned-edges -s #-of-selecively-pruned-edge";
+    const string usage = "Usage: ngt prune -e #-of-forcedly-pruned-edges -s #-of-selecively-pruned-edge index(in/out)";
     string indexName;
     try {
       indexName = args.get("#1");

@@ -8,7 +8,7 @@ You **MUST** install the NGT library according to the [README](../README.md#buil
 ```
 cd NGT_ROOT/python
 python setup.py sdist
-pip install dist/ngt-1.0.0.tar.gz
+pip install dist/ngt-1.1.0.tar.gz
 ```
 
 ## Usage

@@ -249,12 +249,12 @@ namespace MemoryManager{
         return -1;
       }
 
-      if(size > _impl->mmapCntlHead->base_size + sizeof(chunk_head_st)){
+      size_t alloc_size = getAlignSize(size);
+
+      if( (alloc_size + sizeof(chunk_head_st)) >= _impl->mmapCntlHead->base_size ){
         std::cerr << "alloc size over. size=" << size << "." << std::endl;
         return -1;
       }
-
-      size_t alloc_size = getAlignSize(size);
 
       if(!not_reuse_flag){
         if(  _impl->mmapCntlHead->reuse_type == REUSE_DATA_CLASSIFY 

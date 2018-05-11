@@ -73,9 +73,11 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 
   std::sort(tmp.begin(), tmp.end());
 
+#if 0
   if (tmp.size() > (size_t)property.seedSize) {
     tmp.resize(property.seedSize);
   }
+#endif
 
 #ifdef NGT_GRAPH_UNCHECK_STACK
   for (ObjectDistances::reverse_iterator ri = tmp.rbegin(); ri != tmp.rend(); ri++) {

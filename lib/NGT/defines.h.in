@@ -33,7 +33,11 @@
 
 
 #define		NGT_COMPACT_VECTOR
+
+#ifndef NGT_GRAPH_CHECK_VECTOR
 #define		NGT_GRAPH_CHECK_BOOLEANSET	// use original booleanset to check whether nodes were accessed.
+#endif
+
 #if defined(NGT_GRAPH_CHECK_BOOLEANSET) || defined(NGT_GRAPH_CHECK_BITSET)
 #define		NGT_GRAPH_CHECK_VECTOR		// use vector to check whether nodes were accessed.
 #endif

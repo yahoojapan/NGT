@@ -18,7 +18,10 @@
 
 
 #if !defined(NGT_AVX_DISABLED) && defined(__AVX__)
+#warning "***** AVX is available! ************************************************"
 #include	<immintrin.h>
+#else
+#warning "***** AVX is *NOT* available! ************************************************"
 #endif
 
 #include	"Common.h"
@@ -243,6 +246,7 @@ namespace NGT {
     virtual void readText(istream &is, size_t dataSize) = 0;
     virtual void appendText(ifstream &is, size_t dataSize) = 0;
     virtual void append(const float *data, size_t dataSize) = 0;
+    virtual void append(const double *data, size_t dataSize) = 0;
     virtual void copy(Object &objecta, Object &objectb) = 0;
 
     virtual void linearSearch(Object &query, double radius, size_t size,  
@@ -255,6 +259,7 @@ namespace NGT {
     virtual size_t getByteSizeOfObject() = 0;
     virtual Object *allocateObject(const string &textLine, const string &sep) = 0;
     virtual Object *allocateObject(vector<double> &obj) = 0;
+    virtual Object *allocateObject(vector<float> &obj) = 0;
     virtual void deleteObject(Object *po) = 0;
     virtual Object *allocateObject() = 0;
     virtual void remove(size_t id) = 0;
@@ -851,7 +856,7 @@ namespace NGT {
 #else
         ComparatorCosineSimilarity(size_t d) : Comparator(d) {}
 	double operator()(Object &objecta, Object &objectb) {
-	  return ObjectSpaceT::compareAngleDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
+	  return ObjectSpaceT::compareCosineSimilarity((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
 	}
 #endif
     };
@@ -1127,7 +1132,8 @@ namespace NGT {
       return (double)count;
     }
 
-    inline static double compareAngleDistance(OBJECT_TYPE *a, OBJECT_TYPE *b, size_t size) {
+#if defined(NGT_AVX_DISABLED) || !defined(__AVX__)
+    inline static double compareCosine(OBJECT_TYPE *a, OBJECT_TYPE *b, size_t size) {
       // Calculate the norm of A and B (the supplied vector).
       double normA = 0.0F;
       double normB = 0.0F;
@@ -1137,43 +1143,97 @@ namespace NGT {
 	normB += (double)b[loc] * (double)b[loc];
 	sum += (double)a[loc] * (double)b[loc];
       }
-
       assert(normA > 0.0F);
       assert(normB > 0.0F);
 
       // Compute the dot product of the two vectors. 
-      double cosine = sum / (sqrt(normA) * sqrt(normB));
+      double cosine = sum / sqrt(normA * normB);
+
+      return cosine;
+    }
+#else
+    inline static double compareCosine(float *a, float *b, size_t size) {
+      // Calculate the norm of A and B (the supplied vector).
+
+      __m256 normA = _mm256_setzero_ps();
+      __m256 normB = _mm256_setzero_ps();
+      __m256 sum = _mm256_setzero_ps();
+      float *last = a + size;
+      float *lastgroup = last - 7;
+      while (a < lastgroup) {
+	__m256 am = _mm256_loadu_ps(a);
+	__m256 bm = _mm256_loadu_ps(b);
+	normA = _mm256_add_ps(normA, _mm256_mul_ps(am, am));
+	normB = _mm256_add_ps(normB, _mm256_mul_ps(bm, bm));
+	sum = _mm256_add_ps(sum, _mm256_mul_ps(am, bm));
+	a += 8;
+	b += 8;
+      }
+
+      __attribute__((aligned(32))) float f[8];
+
+      _mm256_store_ps(f, normA);
+      double na = f[0] + f[1] + f[2] + f[3] + f[4] + f[5] + f[6] + f[7];
+      _mm256_store_ps(f, normB);
+      double nb = f[0] + f[1] + f[2] + f[3] + f[4] + f[5] + f[6] + f[7];
+      _mm256_store_ps(f, sum);
+      double s = f[0] + f[1] + f[2] + f[3] + f[4] + f[5] + f[6] + f[7];
+
+      while (a < last) {
+	double av = *a;
+	double bv = *b;
+	na += av * av;
+	nb += bv * bv;
+	s += av * bv;
+	a++;
+	b++;
+      }
+
+
+      assert(na > 0.0F);
+      assert(nb > 0.0F);
+
+      double cosine = s / sqrt(na * nb);
+
+      return cosine;
+    }
+
+    inline static double compareCosine(unsigned char *a, unsigned char *b, size_t size) {
+      // Calculate the norm of A and B (the supplied vector).
+      double normA = 0.0F;
+      double normB = 0.0F;
+      double sum = 0.0F;
+      for (size_t loc = 0; loc < size; loc++) {
+	normA += (double)a[loc] * (double)a[loc];
+	normB += (double)b[loc] * (double)b[loc];
+	sum += (double)a[loc] * (double)b[loc];
+      }
+      assert(normA > 0.0F);
+      assert(normB > 0.0F);
+
+      // Compute the dot product of the two vectors. 
+      double cosine = sum / sqrt(normA * normB);
+
+      return cosine;
+    }
+#endif    // #if defined(NGT_AVX_DISABLED) || !defined(__AVX__)
+
+    inline static double compareAngleDistance(OBJECT_TYPE *a, OBJECT_TYPE *b, size_t size) {
+      double cosine = compareAngleDistance(a, b, size);
       // Compute the vector angle from the cosine value, and return.
       // Roundoff error could have put the cosine value out of range.
       // Handle these cases explicitly.
       if (cosine >= 1.0F) {
 	return 0.0F;
       } else if (cosine <= -1.0F) {
-	return acos (-1.0F);
+	return acos(-1.0F);
       } else {
-	return acos (cosine);
+	return acos(cosine);
       }
-
     }
 
     inline static double compareCosineSimilarity(OBJECT_TYPE *a, OBJECT_TYPE *b, size_t size) {
-      // Calculate the norm of A and B (the supplied vector).
-      double normA = 0.0F;
-      double normB = 0.0F;
-      double sum = 0.0F;
-      for (size_t loc = 0; loc < size; loc++) {
-	normA += (double)a[loc] * (double)a[loc];
-	normB += (double)b[loc] * (double)b[loc];
-	sum += (double)a[loc] * (double)b[loc];
-      }
-
-      assert(normA > 0.0F);
-      assert(normB > 0.0F);
-
-      // Compute the dot product of the two vectors. 
-      double cosine = sum / (sqrt(normA) * sqrt(normB));
-
-      return 1.0 - cosine;
+      return 1.0 - compareCosine(a, b, size);
     }
 
     void serialize(const string &ofile) { ObjectRepository::serialize(ofile, this); }
@@ -1183,6 +1243,7 @@ namespace NGT {
     void readText(istream &is, size_t dataSize) { ObjectRepository::readText(is, dataSize); }
     void appendText(ifstream &is, size_t dataSize) { ObjectRepository::appendText(is, dataSize); }
     void append(const float *data, size_t dataSize) { ObjectRepository::append(data, dataSize); }
+    void append(const double *data, size_t dataSize) { ObjectRepository::append(data, dataSize); }
     
 
 
@@ -1243,6 +1304,9 @@ namespace NGT {
       return ObjectRepository::allocateObject(textLine, sep);
     }
     Object *allocateObject(vector<double> &obj) {
+      return ObjectRepository::allocateObject(obj);
+    }
+    Object *allocateObject(vector<float> &obj) {
       return ObjectRepository::allocateObject(obj);
     }
 

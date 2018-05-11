@@ -56,7 +56,7 @@ class Index(object):
           objects.append(vector)
 
       query = objects[0]
-      index = ngt.Index.create("tmp", dim)
+      index = ngt.Index.create(b"tmp", dim)
       index.insert(objects)
       # You can also insert objects from a file like this.
       # index.insert_from_tsv('list.dat')
