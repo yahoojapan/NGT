@@ -6,7 +6,12 @@ import glob
 from setuptools import setup
 if sys.version_info.major >= 3:
     from setuptools import Extension
-    import pip
+    try:
+        # for pip < 10.0
+        from pip import locations
+    except ImportError:
+        # for pip >= 10.0
+        from pip._internal import locations
 
 version = '1.1.0'
 
@@ -26,8 +31,8 @@ args = {
 if sys.version_info.major >= 3:
     module1 = Extension('ngtpy', 
                         include_dirs=['/usr/local/include', 
-                                      os.path.dirname(pip.locations.distutils_scheme('pybind11')['headers']),
-                                      os.path.dirname(pip.locations.distutils_scheme('pybind11', True)['headers'])],
+                                      os.path.dirname(locations.distutils_scheme('pybind11')['headers']),
+                                      os.path.dirname(locations.distutils_scheme('pybind11', True)['headers'])],
                         library_dirs=['/usr/local/lib', '/usr/local/lib64'],
                         libraries=['ngt'],
                         extra_compile_args=['-std=c++11', '-mavx', '-Ofast', '-march=native', '-lrt', '-DNDEBUG'],
