@@ -72,6 +72,8 @@ bool ngt_set_property_distance_type_angle(NGTProperty, NGTError);
 
 bool ngt_set_property_distance_type_hamming(NGTProperty, NGTError);
 
+bool ngt_set_property_distance_type_cosine(NGTProperty, NGTError);
+
 NGTObjectDistances ngt_create_empty_results(NGTError);
 
 bool ngt_search_index(NGTIndex, double*, int32_t, size_t, float, NGTObjectDistances, NGTError);

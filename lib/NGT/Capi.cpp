@@ -242,6 +242,18 @@ bool ngt_set_property_distance_type_hamming(NGTProperty prop, NGTError error) {
   return true;
 }
 
+bool ngt_set_property_distance_type_cosine(NGTProperty prop, NGTError error) {
+  if(prop == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
+    operate_error_string_(ss, error);
+    return false;
+  }
+ 
+  (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeCosine;
+  return true;
+}
+
 NGTObjectDistances ngt_create_empty_results(NGTError error) {
   try{
     return static_cast<NGTObjectDistances>(new NGT::ObjectDistances());
