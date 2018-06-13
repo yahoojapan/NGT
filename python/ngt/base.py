@@ -127,6 +127,8 @@ class Index(object):
     __ngt.ngt_set_property_distance_type_hamming.argtypes = [
                                                         c_void_p, c_void_p]
 
+    __ngt.ngt_set_property_distance_type_cosine.argtypes = [c_void_p, c_void_p]
+
     __ngt.ngt_create_empty_results.argtype = [c_void_p]
     __ngt.ngt_create_empty_results.restype = c_void_p
 
@@ -200,7 +202,7 @@ class Index(object):
           edge_size_for_creation : Number of edges for each node in the graph.
           edge_size_for_search   : Number of edges to search.
           object_type            : Type of the data object. (Float, Integer [Integer is 1 byte])
-          distance_type          : Type of the distance function. (L1,L2,Angle,Hamming)
+          distance_type          : Type of the distance function. (L1,L2,Angle,Hamming,Cosine)
         '''
         err = None
         prop = None
@@ -244,6 +246,10 @@ class Index(object):
                 Index._check_error_num(stat, err)
             elif distance_type == "Hamming":
                 stat = Index.__ngt.ngt_set_property_distance_type_hamming(
+                                                                prop, err)
+                Index._check_error_num(stat, err)
+            elif distance_type == "Cosine":
+                stat = Index.__ngt.ngt_set_property_distance_type_cosine(
                                                                 prop, err)
                 Index._check_error_num(stat, err)
 
