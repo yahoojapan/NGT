@@ -30,6 +30,8 @@ pip install dist/ngt-1.1.0.tar.gz
   # index.insert_from_tsv('list.tsv') 
 
   index.save()
+  # You can load saved index like this.
+  # index = ngt.Index(b"tmp", dim)
 
   result = index.search(query, 3)
 
