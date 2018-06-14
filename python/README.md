@@ -31,7 +31,7 @@ pip install dist/ngt-1.1.0.tar.gz
 
   index.save()
   # You can load saved index like this.
-  # index = ngt.Index(b"tmp", dim)
+  # index = ngt.Index(b"tmp")
 
   result = index.search(query, 3)
 
