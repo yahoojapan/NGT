@@ -15,7 +15,7 @@ pip install dist/ngt-1.2.0.tar.gz
 
 ## Simple samples
 
-# ctypes
+### ctypes
 
 ```python
   from ngt import base as ngt
@@ -45,7 +45,7 @@ pip install dist/ngt-1.2.0.tar.gz
       print(object)
 ```
 
-# pybind11
+### pybind11
 
 Pybind11 is much faster than ctypes, especially for the short search time. 
 
