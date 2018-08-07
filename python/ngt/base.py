@@ -62,6 +62,8 @@ class Index(object):
       # index.insert_from_tsv('list.dat')
 
       index.save()
+      # You can load the saved index like this.
+      # index = ngt.Index(b"tmp")
 
       result = index.search(query, 3)
 
@@ -124,8 +126,7 @@ class Index(object):
 
     __ngt.ngt_set_property_distance_type_angle.argtypes = [c_void_p, c_void_p]
 
-    __ngt.ngt_set_property_distance_type_hamming.argtypes = [
-                                                        c_void_p, c_void_p]
+    __ngt.ngt_set_property_distance_type_hamming.argtypes = [c_void_p, c_void_p]
 
     __ngt.ngt_set_property_distance_type_cosine.argtypes = [c_void_p, c_void_p]
 
@@ -384,7 +385,7 @@ class Index(object):
     def insert_blob(self, objects, num_threads=8):
         '''
         insert the specified objects into the index and build the index.
-        Although this is the same as the fucntion, both implementations are different. 
+        Although this is the same as the fucntion insert(), both implementations are different. 
 
             objects : Inserted objects.
             num_threads : Number of threads in building index.

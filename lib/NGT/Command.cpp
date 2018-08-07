@@ -13,110 +13,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#pragma once
 
-#include	"NGT/Index.h"
+#include	"NGT/Command.h"
+#include	"NGT/GraphReconstructor.h"
 
+#include	"NGT/Optimizer.h"
 
-namespace NGT {
-
-class Args : public map<string, string>
-{
-public:
-  Args(int argc, char **argv):
-    option("a:b:c:d:e:f:g:hi:j:k:l:m:n:o:p:q:r:s:t:u:v:w:x:y:z:"
-	   "A:B:C:D:E:F:G:H:I:J:K:L:M:N:O:P:Q:R:S:T:U:V:W:X:Y:Z:")
-  {
-    int opt;
-    while ((opt = getopt(argc, argv, option)) != -1) {
-      if ((char)opt == 'h') {
-	string str;
-	str.append(1, (char)opt);
-	insert(pair<string, string>(str, ""));
-	continue;
-      }
-      string str;
-      str.append(1, (char)opt);
-      insert(pair<string, string>(str, string(optarg)));
-    }
-    for (int i = 0; optind < argc; optind++, i++) {
-      stringstream ss;
-      ss << "#" << i;
-      insert(pair<string, string>(ss.str(), string(argv[optind])));
-    }
-  }
-  string &find(const char *s) { return get(s); }
-  char getChar(const char *s, char v) {
-    try {
-      return get(s)[0];
-    } catch (...) {
-      return v;
-    }
-  }
-  string getString(const char *s, const char *v) {
-    try {
-      return get(s);
-    } catch (...) {
-      return v;
-    }
-  }
-  string &get(const char *s) {
-    Args::iterator ai;
-    ai = map<string, string>::find(string(s));
-    if (ai == this->end()) {
-      stringstream msg;
-      msg << s << ": Not specified" << endl;
-      NGTThrowException(msg.str());
-    }
-    return ai->second;
-  }
-  long getl(const char *s, long v) {
-    char *e;
-    long val;
-    try {
-      val = strtol(get(s).c_str(), &e, 10);
-    } catch (...) {
-      return v;
-    }
-    if (*e != 0) {
-      stringstream msg;
-      msg << "ARGS::getl: Illegal string. Option=-" << s << " Specified value=" << get(s) 
-	  << " Illegal string=" << e << endl;
-      NGTThrowException(msg.str());
-    }
-    return val;
-  }
-  float getf(const char *s, float v) {
-    char *e;
-    float val;
-    try {
-      val = strtof(get(s).c_str(), &e);
-    } catch (...) {
-      return v;
-    }
-    if (*e != 0) {
-      stringstream msg;
-      msg << "ARGS::getf: Illegal string. Option=-" << s << " Specified value=" << get(s) 
-	  << " Illegal string=" << e << endl;
-      NGTThrowException(msg.str());
-    }
-    return val;
-  }
-  const char *option;
-};
-
-
-class Command {
-public:
-  Command():debugLevel(0) {}
 
   void 
-  create(Args &args)
+  NGT::Command::create(Args &args)
   {
     const string usage = "Usage: ngt create "
       "-d dimension [-p #-of-thread] [-i index-type(t|g)] [-g graph-type(a|k|b)] "
       "[-t truncation-edge-limit] [-E edge-size] [-S edge-size-for-search] [-L edge-size-limit] "
       "[-e epsilon] [-o object-type(f|c)] [-D distance-function] [-n data-size] "
+      "[-P path-adjustment-interval] [-B dynamic-edge-size-base] "
       "index(output) [data.tsv(input)]";
     string database;
     try {
@@ -140,6 +51,8 @@ public:
     property.truncationThreshold = args.getl("t", 0);
     property.dimension = args.getl("d", 0);
     property.threadPoolSize = args.getl("p", 24);
+    property.pathAdjustmentInterval = args.getl("P", 0);
+    property.dynamicEdgeSizeBase = args.getl("B", 30);
 
     if (property.dimension <= 0) {
       cerr << "ngt: Error: Specify greater than 0 for # of your data dimension by a parameter -d." << endl;
@@ -210,11 +123,17 @@ public:
     case 'a':
       property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeAngle;
       break;
+    case 'A':
+      property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeNormalizedAngle;
+      break;
     case 'h':
       property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeHamming;
       break;
     case 'c':
       property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeCosine;
+      break;
+    case 'C':
+      property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeNormalizedCosine;
       break;
     default:
       cerr << "ngt: Error: Invalid distance type. " << distanceType << endl;
@@ -233,7 +152,7 @@ public:
   }
 
   void 
-  append(Args &args)
+  NGT::Command::append(Args &args)
   {
     const string usage = "Usage: ngt append [-p #-of-thread] [-d dimension] [-n data-size] "
       "index(output) data.tsv(input)";
@@ -275,64 +194,15 @@ public:
     }
   }
 
-  class SearchParameter {
-  public:
-    SearchParameter() {}
-    SearchParameter(Args &args) {
-      try {
-	query = args.get("#2");
-      } catch (...) {
-	NGTThrowException("ngt: Error: Query is not specified");
-      }
-      querySize = args.getl("Q", 0);
-      indexType	= args.getChar("i", 't');
-      size		= args.getl("n", 20);
-      // edgeSize
-      // -1 : using the size which was specified at the index creation.
-      //  0 : no limitation for the edge size.
-      edgeSize	= args.getl("E", -1);
-      outputMode	= args.getString("o", "-");
-      radius		= args.getf("r", FLT_MAX);
-      trial		= args.getl("t", 1);
-      {
-	beginOfEpsilon = endOfEpsilon = stepOfEpsilon = 0.1;
-	string epsilon = args.getString("e", "0.1");
-	vector<string> tokens;
-	NGT::Common::tokenize(epsilon, tokens, ":");
-	if (tokens.size() >= 1) { beginOfEpsilon = endOfEpsilon = NGT::Common::strtod(tokens[0]); }
-	if (tokens.size() >= 2) { endOfEpsilon = NGT::Common::strtod(tokens[1]); }
-	if (tokens.size() >= 3) { stepOfEpsilon = NGT::Common::strtod(tokens[2]); }
-	step = 0;
-	if (tokens.size() >= 4) { step = NGT::Common::strtol(tokens[3]); }
-      }
-    }
-    string	query;
-    size_t	querySize;
-    char	indexType;
-    int		size;
-    long	edgeSize;
-    string	outputMode;
-    float	radius;
-    float	beginOfEpsilon;
-    float	endOfEpsilon;
-    float	stepOfEpsilon;
-    size_t	step;
-    size_t	trial;
-  };
 
-  static void
-  search(NGT::Index &index, SearchParameter &searchParameter, ostream &stream)
+  void
+  NGT::Command::search(NGT::Index &index, NGT::Command::SearchParameter &searchParameter, istream &is, ostream &stream)
   {
 
     if (searchParameter.outputMode[0] == 'e') { 
       stream << "# Beginning of Evaluation" << endl; 
     }
 
-    ifstream		is(searchParameter.query);
-    if (!is) {
-      cerr << "Cannot open the specified file. " << searchParameter.query << endl;
-      return;
-    }
     string line;
     double totalTime	= 0;
     size_t queryCount	= 0;
@@ -359,7 +229,7 @@ public:
 	sc.setSize(searchParameter.size);
 	sc.setRadius(searchParameter.radius);
 	sc.setEpsilon(epsilon);
-	sc.setEdgeSize(searchParameter.edgeSize);
+ 	sc.setEdgeSize(searchParameter.edgeSize);
 	NGT::Timer timer;
 	try {
 	  if (searchParameter.outputMode[0] == 'e') {
@@ -474,9 +344,9 @@ public:
 
 
   void
-  search(Args &args) {
-    const string usage = "Usage: ngt search [-i g|t|s] [-n result-size] [-e epsilon] [-E edge-size] "
-      "[-o output-mode] index(input) query.tsv(input)";
+  NGT::Command::search(Args &args) {
+    const string usage = "Usage: ngt search [-i index-type(g|t|s)] [-n result-size] [-e epsilon] [-E edge-size] "
+      "[-m open-mode(r|w)] [-o output-mode] index(input) query.tsv(input)";
 
     string database;
     try {
@@ -498,9 +368,7 @@ public:
     }
 
     try {
-      NGT::Property property;
-      property.clear();
-      NGT::Index	index(database, property);
+      NGT::Index	index(database, searchParameter.openMode == 'r');
       search(index, searchParameter, cout);
     } catch (NGT::Exception &err) {
       cerr << "ngt: Error " << err.what() << endl;
@@ -514,7 +382,7 @@ public:
 
 
   void
-  remove(Args &args)
+  NGT::Command::remove(Args &args)
   {
     const string usage = "Usage: ngt remove [-d object-ID-type(f|d)] index(input) object-ID(input)";
     string database;
@@ -592,7 +460,7 @@ public:
   }
 
   void
-  exportIndex(Args &args)
+  NGT::Command::exportIndex(Args &args)
   {
     const string usage = "Usage: ngt export index(input) export-file(output)";
     string database;
@@ -623,7 +491,7 @@ public:
   }
 
   void
-  importIndex(Args &args)
+  NGT::Command::importIndex(Args &args)
   {
     const string usage = "Usage: ngt import index(output) import-file(input)";
     string database;
@@ -656,7 +524,7 @@ public:
   }
 
   void
-  prune(Args &args)
+  NGT::Command::prune(Args &args)
   {
     const string usage = "Usage: ngt prune -e #-of-forcedly-pruned-edges -s #-of-selecively-pruned-edge index(in/out)";
     string indexName;
@@ -754,10 +622,138 @@ public:
 
   }
 
+  void
+  NGT::Command::reconstructGraph(Args &args)
+  {
+    const string usage = "Usage: ngt reconstruct [-m mode] [-P path-adjustment-mode] -e #-of-original-edges -E #-of-reverse-edges index(input) index(output)\n"
+      "\t-m mode\n"
+      "\t\ts: Edge adjustment. (default)\n"
+      "\t\tS: Edge adjustment and path adjustment.\n"
+      "\t\tc: Edge adjustment with the constraint.\n"
+      "\t\tC: Edge adjustment with the constraint and path adjustment.\n"
+      "\t\tP: Path adjustment.\n"
+      "\t-P path-adjustment-mode\n"
+      "\t\ta: Advanced method. High-speed. Not guarantee the paper method. (default)\n"
+      "\t\tothers: Slow and less memory usage, but guarantee the paper method.\n";
+
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+    cerr << "ngt::reconstructGraph: Not implemented" << endl;
+    abort();
+#else // NGT_SHARED_MEMORY_ALLOCATOR
+
+    string inIndexName;
+    try {
+      inIndexName = args.get("#1");
+    } catch (...) {
+      cerr << "ngt::reconstructGraph: Input index is not specified." << endl;
+      cerr << usage << endl;
+      return;
+    }
+    string outIndexName;
+    try {
+      outIndexName = args.get("#2");
+    } catch (...) {
+      cerr << "ngt::reconstructGraph: Output index is not specified." << endl;
+      cerr << usage << endl;
+      return;
+    }
+
+    // the number (rank) of original edges
+    int originalEdgeSize	= args.getl("o", -1);
+    // the number (rank) of reverse edges
+    int reverseEdgeSize		= args.getl("i", -1);
+    if ((originalEdgeSize < 0 && reverseEdgeSize >= 0) ||
+	(originalEdgeSize >= 0 && reverseEdgeSize < 0)) {
+      cerr << "ngt::reconstructGraph: specified both of the edges(-i -o) or neither of them." << endl;
+      cerr << usage << endl;
+      return;
+    }
+
+
+    NGT::Index	outIndex(inIndexName);
+    cerr << "ngt::reconstructGraph: Extract the graph data." << endl;
+    // extract only edges from the index to reduce the memory usage.
+    NGT::GraphIndex	&outGraph = (NGT::GraphIndex&)outIndex.getIndex();
+    Timer timer;
+    timer.start();
+    vector<NGT::GraphNode> graph;
+    graph.reserve(outGraph.repository.size());
+    for (size_t id = 1; id < outGraph.repository.size(); id++) {
+      if (id % 1000000 == 0) {
+	cerr << "Processed " << id << " objects." << endl;
+      }
+      try {
+	NGT::GraphNode &node = *outGraph.getNode(id);
+	graph.push_back(node);
+	if (graph.back().size() != graph.back().capacity()) {
+	  cerr << "ngt::reconstructGraph: Warning! The graph size must be the same as the capacity. " << id << endl;
+	}
+      } catch(NGT::Exception &err) {
+	cerr << "ngt::reconstructGraph: Warning! Cannot get the node. ID=" << id << ":" << err.what() << endl;
+	continue;
+      }
+    }
+
+    char mode = args.getChar("m", 's');
+
+    char pamode = args.getChar("P", 'a');
+
+    if (originalEdgeSize >= 0) {
+      switch (mode) {
+      case 's': // SA
+      case 'S': // SA and path adjustment
+	NGT::GraphReconstructor::reconstructGraph(graph, outIndex, originalEdgeSize, reverseEdgeSize);
+	break;
+      case 'c': // SAC
+      case 'C': // SAC and path adjustment
+	NGT::GraphReconstructor::reconstructGraphWithConstraint(graph, outIndex, originalEdgeSize, reverseEdgeSize);
+	break;
+      case 'P':
+	break;
+      default:
+	cerr << "ngt::reconstructGraph: Invalid mode. " << mode << endl;
+	return;
+      }
+    }
+    timer.stop();
+    cerr << "Graph reconstruction time=" << timer.time << " (sec) " << endl;
+
+    if (mode == 'S' || mode == 'C'|| mode == 'P') {
+      timer.reset();
+      timer.start();
+      if (pamode == 'a') {
+        GraphReconstructor::adjustPathsEffectively(outIndex);
+      } else {
+        GraphReconstructor::adjustPaths(outIndex);
+      }
+      timer.stop();
+      cerr << "Path adjustment time=" << timer.time << " (sec) " << endl;
+    }
+
+    float intervalFrom = 0.6;
+    float intervalTo = 0.8;
+    size_t querySize = 100;
+    double gtEpsilon = 0.1;
+    double mergin = 0.2;
+
+    try {
+      size_t baseEdgeSize = NGT::Optimizer::adjustBaseSearchEdgeSize(outIndex, pair<float, float>(intervalFrom, intervalTo), querySize, gtEpsilon, mergin);
+      NeighborhoodGraph::Property &prop = outGraph.getGraphProperty();
+      prop.dynamicEdgeSizeBase = baseEdgeSize;
+      cerr << "Reconstruct Graph: adjust the base search edge size. " << baseEdgeSize << endl;
+    } catch(NGT::Exception &err) {
+      cerr << "Warning: Cannot adjust the base edge size. " << err.what() << endl;
+    }
+
+    outGraph.saveIndex(outIndexName);
+
+#endif // NGT_SHARED_MEMORY_ALLOCATOR
+  }
+
 
 
   void
-  info(Args &args)
+  NGT::Command::info(Args &args)
   {
     const string usage = "Usage: ngt info [-E #-of-edges] [-m h|e] index";
 
@@ -789,14 +785,3 @@ public:
   }
 
 
-  //////////////////////////////////////////////////////////////
-
-  void setDebugLevel(int level) { debugLevel = level; }
-  int getDebugLevel() { return debugLevel; }
-
-protected:
-  int debugLevel;
-
-};
-
-}; // NGT

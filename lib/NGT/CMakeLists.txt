@@ -15,7 +15,7 @@ if( ${UNIX} )
 	set_target_properties(ngt PROPERTIES VERSION ${ngt_VERSION}) 
 	set_target_properties(ngt PROPERTIES SOVERSION ${ngt_SOVERSION}) 
 	add_dependencies(ngt ngtstatic) 
-	target_link_libraries(ngt)
+	target_link_libraries(ngt gomp)
 
 	install(TARGETS
 		ngt

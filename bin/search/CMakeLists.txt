@@ -6,7 +6,6 @@ if( ${UNIX} )
 	add_executable(search search.cpp)
 	add_dependencies(search ngt)
 	target_link_libraries(search ngt pthread)
-
 	install(TARGETS search RUNTIME DESTINATION bin)
 
 endif()

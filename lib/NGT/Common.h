@@ -385,7 +385,6 @@ namespace NGT {
     }
     template <class VALUE_TYPE> void set(const string &key, VALUE_TYPE value) {
       stringstream vstr;
-      //vstr << setprecision(8) << value;
       vstr << value;
       iterator it = find(key);
       if (it == end()) {
@@ -1013,7 +1012,7 @@ namespace NGT {
 #endif
     }
 
-    TYPE *get(size_t idx) {
+    inline TYPE *get(size_t idx) {
       if (isEmpty(idx)) {
 	stringstream msg;
 	msg << "get: Not in-memory or invalid offset of node. " << idx << ":" << array->size();
@@ -1451,7 +1450,9 @@ namespace NGT {
 #endif
     }
 
-    TYPE *get(size_t idx) {
+    TYPE **getPtr() { return &(*this)[0]; }
+
+    inline TYPE *get(size_t idx) {
       if (isEmpty(idx)) {
 	stringstream msg;
 	msg << "get: Not in-memory or invalid offset of node. idx=" << idx << " size=" << this->size();
@@ -1459,6 +1460,8 @@ namespace NGT {
       }
       return (*this)[idx];
     }
+
+    inline TYPE *getWithoutCheck(size_t idx) { return (*this)[idx]; }
 
     void serialize(ofstream &os, ObjectSpace *objectspace = 0) {
       if (!os.is_open()) {
@@ -1621,6 +1624,63 @@ namespace NGT {
 #endif
   };
 
+#pragma pack(2)
+  class ObjectDistance {
+  public:
+    ObjectDistance():id(0), distance(0.0) {}
+    ObjectDistance(unsigned int i, float d):id(i), distance(d) {}
+    inline bool operator==(const ObjectDistance &o) const {
+      return (distance == o.distance) && (id == o.id);
+    }
+    inline void set(unsigned int i, float d) { id = i; distance = d; }
+    inline bool operator<(const ObjectDistance &o) const {
+      if (distance == o.distance) {
+        return id < o.id;
+      } else {
+        return distance < o.distance;
+      }
+    }
+    inline bool operator>(const ObjectDistance &o) const {
+      if (distance == o.distance) {
+        return id > o.id;
+      } else {
+        return distance > o.distance;
+      }
+    }
+    void serialize(ofstream &os) {
+      NGT::Serializer::write(os, id);
+      NGT::Serializer::write(os, distance);
+    }
+    void deserialize(ifstream &is) {
+      NGT::Serializer::read(is, id);
+      NGT::Serializer::read(is, distance);
+    }
+
+    void serializeAsText(ofstream &os) {
+      os.unsetf(std::ios_base::floatfield);
+      os << setprecision(8) << id << " " << distance;
+    }
+
+    void deserializeAsText(ifstream &is) {
+      is >> id;
+      is >> distance;
+    }
+
+    friend ostream &operator<<(ostream& os, const ObjectDistance &o) {
+      os << o.id << " " << o.distance;
+      return os;
+    }
+    friend istream &operator>>(istream& is, ObjectDistance &o) {
+      is >> o.id;
+      is >> o.distance;
+      return is;
+    }
+    uint32_t            id;
+    float         distance;
+  };
+
+#pragma pack()
+
   class Object;
   class ObjectDistances;
 
@@ -1631,6 +1691,8 @@ namespace NGT {
     Object		&object;
     ObjectID		id;
   };
+
+  typedef priority_queue<ObjectDistance, vector<ObjectDistance>, less<ObjectDistance> > ResultPriorityQueue;
 
   class SearchContainer : public NGT::Container {
   public:
@@ -1644,6 +1706,7 @@ namespace NGT {
       result = sc.result;
       distanceComputationCount = sc.distanceComputationCount;
       edgeSize = sc.edgeSize;
+      workingResult = sc.workingResult;
       return *this;
     }
     virtual ~SearchContainer() {}
@@ -1660,6 +1723,7 @@ namespace NGT {
     void setEpsilon(float e) { explorationCoefficient = e + 1.0; }
     void setEdgeSize(int e) { edgeSize = e; }
 
+    inline bool resultIsAvailable() { return result != 0; }
     ObjectDistances &getResult() {
       if (result == 0) {
 	NGTThrowException("Inner error: results is not set");
@@ -1667,12 +1731,15 @@ namespace NGT {
       return *result;
     }
 
+    ResultPriorityQueue &getWorkingResult() { return workingResult; }
+
 
     size_t		size;
     Distance		radius;
     float		explorationCoefficient;
     int			edgeSize;
     size_t		distanceComputationCount;
+    ResultPriorityQueue	workingResult;
 
   private:
     ObjectDistances	*result;

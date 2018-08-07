@@ -188,16 +188,16 @@ Perform a neighborhood search by three queries specified in a file:
       $ cd (NGT_TOP_DIR)
       $ ngt search -n 20 index ./data/sift-query-3.tsv
       Query No.1
-      Rank	ID		Distance
-      1		3031	239.332
-      2		4079	240.002
-      3		3164	244.504
-      4		3718	246.763
-      5		157		251.094
-      6		2422	251.185
-      7		1313	251.34
-      8		379		252.446
-      9		3521	260.158
+      Rank	ID	Distance
+      1	3031	239.332
+      2	4079	240.002
+      3	3164	244.504
+      4	3718	246.763
+      5	157	251.094
+      6	2422	251.185
+      7	1313	251.34
+      8	379	252.446
+      9	3521	260.158
       10	2594	261.132
       11	4627	262.381
       12	2159	263.471
@@ -208,42 +208,42 @@ Perform a neighborhood search by three queries specified in a file:
       17	3168	269.637
       18	4236	270.673
       19	4700	272.725
-      20	679		272.973
+      20	679	272.973
       Query Time= 0.000472 (sec), 0.472 (msec)
       Query No.2
-      Rank	ID		Distance
-      1		2726	291.983
-      2		924		296.987
-      3		3638	298.585
-      4		858		300.376
-      5		1453	306.805
-      6		174		307.789
-      7		2992	308.485
-      8		2980	308.93
-      9		1525	309.49
-      10	244		309.816
-      11	910		310.446
+      Rank	ID	Distance
+      1	2726	291.983
+      2	924	296.987
+      3	3638	298.585
+      4	858	300.376
+      5	1453	306.805
+      6	174	307.789
+      7	2992	308.485
+      8	2980	308.93
+      9	1525	309.49
+      10	244	309.816
+      11	910	310.446
       12	3310	310.585
       13	2433	311.482
       14	1633	311.735
       15	3761	312.44
-      16	407		313.252
+      16	407	313.252
       17	4546	313.876
-      18	697		315.108
-      19	34		315.563
+      18	697	315.108
+      19	34	315.563
       20	2189	316.193
       Query Time= 0.000478 (sec), 0.478 (msec)
       Query No.3
-      Rank	ID		Distance
-      1		762		194.286
-      2		1046	212.695
-      3		4906	215.244
-      4		2905	216.539
-      5		4142	219.479
-      6		1879	219.616
-      7		4398	223.352
-      8		3842	223.468
-      9		233		224.127
+      Rank	ID	Distance
+      1	762	194.286
+      2	1046	212.695
+      3	4906	215.244
+      4	2905	216.539
+      5	4142	219.479
+      6	1879	219.616
+      7	4398	223.352
+      8	3842	223.468
+      9	233	224.127
       10	2794	224.366
       11	2476	224.804
       12	1848	225.803
@@ -260,37 +260,47 @@ Perform a neighborhood search by three queries specified in a file:
 
 ### How to construct the indexes for our [publications](/README.md#publications)
 
-##### [PANNG](/README.md#panng)
+##### ONNG (not yet published)
 ```
-	$ ngt create -i g -g a -S 0 -e 0.1 -E no_of_edges -d dimensionality_of_data -o data_type -D distatnce_type panng-index vector-data.dat
-	$ ngt prune -e no_of_forcedly_pruned_edges -s no_of_selectively_pruned_edges panng-index
+$ ngt create -i t -g a -S 0 -e 0.1 -E no_of_edges -d dimensionality_of_data -o data_type -D distatnce_type anng-index vector-data.dat
+$ ngt reconstruct-graph -m S -o outdegree -i indegree anng-index onng-index
 ```
 e.g.  
 ```
-	$ ngt create -i g -g a -S 0 -e 0.1 -E 10 -d 128 -o c -D 2 panng-index vector-data.dat
-	$ ngt prune -e 60 -s 30 panng-index
+$ ngt create -i t -g a -S 0 -e 0.1 -E 10 -d 128 -o c -D 2 anng-index vector-data.dat
+$ ngt reconstruct-graph -m S -o 10 -i 120 anng-index onng-index
+```
+##### [PANNG](/README.md#panng)
+```
+$ ngt create -i g -g a -S 0 -e 0.1 -E no_of_edges -d dimensionality_of_data -o data_type -D distatnce_type panng-index vector-data.dat
+$ ngt prune -e no_of_forcedly_pruned_edges -s no_of_selectively_pruned_edges panng-index
+```
+e.g.  
+```
+$ ngt create -i g -g a -S 0 -e 0.1 -E 10 -d 128 -o c -D 2 panng-index vector-data.dat
+$ ngt prune -e 60 -s 30 panng-index
 ```
 ##### [ANNGT](/README.md#anngt)
 ```
-	$ ngt create -i t -g a -S 0 -e 0.1 -E no_of_edges(k) -d dimensionality_of_data -o data_type -D distance_type anngt-index vector-data.dat
+$ ngt create -i t -g a -S 0 -e 0.1 -E no_of_edges(k) -d dimensionality_of_data -o data_type -D distance_type anngt-index vector-data.dat
 ```
 e.g.
 ```  
-	$ ngt create -i t -g a -S 0 -e 0.1 -E 16 -d 128 -o c -D 2 anngt-index vector-data.dat
+$ ngt create -i t -g a -S 0 -e 0.1 -E 16 -d 128 -o c -D 2 anngt-index vector-data.dat
 ```
 ##### [ANNG](/README.md#anng)
 ```
-	$ ngt create -i g -g a -S 0 -e 0.1 -E no_of_edges(k) -d dimensionality_of_data -o data_type -D distance_type anng-index vector-data.dat
+$ ngt create -i g -g a -S 0 -e 0.1 -E no_of_edges(k) -d dimensionality_of_data -o data_type -D distance_type anng-index vector-data.dat
 ```
 e.g.
 ```
-	$ ngt create -i g -g a -S 0 -e 0.1 -E 16 -d dimensionality_of_data -o data_type -D distance_type anng-index vector-data.dat
+$ ngt create -i g -g a -S 0 -e 0.1 -E 16 -d dimensionality_of_data -o data_type -D distance_type anng-index vector-data.dat
 ```
 ##### KNNG  
 ```
-	$ ngt create -i g -g k -S 0 -E no_of_edges(k) -d dimensionality_of_data -o data_type -D distance_type knng-index vector-data.dat
+$ ngt create -i g -g k -S 0 -E no_of_edges(k) -d dimensionality_of_data -o data_type -D distance_type knng-index vector-data.dat
 ```
 e.g.
 ```  
-	$ ngt create -i g -g k -S 0 -E 20 -d 128 -o c -D 2 knng-index vector-data.dat
+$ ngt create -i g -g k -S 0 -E 20 -d 128 -o c -D 2 knng-index vector-data.dat
 ```

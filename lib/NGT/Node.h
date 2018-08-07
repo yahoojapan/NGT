@@ -18,7 +18,7 @@
 
 #include	"NGT/defines.h"
 #include	"NGT/Common.h"
-#include	"NGT/ObjectSpace.h"
+#include	"NGT/ObjectSpaceRepository.h"
 #include	<algorithm>
 
 namespace NGT {

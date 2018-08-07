@@ -269,6 +269,37 @@ namespace NGT {
       return n;
     }
 
+    void getAllLeafNodeIDs(vector<Node::ID> &leafIDs) {
+      leafIDs.clear();
+      Node *root = getRootNode();
+      if (root->id.getType() == Node::ID::Leaf) {
+	leafIDs.push_back(root->id);
+	return;
+      }
+      UncheckedNode uncheckedNode;
+      uncheckedNode.push(root->id);
+      while (!uncheckedNode.empty()) {
+	Node::ID nodeid = uncheckedNode.top();
+	uncheckedNode.pop();
+	Node *cnode = getNode(nodeid);
+	if (cnode->id.getType() == Node::ID::Internal) {
+	  InternalNode &inode = static_cast<InternalNode&>(*cnode);
+	  for (size_t ci = 0; ci < internalChildrenSize; ci++) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	    uncheckedNode.push(inode.getChildren(internalNodes.allocator)[ci]);
+#else
+	    uncheckedNode.push(inode.getChildren()[ci]);
+#endif
+	  }
+	} else if (cnode->id.getType() == Node::ID::Leaf) {
+	  leafIDs.push_back(static_cast<LeafNode&>(*cnode).id);
+	} else {
+	  cerr << "Tree: Inner fatal error!: Node type error!" << endl;
+	  abort();
+	}
+      }
+    }
+
     void serialize(ofstream &os) {
       leafNodes.serialize(os, objectSpace);
       internalNodes.serialize(os, objectSpace);

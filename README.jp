@@ -19,7 +19,6 @@ NGT - Neighborhood Graph and Tree for Indexing
   $ cmake ..
   $ make 
   $ make install
-  $ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib64
 
 共有メモリ利用
 

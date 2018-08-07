@@ -14,7 +14,8 @@
 // limitations under the License.
 //
 
-#include	"Command.h"
+#include	"NGT/Command.h"
+#include	"NGT/Optimizer.h"
 
 #ifndef BUILD_DATE
 #define BUILD_DATE	"-"
@@ -41,7 +42,7 @@ version(ostream &os)
 
 void help() {
   cerr << "Usage : ngt command database data" << endl;
-  cerr << "           command : create search remove append export import" << endl;
+  cerr << "           command : create search remove append export import reconstruct-graph" << endl;
 }
 
 int
@@ -79,6 +80,15 @@ main(int argc, char **argv)
       ngt.importIndex(args);
     } else if (command == "prune") {
       ngt.prune(args);
+    } else if (command == "reconstruct-graph") {
+      ngt.reconstructGraph(args);
+#ifndef NGT_SHARED_MEMORY_ALLOCATOR
+    } else if (command == "extract-query") {
+      NGT::Optimizer::extractQueries(args);
+    } else if (command == "adjust-edge-size") {
+      NGT::Optimizer::adjustBaseSearchEdgeSize(args);
+#endif
+
     } else if (command == "info") {
       version(cerr);
       NGT::Index::version(cerr);

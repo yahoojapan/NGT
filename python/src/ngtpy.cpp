@@ -26,9 +26,13 @@ class Index : public NGT::Index {
 public:
   Index(
    const string path, 			// ngt index path.
+   bool readOnly = false,		// read only or not.
    bool zeroBasedNumbering = true	// object ID numbering.
-  ):NGT::Index(path) {
-    indexDecrement = zeroBasedNumbering ? 1 : 0;
+  ):NGT::Index(path, readOnly) {
+    if (readOnly) {
+      std::cerr << "ngtpy::Index read only!" << std::endl;
+    }
+    zeroNumbering = zeroBasedNumbering;
   }
 
   static void create(
@@ -61,8 +65,12 @@ public:
       prop.distanceType = NGT::Property::DistanceType::DistanceTypeHamming;
     } else if (distanceType == "Angle") {
       prop.distanceType = NGT::Property::DistanceType::DistanceTypeAngle;
+    } else if (distanceType == "Normalized Angle") {
+      prop.distanceType = NGT::Property::DistanceType::DistanceTypeNormalizedAngle;
     } else if (distanceType == "Cosine") {
       prop.distanceType = NGT::Property::DistanceType::DistanceTypeCosine;
+    } else if (distanceType == "Normalized Cosine") {
+      prop.distanceType = NGT::Property::DistanceType::DistanceTypeNormalizedCosine;
     } else {
       std::cerr << "ngtpy::create: invalid distance type. " << distanceType << std::endl;
       return;
@@ -87,63 +95,116 @@ public:
       std::cerr << "ngtpy::insert: Error! dimensions are inconsitency. " << prop.dimension << ":" << info.shape[1] << std::endl;
       return;
     }
-///-</ delete for open release
-#if 0
-    for (int idx = 0; idx < info.shape[0]; idx++) {
-      if (debug) {
-        for (int i = 0; i < info.shape[1]; i++) {
-          std::cerr << *(ptr + i) << " ";
-        }
-        std::cerr << std::endl;
-      }
-      std::vector<double> v(ptr, ptr + info.shape[1]);
-      ptr += info.shape[1];
-      NGT::Index::insert(v);
-    }
-#else
-///->/
     NGT::Index::append(ptr, info.shape[0]);
-///-</ delete for open release
-#endif
-///->/
     NGT::Index::createIndex(numThreads);
   }
 
-  std::vector<int> search(
-   std::vector<double> query,		// query
+  int insert(
+   py::array_t<double> objects, 
+   bool debug = false
+  ) {
+    py::buffer_info info = objects.request();
+    auto ptr = static_cast<double *>(info.ptr);
+    if (debug) {
+      std::cerr << info.shape.size() << ":" << info.shape[0] << ":" << info.shape[1] << std::endl;
+      for (int i = 0; i < info.shape[0]; i++) {
+	std::cerr << *(ptr + i) << " ";
+      }
+      std::cerr << std::endl;
+    }
+    std::vector<double> v(ptr, ptr + info.shape[0]);
+    return NGT::Index::insert(v);
+  }
+
+  py::object search(
+   py::object query,
    size_t size = 10, 			// the number of resultant objects
    float epsilon = 0.1, 		// search parameter epsilon. the adequate range is from 0.0 to 0.15. minus value is acceptable.
-   int edgeSize = -1			// the number of used edges for each node during the exploration of the graph.
+   int edgeSize = -1,			// the number of used edges for each node during the exploration of the graph.
+   bool withDistance = true
   ) {
-    NGT::Object *ngtquery = NGT::Index::allocateObject(query);
+    py::array_t<float> qobject(query);
+    py::buffer_info qinfo = qobject.request();
+    NGT::Object *ngtquery = NGT::Index::allocateObject(static_cast<float*>(qinfo.ptr), qinfo.size);
     NGT::SearchContainer sc(*ngtquery);
-    NGT::ObjectDistances objects;
-    sc.setResults(&objects);			// set the result set.
     sc.setSize(size);				// the number of resultant objects.
     sc.setEpsilon(epsilon);			// set exploration coefficient.
     sc.setEdgeSize(edgeSize);			// if maxEdge is minus, the specified value in advance is used.
 
     NGT::Index::search(sc);
 
-    std::vector<int> ids;
-    for (size_t i = 0; i < objects.size(); i++) {
-      ids.push_back(objects[i].id - indexDecrement);
-    }
-///-</ delete for open release
-#if 0
-    for (size_t i = 0; i < objects.size(); i++) {
-      std::cerr << objects[i].id - indexDecrement << ":" << objects[i].distance << " ";
-    }
-    std::cerr << std::endl;
-#endif
-///->/
     NGT::Index::deleteObject(ngtquery);
+    if (!withDistance) {
+      NGT::ResultPriorityQueue &r = sc.getWorkingResult();
+      py::array_t<int> ids(r.size());
+      py::buffer_info idsinfo = ids.request();
+      int *endptr = reinterpret_cast<int*>(idsinfo.ptr); 
+      int *ptr = endptr + (r.size() - 1);
+      if (zeroNumbering) {
+        while (ptr >= endptr) {
+	  *ptr-- = r.top().id - 1;
+	  r.pop();
+        }
+      } else {
+        while (ptr >= endptr) {
+	  *ptr-- = r.top().id;
+	  r.pop();
+        }
+      }
 
-    return ids;
+      return ids;
+    }
+    py::list results;
+    NGT::ObjectDistances r;
+    r.moveFrom(sc.getWorkingResult());
+    if (zeroNumbering) {
+      for (auto ri = r.begin(); ri != r.end(); ++ri) {
+	results.append(py::make_tuple((*ri).id - 1, (*ri).distance));
+      }
+    } else {
+      for (auto ri = r.begin(); ri != r.end(); ++ri) {
+	results.append(py::make_tuple((*ri).id, (*ri).distance));
+      }
+    }
+    return results;
   }
 
-  size_t indexDecrement;	// for object ID numbering. zero-based or one-based numbering.
+  void remove(size_t id) {
+    id = zeroNumbering ? id + 1 : id;
+    NGT::Index::remove(id);
+  }
+
+  vector<float> getObject(size_t id) {
+    id = zeroNumbering ? id + 1 : id;
+    NGT::Property prop;
+    NGT::Index::getProperty(prop);
+    vector<float> object;
+    object.reserve(prop.dimension);
+    switch (prop.objectType) {
+    case NGT::ObjectSpace::ObjectType::Uint8:
+      {
+	auto *obj = static_cast<uint8_t*>(NGT::Index::getObjectSpace().getObject(id));
+	for (int i = 0; i < prop.dimension; i++) {
+	  object.push_back(*obj++);
+	}
+	break;
+      }
+    default:
+    case NGT::ObjectSpace::ObjectType::Float:
+      {
+	auto *obj = static_cast<float*>(NGT::Index::getObjectSpace().getObject(id));
+	for (int i = 0; i < prop.dimension; i++) {
+	  object.push_back(*obj++);
+	}
+	break;
+      }
+    }
+    return object;
+  }
+
+  bool zeroNumbering;	// for object ID numbering. zero-based or one-based numbering.
 };
+
 
 PYBIND11_MODULE(ngtpy, m) {
     m.doc() = "ngt python";
@@ -157,20 +218,30 @@ PYBIND11_MODULE(ngtpy, m) {
           py::arg("object_type") = "Float");
 
     py::class_<Index>(m, "Index")
-      .def(py::init<const std::string &, bool>(), 
-           py::arg("path"), 
+      .def(py::init<const std::string &, bool, bool>(), 
+           py::arg("path"),
+           py::arg("read_only") = false,
            py::arg("zero_based_numbering") = true)
       .def("search", &::Index::search, 
            py::arg("query"), 
            py::arg("size") = 10, 
            py::arg("epsilon") = 0.1, 
-           py::arg("edge_size") = -1)
-      .def("save", &NGT::Index::saveIndex,
-           py::arg("path"))
+           py::arg("edge_size") = -1,
+           py::arg("with_distance") = true)
+      .def("save", &NGT::Index::save)
       .def("close", &NGT::Index::close)
+      .def("remove", &::Index::remove, 
+           py::arg("object_id"))
+      .def("build_index", &NGT::Index::createIndex, 
+           py::arg("num_threads") = 8)
+      .def("get_object", &::Index::getObject, 
+           py::arg("object_id"))
       .def("batch_insert", &::Index::batchInsert, 
            py::arg("objects"),
            py::arg("num_threads") = 8, 
+           py::arg("debug") = false)
+      .def("insert", &::Index::insert, 
+           py::arg("objects"),
            py::arg("debug") = false);
 }
 

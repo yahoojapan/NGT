@@ -21,7 +21,6 @@ Build
       $ cmake ..
       $ make 
       $ make install
-      $ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib64
 
 ### Shared memory use
 
@@ -77,11 +76,11 @@ Publications
 - Sugawara, K., Kobayashi, H. and Iwasaki, M.: On Approximately Searching for Similar Word Embeddings. Proc. of ACL2016 (2016) 2265-2275. ([pdf](https://aclweb.org/anthology/P/P16/P16-1214.pdf))
 
 ##### ANNGT
-- Iwasaki, M.: Applying a Graph-Structured Index to Product Image Search (in Japanese). IIEEJ Journal 42(5) (2013) 633-641. ([pdf](http://i.yimg.jp/i/docs/research_lab/articles/miwasaki-iieej-jnl-2013.pdf))
-- Iwasaki, M.: Proximity search using approximate k nearest neighbor graph with a tree structured index (in Japanese). IPSJ Journal 52(2) (2011) 817-828. ([pdf](http://i.yimg.jp/i/docs/research_lab/articles/miwasaki-ipsj-jnl-2011.pdf))
+- Iwasaki, M.: Applying a Graph-Structured Index to Product Image Search (in Japanese). IIEEJ Journal 42(5) (2013) 633-641. ([pdf](https://s.yimg.jp/i/docs/research_lab/articles/miwasaki-iieej-jnl-2013.pdf))
+- Iwasaki, M.: Proximity search using approximate k nearest neighbor graph with a tree structured index (in Japanese). IPSJ Journal 52(2) (2011) 817-828. ([pdf](https://s.yimg.jp/i/docs/research_lab/articles/miwasaki-ipsj-jnl-2011.pdf))
 
 ##### ANNG
-- Iwasaki, M.: Proximity search in metric spaces using approximate k nearest neigh-bor graph (in Japanese). IPSJ Trans. on Database 3(1) (2010) 18-28. ([pdf](http://i.yimg.jp/i/docs/research_lab/articles/miwasaki-ipsj-tod-2010.pdf))
+- Iwasaki, M.: Proximity search in metric spaces using approximate k nearest neigh-bor graph (in Japanese). IPSJ Trans. on Database 3(1) (2010) 18-28. ([pdf](https://s.yimg.jp/i/docs/research_lab/articles/miwasaki-ipsj-tod-2010.pdf))
 
 Copyright &copy; 2015-2018 Yahoo Japan Corporation All Rights Reserved.
 

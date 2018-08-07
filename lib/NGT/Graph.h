@@ -20,9 +20,13 @@
 
 #include	"NGT/defines.h"
 #include	"NGT/Common.h"
-#include	"NGT/ObjectSpace.h"
+#include	"NGT/ObjectSpaceRepository.h"
 
 
+
+#ifdef NGT_GRAPH_CHECK_HASH_BASED_BOOLEAN_SET
+#include	"NGT/HashBasedBooleanSet.h"
+#endif
 
 #ifndef NGT_GRAPH_CHECK_VECTOR
 #include	<unordered_set>
@@ -45,8 +49,7 @@
 #endif
 
 #ifndef NGT_SEED_SIZE
-//#define	NGT_SEED_SIZE				10
-#define	NGT_SEED_SIZE				50
+#define	NGT_SEED_SIZE				10
 #endif
 
 #ifndef NGT_CREATION_EDGE_SIZE
@@ -181,6 +184,58 @@ namespace NGT {
 #endif
     };
 
+#ifdef NGT_GRAPH_READ_ONLY_GRAPH
+    class ReadOnlyGraphNode : public vector<pair<uint32_t, PersistentObject*>> {
+    public:
+    };
+    class SearchGraphRepository : public vector<ReadOnlyGraphNode> {
+    public:
+      SearchGraphRepository() {}
+
+      void deserialize(ifstream &is, ObjectRepository &objectRepository) {
+	if (!is.is_open()) {
+	  NGTThrowException("NGT::SearchGraph: Not open the specified stream yet.");
+	}
+	clear();
+	size_t s;
+	NGT::Serializer::read(is, s);
+	resize(s);
+	for (size_t id = 0; id < s; id++) {
+	  char type;
+	  NGT::Serializer::read(is, type);
+	  switch(type) {
+	  case '-':
+	    break;
+	  case '+':
+	    {
+	      ObjectDistances node;
+	      node.deserialize(is);
+	      ReadOnlyGraphNode &searchNode = at(id);
+	      searchNode.reserve(node.size());
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	      for (auto ni = node.begin(); ni != node.end(); ni++) {
+		cerr << "not implement" << endl;
+		abort();
+	      }
+#else
+	      for (auto ni = node.begin(); ni != node.end(); ni++) {
+		searchNode.push_back(pair<uint32_t, Object*>((*ni).id, objectRepository.get((*ni).id)));
+	      }
+#endif
+	    }
+	    break;
+	  default:
+	    {
+	      assert(type == '-' || type == '+');
+	      break;
+	    }
+	  }
+	}
+      }
+
+    };
+#endif
+
     class NeighborhoodGraph {
     public:
       enum GraphType {
@@ -199,6 +254,46 @@ namespace NGT {
 	SeedTypeAllLeafNodes	= 4
       };
 
+#ifdef NGT_GRAPH_READ_ONLY_GRAPH
+      class Search {
+      public:
+	static void (*getMethod(NGT::ObjectSpace::DistanceType dtype, NGT::ObjectSpace::ObjectType otype))(NGT::NeighborhoodGraph&, NGT::SearchContainer&, NGT::ObjectDistances&)  {
+	  switch (otype) {
+	    default:
+	    case NGT::ObjectSpace::Float:	    
+	      switch (dtype) {
+	      case NGT::ObjectSpace::DistanceTypeNormalizedCosine : return normalizedCosineSimilarityFloat;
+	      case NGT::ObjectSpace::DistanceTypeCosine : 	    return cosineSimilarityFloat;
+	      case NGT::ObjectSpace::DistanceTypeNormalizedAngle :  return normalizedAngleFloat;
+	      case NGT::ObjectSpace::DistanceTypeAngle : 	    return angleFloat;
+	      case NGT::ObjectSpace::DistanceTypeL2 : 		    return l2Float;
+	      case NGT::ObjectSpace::DistanceTypeL1 : 		    return l1Float;
+	      default:						    return l2Float;
+	      }
+	      break;
+	    case NGT::ObjectSpace::Uint8:
+	      switch (dtype) {
+	      case NGT::ObjectSpace::DistanceTypeHamming : return hammingUint8;
+	      case NGT::ObjectSpace::DistanceTypeL2 : 	   return l2Uint8;
+	      case NGT::ObjectSpace::DistanceTypeL1 : 	   return l1Uint8;
+	      default : 				   return l2Uint8;
+	      }
+	    break;
+	  }
+	  return l1Uint8;
+	}
+	static void l1Uint8(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void l2Uint8(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void l1Float(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void l2Float(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void hammingUint8(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void cosineSimilarityFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void angleFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void normalizedCosineSimilarityFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void normalizedAngleFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+      };
+#endif
+
       class Property {
       public:
 	Property() { setDefault(); }
@@ -213,6 +308,7 @@ namespace NGT {
 	  truncationThreadPoolSize	= 8;
 	  batchSizeForCreation		= 200;
 	  graphType			= GraphTypeANNG;
+	  dynamicEdgeSizeBase		= 30;
 	}
 	void clear() {
 	  truncationThreshold		= -1;
@@ -225,6 +321,7 @@ namespace NGT {
 	  truncationThreadPoolSize	= -1;
 	  batchSizeForCreation		= -1;
 	  graphType			= GraphTypeNone;
+	  dynamicEdgeSizeBase		= -1;
 	}
 	void set(NGT::Property &prop);
 	void get(NGT::Property &prop);
@@ -239,6 +336,7 @@ namespace NGT {
 	  p.set("BatchSizeForCreation", batchSizeForCreation);
 	  p.set("SeedSize", seedSize);
 	  p.set("TruncationThreadPoolSize", truncationThreadPoolSize);
+	  p.set("DynamicEdgeSizeBase", dynamicEdgeSizeBase);
 	  switch (graphType) {
 	  case NeighborhoodGraph::GraphTypeKNNG: p.set("GraphType", "KNNG"); break;
 	  case NeighborhoodGraph::GraphTypeANNG: p.set("GraphType", "ANNG"); break;
@@ -265,6 +363,7 @@ namespace NGT {
 	  batchSizeForCreation = p.getl("BatchSizeForCreation", batchSizeForCreation);
 	  seedSize = p.getl("SeedSize", seedSize);
 	  truncationThreadPoolSize = p.getl("TruncationThreadPoolSize", truncationThreadPoolSize);
+	  dynamicEdgeSizeBase = p.getl("DynamicEdgeSizeBase", dynamicEdgeSizeBase);
 	  PropertySet::iterator it = p.find("GraphType");
 	  if (it != p.end()) {
 	    if (it->second == "KNNG")		graphType = NeighborhoodGraph::GraphTypeKNNG;
@@ -294,6 +393,7 @@ namespace NGT {
 	  os << "truncationThreadPoolSize="	<< p.truncationThreadPoolSize << endl;
 	  os << "batchSizeForCreation="		<< p.batchSizeForCreation << endl;
 	  os << "graphType="			<< p.graphType << endl;
+	  os << "dynamicEdgeSizeBase="		<< p.dynamicEdgeSizeBase << endl;
 	  return os;
 	}
 
@@ -307,6 +407,7 @@ namespace NGT {
 	int16_t		truncationThreadPoolSize;
 	int16_t		batchSizeForCreation;
 	GraphType	graphType;
+	int16_t		dynamicEdgeSizeBase;
       };
 
       NeighborhoodGraph(): objectSpace(0) {
@@ -318,6 +419,7 @@ namespace NGT {
 	srand(randTime.tv_usec);
 #endif
       }
+
       inline GraphNode *getNode(ObjectID fid, size_t &minsize) { return repository.get(fid, minsize); }
       inline GraphNode *getNode(ObjectID fid) { return repository.VECTOR::get(fid); }
       void insertNode(ObjectID id,  ObjectDistances &objects) {
@@ -421,10 +523,28 @@ namespace NGT {
 	return truncateEdgesOptimally(id, results, truncationSize);
       }
 
+      // setup edgeSize
+      inline size_t getEdgeSize(NGT::SearchContainer &sc) {
+	size_t edgeSize = INT_MAX;
+	if (sc.edgeSize < 0) {
+	  if (sc.edgeSize == -2) {
+	    edgeSize = property.dynamicEdgeSizeBase + pow(10, (sc.explorationCoefficient - 1.0) * 20.0);
+	  } else {
+	    edgeSize = property.edgeSizeForSearch == 0 ? INT_MAX : property.edgeSizeForSearch;
+	  }
+	} else {
+	  edgeSize = sc.edgeSize == 0 ? INT_MAX : sc.edgeSize;
+	}
+	return edgeSize;
+      }
+
       void search(NGT::SearchContainer &sc, ObjectDistances &seeds);
 
+#ifdef NGT_GRAPH_READ_ONLY_GRAPH
+      template <typename COMPARATOR> void searchReadOnlyGraph(NGT::SearchContainer &sc, ObjectDistances &seeds);
+#endif
+
       void removeEdge(ObjectID fid, ObjectID rmid) {
-	// have not been tested yet.
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
 	GraphNode &rs = *getNode(fid);
 	for (GraphNode::iterator ri = rs.begin(repository.allocator); ri != rs.end(repository.allocator); ri++) {
@@ -448,32 +568,60 @@ namespace NGT {
 	removeNode(ObjectID id) {
 	repository.remove(id);
       }
+
+      class BooleanVector : public vector<bool> {
+      public:
+        inline BooleanVector(size_t s):vector<bool>(s, false) {}
+	inline void insert(size_t i) { vector<bool>::operator[](i) = true; }
+      };
+
 #ifdef NGT_GRAPH_VECTOR_RESULT
       typedef ObjectDistances ResultSet;
 #else
       typedef priority_queue<ObjectDistance, vector<ObjectDistance>, less<ObjectDistance> > ResultSet;
 #endif
 
-#ifdef NGT_GRAPH_CHECK_VECTOR
-#if defined(NGT_GRAPH_CHECK_BITSET)
-      typedef bitset<10000001> DistanceCheckedSet;
-#elif defined(NGT_GRAPH_CHECK_BOOLEANSET)
+#if defined(NGT_GRAPH_CHECK_BOOLEANSET)
       typedef BooleanSet DistanceCheckedSet;
+#elif defined(NGT_GRAPH_CHECK_VECTOR)
+      typedef BooleanVector DistanceCheckedSet;
+#elif defined(NGT_GRAPH_CHECK_HASH_BASED_BOOLEAN_SET)
+      typedef HashBasedBooleanSet DistanceCheckedSet;
 #else
-      typedef vector<bool> DistanceCheckedSet;
+      class DistanceCheckedSet : public unordered_set<ObjectID> {
+      public:
+	bool operator[](ObjectID id) { return find(id) != end(); }
+      };
 #endif
-#else // NGT_GRAPH_CHECK_VECTOR
-      typedef unordered_set<ObjectID> DistanceCheckedSet;
-#endif // NGT_GRAPH_CHECK_VECTOR
+
+      class NodeWithPosition : public ObjectDistance {
+       public:
+        NodeWithPosition(uint32_t p = 0):position(p){}
+        NodeWithPosition(ObjectDistance &o):ObjectDistance(o), position(0){}
+	NodeWithPosition &operator=(const NodeWithPosition &n) {
+	  ObjectDistance::operator=(static_cast<const ObjectDistance&>(n));
+	  position = n.position;
+	  assert(id != 0);
+	  return *this;
+	}
+	uint32_t	position;
+      };
 
 #ifdef NGT_GRAPH_UNCHECK_STACK
       typedef stack<ObjectDistance> UncheckedSet;
 #else
+#ifdef NGT_GRAPH_BETTER_FIRST_RESTORE
+      typedef priority_queue<NodeWithPosition, vector<NodeWithPosition>, greater<NodeWithPosition> > UncheckedSet;
+#else
       typedef priority_queue<ObjectDistance, vector<ObjectDistance>, greater<ObjectDistance> > UncheckedSet;
+#endif
 #endif
 
       void setupSeeds(SearchContainer &sc, ObjectDistances &seeds, ResultSet &results, 
 		      UncheckedSet &unchecked, DistanceCheckedSet &distanceChecked);
+
+      void setupSeeds(SearchContainer &sc, ObjectDistances &seeds, ResultSet &results, 
+		      priority_queue<NodeWithPosition, vector<NodeWithPosition>, greater<NodeWithPosition> > &unchecked, DistanceCheckedSet &distanceChecked);
 
       int getEdgeSize() {return property.edgeSizeForCreation;}
 
@@ -494,6 +642,9 @@ namespace NGT {
 #endif
       }
 
+      static double (*getComparator())(const void*, const void*, size_t);
+
+
     protected:
       void
 	addBKNNGEdge(ObjectID target, ObjectID addID, Distance addDistance) {
@@ -513,7 +664,6 @@ namespace NGT {
 	size_t minsize = 0;
 	GraphNode &node = property.truncationThreshold == 0 ? *getNode(target) : *getNode(target, minsize);
 	ObjectDistance obj(addID, addDistance);
-	// this seach ocuppies about 1% of total insertion time.
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
 	GraphNode::iterator ni = std::lower_bound(node.begin(repository.allocator), node.end(repository.allocator), obj);
 	if ((ni != node.end(repository.allocator)) && ((*ni).id == addID)) {
@@ -546,18 +696,25 @@ namespace NGT {
 	}
 	return false;
       }
+#ifdef NGT_GRAPH_READ_ONLY_GRAPH
+      void loadSearchGraph(const string &database) {
+	ifstream isg(database + "/grp");
+	NeighborhoodGraph::searchRepository.deserialize(isg, NeighborhoodGraph::getObjectRepository());
+      }
+#endif
 
     public:
 
       GraphRepository	repository;
       ObjectSpace	*objectSpace;
 
+#ifdef NGT_GRAPH_READ_ONLY_GRAPH
+      SearchGraphRepository searchRepository;
+#endif      
+
       NeighborhoodGraph::Property		property;
 
     }; // NeighborhoodGraph
-
-    ////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////
 
   } // NGT
 

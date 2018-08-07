@@ -47,37 +47,31 @@ DVPTree::insert(InsertContainer &iobj,  LeafNode *leafNode)
   LeafNode &leaf = *leafNode;
   size_t fsize = leaf.getObjectSize();
   if (fsize != 0) {
+    NGT::ObjectSpace::Comparator &comparator = objectSpace->getComparator();
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    Distance d = objectSpace->getComparator()(iobj.object, leaf.getPivot(*objectSpace));
+    Distance d = comparator(iobj.object, leaf.getPivot(*objectSpace));
 #else
-    Distance d = objectSpace->getComparator()(iobj.object, leaf.getPivot());
+    Distance d = comparator(iobj.object, leaf.getPivot());
+#endif
+
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+    NGT::ObjectDistance *objects = leaf.getObjectIDs(leafNodes.allocator);
+#else
+    NGT::ObjectDistance *objects = leaf.getObjectIDs();
 #endif
 
     for (size_t i = 0; i < fsize; i++) {
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-      if (leaf.getObjectIDs(leafNodes.allocator)[i].distance == d) {
-#else
-      if (leaf.getObjectIDs()[i].distance == d) {
-#endif
+      if (objects[i].distance == d) {
 	Distance idd = 0.0;
 	ObjectID loid;
         try {
-#ifdef NGT_SHARED_MEMORY_ALLOCATOR
-	  loid = leaf.getObjectIDs(leafNodes.allocator)[i].id;
-	  idd = objectSpace->getComparator()(iobj.object, *getObjectRepository().get(loid));
-#else
-	  loid = leaf.objectIDs[i].id;
-	  idd = objectSpace->getComparator()(iobj.object, *getObjectRepository().get(loid));
-#endif
+	  loid = objects[i].id;
+	  idd = comparator(iobj.object, *getObjectRepository().get(loid));
+
         } catch (Exception &e) {
           stringstream msg;
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
           msg << "LeafNode::insert: Cannot find object which belongs to a leaf node. id="
-              << leaf.getObjectIDs(leafNodes.allocator)[i].id << ":" << e.what() << endl;
-#else
-          msg << "LeafNode::insert: Cannot find object which belongs to a leaf node. id="
-              << leaf.getObjectIDs()[i].id << ":" << e.what() << endl;
-#endif
+              << objects[i].id << ":" << e.what() << endl;
           NGTThrowException(msg.str());
         }
         if (idd == 0.0) {
@@ -346,32 +340,26 @@ DVPTree::removeEmptyNodes(InternalNode &inode) {
 
   int csize = internalChildrenSize;
 
+
   InternalNode *target = &inode;
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+  Node::ID *children = target->getChildren(internalNodes.allocator);
+#else
+  Node::ID *children = target->getChildren();
+#endif
   for(;;) {
     for (int i = 0; i < csize; i++) {
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-      if (target->getChildren(internalNodes.allocator)[i].getType() == Node::ID::Internal) {
-#else
-      if (target->getChildren()[i].getType() == Node::ID::Internal) {
-#endif
+      if (children[i].getType() == Node::ID::Internal) {
 	return;
       }
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-      LeafNode &ln = *static_cast<LeafNode*>(getNode(target->getChildren(internalNodes.allocator)[i]));
-#else
-      LeafNode &ln = *static_cast<LeafNode*>(getNode(target->getChildren()[i]));
-#endif
+      LeafNode &ln = *static_cast<LeafNode*>(getNode(children[i]));
       if (ln.getObjectSize() != 0) {
 	return;
       }
     }
 
     for (int i = 0; i < csize; i++) {
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-      removeNode(target->getChildren(internalNodes.allocator)[i]);
-#else
-      removeNode(target->getChildren()[i]);
-#endif
+      removeNode(children[i]);
     }
     if (target->parent.getID() == 0) {
       removeNode(target->id);
@@ -424,39 +412,29 @@ DVPTree::search(SearchContainer &sc, InternalNode &node, UncheckedNode &unchecke
   int bsize = internalChildrenSize - 1;
 
   vector<ObjectDistance> regions;
+  regions.reserve(internalChildrenSize);
 
   ObjectDistance child;
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+  Distance *borders = node.getBorders(internalNodes.allocator);
+#else
+  Distance *borders = node.getBorders();
+#endif
   int mid;
   for (mid = 0; mid < bsize; mid++) {
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    if (d < node.getBorders(internalNodes.allocator)[mid]) {
-      if (d + sc.radius < node.getBorders(internalNodes.allocator)[mid]) {
-#else
-    if (d < node.getBorders()[mid]) {
-      if (d + sc.radius < node.getBorders()[mid]) {
-#endif
+    if (d < borders[mid]) {
         child.id = mid;
         child.distance = 0.0;
         regions.push_back(child);
+      if (d + sc.radius < borders[mid]) {
         break;
       } else {
-        child.id = mid;
-        child.distance = 0.0;
-        regions.push_back(child);
         continue;
       }
     } else {
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-      if (d < node.getBorders(internalNodes.allocator)[mid] + sc.radius) {
-#else
-      if (d < node.getBorders()[mid] + sc.radius) {
-#endif
+      if (d < borders[mid] + sc.radius) {
         child.id = mid;
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-        child.distance = d - node.getBorders(internalNodes.allocator)[mid];
-#else
-        child.distance = d - node.getBorders()[mid];
-#endif
+        child.distance = d - borders[mid];
         regions.push_back(child);
         continue;
       } else {
@@ -466,51 +444,36 @@ DVPTree::search(SearchContainer &sc, InternalNode &node, UncheckedNode &unchecke
   }
 
   if (mid == bsize) {
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    if (d >= node.getBorders(internalNodes.allocator)[mid - 1]) {
-#else
-    if (d >= node.getBorders()[mid - 1]) {
-#endif
+    if (d >= borders[mid - 1]) {
       child.id = mid;
       child.distance = 0.0;
       regions.push_back(child);
     } else {
       child.id = mid;
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-      child.distance = node.getBorders(internalNodes.allocator)[mid - 1] - d;
-#else
-      child.distance = node.getBorders()[mid - 1] - d;
-#endif
+      child.distance = borders[mid - 1] - d;
       regions.push_back(child);
     }
   }
 
   sort(regions.begin(), regions.end());
 
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+  Node::ID *children = node.getChildren(internalNodes.allocator);
+#else
+  Node::ID *children = node.getChildren();
+#endif
+
   vector<ObjectDistance>::iterator i;
   if (sc.mode == DVPTree::SearchContainer::SearchLeaf) {
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    if (node.getChildren(internalNodes.allocator)[regions.front().id].getType() == Node::ID::Leaf) {
-      sc.nodeID.setRaw(node.getChildren(internalNodes.allocator)[regions.front().id].get());
-#else
-    if (node.getChildren()[regions.front().id].getType() == Node::ID::Leaf) {
-      sc.nodeID.setRaw(node.getChildren()[regions.front().id].get());
-#endif
+    if (children[regions.front().id].getType() == Node::ID::Leaf) {
+      sc.nodeID.setRaw(children[regions.front().id].get());
       assert(uncheckedNode.empty());
     } else {
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-      uncheckedNode.push(node.getChildren(internalNodes.allocator)[regions.front().id]);
-#else
-      uncheckedNode.push(node.getChildren()[regions.front().id]);
-#endif
+      uncheckedNode.push(children[regions.front().id]);
     }
   } else {
     for (i = regions.begin(); i != regions.end(); i++) {
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-      uncheckedNode.push(node.getChildren(internalNodes.allocator)[i->id]);
-#else
-      uncheckedNode.push(node.getChildren()[i->id]);
-#endif
+      uncheckedNode.push(children[i->id]);
     }
   }
   
@@ -534,22 +497,18 @@ DVPTree::search(SearchContainer &so, LeafNode &node, UncheckedNode &uncheckedNod
 #endif
 
   ObjectDistance r;
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+  NGT::ObjectDistance *objects = node.getObjectIDs(leafNodes.allocator);
+#else
+  NGT::ObjectDistance *objects = node.getObjectIDs();
+#endif
 
   for (size_t i = 0; i < node.getObjectSize(); i++) {
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    if ((node.getObjectIDs(leafNodes.allocator)[i].distance <= pq + q.radius) &&
-        (node.getObjectIDs(leafNodes.allocator)[i].distance >= pq - q.radius)) {
-#else
-    if ((node.getObjectIDs()[i].distance <= pq + q.radius) &&
-        (node.getObjectIDs()[i].distance >= pq - q.radius)) {
-#endif
+    if ((objects[i].distance <= pq + q.radius) &&
+        (objects[i].distance >= pq - q.radius)) {
       Distance d = 0;
       try {
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-	d = objectSpace->getComparator()(q.object, *q.vptree->getObjectRepository().get(node.getObjectIDs(leafNodes.allocator)[i].id));
-#else
-	d = objectSpace->getComparator()(q.object, *q.vptree->getObjectRepository().get(node.getObjectIDs()[i].id));
-#endif
+	d = objectSpace->getComparator()(q.object, *q.vptree->getObjectRepository().get(objects[i].id));
 #ifdef NGT_DISTANCE_COMPUTATION_COUNT
 	so.distanceComputationCount++;
 #endif
@@ -557,11 +516,7 @@ DVPTree::search(SearchContainer &so, LeafNode &node, UncheckedNode &uncheckedNod
         NGTThrowException("VpTree::LeafNode::search: Internal fatal error : Cannot get object");
       }
       if (d <= q.radius) {
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-        r.id = node.getObjectIDs(leafNodes.allocator)[i].id;
-#else
-        r.id = node.getObjectIDs()[i].id;
-#endif
+        r.id = objects[i].id;
         r.distance = d;
 	so.getResult().push_back(r);
 	std::sort(so.getResult().begin(), so.getResult().end());

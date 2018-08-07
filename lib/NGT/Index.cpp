@@ -16,9 +16,10 @@
 
 #include	"NGT/defines.h"
 #include	"NGT/Common.h"
-#include	"NGT/ObjectSpace.h"
+#include	"NGT/ObjectSpaceRepository.h"
 #include	"NGT/Index.h"
 #include	"NGT/Thread.h"
+#include	"NGT/GraphReconstructor.h"
 
 using namespace NGT;
 
@@ -147,12 +148,17 @@ GraphIndex::createIndex()
 {
   GraphRepository &anngRepo = repository;
   ObjectRepository &fr = objectSpace->getRepository();
+  size_t	pathAdjustCount = property.pathAdjustmentInterval;
   NGT::ObjectID id = 1;
   for (; id < fr.size(); id++) {
     if (id < anngRepo.size() && anngRepo[id] != 0) {
       continue;
     }
     insert(id);
+    if (pathAdjustCount > 0 && pathAdjustCount <= id) {
+      GraphReconstructor::adjustPathsEffectively(static_cast<GraphIndex&>(*this));
+      pathAdjustCount += property.pathAdjustmentInterval;
+    }
   }
 }
 
@@ -243,14 +249,16 @@ insertMultipleSearchResults(GraphIndex &neighborhoodGraph,
 void 
 GraphIndex::createIndex(size_t threadPoolSize) 
 {
-  Timer		timer;
-  size_t	timerInterval = 100000;
-  size_t	timerCount = timerInterval;
-  size_t	count = 0;
-  timer.start();
   if (threadPoolSize <= 1) {
     createIndex();
   } else {
+    Timer		timer;
+    size_t	timerInterval = 100000;
+    size_t	timerCount = timerInterval;
+    size_t	count = 0;
+    timer.start();
+
+    size_t	pathAdjustCount = property.pathAdjustmentInterval;
     CreateIndexThreadPool threads(threadPoolSize);
     CreateIndexSharedData sd(*this);
 
@@ -290,6 +298,10 @@ GraphIndex::createIndex(size_t threadPoolSize)
 	  timerCount += timerInterval;
 	  timer.start();
 	}
+	if (pathAdjustCount > 0 && pathAdjustCount <= count) {
+	  GraphReconstructor::adjustPathsEffectively(static_cast<GraphIndex&>(*this));
+	  pathAdjustCount += property.pathAdjustmentInterval;
+	}
       }
     } catch(Exception &err) {
       threads.terminate();
@@ -303,14 +315,16 @@ GraphIndex::createIndex(size_t threadPoolSize)
 void 
 GraphAndTreeIndex::createIndex(size_t threadPoolSize) 
 {
-  Timer		timer;
-  size_t	timerInterval = 100000;
-  size_t	timerCount = timerInterval;
-  size_t	count = 0;
-  timer.start();
   if (threadPoolSize <= 1) {
     GraphIndex::createIndex();
   } else {
+    Timer		timer;
+    size_t	timerInterval = 100000;
+    size_t	timerCount = timerInterval;
+    size_t	count = 0;
+    timer.start();
+
+    size_t	pathAdjustCount = property.pathAdjustmentInterval;
     CreateIndexThreadPool threads(threadPoolSize);
 
     CreateIndexSharedData sd(*this);
@@ -376,9 +390,13 @@ GraphAndTreeIndex::createIndex(size_t threadPoolSize)
 	count += cnt;
 	if (timerCount <= count) {
 	  timer.stop();
-	  cerr << "Processed " << timerCount << " time= " << timer << endl;
+	  cerr << "Processed " << timerCount << " objects. time= " << timer << endl;
 	  timerCount += timerInterval;
 	  timer.start();
+	}
+	if (pathAdjustCount > 0 && pathAdjustCount <= count) {
+	  GraphReconstructor::adjustPathsEffectively(static_cast<GraphIndex&>(*this));
+	  pathAdjustCount += property.pathAdjustmentInterval;
 	}
       }
     } catch(Exception &err) {

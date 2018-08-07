@@ -20,10 +20,13 @@
 #cmakedefine NGT_SHARED_MEMORY_ALLOCATOR	// use shared memory for indexes
 #cmakedefine NGT_GRAPH_CHECK_VECTOR		// use vector to check whether accessed
 #cmakedefine NGT_AVX_DISABLED			// not use avx to compare
+#cmakedefine NGT_LARGE_DATASET			// more than 10M objects 
 // End of cmake defines
 
 //////////////////////////////////////////////////////////////////////////
 // Release Definitions for OSS
+
+//#define		NGT_DISTANCE_COMPUTATION_COUNT
 
 #define		NGT_CREATION_EDGE_SIZE			10
 #define		NGT_EXPLORATION_COEFFICIENT		1.1
@@ -31,14 +34,11 @@
 #define		NGT_SHARED_MEMORY_MAX_SIZE		1024	// MB
 #define		NGT_FORCED_REMOVE		// When errors occur due to the index inconsistency, ignore them.
 
-
 #define		NGT_COMPACT_VECTOR
+#define		NGT_GRAPH_READ_ONLY_GRAPH		
 
-#ifndef NGT_GRAPH_CHECK_VECTOR
-#define		NGT_GRAPH_CHECK_BOOLEANSET	// use original booleanset to check whether nodes were accessed.
+#ifdef	NGT_LARGE_DATASET
+ #define	NGT_GRAPH_CHECK_HASH_BASED_BOOLEAN_SET
+#else
+ #define	NGT_GRAPH_CHECK_VECTOR
 #endif
-
-#if defined(NGT_GRAPH_CHECK_BOOLEANSET) || defined(NGT_GRAPH_CHECK_BITSET)
-#define		NGT_GRAPH_CHECK_VECTOR		// use vector to check whether nodes were accessed.
-#endif
-

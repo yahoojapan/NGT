@@ -13,10 +13,9 @@ if sys.version_info.major >= 3:
         # for pip >= 10.0
         from pip._internal import locations
 
-version = '1.1.0'
+version = '1.2.0'
 
 basedir = os.path.abspath(os.path.dirname(__file__))
-
 
 args = {
     'name': 'ngt',

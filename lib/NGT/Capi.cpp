@@ -163,11 +163,11 @@ int32_t ngt_get_property_object_type(NGTProperty prop, NGTError error) {
 }
 
 bool ngt_is_property_object_type_float(int32_t object_type) {
-    return (object_type == NGT::Index::Property::ObjectType::Float);
+    return (object_type == NGT::ObjectSpace::ObjectType::Float);
 }
 
 bool ngt_is_property_object_type_integer(int32_t object_type) {
-    return (object_type == NGT::Index::Property::ObjectType::Uint8);
+    return (object_type == NGT::ObjectSpace::ObjectType::Uint8);
 }
 
 bool ngt_set_property_object_type_float(NGTProperty prop, NGTError error) {
@@ -178,7 +178,7 @@ bool ngt_set_property_object_type_float(NGTProperty prop, NGTError error) {
     return false;
   }
   
-  (*static_cast<NGT::Property*>(prop)).objectType = NGT::Index::Property::ObjectType::Float;
+  (*static_cast<NGT::Property*>(prop)).objectType = NGT::ObjectSpace::ObjectType::Float;
   return true;
 }
 
@@ -190,7 +190,7 @@ bool ngt_set_property_object_type_integer(NGTProperty prop, NGTError error) {
     return false;
   }
   
-  (*static_cast<NGT::Property*>(prop)).objectType = NGT::Index::Property::ObjectType::Uint8;
+  (*static_cast<NGT::Property*>(prop)).objectType = NGT::ObjectSpace::ObjectType::Uint8;
   return true;
 }
 
