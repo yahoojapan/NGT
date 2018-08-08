@@ -74,4 +74,4 @@ Pybind11 is much faster than ctypes, especially for the short search time.
       print(object)
 ```
 
-See also [sample.py](/sample/sample.py).
+See also [sample.py](sample/sample.py).
