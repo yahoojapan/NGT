@@ -212,7 +212,7 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
     setupSeeds(sc, seeds, results, unchecked, distanceChecked);
 
     Distance explorationRadius = sc.explorationCoefficient * sc.radius;
-    const size_t dimension = objectSpace->getDimension();
+    const size_t dimension = objectSpace->getPaddedDimension();
     const size_t byteSizeOfObject = objectSpace->getByteSizeOfObject();
     ReadOnlyGraphNode *nodes = &searchRepository.front();
     ReadOnlyGraphNode *neighbors = 0;

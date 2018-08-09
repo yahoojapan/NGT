@@ -246,50 +246,50 @@ namespace NGT {
       switch (distanceType) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
       case DistanceTypeL1:
-	comparator = new ObjectSpaceRepository::ComparatorL1(ObjectSpace::dimension, ObjectRepository::allocator);
+	comparator = new ObjectSpaceRepository::ComparatorL1(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
 	break;
       case DistanceTypeL2:
-	comparator = new ObjectSpaceRepository::ComparatorL2(ObjectSpace::dimension, ObjectRepository::allocator);
+	comparator = new ObjectSpaceRepository::ComparatorL2(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
 	break;
       case DistanceTypeHamming:
-	comparator = new ObjectSpaceRepository::ComparatorHammingDistance(ObjectSpace::dimension, ObjectRepository::allocator);
+	comparator = new ObjectSpaceRepository::ComparatorHammingDistance(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
 	break;
       case DistanceTypeAngle:
-	comparator = new ObjectSpaceRepository::ComparatorAngleDistance(ObjectSpace::dimension, ObjectRepository::allocator);
+	comparator = new ObjectSpaceRepository::ComparatorAngleDistance(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
 	break;
       case DistanceTypeCosine:
-	comparator = new ObjectSpaceRepository::ComparatorCosineSimilarity(ObjectSpace::dimension, ObjectRepository::allocator);
+	comparator = new ObjectSpaceRepository::ComparatorCosineSimilarity(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
 	break;
       case DistanceTypeNormalizedAngle:
-	comparator = new ObjectSpaceRepository::ComparatorNormalizedAngleDistance(ObjectSpace::dimension, ObjectRepository::allocator);
+	comparator = new ObjectSpaceRepository::ComparatorNormalizedAngleDistance(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
 	normalization = true;
 	break;
       case DistanceTypeNormalizedCosine:
-	comparator = new ObjectSpaceRepository::ComparatorNormalizedCosineSimilarity(ObjectSpace::dimension, ObjectRepository::allocator);
+	comparator = new ObjectSpaceRepository::ComparatorNormalizedCosineSimilarity(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
 	normalization = true;
 	break;
 #else
       case DistanceTypeL1:
-	comparator = new ObjectSpaceRepository::ComparatorL1(ObjectSpace::dimension);
+	comparator = new ObjectSpaceRepository::ComparatorL1(ObjectSpace::getPaddedDimension());
 	break;
       case DistanceTypeL2:
-	comparator = new ObjectSpaceRepository::ComparatorL2(ObjectSpace::dimension);
+	comparator = new ObjectSpaceRepository::ComparatorL2(ObjectSpace::getPaddedDimension());
 	break;
       case DistanceTypeHamming:
-	comparator = new ObjectSpaceRepository::ComparatorHammingDistance(ObjectSpace::dimension);
+	comparator = new ObjectSpaceRepository::ComparatorHammingDistance(ObjectSpace::getPaddedDimension());
 	break;
       case DistanceTypeAngle:
-	comparator = new ObjectSpaceRepository::ComparatorAngleDistance(ObjectSpace::dimension);
+	comparator = new ObjectSpaceRepository::ComparatorAngleDistance(ObjectSpace::getPaddedDimension());
 	break;
       case DistanceTypeCosine:
-	comparator = new ObjectSpaceRepository::ComparatorCosineSimilarity(ObjectSpace::dimension);
+	comparator = new ObjectSpaceRepository::ComparatorCosineSimilarity(ObjectSpace::getPaddedDimension());
 	break;
       case DistanceTypeNormalizedAngle:
-	comparator = new ObjectSpaceRepository::ComparatorNormalizedAngleDistance(ObjectSpace::dimension);
+	comparator = new ObjectSpaceRepository::ComparatorNormalizedAngleDistance(ObjectSpace::getPaddedDimension());
 	normalization = true;
 	break;
       case DistanceTypeNormalizedCosine:
-	comparator = new ObjectSpaceRepository::ComparatorNormalizedCosineSimilarity(ObjectSpace::dimension);
+	comparator = new ObjectSpaceRepository::ComparatorNormalizedCosineSimilarity(ObjectSpace::getPaddedDimension());
 	normalization = true;
 	break;
 #endif

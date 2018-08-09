@@ -168,7 +168,7 @@ namespace NGT {
     };
 
     typedef priority_queue<ObjectDistance, vector<ObjectDistance>, less<ObjectDistance> > ResultSet;
-    ObjectSpace(size_t d):dimension(d), distanceType(DistanceTypeNone), comparator(0), normalization(false) {}
+    ObjectSpace(size_t d):dimension(d), paddedDimension(((d - 1) / 4 + 1) * 4), distanceType(DistanceTypeNone), comparator(0), normalization(false) {}
     virtual ~ObjectSpace() { if (comparator != 0) { delete comparator; } }
     
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
@@ -223,6 +223,8 @@ namespace NGT {
 
     size_t getDimension() { return dimension; }
 
+    size_t getPaddedDimension() { return paddedDimension; }
+
     template <typename T>
     void normalize(T *data, size_t dim) {
       double sum = 0.0;
@@ -237,6 +239,7 @@ namespace NGT {
 
   protected:
     const size_t	dimension;
+    const size_t	paddedDimension;
     DistanceType	distanceType;
     Comparator		*comparator;
     bool		normalization;
@@ -337,7 +340,6 @@ namespace NGT {
 
     void construct(size_t s) {
       assert(vector == 0);
-      //vector = new uint8_t[s];
       size_t allocsize = ((s - 1) / 16 + 1) * 16;
       vector = new uint8_t[allocsize];
       memset(vector, 0, allocsize);
@@ -407,7 +409,8 @@ namespace NGT {
     void construct(size_t s, SharedMemoryAllocator &allocator) {
       assert(array == 0);
       assert(s != 0);
-      array = allocator.getOffset(new(allocator) uint8_t[s]);
+      size_t allocsize = ((s - 1) / 16 + 1) * 16;
+      array = allocator.getOffset(new(allocator) uint8_t[allocsize]);
     }
     off_t array;
   };

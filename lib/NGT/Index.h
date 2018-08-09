@@ -1048,17 +1048,7 @@ namespace NGT {
 	  getRandomSeeds(seeds, seedSize);
 	}
       }
-#if 0
-      ObjectDistances::iterator si;
-      for (si = seeds.begin(); si != seeds.end(); si++) {
-	(*si).distance = -1.0;
-      }
-#endif
-
       NGT::SearchContainer so(sc);
-#ifdef NGT_GRAPH_CHECK_TRICKYBOOLEANSET
-      so.setDistanceChecked(booleanSet);
-#endif
       try {
 	if (readOnly) {
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
@@ -1083,9 +1073,6 @@ namespace NGT {
     bool readOnly;
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
     void (*searchUnupdatableGraph)(NGT::NeighborhoodGraph&, NGT::SearchContainer&, NGT::ObjectDistances&);
-#endif
-#ifdef NGT_GRAPH_CHECK_TRICKYBOOLEANSET
-    NGT::TrickyBooleanSet booleanSet;
 #endif
   };
 
@@ -1803,10 +1790,6 @@ NGT::GraphIndex::GraphIndex(const string &database, bool rdOnly):readOnly(rdOnly
   if (property.indexType == NGT::Index::Property::IndexType::Graph && readOnly) {
     GraphIndex::NeighborhoodGraph::loadSearchGraph(database);
   }
-#endif
-
-#ifdef NGT_GRAPH_CHECK_TRICKYBOOLEANSET
-  booleanSet.initialize(objectSpace->getRepository().size());
 #endif
 }
 #endif

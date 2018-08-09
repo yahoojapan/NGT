@@ -126,7 +126,6 @@ namespace NGT {
 	vector<double> object;
 	try {
 	  extractObjectFromText(line, "\t ", object);
-	  //push_back((PersistentObject*)allocatePersistentObject(object));
 	  push_back((PersistentObject*)allocateNormalizedPersistentObject(object));
 	} catch (Exception &err) {
 	  std::cerr << "ObjectSpace::readText: Warning! Invalid line. [" << line << "] Skip the line " << lineNo << " and continue." << std::endl;
@@ -154,7 +153,6 @@ namespace NGT {
 	  object.push_back(data[dataidx]);
 	}
 	try {
-	  //push_back((PersistentObject*)allocatePersistentObject(data));
 	  push_back((PersistentObject*)allocateNormalizedPersistentObject(object));
 	} catch (Exception &err) {
 	  std::cerr << "ObjectSpace::readText: Warning! Invalid data. Skip the data no. " << idx << " and continue." << std::endl;
@@ -333,9 +331,10 @@ namespace NGT {
 
     size_t getByteSize() { return byteSize; }
     size_t insert(PersistentObject *obj) { return Parent::insert(obj); }
-    size_t byteSize;		// the length of all of elements.
     const size_t dimension;
     const type_info &type;
+   protected:
+    size_t byteSize;		// the length of all of elements.
   };
 
 } // namespace NGT
