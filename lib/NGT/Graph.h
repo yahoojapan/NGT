@@ -191,6 +191,7 @@ namespace NGT {
     class SearchGraphRepository : public vector<ReadOnlyGraphNode> {
     public:
       SearchGraphRepository() {}
+      bool isEmpty(size_t idx) { return (*this)[idx].empty(); }
 
       void deserialize(ifstream &is, ObjectRepository &objectRepository) {
 	if (!is.is_open()) {

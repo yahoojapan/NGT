@@ -304,7 +304,7 @@ bool ngt_search_index(NGTIndex index, double *query, int32_t query_dim, size_t s
   return true;
 }
 
-bool ngt_search(NGTIndex index, double *query, NGTSearchParameter &search_parameter, NGTObjectDistances results, NGTError error) {
+bool ngt_search(NGTIndex index, double *query, NGTSearchParameter search_parameter, NGTObjectDistances results, NGTError error) {
   if(index == NULL || query == NULL || results == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " query = " << query << " results = " << results;

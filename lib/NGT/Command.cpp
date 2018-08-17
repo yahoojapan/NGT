@@ -26,8 +26,8 @@
     const string usage = "Usage: ngt create "
       "-d dimension [-p #-of-thread] [-i index-type(t|g)] [-g graph-type(a|k|b)] "
       "[-t truncation-edge-limit] [-E edge-size] [-S edge-size-for-search] [-L edge-size-limit] "
-      "[-e epsilon] [-o object-type(f|c)] [-D distance-function] [-n data-size] "
-      "[-P path-adjustment-interval] [-B dynamic-edge-size-base] "
+      "[-e epsilon] [-o object-type(f|c)] [-D distance-function] [-n #-of-inserted-objects] "
+      "[-P path-adjustment-interval] [-B dynamic-edge-size-base] [-A object-alignment(t|f)] "
       "index(output) [data.tsv(input)]";
     string database;
     try {
@@ -59,6 +59,8 @@
       cerr << usage << endl;
       return;
     }
+
+    property.objectAlignment = args.getChar("A", 'f') == 't' ? NGT::Property::ObjectAlignmentTrue : NGT::Property::ObjectAlignmentFalse;
 
     char graphType = args.getChar("g", 'a');
     switch(graphType) {
@@ -625,7 +627,7 @@
   void
   NGT::Command::reconstructGraph(Args &args)
   {
-    const string usage = "Usage: ngt reconstruct [-m mode] [-P path-adjustment-mode] -e #-of-original-edges -E #-of-reverse-edges index(input) index(output)\n"
+    const string usage = "Usage: ngt reconstruct-graph [-m mode] [-P path-adjustment-mode] -o #-of-original-edges -i #-of-reverse-edges index(input) index(output)\n"
       "\t-m mode\n"
       "\t\ts: Edge adjustment. (default)\n"
       "\t\tS: Edge adjustment and path adjustment.\n"

@@ -100,10 +100,10 @@ public:
   }
 
   int insert(
-   py::array_t<double> objects, 
+   py::array_t<double> object, 
    bool debug = false
   ) {
-    py::buffer_info info = objects.request();
+    py::buffer_info info = object.request();
     auto ptr = static_cast<double *>(info.ptr);
     if (debug) {
       std::cerr << info.shape.size() << ":" << info.shape[0] << ":" << info.shape[1] << std::endl;
@@ -241,7 +241,7 @@ PYBIND11_MODULE(ngtpy, m) {
            py::arg("num_threads") = 8, 
            py::arg("debug") = false)
       .def("insert", &::Index::insert, 
-           py::arg("objects"),
+           py::arg("object"),
            py::arg("debug") = false);
 }
 

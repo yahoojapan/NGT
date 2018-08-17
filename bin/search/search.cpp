@@ -57,11 +57,9 @@ main(int argc, char **argv)
       index.search(sc);
 
       // output resultant objects.
-      cout << "Rank\tIN-ID\tID\tDistance" << endl;
+      cout << "Rank\tID\tDistance" << endl;
       for (size_t i = 0; i < objects.size(); i++) {
-	cout << i + 1 << "\t" << objects[i].id << "\t";
-	cout << "(nul)\t";
-	cout << objects[i].distance << endl;
+	cout << i + 1 << "\t" << objects[i].id << "\t" << objects[i].distance << endl;
       }
       // delete the query object.
       index.deleteObject(query);

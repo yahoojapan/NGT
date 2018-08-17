@@ -112,7 +112,7 @@ public:
   public:
     SearchParameter() {}
     SearchParameter(Args &args) {
-      indexType	= args.getChar("m", 'w');
+      openMode	= args.getChar("m", 'r');
       try {
 	query = args.get("#2");
       } catch (...) {

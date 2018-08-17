@@ -3,16 +3,16 @@ NGT
 
 Neighborhood Graph and Tree for Indexing High-dimensional Data
 
-[Home](/README.md) / [Build](/README.md#build) / [Command](/bin/ngt/README.md#command) / [License](/README.md#license) / [Publications](/README.md#publications) / [About Us](http://research-lab.yahoo.co.jp/)
+[トップ](/README-jp.md) / [インストール](/README-jp.md#インストール) / [コマンド](/bin/ngt/README-jp.md) / [ライセンス](/README-jp.md#ライセンス) / [関連文献](/README-jp.md#関連文献) / [About Us](http://research-lab.yahoo.co.jp/)
 
 Command
--------
+=======
 
-### Name
+
 
 **ngt** - 高次元ベクトルデータ近傍検索
 
-### 形式
+
 
       $ ngt command [option] index [data]
         
@@ -21,7 +21,7 @@ CygWin といった POSIXLY_CORERECT が設定されている環境では、コ�
 
       $ ngt [option] command index [data]
 
-### 概要
+
 
 大量（数百万から数千万データ）の高次元ベクトルデータ（数十～数千次元）に対して高速な近傍検索を提供します。
 
@@ -31,8 +31,10 @@ CygWin といった POSIXLY_CORERECT が設定されている環境では、コ�
 -   *[append](#append)*
 -   *[search](#search)*
 -   *[remove](#remove)*
+-   *[prune](#prune)*
+-   *[reconstruct graph](#reconstruct-graph)*
 
-#### CREATE
+### CREATE
 
 指定されたインデックスを生成した上で指定されたデータをインデックスに登録します。
 
@@ -44,7 +46,7 @@ CygWin といった POSIXLY_CORERECT が設定されている環境では、コ�
         
 
 *index*  
-生成するインデックス名を指定します。データを登録後、本インデックス名に拡張子を付与した複数のファイルからなるインデックスが生成されます。
+生成するインデックス名を指定します。データを登録後、本インデックス名のディレクトリが生成されてその中に複数のファイルからなるインデックスが生成されます。
 
 *registration\_data*  
 登録するベクトルデータを指定します。１行が１オブジェクト（データ）で構成され、各次元要素のデータはスペースまたはタブで区切られていなければなりません。
@@ -60,14 +62,14 @@ CygWin といった POSIXLY_CORERECT が設定されている環境では、コ�
 
 **-i** *index\_type* (__g__|__t__)  
 グラフのみか、グラフに加えツリーを作成するかを選択します。
-- __g__: グラフインデックスのみ生成します。検索時にグラフの探索起点をランダムに決定します。
-- __t__: グラフインデックスに加えてツリーインデックスを生成します。検索時にツリーを用いてグラフの探索起点を決定します。（デフォルト、推奨）
+- __g__: グラフインデックスのみ生成します。検索時にグラフの探索起点ノードをランダムに決定します。
+- __t__: グラフインデックスに加えてツリーインデックスを生成します。検索時にツリーを用いてグラフの探索起点ノードを決定します。（デフォルト、推奨）
 
 **-g** *graph\_type*  
-グラフインデックスのタイプを指定する。
+グラフインデックスのタイプを指定します。
 - __a__: ANNG を生成します。 高速な登録が可能です。（デフォルト、推奨）
 - __k__: KNNG を生成します。 極めて登録が低速です。（実験用なので非推奨）
-- __b__: BKNNG を生成します。極めて登録が低速ですが、検索は最高性能です。（実験用なので非推奨）
+- __b__: BKNNG を生成します。極めて登録が低速ですが、検索は高速です。（実験用なので非推奨）
 
 **-t** *edge\_reduction\_threshold*（デフォルト=推奨値=0）  
 過剰エッジ削減処理を実行する判断基準となる増加エッジ量を指定します。ANNGを選択した時にのみ過剰エッジ削減処理が利用可能となりますが、過剰エッジ削減処理はかなり重い処理なので、メモリ消費量を可能な限り削減したいといった場合を除き利用する必要性はありません。過剰エッジ削減処理自体を実行しない場合には0を指定します。
@@ -91,12 +93,15 @@ ANNGやBKNNGを指定した場合には登録データ（ノード）からエ�
 - __1__: L1距離
 - __2__: L2距離（デフォルト）
 - __a__: 角度
+- __A__: 正規化角度。指定されたデータを正規化した上で保存します。
+- __c__: コサイン類似度
+- __C__: 正規化コサイン類似度。指定されたデータを正規化した上で保存します。
 - __h__: ハミング距離
 
 **-n** *no\_of\_registration\_data*  
 登録するデータ数を指定します。指定しない場合には指定されたファイル中のすべてのデータを登録します。
 
-#### APPEND
+### APPEND
 
 指定された登録データを指定されたインデックスに追加登録します。
 
@@ -105,7 +110,7 @@ ANNGやBKNNGを指定した場合には登録データ（ノード）からエ�
         
 
 *index*  
-既存のインデックス（インデックスファイルの拡張子を除いた部分）を指定します。
+既存のインデックスを指定します。
 
 *registration\_data*  
 登録するベクトルデータを指定します。１行が１オブジェクト（データ）で、各次元のデータはスペース又はタブで区切られていなければなりません。
@@ -119,7 +124,7 @@ ANNGやBKNNGを指定した場合には登録データ（ノード）からエ�
 **-n** *no\_of\_registration\_data*  
 登録するデータ数を指定します。指定しない場合には指定されたファイル中のすべてのデータを登録します。
 
-#### SEARCH
+### SEARCH
 
 指定されたクエリデータを用いてインデックスを検索します。
 
@@ -128,7 +133,7 @@ ANNGやBKNNGを指定した場合には登録データ（ノード）からエ�
         
 
 *index*  
-既存のインデックス名（インデックスファイルの拡張子を除いた部分）を指定します。
+既存のインデックス名を指定します。
 
 *query\_data*  
 クエリデータのファイル名を指定します。１行が１クエリデータであり、登録データと同様に各次元のデータはスペース又はタブで区切られていなければなりません。複数クエリを与えた場合には順次検索します。
@@ -151,15 +156,14 @@ ANNGやBKNNGを指定した場合には登録データ（ノード）からエ�
 **-r** *search\_radius* （デフォルト=無限円）  
 検索範囲を円の半径で指定する。
 
-#### REMOVE
+### REMOVE
 
 指定されたオブジェクトをインデックスから削除します。
 
-      $ ngt remove [-d object_id_specification_method] index object_id
-        
+      $ ngt remove [-d object_id_specification_method] index object_id        
 
 *index*  
-既存のインデックス名（インデックスファイルの拡張子を除いた部分）を指定します。
+既存のインデックス名を指定します。
 
 *object\_id*  
 削除対象のオブジェクトIDを指定します。
@@ -167,9 +171,49 @@ ANNGやBKNNGを指定した場合には登録データ（ノード）からエ�
 **-d** *object\_id\_specification\_method* (__f__|__d__) （デフォルト=f） 
 削除するオブジェクトIDの指定方法を指定します。fを指定した場合には後述のオブジェクトIDの指定をファイルだとみなします。指定されたファイルには１行ごとに削除するIDが１エントリずつ指定されていなければなりません。dを指定した場合には後述のオブジェクトIDの指定はそのままオブジェクトIDの値だとみなし、削除します。
 
-### ngt コマンド使用例
+### PRUNE
 
-#### 生成・登録
+指定されたインデックスのグラフ中の長いエッジを削減します。このコマンドにより検索時間が短縮されますが、性能向上には以下の reconstruct graph のパス最適化の利用をお勧めします。
+
+      $ ngt prune -e no_of_forcedly_pruned_edges -s no_of_selectively_pruned_edge index
+
+*index*  
+既存のインデックス名を指定します。
+
+**-e** *no\_of\_forcedly\_pruned\_edges*   
+各ノードに付与できる最大エッジ数を指定します。各ノードについて指定された数以上のエッジは長い順に強制的に削除します。
+
+**-s** *no\_of\_selectively\_pruned\_edge*   
+削除対象としないエッジ数（ランク）を指定します。各ノードについて短い順にエッジを並べた時のランクが指定数を越えて、かつ、そのエッジの代替パスが存在する場合に、そのエッジを削除します。
+no\_of\_forcedly\_pruned\_edgesはno\_of\_selectively\_pruned\_edgesより大きくなければなりません。
+
+### RECONSTRUCT GRAPH
+
+指定されたインデックスからグラフを再構成したインデックスを生成します。
+
+      $ ngt reconstruct-graph [-m mode] -o no_of_original_edges -i no_of_reverse_edge input_index reconstructed_index
+
+*input_index*  
+既存のインデックス名を指定します。
+
+*reconstructed_index*   
+再構成されるインデックス名を指定します。
+
+**-o** *no_of_original_edges*   
+再構成されるグラフに付与する元グラフの各ノードの出エッジ数を指定します。この値は再構成されるグラフの出次数の下限値となります。
+
+**-i** *no_of_reverse_edges*   
+再構成されるグラフに付与する元グラフの各ノードの出エッジ数を指定します。ただし、出エッジの方向を反転した上で再構成されるグラフに付与されます。この値は再構成されるグラフの入次数の下限値となります。
+
+**-m** *mode*   
+グラフのパス最適化のモードを指定します。
+- __s__: パス最適化を行いません。
+- __S__: パス最適化を行います。
+
+
+
+
+### 生成・登録
 
 128次元１バイト整数型データのインデックスの生成
 
@@ -179,7 +223,7 @@ ANNGやBKNNGを指定した場合には登録データ（ノード）からエ�
       # of objects=5000
       Index creation time=0.379659 (sec) 379.659 (msec)
 
-#### 検索
+### 検索
 
 ファイルで指定された3クエリによる近傍検索
 
@@ -256,29 +300,29 @@ ANNGやBKNNGを指定した場合には登録データ（ノード）からエ�
       Query Time= 0.00018 (sec), 0.18 (msec)
       Average Query Time= 0.000376667 (sec), 0.376667 (msec), (0.00113/3)
 
-### [文献](/README.md#publications)のインデックス生成手順
 
-##### ONNG（文献なし）
+
+#### ONNG（文献なし）
 ```
-$ ngt create -i t -g a -S 0 -e 0.1 -E no_of_edges -d dimensionality_of_data -o data_type -D distatnce_type anng-index vector-data.dat
+$ ngt create -i t -g a -S 0 -e 0.0 -E no_of_edges -d dimensionality_of_data -o data_type -D distatnce_type anng-index vector-data.dat
 $ ngt reconstruct-graph -m S -o outdegree -i indegree anng-index onng-index
 ```
 e.g.  
 ```
-$ ngt create -i t -g a -S 0 -e 0.1 -E 10 -d 128 -o c -D 2 anng-index vector-data.dat
+$ ngt create -i t -g a -S 0 -e 0.0 -E 100 -d 128 -o c -D 2 anng-index vector-data.dat
 $ ngt reconstruct-graph -m S -o 10 -i 120 anng-index onng-index
 ```
-##### [PANNG](/README.md#panng)
+#### [PANNG](/README.md#panng)
 ```
-$ ngt create -i g -g a -S 0 -e 0.1 -E no_of_edges -d dimensionality_of_data -o data_type -D distatnce_type panng-index vector-data.dat
+$ ngt create -i g|t -g a -S 0 -e 0.1 -E no_of_edges -d dimensionality_of_data -o data_type -D distatnce_type panng-index vector-data.dat
 $ ngt prune -e no_of_forcedly_pruned_edges -s no_of_selectively_pruned_edges panng-index
 ```
 e.g.  
 ```
-$ ngt create -i g -g a -S 0 -e 0.1 -E 10 -d 128 -o c -D 2 panng-index vector-data.dat
+$ ngt create -i t -g a -S 0 -e 0.1 -E 10 -d 128 -o c -D 2 panng-index vector-data.dat
 $ ngt prune -e 60 -s 30 panng-index
 ```
-##### [ANNGT](/README.md#anngt)
+#### [ANNGT](/README.md#anngt)
 ```
 $ ngt create -i t -g a -S 0 -e 0.1 -E no_of_edges(k) -d dimensionality_of_data -o data_type -D distance_type anngt-index vector-data.dat
 ```
@@ -286,7 +330,7 @@ e.g.
 ```  
 $ ngt create -i t -g a -S 0 -e 0.1 -E 16 -d 128 -o c -D 2 anngt-index vector-data.dat
 ```
-##### [ANNG](/README.md#anng)
+#### [ANNG](/README.md#anng)
 ```
 $ ngt create -i g -g a -S 0 -e 0.1 -E no_of_edges(k) -d dimensionality_of_data -o data_type -D distance_type anng-index vector-data.dat
 ```
@@ -294,7 +338,7 @@ e.g.
 ```
 $ ngt create -i g -g a -S 0 -e 0.1 -E 16 -d dimensionality_of_data -o data_type -D distance_type anng-index vector-data.dat
 ```
-##### KNNG  
+#### KNNG  
 ```
 $ ngt create -i g -g k -S 0 -E no_of_edges(k) -d dimensionality_of_data -o data_type -D distance_type knng-index vector-data.dat
 ```

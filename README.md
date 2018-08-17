@@ -3,16 +3,18 @@ NGT
 
 Neighborhood Graph and Tree for Indexing High-dimensional Data
 
-[Home](/README.md) / [Build](/README.md#build) / [Command](/bin/ngt/README.md#command) / [License](/README.md#license) / [Publications](/README.md#publications) / [About Us](http://research-lab.yahoo.co.jp/en/)
+[Home](/README.md) / [Installation](/README.md#Installation) / [Command](/bin/ngt/README.md#command) / [License](/README.md#license) / [Publications](/README.md#publications) / [About Us](http://research-lab.yahoo.co.jp/en/) / [日本語](/README-jp.md)
 
 **NGT** provides commands and a library for performing high-speed approximate nearest neighbor searches against a large volume of data (several million to several 10 million items of data) in high dimensional vector data space (several ten to several thousand dimensions).
 
-#### Downloads
+Installation
+------------
+
+### Downloads
 
 - [Releases](https://github.com/yahoojapan/NGT/releases)
 
-Build
------
+### Build
 
       $ unzip NGT-x.x.x.zip
       $ cd NGT-x.x.x
@@ -21,8 +23,9 @@ Build
       $ cmake ..
       $ make 
       $ make install
+      $ ldconfig
 
-### Shared memory use
+#### Shared memory use
 
 The index can be placed in shared memory. Using shared memory can reduce the amount of memory needed when multiple processes are using the same index. It can also improve the boot-up speed of an index for a large volume of registration data. Since changes become necessary at build time, please add the following parameter when executing "cmake" in order to use shared memory.
 
@@ -42,7 +45,7 @@ Supported Programming Languages
 - [Python](/python/README.md)
 - [Go](https://github.com/yahoojapan/gongt)
 - C
-- C++
+- C++([sample code](bin/search/search.cpp))
 
 License
 -------

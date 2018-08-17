@@ -42,7 +42,7 @@ version(ostream &os)
 
 void help() {
   cerr << "Usage : ngt command database data" << endl;
-  cerr << "           command : create search remove append export import reconstruct-graph" << endl;
+  cerr << "           command : create search remove append export import prune reconstruct-graph" << endl;
 }
 
 int

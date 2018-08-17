@@ -1,12 +1,11 @@
 
 # python NGT
 
-[日本語](README-jp.md)
 
-## Install
+## インストール
 
-You **MUST** install the NGT library according to the [README](../README.md#build) before installing python NGT.
-Python bindings with ctypes (ngt) and pybind11 (ngtpy) are both installed as follows.
+python NGTをインストールする前に**必ず**NGTライブラリを[README-jp](../README-jp.md#build)にしたがってインストールしてください。
+以下の手順でctypes (ngt) とpybind11 (ngtpy) の２種類のpython bindings がインストールされます。
 
 ```
 cd NGT_ROOT/python
@@ -14,11 +13,11 @@ python setup.py sdist
 pip install dist/ngt-1.2.0.tar.gz
 ```
 
-## Documents
+## ドキュメント
 
-[ngtpy (pybind11) reference](README-ngtpy.md)
+[ngtpy (pybind11) レファレンス](README-ngtpy-jp.md)
 
-## Simple samples
+## サンプルコード
 
 ### ngt (ctypes)
 
@@ -52,7 +51,7 @@ pip install dist/ngt-1.2.0.tar.gz
 
 ### ngtpy (pybind11)
 
-ngtpy(pybind11) can reduce the processing times than ngt(ctypes). It is more effective especially for the short search time. 
+ngtpy(pybind11)はngt(ctypes)より処理時間を削減できます。特に短時間の検索において効果があります。
 
 ```python
   import ngtpy
@@ -79,4 +78,4 @@ ngtpy(pybind11) can reduce the processing times than ngt(ctypes). It is more eff
       print(object)
 ```
 
-See also [sample.py](sample/sample.py).
+ご参考： [sample.py](sample/sample.py).
