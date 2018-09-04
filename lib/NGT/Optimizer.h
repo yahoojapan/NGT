@@ -39,7 +39,7 @@ namespace NGT {
       ifstream		is(sp.query);
       if (!is) {
 	stringstream msg;
-	msg << "Cannot open the specified file. " << sp.query << endl;
+	msg << "Cannot open the specified file. " << sp.query;
 	NGTThrowException(msg);
       }
 
@@ -300,7 +300,7 @@ namespace NGT {
 		    } else {
 		      stringstream msg;
 		      msg << "check: inner error! " << epsilon;
-		      cerr << "Cannot find epsilon." << endl;
+		      cerr << "Cannot find epsilon.";
 		      NGTThrowException(msg);
 		    }
 		    {
@@ -402,7 +402,7 @@ namespace NGT {
 	  if (epsilon > 0.2) {
 	    stringstream msg;
 	    msg << "exploreEpsilonForAccuracy:" << endl;
-	    msg << "Error!! Epsilon is too large. " << epsilon << endl;
+	    msg << "Error!! Epsilon is too large. " << epsilon;
 	    NGTThrowException(msg);
 	  }
 	  acc.clear();
@@ -417,7 +417,7 @@ namespace NGT {
 	if (fromOverEpsilon == startEpsilon) {
 	  stringstream msg;
 	  msg << "exploreEpsilonForAccuracy:" << endl;
-	  msg << "Error! startEpsilon should be reduced for the specified range." << endl;
+	  msg << "Error! startEpsilon should be reduced for the specified range.";
 	  NGTThrowException(msg);
 	}
 	fromOver = acc[0].averageAccuracy;
@@ -430,7 +430,7 @@ namespace NGT {
 	    if (epsilon > 0.2) {
 	      stringstream msg;
 	      msg << "exploreEpsilonForAccuracy:" << endl;
-	      msg << "Error!! Epsilon is too large. " << epsilon << endl;
+	      msg << "Error!! Epsilon is too large. " << epsilon;
 	      NGTThrowException(msg);
 	    }
 	    acc.clear();
@@ -480,7 +480,7 @@ namespace NGT {
 	    stringstream msg;
 	    msg << "exploreEpsilonForAccuracy:" << endl;
 	    msg << "Error!! Not found proper under epsilon for mergin=" << mergin << " and the number of queries." << endl;
-	    msg << "        Should increase mergin or the number of queries to get the proper epsilon." << endl;
+	    msg << "        Should increase mergin or the number of queries to get the proper epsilon.";
 	    NGTThrowException(msg);
 	  } else {
 	    sp.beginOfEpsilon = sp.endOfEpsilon = (fromUnderEpsilon + fromOverEpsilon) / 2.0;
@@ -490,7 +490,7 @@ namespace NGT {
 	    stringstream msg;
 	    msg << "exploreEpsilonForAccuracy:" << endl;
 	    msg << "Error!! Not found proper over epsilon for mergin=" << mergin << " and the number of queries." << endl;
-	    msg << "        Should increase mergin or the number of queries to get the proper epsilon." << endl;
+	    msg << "        Should increase mergin or the number of queries to get the proper epsilon.";
 	    NGTThrowException(msg);
 	  } else {
 	    sp.beginOfEpsilon = sp.endOfEpsilon = (toUnderEpsilon + toOverEpsilon) / 2.0;
@@ -499,7 +499,7 @@ namespace NGT {
 	  if (fromUnderEpsilon == toOverEpsilon) {
 	    stringstream msg;
 	    msg << "exploreEpsilonForAccuracy:" << endl;
-	    msg << "Error!! From and to epsilons are the same. Cannot continue." << endl;
+	    msg << "Error!! From and to epsilons are the same. Cannot continue.";
 	    NGTThrowException(msg);
 	  }
 	  sp.beginOfEpsilon = fromUnderEpsilon;
@@ -508,7 +508,7 @@ namespace NGT {
 	}
       }
       stringstream msg;
-      msg << "Something wrong!" << endl;
+      msg << "Something wrong!";
       NGTThrowException(msg);
     }
 

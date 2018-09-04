@@ -736,15 +736,21 @@
     float intervalTo = 0.8;
     size_t querySize = 100;
     double gtEpsilon = 0.1;
-    double mergin = 0.2;
 
-    try {
-      size_t baseEdgeSize = NGT::Optimizer::adjustBaseSearchEdgeSize(outIndex, pair<float, float>(intervalFrom, intervalTo), querySize, gtEpsilon, mergin);
-      NeighborhoodGraph::Property &prop = outGraph.getGraphProperty();
-      prop.dynamicEdgeSizeBase = baseEdgeSize;
-      cerr << "Reconstruct Graph: adjust the base search edge size. " << baseEdgeSize << endl;
-    } catch(NGT::Exception &err) {
-      cerr << "Warning: Cannot adjust the base edge size. " << err.what() << endl;
+    for (double mergin = 0.2; ; mergin += 0.05) {
+      try {
+	size_t baseEdgeSize = NGT::Optimizer::adjustBaseSearchEdgeSize(outIndex, pair<float, float>(intervalFrom, intervalTo), querySize, gtEpsilon, mergin);
+	NeighborhoodGraph::Property &prop = outGraph.getGraphProperty();
+	prop.dynamicEdgeSizeBase = baseEdgeSize;
+	cerr << "Reconstruct Graph: adjust the base search edge size. " << baseEdgeSize << endl;
+	break;
+      } catch(NGT::Exception &err) {
+	cerr << "Warning: Cannot adjust the base edge size. " << err.what() << endl;
+	if (mergin > 0.4) {
+	  break;
+	}
+	cerr << "Warning: However, try again with increased mergin " << mergin << "." << endl;
+      }
     }
 
     outGraph.saveIndex(outIndexName);

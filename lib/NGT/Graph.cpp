@@ -174,14 +174,6 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
   std::sort(tmp.begin(), tmp.end());
 
   for (ObjectDistances::iterator ri = tmp.begin(); ri != tmp.end(); ri++) {
-#if !defined(NGT_GRAPH_CHECK_VECTOR) || defined(NGT_GRAPH_CHECK_BOOLEANSET)
-    distanceChecked.insert((*ri).id);
-#else
-    distanceChecked[(*ri).id] = 1;
-#endif
-    unchecked.push(*ri);
-  }
-  for (ObjectDistances::iterator ri = tmp.begin(); ri != tmp.end(); ri++) {
     if ((results.size() < (unsigned int)sc.size) && ((*ri).distance <= sc.radius)) {
       results.push((*ri));
     } else {
@@ -189,6 +181,18 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
     }
   }
 
+    if (results.size() >= sc.size) {
+      sc.radius = results.top().distance;
+    }
+
+  for (ObjectDistances::iterator ri = tmp.begin(); ri != tmp.end(); ri++) {
+#if !defined(NGT_GRAPH_CHECK_VECTOR) || defined(NGT_GRAPH_CHECK_BOOLEANSET)
+    distanceChecked.insert((*ri).id);
+#else
+    distanceChecked[(*ri).id] = 1;
+#endif
+    unchecked.push(*ri);
+  }
 }
 
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
@@ -259,20 +263,14 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 	  result.set(neighbor.first, distance);
 	  unchecked.push(result);
 	  if (distance <= sc.radius) {
+	    results.push(result);
 	    if (results.size() >= sc.size) {
-	      if (results.top().distance > distance) {
-		results.pop();
-		results.push(result);
-	        sc.radius = results.top().distance;
-	        explorationRadius = sc.explorationCoefficient * sc.radius;
+	      if (results.size() > sc.size) {
+	        results.pop();
 	      }
-	    } else {
-	      results.push(result);
-	      if (results.size() == sc.size) {
-	        sc.radius = results.top().distance;
-	        explorationRadius = sc.explorationCoefficient * sc.radius;
-	      }
-	    }
+	      sc.radius = results.top().distance;
+	      explorationRadius = sc.explorationCoefficient * sc.radius;
+	    } 
 	  } 
 	} 
       } 
@@ -288,7 +286,6 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
   }
 
 #endif
-
 
   void
     NeighborhoodGraph::search(NGT::SearchContainer &sc, ObjectDistances &seeds)
@@ -408,18 +405,14 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 	  result.set(neighbor.id, distance);
 	  unchecked.push(result);
 	  if (distance <= sc.radius) {
+	    results.push(result);
 	    if (results.size() >= sc.size) {
-	      if (results.top().distance > distance) {
-		results.push(result);
-		results.pop();
-	        sc.radius = results.top().distance;
-	        explorationRadius = sc.explorationCoefficient * sc.radius;
-	      }
-	    } else {
-	      results.push(result);
-	      if (results.size() == sc.size) {
-	        sc.radius = results.top().distance;
-	        explorationRadius = sc.explorationCoefficient * sc.radius;
+	      if (results.top().distance >= distance) {
+		if (results.size() > sc.size) {
+		  results.pop();
+		}
+		sc.radius = results.top().distance;
+		explorationRadius = sc.explorationCoefficient * sc.radius;
 	      }
 	    }
 	  } 
