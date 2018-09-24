@@ -26,8 +26,9 @@
     const string usage = "Usage: ngt create "
       "-d dimension [-p #-of-thread] [-i index-type(t|g)] [-g graph-type(a|k|b)] "
       "[-t truncation-edge-limit] [-E edge-size] [-S edge-size-for-search] [-L edge-size-limit] "
-      "[-e epsilon] [-o object-type(f|c)] [-D distance-function] [-n #-of-inserted-objects] "
+      "[-e epsilon] [-o object-type(f|c)] [-D distance-function(1|2|a|A|h|c|C)] [-n #-of-inserted-objects] "
       "[-P path-adjustment-interval] [-B dynamic-edge-size-base] [-A object-alignment(t|f)] "
+      "[-T build-time-limit] "
       "index(output) [data.tsv(input)]";
     string database;
     try {
@@ -53,6 +54,7 @@
     property.threadPoolSize = args.getl("p", 24);
     property.pathAdjustmentInterval = args.getl("P", 0);
     property.dynamicEdgeSizeBase = args.getl("B", 30);
+    property.buildTimeLimit = args.getf("T", 0.0);
 
     if (property.dimension <= 0) {
       cerr << "ngt: Error: Specify greater than 0 for # of your data dimension by a parameter -d." << endl;
@@ -718,7 +720,7 @@
       }
     }
     timer.stop();
-    cerr << "Graph reconstruction time=" << timer.time << " (sec) " << endl;
+    cerr << "ngt::Graph reconstruction time=" << timer.time << " (sec) " << endl;
 
     if (mode == 'S' || mode == 'C'|| mode == 'P') {
       timer.reset();
@@ -729,7 +731,7 @@
         GraphReconstructor::adjustPaths(outIndex);
       }
       timer.stop();
-      cerr << "Path adjustment time=" << timer.time << " (sec) " << endl;
+      cerr << "ngt::Path adjustment time=" << timer.time << " (sec) " << endl;
     }
 
     float intervalFrom = 0.6;
@@ -737,20 +739,13 @@
     size_t querySize = 100;
     double gtEpsilon = 0.1;
 
-    for (double mergin = 0.2; ; mergin += 0.05) {
-      try {
-	size_t baseEdgeSize = NGT::Optimizer::adjustBaseSearchEdgeSize(outIndex, pair<float, float>(intervalFrom, intervalTo), querySize, gtEpsilon, mergin);
-	NeighborhoodGraph::Property &prop = outGraph.getGraphProperty();
-	prop.dynamicEdgeSizeBase = baseEdgeSize;
-	cerr << "Reconstruct Graph: adjust the base search edge size. " << baseEdgeSize << endl;
-	break;
-      } catch(NGT::Exception &err) {
-	cerr << "Warning: Cannot adjust the base edge size. " << err.what() << endl;
-	if (mergin > 0.4) {
-	  break;
-	}
-	cerr << "Warning: However, try again with increased mergin " << mergin << "." << endl;
-      }
+    try {
+      size_t baseEdgeSize = NGT::Optimizer::adjustBaseSearchEdgeSize(outIndex, pair<float, float>(intervalFrom, intervalTo), querySize, gtEpsilon);
+      NeighborhoodGraph::Property &prop = outGraph.getGraphProperty();
+      prop.dynamicEdgeSizeBase = baseEdgeSize;
+      cerr << "Reconstruct Graph: adjust the base search edge size. " << baseEdgeSize << endl;
+    } catch(NGT::Exception &err) {
+      cerr << "Warning: Cannot adjust the base edge size. " << err.what() << endl;
     }
 
     outGraph.saveIndex(outIndexName);

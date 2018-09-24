@@ -1438,9 +1438,6 @@ namespace NGT {
       ObjectDistances	seeds;
       getSeedsFromTree(sc, seeds);
       GraphIndex::search(sc, seeds);
-#ifdef NGT_DISTANCE_COMPUTATION_COUNT
-      //cerr << "distance computation count=" << sc.distanceComputationCount << endl;
-#endif
     }
 
     size_t getSharedMemorySize(ostream &os, SharedMemoryAllocator::GetMemorySizeType t) {

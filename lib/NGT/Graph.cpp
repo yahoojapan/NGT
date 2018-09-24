@@ -34,6 +34,7 @@ NeighborhoodGraph::Property::set(NGT::Property &prop) {
   if (prop.truncationThreadPoolSize != -1)	truncationThreadPoolSize = prop.truncationThreadPoolSize;
   if (prop.batchSizeForCreation != -1)		batchSizeForCreation = prop.batchSizeForCreation;
   if (prop.dynamicEdgeSizeBase != -1)           dynamicEdgeSizeBase = prop.dynamicEdgeSizeBase;
+  if (prop.buildTimeLimit != -1)                buildTimeLimit = prop.buildTimeLimit;
   if (prop.graphType != GraphTypeNone)		graphType = prop.graphType;
 }
 
@@ -50,6 +51,7 @@ NeighborhoodGraph::Property::get(NGT::Property &prop) {
   prop.batchSizeForCreation		= batchSizeForCreation;
   prop.dynamicEdgeSizeBase              = dynamicEdgeSizeBase;
   prop.graphType			= graphType;
+  prop.buildTimeLimit                   = buildTimeLimit;
 }
 
 

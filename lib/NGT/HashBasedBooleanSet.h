@@ -92,7 +92,6 @@ class HashBasedBooleanSet{
     }
   }
   
-  //-// 値をセットする
   inline void insert(const uint32_t num){
     set(num);
   }

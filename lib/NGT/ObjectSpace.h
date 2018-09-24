@@ -231,6 +231,10 @@ namespace NGT {
       for (size_t i = 0; i < dim; i++) {
 	sum += (double)data[i] * (double)data[i];
       }
+      if (sum == 0.0) {
+	cerr << "normalize: Warning! the object is a zero vector for the cosine similarity or angle distance." << endl;
+	return;
+      }
       sum = sqrt(sum);
       for (size_t i = 0; i < dim; i++) {
 	data[i] = (double)data[i] / sum;
@@ -340,7 +344,7 @@ namespace NGT {
 
     void construct(size_t s) {
       assert(vector == 0);
-      size_t allocsize = ((s - 1) / 16 + 1) * 16;
+      size_t allocsize = ((s - 1) / 16 + 1) * 16;	
       vector = new uint8_t[allocsize];
       memset(vector, 0, allocsize);
     }

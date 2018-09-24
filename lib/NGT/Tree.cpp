@@ -67,7 +67,6 @@ DVPTree::insert(InsertContainer &iobj,  LeafNode *leafNode)
         try {
 	  loid = objects[i].id;
 	  idd = comparator(iobj.object, *getObjectRepository().get(loid));
-
         } catch (Exception &e) {
           stringstream msg;
           msg << "LeafNode::insert: Cannot find object which belongs to a leaf node. id="

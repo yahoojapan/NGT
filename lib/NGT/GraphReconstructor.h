@@ -22,6 +22,8 @@
 
 #ifdef _OPENMP
 #include	<omp.h>
+#else
+#warning "*** OMP is *NOT* available! ***"
 #endif
 
 namespace NGT {
@@ -82,7 +84,9 @@ class GraphReconstructor {
 	      } 
 	    }  
 	  } else {
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(10)
+#endif
 	    for (size_t tni = 0; tni < tn.size(); tni++) {
 	      if (found) {
 		continue;
@@ -136,6 +140,8 @@ class GraphReconstructor {
     cerr << "construct index is not implemented." << endl;
     abort();
 #else
+    Timer timer;
+    timer.start();
     size_t rStartRank = 0; 
     vector<pair<size_t, NGT::GraphNode> > tmpGraph;
     for (size_t id = 1; id < outGraph.repository.size(); id++) {
@@ -145,15 +151,21 @@ class GraphReconstructor {
 	node.resize(rStartRank);
       }
     }
+    timer.stop();
+    cerr << "GraphReconstructor::adjustPaths: graph preparing time=" << timer << endl;
+    timer.reset();
+    timer.start();
 
     vector<vector<pair<uint32_t, uint32_t> > > removeCandidates(tmpGraph.size());
     int removeCandidateCount = 0;
+#ifdef _OPENMP
 #pragma omp parallel for
+#endif
     for (size_t idx = 0; idx < tmpGraph.size(); ++idx) {
       auto it = tmpGraph.begin() + idx;
       size_t id = (*it).first;
       try {
-	NGT::GraphNode &srcNode = (*it).second;
+	NGT::GraphNode &srcNode = (*it).second;	
 	std::unordered_map<uint32_t, pair<size_t, double> > neighbors;
 	for (size_t sni = 0; sni < srcNode.size(); ++sni) {
 	  neighbors[srcNode[sni].id] = pair<size_t, double>(sni, srcNode[sni].distance);
@@ -184,6 +196,11 @@ class GraphReconstructor {
 	continue;
       }
     }
+    timer.stop();
+    cerr << "GraphReconstructor::adjustPaths extracting removed edge candidates time=" << timer << endl;
+    timer.reset();
+    timer.start();
+
     list<size_t> ids;
     for (auto it = tmpGraph.begin(); it != tmpGraph.end(); ++it) {
       size_t id = (*it).first;
@@ -260,7 +277,6 @@ class GraphReconstructor {
     cerr << "adjustEdges is not implemented." << endl;
     abort();
 #else 
-    cerr << "GraphReconstructor::reconstruct graph." << endl; //-/
     if (reverseEdgeSize > 10000) {
       cerr << "something wrong. Edge size=" << reverseEdgeSize << endl;
       exit(1);
@@ -351,6 +367,7 @@ class GraphReconstructor {
     cerr << "reverse edge size=" << reverseEdgeSize << endl;
 #endif // defined(NGT_SHARED_MEMORY_ALLOCATOR)
   }
+
 
   static 
     void reconstructGraphWithConstraint(vector<NGT::GraphNode> &graph, NGT::Index &outIndex, 

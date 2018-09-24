@@ -114,6 +114,50 @@ CreateIndexThread::run() {
 
 }
 
+class BuildTimeController {
+public:
+  BuildTimeController(GraphIndex &graph, NeighborhoodGraph::Property &prop):property(prop) {
+    noOfInsertedObjects = graph.objectSpace->getRepository().size() - graph.repository.size();
+    cerr << "# of objects=" << noOfInsertedObjects << endl;
+    interval = 10000;
+    count = interval;
+    edgeSizeSave = property.edgeSizeForCreation;
+    buildTimeLimit = property.buildTimeLimit;
+    time = 0.0;
+    timer.start();
+  }
+  ~BuildTimeController() {
+    property.edgeSizeForCreation = edgeSizeSave;
+  }
+  void adjustEdgeSize(size_t c) {
+    if (buildTimeLimit > 0.0 && count <= c) {
+      timer.stop();
+      double estimatedTime = time + timer.time / interval * (noOfInsertedObjects - count);
+      estimatedTime /= 60 * 60;	// hour
+      const size_t edgeInterval = 5;
+      const int minimumEdge = 5;
+      if (estimatedTime > buildTimeLimit) {
+	property.edgeSizeForCreation -= edgeInterval;
+	if (property.edgeSizeForCreation < minimumEdge) {
+	  property.edgeSizeForCreation = minimumEdge;
+	}
+      }
+      time += timer.time;
+      count += interval;
+      timer.start();
+    }
+  }
+
+  size_t	noOfInsertedObjects;
+  size_t	interval;
+  size_t	count ;
+  size_t	edgeSizeSave;
+  Timer		timer;
+  double	time;
+  double	buildTimeLimit;
+  NeighborhoodGraph::Property &property;
+};
+
 void 
 GraphAndTreeIndex::createTreeIndex() 
 {
@@ -150,11 +194,14 @@ GraphIndex::createIndex()
   ObjectRepository &fr = objectSpace->getRepository();
   size_t	pathAdjustCount = property.pathAdjustmentInterval;
   NGT::ObjectID id = 1;
+  size_t count = 0;
+  BuildTimeController buildTimeController(*this, NeighborhoodGraph::property);
   for (; id < fr.size(); id++) {
     if (id < anngRepo.size() && anngRepo[id] != 0) {
       continue;
     }
     insert(id);
+    buildTimeController.adjustEdgeSize(++count);
     if (pathAdjustCount > 0 && pathAdjustCount <= id) {
       GraphReconstructor::adjustPathsEffectively(static_cast<GraphIndex&>(*this));
       pathAdjustCount += property.pathAdjustmentInterval;
@@ -265,6 +312,9 @@ GraphIndex::createIndex(size_t threadPoolSize)
     threads.setSharedData(&sd);
     threads.create();
     CreateIndexThreadPool::OutputJobQueue &output = threads.getOutputJobQueue();
+
+    BuildTimeController buildTimeController(*this, NeighborhoodGraph::property);
+
     try {
       CreateIndexJob job;
       NGT::ObjectID id = 1;
@@ -298,6 +348,7 @@ GraphIndex::createIndex(size_t threadPoolSize)
 	  timerCount += timerInterval;
 	  timer.start();
 	}
+	buildTimeController.adjustEdgeSize(count);
 	if (pathAdjustCount > 0 && pathAdjustCount <= count) {
 	  GraphReconstructor::adjustPathsEffectively(static_cast<GraphIndex&>(*this));
 	  pathAdjustCount += property.pathAdjustmentInterval;
@@ -315,97 +366,98 @@ GraphIndex::createIndex(size_t threadPoolSize)
 void 
 GraphAndTreeIndex::createIndex(size_t threadPoolSize) 
 {
-  if (threadPoolSize <= 1) {
-    GraphIndex::createIndex();
-  } else {
-    Timer		timer;
-    size_t	timerInterval = 100000;
-    size_t	timerCount = timerInterval;
-    size_t	count = 0;
-    timer.start();
+  assert(threadPoolSize > 0);
 
-    size_t	pathAdjustCount = property.pathAdjustmentInterval;
-    CreateIndexThreadPool threads(threadPoolSize);
+  Timer	timer;
+  size_t	timerInterval = 100000;
+  size_t	timerCount = timerInterval;
+  size_t	count = 0;
+  timer.start();
 
-    CreateIndexSharedData sd(*this);
+  size_t	pathAdjustCount = property.pathAdjustmentInterval;
+  CreateIndexThreadPool threads(threadPoolSize);
 
-    threads.setSharedData(&sd);
-    threads.create();
-    CreateIndexThreadPool::OutputJobQueue &output = threads.getOutputJobQueue();
-    try {
-      CreateIndexJob job;
-      NGT::ObjectID id = 1;
-      for (;;) {
-	size_t cnt = searchMultipleQueryForCreation(*this, id, job, threads);
+  CreateIndexSharedData sd(*this);
 
-	if (cnt == 0) {
-	  break;
-	}
-	threads.waitForFinish();
+  threads.setSharedData(&sd);
+  threads.create();
+  CreateIndexThreadPool::OutputJobQueue &output = threads.getOutputJobQueue();
 
-	if (output.size() != cnt) {
-	  cerr << "NNTGIndex::insertGraphIndexByThread: Warning!! Thread response size is wrong." << endl;
-	  cnt = output.size();
-	}
+  BuildTimeController buildTimeController(*this, NeighborhoodGraph::property);
 
-	insertMultipleSearchResults(*this, output, cnt);
+  try {
+    CreateIndexJob job;
+    NGT::ObjectID id = 1;
+    for (;;) {
+      size_t cnt = searchMultipleQueryForCreation(*this, id, job, threads);
 
-	for (size_t i = 0; i < cnt; i++) {
-	  CreateIndexJob &job = output[i];
-	  if (((job.results->size() > 0) && ((*job.results)[0].distance != 0.0)) ||
-	      (job.results->size() == 0)) {
+      if (cnt == 0) {
+	break;
+      }
+      threads.waitForFinish();
+
+      if (output.size() != cnt) {
+	cerr << "NNTGIndex::insertGraphIndexByThread: Warning!! Thread response size is wrong." << endl;
+	cnt = output.size();
+      }
+
+      insertMultipleSearchResults(*this, output, cnt);
+
+      for (size_t i = 0; i < cnt; i++) {
+	CreateIndexJob &job = output[i];
+	if (((job.results->size() > 0) && ((*job.results)[0].distance != 0.0)) ||
+	    (job.results->size() == 0)) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-	    Object *f = GraphIndex::objectSpace->allocateObject(*job.object);
-	    DVPTree::InsertContainer tiobj(*f, job.id);
+	  Object *f = GraphIndex::objectSpace->allocateObject(*job.object);
+	  DVPTree::InsertContainer tiobj(*f, job.id);
 #else
-	    DVPTree::InsertContainer tiobj(*job.object, job.id);
+	  DVPTree::InsertContainer tiobj(*job.object, job.id);
 #endif
-	    try {
-	      DVPTree::insert(tiobj);
+	  try {
+	    DVPTree::insert(tiobj);
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-	      GraphIndex::objectSpace->deleteObject(f);
+	    GraphIndex::objectSpace->deleteObject(f);
 #endif
-	    } catch (Exception &err) {
-	      cerr << "NGT::createIndex: Fatal error. ID=" << job.id << ":";
+	  } catch (Exception &err) {
+	    cerr << "NGT::createIndex: Fatal error. ID=" << job.id << ":";
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-	      GraphIndex::objectSpace->deleteObject(f);
+	    GraphIndex::objectSpace->deleteObject(f);
 #endif
-	      if (NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeKNNG) {
-		cerr << err.what() << " continue.." << endl;
-	      } else {
-	        throw err;
-	      }
+	    if (NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeKNNG) {
+	      cerr << err.what() << " continue.." << endl;
+	    } else {
+	      throw err;
 	    }
 	  }
-	} // for
+	}
+      } // for
 
-	while (!output.empty()) {
-	  delete output.front().results;
+      while (!output.empty()) {
+	delete output.front().results;
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-	  GraphIndex::objectSpace->deleteObject(output.front().object);
+	GraphIndex::objectSpace->deleteObject(output.front().object);
 #endif
-	  output.pop_front();
-	}
-
-	count += cnt;
-	if (timerCount <= count) {
-	  timer.stop();
-	  cerr << "Processed " << timerCount << " objects. time= " << timer << endl;
-	  timerCount += timerInterval;
-	  timer.start();
-	}
-	if (pathAdjustCount > 0 && pathAdjustCount <= count) {
-	  GraphReconstructor::adjustPathsEffectively(static_cast<GraphIndex&>(*this));
-	  pathAdjustCount += property.pathAdjustmentInterval;
-	}
+	output.pop_front();
       }
-    } catch(Exception &err) {
-      threads.terminate();
-      throw err;
-    }
-    threads.terminate();
-  }
 
+      count += cnt;
+      if (timerCount <= count) {
+	timer.stop();
+	cerr << "Processed " << timerCount << " objects. time= " << timer << endl;
+	timerCount += timerInterval;
+	timer.start();
+      }
+      buildTimeController.adjustEdgeSize(count);
+      if (pathAdjustCount > 0 && pathAdjustCount <= count) {
+	GraphReconstructor::adjustPathsEffectively(static_cast<GraphIndex&>(*this));
+	pathAdjustCount += property.pathAdjustmentInterval;
+      }
+    }
+  } catch(Exception &err) {
+    threads.terminate();
+    throw err;
+  }
+  threads.terminate();
 }
 
 

@@ -310,6 +310,7 @@ namespace NGT {
 	  batchSizeForCreation		= 200;
 	  graphType			= GraphTypeANNG;
 	  dynamicEdgeSizeBase		= 30;
+	  buildTimeLimit		= 0.0;
 	}
 	void clear() {
 	  truncationThreshold		= -1;
@@ -323,6 +324,7 @@ namespace NGT {
 	  batchSizeForCreation		= -1;
 	  graphType			= GraphTypeNone;
 	  dynamicEdgeSizeBase		= -1;
+	  buildTimeLimit		= -1;
 	}
 	void set(NGT::Property &prop);
 	void get(NGT::Property &prop);
@@ -338,6 +340,7 @@ namespace NGT {
 	  p.set("SeedSize", seedSize);
 	  p.set("TruncationThreadPoolSize", truncationThreadPoolSize);
 	  p.set("DynamicEdgeSizeBase", dynamicEdgeSizeBase);
+	  p.set("BuildTimeLimit", buildTimeLimit);
 	  switch (graphType) {
 	  case NeighborhoodGraph::GraphTypeKNNG: p.set("GraphType", "KNNG"); break;
 	  case NeighborhoodGraph::GraphTypeANNG: p.set("GraphType", "ANNG"); break;
@@ -365,6 +368,7 @@ namespace NGT {
 	  seedSize = p.getl("SeedSize", seedSize);
 	  truncationThreadPoolSize = p.getl("TruncationThreadPoolSize", truncationThreadPoolSize);
 	  dynamicEdgeSizeBase = p.getl("DynamicEdgeSizeBase", dynamicEdgeSizeBase);
+	  buildTimeLimit = p.getf("BuildTimeLimit", buildTimeLimit);
 	  PropertySet::iterator it = p.find("GraphType");
 	  if (it != p.end()) {
 	    if (it->second == "KNNG")		graphType = NeighborhoodGraph::GraphTypeKNNG;
@@ -409,6 +413,7 @@ namespace NGT {
 	int16_t		batchSizeForCreation;
 	GraphType	graphType;
 	int16_t		dynamicEdgeSizeBase;
+	float		buildTimeLimit;
       };
 
       NeighborhoodGraph(): objectSpace(0) {

@@ -17,7 +17,6 @@
 #pragma once
 
 namespace NGT {
-  /////////////////////////////////////////////
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
   class ObjectRepository : 
   public PersistentRepository<PersistentObject> {

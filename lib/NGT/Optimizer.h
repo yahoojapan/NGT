@@ -539,7 +539,7 @@ namespace NGT {
       return distanceCount;
     }
 
-    static size_t adjustBaseSearchEdgeSize(NGT::Index &index, pair<float, float> interval, size_t querySize, double epsilon, double mergin) {
+    static size_t adjustBaseSearchEdgeSize(NGT::Index &index, pair<float, float> interval, size_t querySize, double epsilon, float mergin = 0.2) {
 
       cerr << "adjustBaseSearchEdgeSize::Extract queries for GT..." << endl;
       stringstream queries;
@@ -560,25 +560,39 @@ namespace NGT {
       stringstream gtStream;
       NGT::Command::search(index, searchParameter, queries, gtStream);
 
-      double prevDistanceComputation = INT_MAX;
-      size_t prevEdgeBase = 0;
-      size_t edgeSizeBaseStart = 10;
-      size_t edgeSizeBaseStep = 10;
-      cerr << "adjustBaseSearchEdgeSize::explore..." << endl;
-      for (size_t edgeSizeBase = edgeSizeBaseStart; edgeSizeBase < 100; edgeSizeBase += edgeSizeBaseStep) {
-	searchParameter.step = 10;
-	NGT::GraphIndex &graphIndex = static_cast<GraphIndex&>(index.getIndex());
-	NeighborhoodGraph::Property &prop = graphIndex.getGraphProperty();
-	prop.dynamicEdgeSizeBase = edgeSizeBase;
-	double distanceComputation = measureDistance(index, queries, gtStream, searchParameter, interval, mergin);
-	cerr << "adjustBaseSearchEdgeSize::Base edge size=" << edgeSizeBase << ", distance computation=" << distanceComputation << endl;
-	if (prevDistanceComputation < distanceComputation) {
-	  break;
+      while(true) {
+	double prevDistanceComputation = INT_MAX;
+	size_t prevEdgeBase = 0;
+	size_t edgeSizeBaseStart = 10;
+	size_t edgeSizeBaseStep = 10;
+	cerr << "adjustBaseSearchEdgeSize::explore for the mergin " << mergin << "..." << endl;
+	for (size_t edgeSizeBase = edgeSizeBaseStart; edgeSizeBase < 120; edgeSizeBase += edgeSizeBaseStep) {
+	  searchParameter.step = 10;
+	  NGT::GraphIndex &graphIndex = static_cast<GraphIndex&>(index.getIndex());
+	  NeighborhoodGraph::Property &prop = graphIndex.getGraphProperty();
+	  prop.dynamicEdgeSizeBase = edgeSizeBase;
+	  try {
+	    double distanceComputation = measureDistance(index, queries, gtStream, searchParameter, interval, mergin);
+	    cerr << "adjustBaseSearchEdgeSize::Base edge size=" << edgeSizeBase << ", distance computation=" << distanceComputation << endl;
+	    if (prevDistanceComputation < distanceComputation) {
+	      return prevEdgeBase;
+	    }
+	    prevDistanceComputation = distanceComputation;
+	    prevEdgeBase = edgeSizeBase;
+	  } catch(NGT::Exception &err) {
+	    if (mergin > 0.4) {
+	      stringstream msg;
+	      msg << "Error: Cannot adjust the base edge size even for the widest mergin " << mergin << ". " << err.what();
+	      NGTThrowException(msg);
+	    }
+	    cerr << "Warning: Cannot adjust the base edge size for mergin " << mergin << ". " << err.what() << endl;
+	    cerr << "Try again for the next mergin." << endl;
+	    mergin += 0.05;
+	    break;
+	  }
+
 	}
-	prevDistanceComputation = distanceComputation;
-	prevEdgeBase = edgeSizeBase;
       }
-      return prevEdgeBase;
     }
 
     static void adjustBaseSearchEdgeSize(Args &args)

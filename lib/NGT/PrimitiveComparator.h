@@ -17,7 +17,6 @@
 #pragma once
 
 #include	"NGT/defines.h"
-//#include	"NGT/ObjectSpaceRepositoy.h"
 
 #if !defined(NGT_AVX_DISABLED) && defined(__AVX__)
 #include	<immintrin.h>
