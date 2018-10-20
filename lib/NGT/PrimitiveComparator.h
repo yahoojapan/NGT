@@ -101,14 +101,13 @@ namespace NGT {
       __m128 v2;
       __m128 sum2 = _mm_add_ps(_mm256_extractf128_ps(sum, 0), _mm256_extractf128_ps(sum, 1));
 
-      lastgroup = last - 3;
-
-      while (a < lastgroup) {
+      while (a < last) {
 	v2 = _mm_sub_ps(_mm_loadu_ps(a), _mm_loadu_ps(b));
 	sum2 = _mm_add_ps(sum2, _mm_mul_ps(v2, v2));
         a += 4;
         b += 4;
       }
+
       float f[4];
       _mm_store_ps(f, sum2);
 
@@ -300,9 +299,7 @@ namespace NGT {
       __m128 am2, bm2;
       __m128 sum2 = _mm_add_ps(_mm256_extractf128_ps(sum, 0), _mm256_extractf128_ps(sum, 1));
 
-      lastgroup = last - 3;
-
-      while (a < lastgroup) {
+      while (a < last) {
 	am2 = _mm_loadu_ps(a);
 	bm2 = _mm_loadu_ps(b);
 	sum2 = _mm_add_ps(sum2, _mm_mul_ps(am2, bm2));
@@ -349,7 +346,6 @@ namespace NGT {
       double nb = f[0] + f[1] + f[2] + f[3] + f[4] + f[5] + f[6] + f[7];
       _mm256_store_ps(f, sum);
       double s = f[0] + f[1] + f[2] + f[3] + f[4] + f[5] + f[6] + f[7];
-
       while (a < last) {
 	double av = *a;
 	double bv = *b;
@@ -382,7 +378,7 @@ namespace NGT {
 
     template <typename OBJECT_TYPE> 
     inline static double compareAngleDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
-      double cosine = compareAngleDistance(a, b, size);
+      double cosine = compareCosine(a, b, size);
       if (cosine >= 1.0F) {
 	return 0.0F;
       } else if (cosine <= -1.0F) {

@@ -232,8 +232,9 @@ namespace NGT {
 	sum += (double)data[i] * (double)data[i];
       }
       if (sum == 0.0) {
-	cerr << "normalize: Warning! the object is a zero vector for the cosine similarity or angle distance." << endl;
-	return;
+	stringstream msg;
+	msg << "ObjectSpace::normalize: Error! the object is an invalid zero vector for the cosine similarity or angle distance.";
+	NGTThrowException(msg);
       }
       sum = sqrt(sum);
       for (size_t i = 0; i < dim; i++) {

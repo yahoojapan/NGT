@@ -302,7 +302,7 @@ no\_of\_forcedly\_pruned\_edgesはno\_of\_selectively\_pruned\_edgesより大き
 
 
 
-#### ONNG（文献なし）
+#### [ONNG](/README.md#onng)
 ```
 $ ngt create -i t -g a -S 0 -e 0.0 -E no_of_edges -d dimensionality_of_data -o data_type -D distatnce_type anng-index vector-data.dat
 $ ngt reconstruct-graph -m S -o outdegree -i indegree anng-index onng-index

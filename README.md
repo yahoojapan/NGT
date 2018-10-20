@@ -7,6 +7,11 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
 **NGT** provides commands and a library for performing high-speed approximate nearest neighbor searches against a large volume of data (several million to several 10 million items of data) in high dimensional vector data space (several ten to several thousand dimensions).
 
+News
+----
+
+- [ONNG](README.md#onng) is now available. (8/8/2018 : v1.4.0)
+
 Installation
 ------------
 
@@ -73,16 +78,18 @@ Note that only for contributions to the NGT repository on the GitHub (https://gi
 
 Publications
 ------------
+##### [ONNG](bin/ngt/README.md#onng)
+- Iwasaki, M., Miyazaki, D.: Optimization of Indexing Based on k-Nearest Neighbor Graph for Proximity. arXiv:1810.07355 [cs] (2018). ([pdf](https://arxiv.org/abs/1810.07355))
 
-##### PANNG
-- Iwasaki, M.: Pruned Bi-directed K-nearest Neighbor Graph for Proximity Search. Proc. of SISAP2016 (2016) 20-33.
+##### [PANNG](bin/ngt/README.md#panng)
+- Iwasaki, M.: Pruned Bi-directed K-nearest Neighbor Graph for Proximity Search. Proc. of SISAP2016 (2016) 20-33. ([pdf](https://link.springer.com/chapter/10.1007/978-3-319-46759-7_2))
 - Sugawara, K., Kobayashi, H. and Iwasaki, M.: On Approximately Searching for Similar Word Embeddings. Proc. of ACL2016 (2016) 2265-2275. ([pdf](https://aclweb.org/anthology/P/P16/P16-1214.pdf))
 
-##### ANNGT
+##### [ANNGT](bin/ngt/README.md#anngt)
 - Iwasaki, M.: Applying a Graph-Structured Index to Product Image Search (in Japanese). IIEEJ Journal 42(5) (2013) 633-641. ([pdf](https://s.yimg.jp/i/docs/research_lab/articles/miwasaki-iieej-jnl-2013.pdf))
 - Iwasaki, M.: Proximity search using approximate k nearest neighbor graph with a tree structured index (in Japanese). IPSJ Journal 52(2) (2011) 817-828. ([pdf](https://s.yimg.jp/i/docs/research_lab/articles/miwasaki-ipsj-jnl-2011.pdf))
 
-##### ANNG
+##### [ANNG](bin/ngt/README.md#anng)
 - Iwasaki, M.: Proximity search in metric spaces using approximate k nearest neigh-bor graph (in Japanese). IPSJ Trans. on Database 3(1) (2010) 18-28. ([pdf](https://s.yimg.jp/i/docs/research_lab/articles/miwasaki-ipsj-tod-2010.pdf))
 
 Copyright &copy; 2015-2018 Yahoo Japan Corporation All Rights Reserved.

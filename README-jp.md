@@ -7,6 +7,11 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
 大量（数百万から数千万データ）の高次元ベクトルデータ（数十～数千次元）に対して高速な近似近傍検索を可能とするコマンド及びライブラリを提供します。
 
+ニュース
+-------
+
+- [ONNG](README-jp.md#onng)が利用可能になりました。(2018/08/08 : v1.4.0)
+
 インストール
 -----------
 
@@ -65,16 +70,18 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
 関連文献
 --------
+##### [ONNG](bin/ngt/README-jp.md#onng)
+- Iwasaki, M., Miyazaki, D.: Optimization of Indexing Based on k-Nearest Neighbor Graph for Proximity. arXiv:1810.07355 [cs] (2018). ([pdf](https://arxiv.org/abs/1810.07355))
 
-##### PANNG
-- Iwasaki, M.: Pruned Bi-directed K-nearest Neighbor Graph for Proximity Search. Proc. of SISAP2016 (2016) 20-33.
+##### [PANNG](bin/ngt/README-jp.md#panng)
+- Iwasaki, M.: Pruned Bi-directed K-nearest Neighbor Graph for Proximity Search. Proc. of SISAP2016 (2016) 20-33. ([pdf](https://link.springer.com/chapter/10.1007/978-3-319-46759-7_2))
 - Sugawara, K., Kobayashi, H. and Iwasaki, M.: On Approximately Searching for Similar Word Embeddings. Proc. of ACL2016 (2016) 2265-2275. ([pdf](https://aclweb.org/anthology/P/P16/P16-1214.pdf))
 
-##### ANNGT
+##### [ANNGT](bin/ngt/README-jp.md#anngt)
 - Iwasaki, M.: Applying a Graph-Structured Index to Product Image Search (in Japanese). IIEEJ Journal 42(5) (2013) 633-641. ([pdf](https://s.yimg.jp/i/docs/research_lab/articles/miwasaki-iieej-jnl-2013.pdf))
 - Iwasaki, M.: Proximity search using approximate k nearest neighbor graph with a tree structured index (in Japanese). IPSJ Journal 52(2) (2011) 817-828. ([pdf](https://s.yimg.jp/i/docs/research_lab/articles/miwasaki-ipsj-jnl-2011.pdf))
 
-##### ANNG
+##### [ANNG](bin/ngt/README-jp.md#anng)
 - Iwasaki, M.: Proximity search in metric spaces using approximate k nearest neigh-bor graph (in Japanese). IPSJ Trans. on Database 3(1) (2010) 18-28. ([pdf](https://s.yimg.jp/i/docs/research_lab/articles/miwasaki-ipsj-tod-2010.pdf))
 
 Copyright &copy; 2015-2018 Yahoo Japan Corporation All Rights Reserved.

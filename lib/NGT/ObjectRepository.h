@@ -125,7 +125,14 @@ namespace NGT {
 	vector<double> object;
 	try {
 	  extractObjectFromText(line, "\t ", object);
-	  push_back((PersistentObject*)allocateNormalizedPersistentObject(object));
+	  PersistentObject *obj = 0;
+	  try {
+	    obj = allocateNormalizedPersistentObject(object);
+	  } catch (Exception &err) {
+	    cerr << err.what() << " continue..." << endl;
+	    obj = allocatePersistentObject(object);
+	  }
+	  push_back(obj);
 	} catch (Exception &err) {
 	  std::cerr << "ObjectSpace::readText: Warning! Invalid line. [" << line << "] Skip the line " << lineNo << " and continue." << std::endl;
 	}
@@ -152,7 +159,15 @@ namespace NGT {
 	  object.push_back(data[dataidx]);
 	}
 	try {
-	  push_back((PersistentObject*)allocateNormalizedPersistentObject(object));
+	  PersistentObject *obj = 0;
+	  try {
+	    obj = allocateNormalizedPersistentObject(object);
+	  } catch (Exception &err) {
+	    cerr << err.what() << " continue..." << endl;
+	    obj = allocatePersistentObject(object);
+	  }
+	  push_back(obj);
+
 	} catch (Exception &err) {
 	  std::cerr << "ObjectSpace::readText: Warning! Invalid data. Skip the data no. " << idx << " and continue." << std::endl;
 	}

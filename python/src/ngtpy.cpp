@@ -125,7 +125,17 @@ public:
   ) {
     py::array_t<float> qobject(query);
     py::buffer_info qinfo = qobject.request();
-    NGT::Object *ngtquery = NGT::Index::allocateObject(static_cast<float*>(qinfo.ptr), qinfo.size);
+    NGT::Object *ngtquery = 0;
+    try {
+      ngtquery = NGT::Index::allocateObject(static_cast<float*>(qinfo.ptr), qinfo.size);
+    } catch (NGT::Exception &e) {
+      std::cerr << e.what() << endl;
+      if (!withDistance) {
+	return py::array_t<int>();
+      } else {
+	return py::list();
+      }
+    }
     NGT::SearchContainer sc(*ngtquery);
     sc.setSize(size);				// the number of resultant objects.
     sc.setEpsilon(epsilon);			// set exploration coefficient.

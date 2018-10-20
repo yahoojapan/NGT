@@ -435,7 +435,7 @@ namespace NGT {
       ifstream st(f); 
       if (!st) {
 	stringstream msg;
-	msg << "PropertSet::load: Cannot load the property file " << f << ".";
+	msg << "PropertySet::load: Cannot load the property file " << f << ".";
 	NGTThrowException(msg);
       }
       load(st);
@@ -444,7 +444,7 @@ namespace NGT {
       ofstream st(f); 
       if (!st) {
 	stringstream msg;
-	msg << "PropertSet::save: Cannot save. " << f << endl;
+	msg << "PropertySet::save: Cannot save. " << f << endl;
 	NGTThrowException(msg);
       }
       save(st); 
