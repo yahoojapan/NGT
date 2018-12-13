@@ -461,4 +461,158 @@ GraphAndTreeIndex::createIndex(size_t threadPoolSize)
 }
 
 
+void 
+GraphAndTreeIndex::createIndex(const vector<pair<NGT::Object*, size_t> > &objects, 
+			       vector<InsertionResult> &ids, 
+			       double range, size_t threadPoolSize)
+{
+  Timer		timer;
+  size_t	timerInterval = 100000;
+  size_t	timerCount = timerInterval;
+  size_t	count = 0;
+  timer.start();
+  if (threadPoolSize <= 0) {
+    cerr << "Not implemented!!" << endl;
+    abort();
+  } else {
+    CreateIndexThreadPool threads(threadPoolSize);
+    CreateIndexSharedData sd(*this);
+    threads.setSharedData(&sd);
+    threads.create();
+    CreateIndexThreadPool::OutputJobQueue &output = threads.getOutputJobQueue();
+    try {
+      CreateIndexJob job;
+      size_t	idx = 0;
+      for (;;) {
+	size_t	cnt = 0;
+	{
+	  for (; idx < objects.size(); idx++) {
+	    if (objects[idx].first == 0) {
+	      ids.push_back(InsertionResult());
+	      continue;
+	    }
+	    job.id = 0;
+	    job.results = 0;
+	    job.object = objects[idx].first;
+	    job.batchIdx = ids.size();
+	    // insert an empty entry to prepare.
+	    ids.push_back(InsertionResult(job.id, false, 0.0));
+	    threads.pushInputQueue(job);
+	    cnt++;
+	    if (cnt >= (size_t)NeighborhoodGraph::property.batchSizeForCreation) {
+	      idx++;
+	      break;
+	    }
+	  } 
+	}
+	if (cnt == 0) {
+	  break;
+	}
+	threads.waitForFinish();
+	if (output.size() != cnt) {
+	  cerr << "NNTGIndex::insertGraphIndexByThread: Warning!! Thread response size is wrong." << endl;
+	  cnt = output.size();
+	}
+	{
+	  // This processing occupies about 30% of total indexing time when batch size is 200.
+	  // Only initial batch objects should be connected for each other.
+	  // The number of nodes in the graph is checked to know whether the batch is initial.
+	  size_t size = NeighborhoodGraph::property.edgeSizeForCreation;
+	  // add distances from a current object to subsequence objects to imitate of sequential insertion.
+
+	  sort(output.begin(), output.end());	
+	  for (size_t idxi = 0; idxi < cnt; idxi++) {
+	    // add distances
+	    ObjectDistances &objs = *output[idxi].results;
+	    for (size_t idxj = 0; idxj < idxi; idxj++) {
+	      if (output[idxj].id == 0) {
+		// unregistered object
+		continue;
+	      }
+	      ObjectDistance	r;
+	      r.distance = GraphIndex::objectSpace->getComparator()(*output[idxi].object, *output[idxj].object);
+	      r.id = output[idxj].id;
+	      objs.push_back(r);
+	    }
+	    // sort and cut excess edges	    
+	    std::sort(objs.begin(), objs.end());
+	    if (objs.size() > size) {
+	      objs.resize(size);
+	    }
+	    if ((objs.size() > 0) && (range < 0.0 || ((double)objs[0].distance <= range + FLT_EPSILON))) {
+	      // The line below was replaced by the line above to consider EPSILON for float comparison. 170702
+	      // if ((objs.size() > 0) && (range < 0.0 || (objs[0].distance <= range))) {
+	      // An identical or similar object already exits
+	      ids[output[idxi].batchIdx].identical = true;
+	      ids[output[idxi].batchIdx].id = objs[0].id;
+	      ids[output[idxi].batchIdx].distance = objs[0].distance;
+	      output[idxi].id = 0;
+	    } else {
+	      assert(output[idxi].id == 0);
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	      PersistentObject *obj = GraphIndex::objectSpace->allocatePersistentObject(*output[idxi].object);
+	      output[idxi].id = GraphIndex::objectSpace->insert(obj);
+#else
+	      output[idxi].id = GraphIndex::objectSpace->insert(output[idxi].object);
+#endif
+	      ids[output[idxi].batchIdx].id = output[idxi].id;
+	    }
+	  } 
+	}
+	// insert resultant objects into the graph as edges
+	for (size_t i = 0; i < cnt; i++) {
+	  CreateIndexJob &job = output.front();
+	  if (job.id != 0) {
+	    if (property.indexType == NGT::Property::GraphAndTree) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	      Object *f = GraphIndex::objectSpace->allocateObject(*job.object);
+	      DVPTree::InsertContainer tiobj(*f, job.id);
+#else
+	      DVPTree::InsertContainer tiobj(*job.object, job.id);
+#endif
+	      try {
+		DVPTree::insert(tiobj);
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+		GraphIndex::objectSpace->deleteObject(f);
+#endif
+	      } catch (Exception &err) {
+		cerr << "NGT::createIndex: Fatal error. ID=" << job.id << ":" << err.what();
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+		GraphIndex::objectSpace->deleteObject(f);
+#endif
+		if (NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeKNNG) {
+		  cerr << err.what() << " continue.." << endl;
+		} else {
+		  throw err;
+		}
+	      }
+	    }
+	    if (((*job.results).size() == 0) && (job.id != 1)) {
+	      cerr  << "insert warning!! No searched nodes!. If the first time, no problem. " << job.id << endl;
+	    }
+	    GraphIndex::insertNode(job.id, *job.results);
+	  } 
+	  if (job.results != 0) {
+	    delete job.results;
+	  }
+	  output.pop_front();
+	}
+	
+	count += cnt;
+	if (timerCount <= count) {
+	  timer.stop();
+	  cerr << "Processed " << timerCount << " time= " << timer << endl;
+	  timerCount += timerInterval;
+	  timer.start();
+	}
+      }
+    } catch(Exception &err) {
+      cerr << "thread terminate!" << endl;
+      threads.terminate();
+      throw err;
+    }
+    threads.terminate();
+  }
+}
+
 

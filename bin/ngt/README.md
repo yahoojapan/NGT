@@ -98,7 +98,7 @@ Specifies the distance function as follows.
 - __A__: Normalized angle distance. The specified data are automatically normalized to be appended to the index.
 - __c__: Cosine similarity
 - __C__: Normalized cosine similarity. The specified data are automatically normalized to be appended to the index.
-- __h__: Hamming distance
+- __h__: Hamming distance. 1 byte unsigned integer should be specified for the data object type.
 
 **-n** *no\_of\_registration\_data*  
 Specifies the number of data items to be registered. If not specified, all data in the specified file will be registered.
@@ -130,7 +130,7 @@ Specifies the number of data items to be registered. If not specified, all data 
 
 Searches the index using the specified query data.
 
-      $ ngt search [-i index_type] [-e search_range_coefficient] [-n no_of_searches] 
+      $ ngt search [-i index_type] [-e search_range_coefficient] [-n no_of_search_results] 
           [-E max_no_of_edges] [-r search_radius] index query_data
         
 
@@ -138,7 +138,7 @@ Searches the index using the specified query data.
 Specifies the name of the existing index.
 
 *query\_data*  
-Specifies the name of the file containing query data. This file shall consist of one item of query data per line and each dimensional element of that data item shall be delimited by a space or tab the same as registration data. A sequential search shall be performed when providing multiple queries.
+Specifies the name of the file containing query data. This file shall consist of one item of query data per line and each dimensional element of that data item shall be delimited by a space or tab the same as registration data. Each search shall be sequentially performed when providing multiple queries.
 
 **-i** *index\_type* (__g__|__t__|__s__)  
 Selects between using of graph only or graph and tree.
@@ -149,7 +149,7 @@ Selects between using of graph only or graph and tree.
 **-e** *search\_range\_coefficient* (default = recomended value = 0.1)  
 Specifies the magnification coefficient of the search range. A larger value means greater accuracy but slower searching, while a smaller value means a drop in accuracy but faster searching. While it is desirable to adjust this value within the range of 0 - 0.3, a negative value may also be specified.
 
-**-n** *no\_of\_searches* (default: 20)  
+**-n** *no\_of\_search\_results* (default: 20)  
 Specifies the number of search results.
 
 **-E** *max\_no\_of\_edges* (default = value specified with the create command or 40; recomended value = 40)   

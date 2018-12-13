@@ -60,6 +60,8 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
    http://www.apache.org/licenses/LICENSE-2.0
 
+ヤフー株式会社は本ソフトウェアが利用している技術の特許権を取得しています。ただし、本ソフトウェアを介して権利化された技術を利用する場合に限り、Apacheライセンスバージョン2.0の下で特許権が行使されることはありません。
+
 貢献者ライセンス同意(CLA)
 -------------------------
 

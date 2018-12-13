@@ -264,6 +264,7 @@ namespace NGT {
 	      size_t relevantCount = 0;
 	      size_t dataCount = 0;
 	      string epsilon;
+	      string expansion;  
 	      double queryTime = 0.0;
 	      size_t distanceCount = 0;
 	      size_t visitCount = 0;
@@ -274,6 +275,8 @@ namespace NGT {
 		  NGT::Common::tokenize(line, gtf, "=");
 		  if (gtf.size() >= 2 && (gtf[0] == "# Epsilon" || gtf[0] == "# Factor")) {
 		    epsilon = gtf[1];
+		  } else if (gtf.size() >= 2 && gtf[0] == "# Result expansion") {
+		    expansion = gtf[1];
 		  } else if (gtf.size() >= 2 && gtf[0] == "# Query Time (msec)") {
 		    queryTime = NGT::Common::strtod(gtf[1]);
 		  } else if (gtf.size() >= 2 && gtf[0] == "# Distance Computation") {
@@ -297,6 +300,9 @@ namespace NGT {
 		    if (epsilon != "") {
 		      key = NGT::Common::strtod(epsilon);
 		      keyValue = "Factor (Epsilon)";
+		    } else if (expansion != "") {
+		      key = NGT::Common::strtod(expansion);
+		      keyValue = "Expansion";
 		    } else {
 		      stringstream msg;
 		      msg << "check: inner error! " << epsilon;

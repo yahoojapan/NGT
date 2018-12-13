@@ -364,6 +364,15 @@ namespace NGT {
 #endif
     }
 
+    void getObject(size_t idx, vector<float> &v) {
+      OBJECT_TYPE *obj = static_cast<OBJECT_TYPE*>(getObject(idx));
+      size_t dim = getDimension();
+      v.resize(dim);
+      for (size_t i = 0; i < dim; i++) {
+	v[i] = static_cast<float>(obj[i]);
+      }
+    }
+
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
     void normalize(PersistentObject &object) {
       OBJECT_TYPE *obj = (OBJECT_TYPE*)&object.at(0, getRepository().getAllocator());

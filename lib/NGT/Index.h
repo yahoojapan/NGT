@@ -244,6 +244,14 @@ namespace NGT {
 #endif
     };
 
+    class InsertionResult {
+    public:
+      InsertionResult():id(0), identical(false), distance(0.0) {}
+      InsertionResult(size_t i, bool tf, Distance d):id(i), identical(tf), distance(d) {}
+      size_t	id;
+      bool	identical;
+      Distance	distance; // the distance between the centroid and the inserted object.
+    };
 
     Index():index(0) {}
     Index(const string &database, bool rdOnly = false):index(0) { open(database, rdOnly); }
@@ -278,8 +286,8 @@ namespace NGT {
     }
     static void createGraphAndTree(const string &database, NGT::Property &prop, const string &dataFile, size_t dataSize = 0);
     static void createGraphAndTree(const string &database, NGT::Property &prop) { createGraphAndTree(database, prop, ""); }
-    size_t insert(vector<double> &object) ;
     static void createGraph(const string &database, NGT::Property &prop, const string &dataFile, size_t dataSize = 0);
+    template<typename T> size_t insert(vector<T> &object);
     static void append(const string &database, const string &dataFile, size_t threadSize, size_t dataSize);
     static void append(const string &database, const float *data, size_t dataSize, size_t threadSize);
     static void remove(const string &database, vector<ObjectID> &objects);
@@ -331,8 +339,28 @@ namespace NGT {
       }
       return *index;
     }
+
+    static void destroy(const string &path) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+      std::remove(string(path + "/grp").c_str());
+      std::remove(string(path + "/grpc").c_str());
+      std::remove(string(path + "/trei").c_str());
+      std::remove(string(path + "/treic").c_str());
+      std::remove(string(path + "/trel").c_str());
+      std::remove(string(path + "/trelc").c_str());
+      std::remove(string(path + "/objpo").c_str());
+      std::remove(string(path + "/objpoc").c_str());
+#else
+      std::remove(string(path + "/grp").c_str());
+      std::remove(string(path + "/tre").c_str());
+      std::remove(string(path + "/obj").c_str());
+#endif
+      std::remove(string(path + "/prf").c_str());
+      std::remove(path.c_str());
+    }
     
     static void version(ostream &os);
+    string getPath(){ return path; }
   protected:
     static void loadAndCreateIndex(Index &index, const string &database, const string &dataFile,
 				   size_t threadSize, size_t dataSize);
@@ -863,7 +891,7 @@ namespace NGT {
 
       size_t numberOfNodesWithoutIndegree = 0;
       size_t maxNumberOfIndegree = 0;
-      size_t minNumberOfIndegree = SIZE_MAX;
+      size_t minNumberOfIndegree = INT64_MAX;
       for (size_t id = 1; id < graph.size(); id++) {
 	if (indegreeCount[id] < 0) {
 	  continue;
@@ -874,7 +902,7 @@ namespace NGT {
 	if (indegreeCount[id] > static_cast<int>(maxNumberOfIndegree)) {
 	  maxNumberOfIndegree = indegreeCount[id];
 	}
-	if (indegreeCount[id] < static_cast<int>(minNumberOfIndegree)) {
+	if (indegreeCount[id] < static_cast<int64_t>(minNumberOfIndegree)) {
 	  minNumberOfIndegree = indegreeCount[id];
 	}
 	if (static_cast<int>(indegreeHistogram.size()) <= indegreeCount[id]) {
@@ -1385,6 +1413,8 @@ namespace NGT {
 
     void createIndex(size_t threadNumber);
 
+    void createIndex(const vector<pair<NGT::Object*, size_t> > &objects, vector<InsertionResult> &ids,
+		     double range, size_t threadNumber);
 
     void createTreeIndex();
 
@@ -1527,8 +1557,8 @@ inline void
   delete idx;
 }
 
-inline size_t
-  NGT::Index::insert(vector<double> &object) 
+template<typename T>
+size_t NGT::Index::insert(vector<T> &object) 
 {
   if (getObjectSpace().getRepository().size() == 0) {
     getObjectSpace().getRepository().initialize();

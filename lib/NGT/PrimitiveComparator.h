@@ -31,9 +31,11 @@ namespace NGT {
   public:
     inline const static uint32_t getPrefetchPos(size_t s) { return s < 2 ? s : 2; }
     inline static void prefetch(unsigned char *ptr, const size_t byteSizeOfObject) {
+#if !defined(NGT_AVX_DISABLED) && defined(__AVX__)
       _mm_prefetch(ptr, _MM_HINT_T0);
       ptr += 64;
       _mm_prefetch(ptr, _MM_HINT_T0);
+#endif
     }
   };
 
@@ -218,6 +220,9 @@ namespace NGT {
       return s;
     }
 #endif
+
+
+#if defined(NGT_AVX_DISABLED) || !defined(__POPCNT__)    
     inline static double popCount(uint32_t x) {
       x = (x & 0x55555555) + (x >> 1 & 0x55555555);
       x = (x & 0x33333333) + (x >> 2 & 0x33333333);
@@ -229,16 +234,36 @@ namespace NGT {
 
     template <typename OBJECT_TYPE> 
     inline static double compareHammingDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
-      size_t byteSize = sizeof(OBJECT_TYPE) * size;
-      size_t n = byteSize >> 2;
-      uint32_t *uinta = (uint32_t*)a;
-      uint32_t *uintb = (uint32_t*)b;
+      const OBJECT_TYPE *last = a + size;
+      
+      OBJECT_TYPE *uinta = (OBJECT_TYPE*)a;
+      OBJECT_TYPE *uintb = (OBJECT_TYPE*)b;
       size_t count = 0;
-      for (size_t i = 0; i < n; i++) {
-	count += popCount(*uinta++ ^ *uintb++);
+      while( uinta < (OBJECT_TYPE*)last ){
+	count += popCount(*(uint32_t*)uinta ^ *(uint32_t*)uintb);
+	uinta += 4;
+	uintb += 4;
       }
+
       return (double)count;
     }
+#else
+    template <typename OBJECT_TYPE>
+      inline static double compareHammingDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
+      const OBJECT_TYPE *last = a + size;
+      
+      uint64_t *uinta = (uint64_t*)a;
+      uint64_t *uintb = (uint64_t*)b;
+      size_t count = 0;
+      while( uinta < (uint64_t*)last ){
+	count += _mm_popcnt_u64(*uinta++ ^ *uintb++);
+	count += _mm_popcnt_u64(*uinta++ ^ *uintb++);
+      }
+      
+      return (double)count;
+    }
+#endif
+    
 
 #if defined(NGT_AVX_DISABLED) || !defined(__AVX__)
    template <typename OBJECT_TYPE> 

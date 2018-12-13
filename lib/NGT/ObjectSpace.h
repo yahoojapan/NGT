@@ -220,6 +220,7 @@ namespace NGT {
     virtual void setDistanceType(DistanceType t) = 0;
 
     virtual void *getObject(size_t idx) = 0;
+    virtual void getObject(size_t idx, vector<float> &v) = 0;
 
     size_t getDimension() { return dimension; }
 
@@ -367,7 +368,7 @@ namespace NGT {
       construct(s, allocator);
     }
 
-    ~PersistentObject() {}
+    virtual ~PersistentObject() {}
 
     uint8_t &at(size_t idx, SharedMemoryAllocator &allocator) const { 
       uint8_t *a = (uint8_t *)allocator.getAddr(array);

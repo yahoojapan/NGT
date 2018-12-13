@@ -5,6 +5,7 @@ if( ${UNIX} )
 
 	file(GLOB NGT_SOURCES *.cpp)
 	file(GLOB HEADER_FILES *.h *.hpp)
+	file(GLOB NGTQ_HEADER_FILES NGTQ/*.h NGTQ/*.hpp)
 
 	add_library(ngtstatic STATIC ${NGT_SOURCES})
 	set_target_properties(ngtstatic PROPERTIES OUTPUT_NAME ngt) 
@@ -24,4 +25,5 @@ if( ${UNIX} )
 		LIBRARY DESTINATION lib
 		ARCHIVE DESTINATION lib)
 	install(FILES ${HEADER_FILES}  ${CMAKE_CURRENT_BINARY_DIR}/defines.h DESTINATION include/NGT)
+	install(FILES ${NGTQ_HEADER_FILES} DESTINATION include/NGT/NGTQ)
 endif()
