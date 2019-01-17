@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2018 Yahoo Japan Corporation
+// Copyright (C) 2015-2019 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -288,7 +288,7 @@ namespace NGT {
     static void createGraphAndTree(const string &database, NGT::Property &prop) { createGraphAndTree(database, prop, ""); }
     static void createGraph(const string &database, NGT::Property &prop, const string &dataFile, size_t dataSize = 0);
     template<typename T> size_t insert(vector<T> &object);
-    static void append(const string &database, const string &dataFile, size_t threadSize, size_t dataSize);
+    static void append(const string &database, const string &dataFile, size_t threadSize, size_t dataSize); 
     static void append(const string &database, const float *data, size_t dataSize, size_t threadSize);
     static void remove(const string &database, vector<ObjectID> &objects);
     static void exportIndex(const string &database, const string &file);
@@ -1080,6 +1080,10 @@ namespace NGT {
 
     // GraphIndex
     virtual void search(NGT::SearchContainer &sc, ObjectDistances &seeds) {
+      if (sc.size == 0) {
+	while (!sc.workingResult.empty()) sc.workingResult.pop();
+	return;
+      }
       if (seeds.size() == 0) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR) || !defined(NGT_GRAPH_READ_ONLY_GRAPH)
 	getSeedsFromGraph(repository, seeds);

@@ -120,5 +120,5 @@ Specifies the search mode.
 - __r__: searches using exact distances after screening by approximate distances. (recommended if you need exact distances)
 
 **-E** *approximate\_expansion*  
-Specifies the expansion ratio of the number of approximate search results to the number of search results. For example, when the retio is 10 and the number of search results is 20, the number of the approximate search results is set to 200.
+Specifies the expansion ratio of the number of approximate search results to the number of search results. For example, when the ratio is 10 and the number of search results is 20, the number of the approximate search results is set to 200.
 

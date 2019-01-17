@@ -28,7 +28,7 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
       $ cmake ..
       $ make 
       $ make install
-      $ ldconfig
+      $ ldconfig /usr/local/lib
 
 #### 共有メモリの利用
 
@@ -86,5 +86,5 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 ##### [ANNG](bin/ngt/README-jp.md#anng)
 - Iwasaki, M.: Proximity search in metric spaces using approximate k nearest neigh-bor graph (in Japanese). IPSJ Trans. on Database 3(1) (2010) 18-28. ([pdf](https://s.yimg.jp/i/docs/research_lab/articles/miwasaki-ipsj-tod-2010.pdf))
 
-Copyright &copy; 2015-2018 Yahoo Japan Corporation All Rights Reserved.
+Copyright &copy; 2015-2019 Yahoo Japan Corporation All Rights Reserved.
 

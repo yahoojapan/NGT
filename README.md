@@ -21,6 +21,8 @@ Installation
 
 ### Build
 
+#### On Linux
+
       $ unzip NGT-x.x.x.zip
       $ cd NGT-x.x.x
       $ mkdir build
@@ -28,7 +30,24 @@ Installation
       $ cmake ..
       $ make 
       $ make install
-      $ ldconfig
+      $ ldconfig /usr/local/lib
+
+#### On Mac using homebrew
+
+      $ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+      $ brew install cmake
+      $ brew install gcc
+      $ ln -s ./gcc-8 /usr/local/bin/gcc
+      $ ln -s ./g++-8 /usr/local/bin/g++
+      $ export CXX=g++
+      $ export CC=gcc
+      $ unzip NGT-x.x.x.zip
+      $ cd NGT-x.x.x
+      $ mkdir build
+      $ cd build 
+      $ cmake ..
+      $ make 
+      $ make install
 
 #### Shared memory use
 
@@ -55,7 +74,7 @@ Supported Programming Languages
 License
 -------
 
-Copyright (C) 2015-2018 Yahoo Japan Corporation
+Copyright (C) 2015-2019 Yahoo Japan Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this software except in compliance with the License. You may obtain a copy of the License at
 
@@ -89,5 +108,5 @@ Publications
 ##### [ANNG](bin/ngt/README.md#anng)
 - Iwasaki, M.: Proximity search in metric spaces using approximate k nearest neigh-bor graph (in Japanese). IPSJ Trans. on Database 3(1) (2010) 18-28. ([pdf](https://s.yimg.jp/i/docs/research_lab/articles/miwasaki-ipsj-tod-2010.pdf))
 
-Copyright &copy; 2015-2018 Yahoo Japan Corporation All Rights Reserved.
+Copyright &copy; 2015-2019 Yahoo Japan Corporation All Rights Reserved.
 

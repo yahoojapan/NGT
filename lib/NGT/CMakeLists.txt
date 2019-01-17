@@ -9,14 +9,18 @@ if( ${UNIX} )
 
 	add_library(ngtstatic STATIC ${NGT_SOURCES})
 	set_target_properties(ngtstatic PROPERTIES OUTPUT_NAME ngt) 
+	set_target_properties(ngtstatic PROPERTIES COMPILE_FLAGS "-fPIC")
 	target_link_libraries(ngtstatic)
-
 
 	add_library(ngt SHARED ${NGT_SOURCES})
 	set_target_properties(ngt PROPERTIES VERSION ${ngt_VERSION}) 
 	set_target_properties(ngt PROPERTIES SOVERSION ${ngt_SOVERSION}) 
 	add_dependencies(ngt ngtstatic) 
-	target_link_libraries(ngt gomp)
+	if(${APPLE})
+		target_link_libraries(ngt gomp)
+	else(${APPLE})
+		target_link_libraries(ngt gomp rt)
+	endif(${APPLE})
 
 	install(TARGETS
 		ngt
