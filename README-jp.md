@@ -10,6 +10,8 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 ニュース
 -------
 
+- Python NGTはPYPIからpipでインストールが可能になりました。 (2019/1/17)
+- [NGTQ](bin/ngtq/README-jp.md)(NGT with Quantization) が利用可能になりました。(2018/12/14 : v1.5.0)
 - [ONNG](README-jp.md#onng)が利用可能になりました。(2018/08/08 : v1.4.0)
 
 インストール
@@ -42,7 +44,7 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 ユーティリティ
 -------------
 
-- コマンド : [ngt](/bin/ngt/README-jp.md#command)
+- コマンド : [ngt](/bin/ngt/README-jp.md#command), [ngtq](bin/ngtq/README-jp.md)
 - サーバ : [ngtd](https://github.com/yahoojapan/ngtd)
 
 対応言語
@@ -67,7 +69,7 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
 本ソフトウェアへのソースコードのご提供者は[貢献者ライセンス](https://gist.github.com/ydnjp/3095832f100d5c3d2592)に同意して頂きます。
 
-なお、GitHub (https://github.com/yahoojapan/NGT) へのご提供の場合のみ、個別の同意書面なしに、  上記貢献者ライセンスに同意して頂いたと見なしますので、ご注意ください。
+なお、GitHub (https://github.com/yahoojapan/NGT) へのご提供の場合のみ、個別の同意書面なしに、上記貢献者ライセンスに同意して頂いたと見なしますので、ご注意ください。
 
 
 関連文献

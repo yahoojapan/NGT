@@ -24,11 +24,11 @@
   NGT::Command::create(Args &args)
   {
     const string usage = "Usage: ngt create "
-      "-d dimension [-p #-of-thread] [-i index-type(t|g)] [-g graph-type(a|k|b)] "
+      "-d dimension [-p #-of-thread] [-i index-type(t|g)] [-g graph-type(a|k|b|o)] "
       "[-t truncation-edge-limit] [-E edge-size] [-S edge-size-for-search] [-L edge-size-limit] "
       "[-e epsilon] [-o object-type(f|c)] [-D distance-function(1|2|a|A|h|c|C)] [-n #-of-inserted-objects] "
       "[-P path-adjustment-interval] [-B dynamic-edge-size-base] [-A object-alignment(t|f)] "
-      "[-T build-time-limit] "
+      "[-T build-time-limit] [-O outcomingxincoming] "
       "index(output) [data.tsv(input)]";
     string database;
     try {
@@ -70,11 +70,30 @@
     case 'k': property.graphType = NGT::Property::GraphType::GraphTypeKNNG; break;
     case 'b': property.graphType = NGT::Property::GraphType::GraphTypeBKNNG; break;
     case 'd': property.graphType = NGT::Property::GraphType::GraphTypeDNNG; break;
+    case 'o': property.graphType = NGT::Property::GraphType::GraphTypeONNG; break;
     default:
       cerr << "ngt: Error: Invalid graph type. " << graphType << endl;
       cerr << usage << endl;
       return;
     }    
+
+    if (property.graphType == NGT::Property::GraphType::GraphTypeONNG) {
+      property.outcomingEdge = 10;
+      property.incomingEdge = 80;
+      string str = args.getString("O", "-");
+      if (str != "-") {
+	vector<string> tokens;
+	NGT::Common::tokenize(str, tokens, "x");
+	if (str != "-" && tokens.size() != 2) {
+	  cerr << "ngt: Error: outcoming/incoming edge size specification is invalid. (out)x(in) " << str << endl;
+	  cerr << usage << endl;
+	  return;
+	}
+	property.outcomingEdge = NGT::Common::strtod(tokens[0]);
+	property.incomingEdge = NGT::Common::strtod(tokens[1]);
+	cerr << "ngt: ONNG out x in=" << property.outcomingEdge << "x" << property.incomingEdge << endl;
+      }
+    }
 
     char seedType = args.getChar("s", '-');
     switch(seedType) {

@@ -53,6 +53,8 @@ ngtpy(pybind11)はngt(ctypes)より処理時間を削減できます。特に短
       print(object)
 ```
 
+ご参考： [sample.py](sample/sample.py).
+
 ### ngt (ctypes)
 
 ```python
@@ -82,5 +84,3 @@ ngtpy(pybind11)はngt(ctypes)より処理時間を削減できます。特に短
       object = index.get_object(o.id)
       print(object)
 ```
-
-ご参考： [sample.py](sample/sample.py).

@@ -35,7 +35,13 @@ NeighborhoodGraph::Property::set(NGT::Property &prop) {
   if (prop.batchSizeForCreation != -1)		batchSizeForCreation = prop.batchSizeForCreation;
   if (prop.dynamicEdgeSizeBase != -1)           dynamicEdgeSizeBase = prop.dynamicEdgeSizeBase;
   if (prop.buildTimeLimit != -1)                buildTimeLimit = prop.buildTimeLimit;
+  if (prop.outcomingEdge != -1)                 outcomingEdge = prop.outcomingEdge;
+  if (prop.incomingEdge != -1)                  incomingEdge = prop.incomingEdge;
   if (prop.graphType != GraphTypeNone)		graphType = prop.graphType;
+
+  if (graphType == GraphTypeONNG) {
+    edgeSizeForCreation = outcomingEdge > incomingEdge ? outcomingEdge : incomingEdge;
+  }
 }
 
 void 
@@ -52,6 +58,8 @@ NeighborhoodGraph::Property::get(NGT::Property &prop) {
   prop.dynamicEdgeSizeBase              = dynamicEdgeSizeBase;
   prop.graphType			= graphType;
   prop.buildTimeLimit                   = buildTimeLimit;
+  prop.outcomingEdge                    = outcomingEdge;
+  prop.incomingEdge                     = incomingEdge;
 }
 
 
@@ -258,6 +266,10 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 	  continue;
 	}
         distanceChecked.insert(neighbor.first);
+
+#ifdef NGT_DISTANCE_COMPUTATION_COUNT
+	sc.distanceComputationCount++;
+#endif
 
 	Distance distance = COMPARATOR::compare((void*)&sc.object[0], 
 						(void*)&(*static_cast<PersistentObject*>(neighbor.second))[0], dimension);

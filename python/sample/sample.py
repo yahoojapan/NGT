@@ -35,15 +35,18 @@ results = index.search(query[0], size=5)
 print('ID\tDistance');
 for result in results:
     print('{}\t{}'.format(*result))
+print('# of distance computations=' + str(index.get_num_of_distance_computations()))
 
 # get an object in the index.
 object = index.get_object(4078)
 
 # search with the object in the index.
 results = index.search(object, size=5)
+
 print('\nID\tDistance');
 for result in results:
     print('{}\t{}'.format(*result))
+print('# of distance computations=' + str(index.get_num_of_distance_computations()))
 
 # insert the same objects individually. not build the index for them.
 with open(b'../../data/sift-dataset-5k.tsv', 'r') as fp:
@@ -62,6 +65,7 @@ results = index.search(query[0], size=6)
 print('\nID\tDistance');
 for result in results:
     print('{}\t{}'.format(*result))
+print('# of distance computations=' + str(index.get_num_of_distance_computations()))
 
 # remove an object.
 index.remove(3030)
@@ -71,6 +75,7 @@ results = index.search(query[0], size=6)
 print('\nID\tDistance');
 for result in results:
     print('{}\t{}'.format(*result))
+print('# of distance computations=' + str(index.get_num_of_distance_computations()))
 
 index.save()
 index.close()

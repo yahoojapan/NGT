@@ -315,7 +315,7 @@ class Index(object):
                                                ]
         self.__ngt.ngt_insert_index.argtypes = [
             c_void_p, (c_double * self.dim), c_int, c_void_p]
-        self.__ngt.ngt_append_index.argtypes = [
+        self.__ngt.ngt_batch_append_index.argtypes = [
                                                 c_void_p,
                                                 c_void_p,
                                                 c_int,
@@ -400,7 +400,7 @@ class Index(object):
         for object in objects:
             merged_vectors.extend(object)
         cvec = (c_float * len(merged_vectors))(*merged_vectors)
-        stat = self.__ngt.ngt_append_index(
+        stat = self.__ngt.ngt_batch_append_index(
             self.index, cvec, data_count, self.err)
         self._check_error_num(stat, self.err)
         self.build_index(num_threads)

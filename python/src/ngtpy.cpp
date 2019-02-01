@@ -143,6 +143,8 @@ public:
 
     NGT::Index::search(sc);
 
+    numOfDistanceComputations = sc.distanceComputationCount;
+
     NGT::Index::deleteObject(ngtquery);
     if (!withDistance) {
       NGT::ResultPriorityQueue &r = sc.getWorkingResult();
@@ -212,7 +214,10 @@ public:
     return object;
   }
 
-  bool zeroNumbering;	// for object ID numbering. zero-based or one-based numbering.
+  size_t	getNumOfDistanceComputations() { return numOfDistanceComputations; }
+
+  bool		zeroNumbering;	// for object ID numbering. zero-based or one-based numbering.
+  size_t	numOfDistanceComputations;
 };
 
 
@@ -238,6 +243,7 @@ PYBIND11_MODULE(ngtpy, m) {
            py::arg("epsilon") = 0.1, 
            py::arg("edge_size") = -1,
            py::arg("with_distance") = true)
+      .def("get_num_of_distance_computations", &::Index::getNumOfDistanceComputations)
       .def("save", &NGT::Index::save)
       .def("close", &NGT::Index::close)
       .def("remove", &::Index::remove, 

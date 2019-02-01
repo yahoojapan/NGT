@@ -95,7 +95,9 @@ NGTObjectDistance ngt_get_result(const NGTObjectDistances, const uint32_t, NGTEr
 
 ObjectID ngt_insert_index(NGTIndex, double*, uint32_t, NGTError);
 
-bool ngt_append_index(NGTIndex, float*, uint32_t, NGTError);
+ObjectID ngt_append_index(NGTIndex, double*, uint32_t, NGTError);
+
+bool ngt_batch_append_index(NGTIndex, float*, uint32_t, NGTError);
 
 bool ngt_create_index(NGTIndex, uint32_t, NGTError);
 

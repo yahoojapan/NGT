@@ -670,13 +670,14 @@ namespace NGT {
 	  {
 	    auto *obj = static_cast<uint8_t*>(index.getObjectSpace().getObject(id + oft));
 	    for (int i = 0; i < prop.dimension; i++) {
-	      os << *obj++;
+	      os << static_cast<int>(*obj++);
 	      if (i + 1 != prop.dimension) {
 		os << "\t";
 	      }
 	    }
 	    os << endl;
 	  }
+	  break;
 	default:
 	case NGT::ObjectSpace::ObjectType::Float:
 	  {
@@ -689,6 +690,7 @@ namespace NGT {
 	    }
 	    os << endl;
 	  }
+	  break;
 	}
       }
       assert(count == nqueries);

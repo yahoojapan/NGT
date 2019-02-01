@@ -288,6 +288,7 @@ namespace NGT {
     static void createGraphAndTree(const string &database, NGT::Property &prop) { createGraphAndTree(database, prop, ""); }
     static void createGraph(const string &database, NGT::Property &prop, const string &dataFile, size_t dataSize = 0);
     template<typename T> size_t insert(vector<T> &object);
+    template<typename T> size_t append(vector<T> &object);
     static void append(const string &database, const string &dataFile, size_t threadSize, size_t dataSize); 
     static void append(const string &database, const float *data, size_t dataSize, size_t threadSize);
     static void remove(const string &database, vector<ObjectID> &objects);
@@ -1560,9 +1561,8 @@ inline void
   }
   delete idx;
 }
-
 template<typename T>
-size_t NGT::Index::insert(vector<T> &object) 
+size_t NGT::Index::append(vector<T> &object) 
 {
   if (getObjectSpace().getRepository().size() == 0) {
     getObjectSpace().getRepository().initialize();
@@ -1572,6 +1572,16 @@ size_t NGT::Index::insert(vector<T> &object)
   getObjectSpace().getRepository().push_back(dynamic_cast<PersistentObject*>(o));
 
   return getObjectSpace().getRepository().size() - 1;
+}
+template<typename T>
+size_t NGT::Index::insert(vector<T> &object) 
+{
+  if (getObjectSpace().getRepository().size() == 0) {
+    getObjectSpace().getRepository().initialize();
+  }
+
+  auto *o = getObjectSpace().getRepository().allocateNormalizedPersistentObject(object);
+  return getObjectSpace().getRepository().insert(dynamic_cast<PersistentObject*>(o));
 }
 
 inline void 

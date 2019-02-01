@@ -221,6 +221,7 @@ namespace NGT {
 
     virtual void *getObject(size_t idx) = 0;
     virtual void getObject(size_t idx, vector<float> &v) = 0;
+    virtual void getObjects(const vector<size_t> &idxs, vector<vector<float>> &vs) = 0;
 
     size_t getDimension() { return dimension; }
 

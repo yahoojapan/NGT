@@ -244,7 +244,8 @@ namespace NGT {
 	GraphTypeANNG	= 1,
 	GraphTypeKNNG	= 2,
 	GraphTypeBKNNG	= 3,
-	GraphTypeDNNG	= 4
+	GraphTypeONNG	= 4,
+	GraphTypeDNNG	= 5
       };
 
       enum SeedType {
@@ -311,6 +312,8 @@ namespace NGT {
 	  graphType			= GraphTypeANNG;
 	  dynamicEdgeSizeBase		= 30;
 	  buildTimeLimit		= 0.0;
+	  outcomingEdge			= 10;
+	  incomingEdge			= 80;
 	}
 	void clear() {
 	  truncationThreshold		= -1;
@@ -325,6 +328,8 @@ namespace NGT {
 	  graphType			= GraphTypeNone;
 	  dynamicEdgeSizeBase		= -1;
 	  buildTimeLimit		= -1;
+	  outcomingEdge			= -1;
+	  incomingEdge			= -1;
 	}
 	void set(NGT::Property &prop);
 	void get(NGT::Property &prop);
@@ -341,11 +346,14 @@ namespace NGT {
 	  p.set("TruncationThreadPoolSize", truncationThreadPoolSize);
 	  p.set("DynamicEdgeSizeBase", dynamicEdgeSizeBase);
 	  p.set("BuildTimeLimit", buildTimeLimit);
+	  p.set("OutComingEdge", outcomingEdge);
+	  p.set("InComingEdge", incomingEdge);
 	  switch (graphType) {
 	  case NeighborhoodGraph::GraphTypeKNNG: p.set("GraphType", "KNNG"); break;
 	  case NeighborhoodGraph::GraphTypeANNG: p.set("GraphType", "ANNG"); break;
 	  case NeighborhoodGraph::GraphTypeBKNNG: p.set("GraphType", "BKNNG"); break;
-	  default: cerr << "Invalid Graph Type." << endl; abort();
+	  case NeighborhoodGraph::GraphTypeONNG: p.set("GraphType", "ONNG"); break;
+	  default: cerr << "Graph::exportProperty: Fatal error! Invalid Graph Type." << endl; abort();
 	  }
 	  switch (seedType) {
 	  case NeighborhoodGraph::SeedTypeRandomNodes: p.set("SeedType", "RandomNodes"); break;
@@ -353,7 +361,7 @@ namespace NGT {
 	  case NeighborhoodGraph::SeedTypeFirstNode: p.set("SeedType", "FirstNode"); break;
 	  case NeighborhoodGraph::SeedTypeNone: p.set("SeedType", "None"); break;
 	  case NeighborhoodGraph::SeedTypeAllLeafNodes: p.set("SeedType", "AllLeafNodes"); break;
-	  default: cerr << "Invalid Seed Type." << endl; abort();
+	  default: cerr << "Graph::exportProperty: Fatal error! Invalid Seed Type." << endl; abort();
 	  }
 	}
 	void importProperty(NGT::PropertySet &p) {
@@ -369,12 +377,15 @@ namespace NGT {
 	  truncationThreadPoolSize = p.getl("TruncationThreadPoolSize", truncationThreadPoolSize);
 	  dynamicEdgeSizeBase = p.getl("DynamicEdgeSizeBase", dynamicEdgeSizeBase);
 	  buildTimeLimit = p.getf("BuildTimeLimit", buildTimeLimit);
+	  outcomingEdge = p.getl("OutcomingEdge", outcomingEdge);
+	  incomingEdge = p.getl("IncomingEdge", incomingEdge);
 	  PropertySet::iterator it = p.find("GraphType");
 	  if (it != p.end()) {
 	    if (it->second == "KNNG")		graphType = NeighborhoodGraph::GraphTypeKNNG;
 	    else if (it->second == "ANNG")	graphType = NeighborhoodGraph::GraphTypeANNG;
 	    else if (it->second == "BKNNG")     graphType = NeighborhoodGraph::GraphTypeBKNNG;
-	    else { cerr << "Fatal error! Invalid Graph Type. " << it->second << endl; abort(); }
+	    else if (it->second == "ONNG")      graphType = NeighborhoodGraph::GraphTypeONNG;
+	    else { cerr << "Graph::importProperty: Fatal error! Invalid Graph Type. " << it->second << endl; abort(); }
 	  }
 	  it = p.find("SeedType");
 	  if (it != p.end()) {
@@ -383,7 +394,7 @@ namespace NGT {
 	    else if (it->second == "FirstNode")		seedType = NeighborhoodGraph::SeedTypeFirstNode;
 	    else if (it->second == "None")		seedType = NeighborhoodGraph::SeedTypeNone;
 	    else if (it->second == "AllLeafNodes")	seedType = NeighborhoodGraph::SeedTypeAllLeafNodes;
-	    else { cerr << "Fatal error! Invalid Seed Type. " << it->second << endl; abort(); }
+	    else { cerr << "Graph::importProperty: Fatal error! Invalid Seed Type. " << it->second << endl; abort(); }
 	  }
 	}
 	friend ostream & operator<<(ostream& os, const Property& p) {
@@ -399,6 +410,8 @@ namespace NGT {
 	  os << "batchSizeForCreation="		<< p.batchSizeForCreation << endl;
 	  os << "graphType="			<< p.graphType << endl;
 	  os << "dynamicEdgeSizeBase="		<< p.dynamicEdgeSizeBase << endl;
+	  os << "outcomingEdge="		<< p.outcomingEdge << endl;
+	  os << "incomingEdge="			<< p.incomingEdge << endl;
 	  return os;
 	}
 
@@ -414,6 +427,8 @@ namespace NGT {
 	GraphType	graphType;
 	int16_t		dynamicEdgeSizeBase;
 	float		buildTimeLimit;
+	int16_t		outcomingEdge;
+	int16_t		incomingEdge;
       };
 
       NeighborhoodGraph(): objectSpace(0) {
@@ -432,6 +447,9 @@ namespace NGT {
 	switch (property.graphType) {
 	case GraphTypeANNG:
 	  insertANNGNode(id, objects);	
+	  break;
+	case GraphTypeONNG:
+	  insertONNGNode(id, objects);	
 	  break;
 	case GraphTypeKNNG:
 	  insertKNNGNode(id, objects);
@@ -510,6 +528,26 @@ namespace NGT {
 	  truncateQueue.pop();
 	}
 	return;
+      }
+
+      void insertONNGNode(ObjectID id, ObjectDistances &results) {
+	if (property.truncationThreshold != 0) {
+	  stringstream msg;
+	  msg << "NGT::insertONNGNode: truncation should be disabled!" << endl;
+	  NGTThrowException(msg);
+	}
+	int count = 0;
+	for (ObjectDistances::iterator ri = results.begin(); ri != results.end(); ri++, count++) {
+	  assert(id != (*ri).id);
+	  if (count >= property.incomingEdge) {
+	    break;
+	  }
+	  addEdge((*ri).id, id, (*ri).distance); 
+	}
+	if (static_cast<int>(results.size()) > property.outcomingEdge) {
+	  results.resize(property.outcomingEdge);
+	}
+	repository.insert(id, results);
       }
 
       void removeEdgesReliably(ObjectID id);
@@ -702,6 +740,7 @@ namespace NGT {
 	}
 	return false;
       }
+
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
       void loadSearchGraph(const string &database) {
 	ifstream isg(database + "/grp");

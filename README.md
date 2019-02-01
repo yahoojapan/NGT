@@ -10,6 +10,8 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 News
 ----
 
+- Python NGT can be installed via pip from PyPI (1/17/2019)
+- [NGTQ](bin/ngtq/README.md)(NGT with Quantization) is now available (12/14/2018 : v1.5.0)
 - [ONNG](README.md#onng) is now available. (08/08/2018 : v1.4.0)
 
 Installation
@@ -60,7 +62,7 @@ Note: Since there is no lock function, the index should be used only for referen
 Utilities
 ---------
 
-- Command : [ngt](/bin/ngt/README.md#command)
+- Command : [ngt](/bin/ngt/README.md#command), [ngtq](bin/ngtq/README.md)
 - Server : [ngtd](https://github.com/yahoojapan/ngtd)
 
 Supported Programming Languages

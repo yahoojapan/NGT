@@ -393,7 +393,20 @@ ObjectID ngt_insert_index(NGTIndex index, double *obj, uint32_t obj_dim, NGTErro
   }
 }
 
-bool ngt_append_index(NGTIndex index, float *obj, uint32_t data_count, NGTError error) {
+ObjectID ngt_append_index(NGTIndex index, double *obj, uint32_t obj_dim, NGTError error) {
+  try{
+    NGT::Index* pindex = static_cast<NGT::Index*>(index);
+    std::vector<double> vobj(&obj[0], &obj[obj_dim]);
+    return pindex->append(vobj);    
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);      
+    return 0;
+  }
+}
+
+bool ngt_batch_append_index(NGTIndex index, float *obj, uint32_t data_count, NGTError error) {
   try{
     NGT::Index* pindex = static_cast<NGT::Index*>(index);
     pindex->append(obj, data_count);

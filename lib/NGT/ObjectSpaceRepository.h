@@ -373,6 +373,14 @@ namespace NGT {
       }
     }
 
+    void getObjects(const vector<size_t> &idxs, vector<vector<float>> &vs) {
+      vs.resize(idxs.size());
+      auto v = vs.begin();
+      for (auto idx = idxs.begin(); idx != idxs.end(); idx++, v++) {
+	getObject(*idx, *v);
+      }
+    }
+
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
     void normalize(PersistentObject &object) {
       OBJECT_TYPE *obj = (OBJECT_TYPE*)&object.at(0, getRepository().getAllocator());
