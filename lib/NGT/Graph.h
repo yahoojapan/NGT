@@ -312,7 +312,7 @@ namespace NGT {
 	  graphType			= GraphTypeANNG;
 	  dynamicEdgeSizeBase		= 30;
 	  buildTimeLimit		= 0.0;
-	  outcomingEdge			= 10;
+	  outgoingEdge			= 10;
 	  incomingEdge			= 80;
 	}
 	void clear() {
@@ -328,7 +328,7 @@ namespace NGT {
 	  graphType			= GraphTypeNone;
 	  dynamicEdgeSizeBase		= -1;
 	  buildTimeLimit		= -1;
-	  outcomingEdge			= -1;
+	  outgoingEdge			= -1;
 	  incomingEdge			= -1;
 	}
 	void set(NGT::Property &prop);
@@ -346,8 +346,8 @@ namespace NGT {
 	  p.set("TruncationThreadPoolSize", truncationThreadPoolSize);
 	  p.set("DynamicEdgeSizeBase", dynamicEdgeSizeBase);
 	  p.set("BuildTimeLimit", buildTimeLimit);
-	  p.set("OutComingEdge", outcomingEdge);
-	  p.set("InComingEdge", incomingEdge);
+	  p.set("OutgoingEdge", outgoingEdge);
+	  p.set("IncomingEdge", incomingEdge);
 	  switch (graphType) {
 	  case NeighborhoodGraph::GraphTypeKNNG: p.set("GraphType", "KNNG"); break;
 	  case NeighborhoodGraph::GraphTypeANNG: p.set("GraphType", "ANNG"); break;
@@ -377,7 +377,7 @@ namespace NGT {
 	  truncationThreadPoolSize = p.getl("TruncationThreadPoolSize", truncationThreadPoolSize);
 	  dynamicEdgeSizeBase = p.getl("DynamicEdgeSizeBase", dynamicEdgeSizeBase);
 	  buildTimeLimit = p.getf("BuildTimeLimit", buildTimeLimit);
-	  outcomingEdge = p.getl("OutcomingEdge", outcomingEdge);
+	  outgoingEdge = p.getl("OutgoingEdge", outgoingEdge);
 	  incomingEdge = p.getl("IncomingEdge", incomingEdge);
 	  PropertySet::iterator it = p.find("GraphType");
 	  if (it != p.end()) {
@@ -410,7 +410,7 @@ namespace NGT {
 	  os << "batchSizeForCreation="		<< p.batchSizeForCreation << endl;
 	  os << "graphType="			<< p.graphType << endl;
 	  os << "dynamicEdgeSizeBase="		<< p.dynamicEdgeSizeBase << endl;
-	  os << "outcomingEdge="		<< p.outcomingEdge << endl;
+	  os << "outgoingEdge="			<< p.outgoingEdge << endl;
 	  os << "incomingEdge="			<< p.incomingEdge << endl;
 	  return os;
 	}
@@ -427,7 +427,7 @@ namespace NGT {
 	GraphType	graphType;
 	int16_t		dynamicEdgeSizeBase;
 	float		buildTimeLimit;
-	int16_t		outcomingEdge;
+	int16_t		outgoingEdge;
 	int16_t		incomingEdge;
       };
 
@@ -544,8 +544,8 @@ namespace NGT {
 	  }
 	  addEdge((*ri).id, id, (*ri).distance); 
 	}
-	if (static_cast<int>(results.size()) > property.outcomingEdge) {
-	  results.resize(property.outcomingEdge);
+	if (static_cast<int>(results.size()) > property.outgoingEdge) {
+	  results.resize(property.outgoingEdge);
 	}
 	repository.insert(id, results);
       }

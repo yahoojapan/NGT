@@ -21,7 +21,7 @@ if sys.version_info.major >= 3:
         # for pip >= 10.0
         from pip._internal import locations
 
-version = '1.3.0'
+version = '1.3.1'
 
 if static_library:
     with open('../VERSION', 'r') as fh:

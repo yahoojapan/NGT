@@ -33,6 +33,7 @@ public:
       std::cerr << "ngtpy::Index read only!" << std::endl;
     }
     zeroNumbering = zeroBasedNumbering;
+    numOfDistanceComputations = 0;
   }
 
   static void create(
@@ -97,6 +98,7 @@ public:
     }
     NGT::Index::append(ptr, info.shape[0]);
     NGT::Index::createIndex(numThreads);
+    numOfDistanceComputations = 0;
   }
 
   int insert(
@@ -114,6 +116,7 @@ public:
     }
     std::vector<double> v(ptr, ptr + info.shape[0]);
     return NGT::Index::insert(v);
+    numOfDistanceComputations = 0;
   }
 
   py::object search(
@@ -143,7 +146,7 @@ public:
 
     NGT::Index::search(sc);
 
-    numOfDistanceComputations = sc.distanceComputationCount;
+    numOfDistanceComputations += sc.distanceComputationCount;
 
     NGT::Index::deleteObject(ngtquery);
     if (!withDistance) {

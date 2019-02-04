@@ -35,12 +35,12 @@ NeighborhoodGraph::Property::set(NGT::Property &prop) {
   if (prop.batchSizeForCreation != -1)		batchSizeForCreation = prop.batchSizeForCreation;
   if (prop.dynamicEdgeSizeBase != -1)           dynamicEdgeSizeBase = prop.dynamicEdgeSizeBase;
   if (prop.buildTimeLimit != -1)                buildTimeLimit = prop.buildTimeLimit;
-  if (prop.outcomingEdge != -1)                 outcomingEdge = prop.outcomingEdge;
+  if (prop.outgoingEdge != -1)                  outgoingEdge = prop.outgoingEdge;
   if (prop.incomingEdge != -1)                  incomingEdge = prop.incomingEdge;
   if (prop.graphType != GraphTypeNone)		graphType = prop.graphType;
 
   if (graphType == GraphTypeONNG) {
-    edgeSizeForCreation = outcomingEdge > incomingEdge ? outcomingEdge : incomingEdge;
+    edgeSizeForCreation = outgoingEdge > incomingEdge ? outgoingEdge : incomingEdge;
   }
 }
 
@@ -58,7 +58,7 @@ NeighborhoodGraph::Property::get(NGT::Property &prop) {
   prop.dynamicEdgeSizeBase              = dynamicEdgeSizeBase;
   prop.graphType			= graphType;
   prop.buildTimeLimit                   = buildTimeLimit;
-  prop.outcomingEdge                    = outcomingEdge;
+  prop.outgoingEdge                     = outgoingEdge;
   prop.incomingEdge                     = incomingEdge;
 }
 

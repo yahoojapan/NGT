@@ -28,7 +28,7 @@
       "[-t truncation-edge-limit] [-E edge-size] [-S edge-size-for-search] [-L edge-size-limit] "
       "[-e epsilon] [-o object-type(f|c)] [-D distance-function(1|2|a|A|h|c|C)] [-n #-of-inserted-objects] "
       "[-P path-adjustment-interval] [-B dynamic-edge-size-base] [-A object-alignment(t|f)] "
-      "[-T build-time-limit] [-O outcomingxincoming] "
+      "[-T build-time-limit] [-O outgoing x incoming] "
       "index(output) [data.tsv(input)]";
     string database;
     try {
@@ -78,20 +78,20 @@
     }    
 
     if (property.graphType == NGT::Property::GraphType::GraphTypeONNG) {
-      property.outcomingEdge = 10;
+      property.outgoingEdge = 10;
       property.incomingEdge = 80;
       string str = args.getString("O", "-");
       if (str != "-") {
 	vector<string> tokens;
 	NGT::Common::tokenize(str, tokens, "x");
 	if (str != "-" && tokens.size() != 2) {
-	  cerr << "ngt: Error: outcoming/incoming edge size specification is invalid. (out)x(in) " << str << endl;
+	  cerr << "ngt: Error: outgoing/incoming edge size specification is invalid. (out)x(in) " << str << endl;
 	  cerr << usage << endl;
 	  return;
 	}
-	property.outcomingEdge = NGT::Common::strtod(tokens[0]);
+	property.outgoingEdge = NGT::Common::strtod(tokens[0]);
 	property.incomingEdge = NGT::Common::strtod(tokens[1]);
-	cerr << "ngt: ONNG out x in=" << property.outcomingEdge << "x" << property.incomingEdge << endl;
+	cerr << "ngt: ONNG out x in=" << property.outgoingEdge << "x" << property.incomingEdge << endl;
       }
     }
 
