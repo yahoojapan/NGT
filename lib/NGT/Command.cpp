@@ -648,7 +648,10 @@
   void
   NGT::Command::reconstructGraph(Args &args)
   {
-    const string usage = "Usage: ngt reconstruct-graph [-m mode] [-P path-adjustment-mode] -o #-of-original-edges -i #-of-reverse-edges index(input) index(output)\n"
+    const string usage = "Usage: ngt reconstruct-graph [-i index-type] [-m mode] [-P path-adjustment-mode] -o #-of-original-edges -i #-of-reverse-edges index(input) index(output)\n"
+      "\t-i input indes type\n"
+      "\t\ta: anng\n"
+      "\t\tn: not anng\n"
       "\t-m mode\n"
       "\t\ts: Edge adjustment. (default)\n"
       "\t\tS: Edge adjustment and path adjustment.\n"
@@ -718,17 +721,23 @@
     }
 
     char mode = args.getChar("m", 's');
-
     char pamode = args.getChar("P", 'a');
+    char indexType = args.getChar("I", 'a');
 
     if (originalEdgeSize >= 0) {
       switch (mode) {
       case 's': // SA
       case 'S': // SA and path adjustment
+	if (indexType != 'a') {
+	  NGT::GraphReconstructor::convertToANNG(graph);
+	}
 	NGT::GraphReconstructor::reconstructGraph(graph, outIndex, originalEdgeSize, reverseEdgeSize);
 	break;
       case 'c': // SAC
       case 'C': // SAC and path adjustment
+	if (indexType != 'a') {
+	  NGT::GraphReconstructor::convertToANNG(graph);
+	}
 	NGT::GraphReconstructor::reconstructGraphWithConstraint(graph, outIndex, originalEdgeSize, reverseEdgeSize);
 	break;
       case 'P':

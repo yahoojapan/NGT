@@ -118,16 +118,17 @@ class BuildTimeController {
 public:
   BuildTimeController(GraphIndex &graph, NeighborhoodGraph::Property &prop):property(prop) {
     noOfInsertedObjects = graph.objectSpace->getRepository().size() - graph.repository.size();
-    cerr << "# of objects=" << noOfInsertedObjects << endl;
     interval = 10000;
     count = interval;
     edgeSizeSave = property.edgeSizeForCreation;
+    insertionRadiusCoefficientSave = property.insertionRadiusCoefficient;
     buildTimeLimit = property.buildTimeLimit;
     time = 0.0;
     timer.start();
   }
   ~BuildTimeController() {
     property.edgeSizeForCreation = edgeSizeSave;
+    property.insertionRadiusCoefficient = insertionRadiusCoefficientSave;
   }
   void adjustEdgeSize(size_t c) {
     if (buildTimeLimit > 0.0 && count <= c) {
@@ -136,10 +137,15 @@ public:
       estimatedTime /= 60 * 60;	// hour
       const size_t edgeInterval = 5;
       const int minimumEdge = 5;
+      const float radiusInterval = 0.02;
       if (estimatedTime > buildTimeLimit) {
-	property.edgeSizeForCreation -= edgeInterval;
-	if (property.edgeSizeForCreation < minimumEdge) {
-	  property.edgeSizeForCreation = minimumEdge;
+	if (property.insertionRadiusCoefficient - radiusInterval >= 1.0) {
+	  property.insertionRadiusCoefficient -= radiusInterval;
+	} else {
+	  property.edgeSizeForCreation -= edgeInterval;
+	  if (property.edgeSizeForCreation < minimumEdge) {
+	    property.edgeSizeForCreation = minimumEdge;
+	  }
 	}
       }
       time += timer.time;
@@ -152,6 +158,7 @@ public:
   size_t	interval;
   size_t	count ;
   size_t	edgeSizeSave;
+  double	insertionRadiusCoefficientSave;
   Timer		timer;
   double	time;
   double	buildTimeLimit;

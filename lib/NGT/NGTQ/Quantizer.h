@@ -757,9 +757,44 @@ public:
     return getL2DistanceUint8(object, objectID, static_cast<T*>(l));
   }
   inline double cache(NGT::Object &object, size_t objectID, void *l) {
-    cerr << "cache is not implemented" << endl;
-    abort();
-    return 0.0;
+    T *localID = static_cast<T*>(l);
+    double distance = 0.0;
+
+    NGT::PersistentObject &gcentroid = *globalCodebook->getObjectSpace().getRepository().get(objectID);
+    size_t sizeOfObject = globalCodebook->getObjectSpace().getByteSizeOfObject();
+    size_t localDataSize = sizeOfObject / localDivisionNo  / sizeof(uint8_t);
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+    unsigned char *gcptr = &gcentroid.at(0, globalCodebook->getObjectSpace().getRepository().allocator);
+#else
+    unsigned char *gcptr = &gcentroid[0];
+#endif
+    unsigned char *optr = &((NGT::Object&)object)[0];
+
+    for (size_t li = 0; li < localDivisionNo; li++) {
+      if (cacheFlag[li * localCodebookCentroidNo + localID[li]]) {
+	distance += *(localDistanceLookup + li * localCodebookCentroidNo + localID[li]);
+	optr += localDataSize;
+	gcptr += localDataSize;
+      } else {
+	size_t idx = localCodebookNo == 1 ? 0 : li;
+	NGT::PersistentObject &lcentroid = *localCodebook[idx].getObjectSpace().getRepository().get(localID[li]);
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	float *lcptr = (float*)&lcentroid.at(0, localCodebook[idx].getObjectSpace().getRepository().allocator);
+#else
+	float *lcptr = (float*)&lcentroid[0];
+#endif
+	float *lcendptr = lcptr + localDataSize;
+	double d = 0.0;
+	while (lcptr != lcendptr) {
+	  double sub = ((int)*optr++ - (int)*gcptr++) - *lcptr++;
+	  d += sub * sub;
+	}
+	distance += d;
+	cacheFlag[li * localCodebookCentroidNo + localID[li]] = true;
+	*(localDistanceLookup + li * localCodebookCentroidNo + localID[li]) = d;
+      }
+    }
+    return sqrt(distance);	
   }
 #endif
 
@@ -1067,6 +1102,8 @@ public:
       }
       generateResidualObject = new GenerateResidualObjectUint8;
     } else {
+      cerr << "NGTQ::open: Fatal Inner Error: invalid object type. " << globalProperty.objectType << endl;
+      cerr << "   check NGT version consistency between the caller and the library." << endl;
       assert(0);
     }
     assert(quantizedObjectDistance != 0);

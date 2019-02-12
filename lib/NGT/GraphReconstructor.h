@@ -271,6 +271,42 @@ class GraphReconstructor {
   }
 
   static 
+    void convertToANNG(vector<NGT::GraphNode> &graph)
+  {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+    cerr << "convertToANNG is not implemented for shared memory." << endl;
+    return;
+#else
+    cerr << "convertToANNG begin" << endl;
+    for (size_t idx = 0; idx < graph.size(); idx++) {
+      NGT::GraphNode &node = graph[idx];
+      for (auto ni = node.begin(); ni != node.end(); ++ni) {
+	graph[(*ni).id - 1].push_back(NGT::ObjectDistance(idx + 1, (*ni).distance));
+      }
+    }
+    for (size_t idx = 0; idx < graph.size(); idx++) {
+      NGT::GraphNode &node = graph[idx];
+      if (node.size() == 0) {
+	continue;
+      }
+      std::sort(node.begin(), node.end());
+      NGT::ObjectID prev = 0;
+      for (auto it = node.begin(); it != node.end();) {
+	if (prev == (*it).id) {
+	  it = node.erase(it);
+	  continue;
+	}
+	prev = (*it).id;
+	  it++;
+      }
+      NGT::GraphNode tmp = node;
+      node.swap(tmp);
+    }
+    cerr << "convertToANNG end" << endl;
+#endif
+  }
+
+  static 
     void reconstructGraph(vector<NGT::GraphNode> &graph, NGT::Index &outIndex, size_t originalEdgeSize, size_t reverseEdgeSize) 
   {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
