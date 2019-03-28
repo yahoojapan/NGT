@@ -310,6 +310,7 @@ class Index(object):
                                                 c_int,
                                                 c_int,
                                                 c_float,
+                                                c_float,
                                                 c_void_p,
                                                 c_void_p
                                                ]
@@ -338,7 +339,7 @@ class Index(object):
 
             cvec = (c_double * len(query))(*query)
             stat = self.__ngt.ngt_search_index(
-                self.index, cvec, self.dim, k, epsilon, results, err)
+                self.index, cvec, self.dim, k, epsilon, -1.0, results, err)
             self._check_error_num(stat, err)
             rsize = self.__ngt.ngt_get_size(results, err)
             self._check_error_pnum(rsize, err)

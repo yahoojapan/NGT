@@ -160,11 +160,17 @@ namespace NGT {
 #endif
 
       LeafNode &ln = *(LeafNode*)getNode(q.nodeID);
+      try {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-      ln.removeObject(id, replaceId, leafNodes.allocator);
+	ln.removeObject(id, replaceId, leafNodes.allocator);
 #else
-      ln.removeObject(id, replaceId);
+	ln.removeObject(id, replaceId);
 #endif
+      } catch(Exception &err) {
+	stringstream msg;
+	msg << "VpTree::remove: Inner error. Cannot remove object. leafNode=" << q.nodeID.getID() << ":" << err.what();
+	NGTThrowException(msg);
+      }
       if (ln.getObjectSize() == 0) {
 	if (ln.parent.getID() != 0) {
 	  InternalNode &inode = *(InternalNode*)getNode(ln.parent);
@@ -173,6 +179,21 @@ namespace NGT {
       }
 
       return;
+    }
+
+    void removeNaively(ObjectID id, ObjectID replaceId = 0) {
+      for (size_t i = 0; i < leafNodes.size(); i++) {
+	if (leafNodes[i] != 0) {
+	  try {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	    leafNodes[i]->removeObject(id, replaceId, leafNodes.allocator);
+#else
+	    leafNodes[i]->removeObject(id, replaceId);
+#endif
+	    break;
+	  } catch(...) {}
+	}
+      }
     }
 
     Node *getRootNode() {
@@ -336,7 +357,7 @@ namespace NGT {
       }
     }
 
-    void verify(size_t objCount) {
+    void verify(size_t objCount, vector<uint8_t> &status) {
       cerr << "Started verifying internal nodes..." << endl;
       for (size_t i = 0; i < internalNodes.size(); i++) {
 	if (internalNodes[i] != 0) {
@@ -351,9 +372,9 @@ namespace NGT {
       for (size_t i = 0; i < leafNodes.size(); i++) {
 	if (leafNodes[i] != 0) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-	  (*leafNodes[i]).verify(objCount, leafNodes.allocator);
+	  (*leafNodes[i]).verify(objCount, status, leafNodes.allocator);
 #else
-	  (*leafNodes[i]).verify(objCount);
+	  (*leafNodes[i]).verify(objCount, status);
 #endif
 	}
       }

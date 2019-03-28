@@ -265,7 +265,7 @@ NGTObjectDistances ngt_create_empty_results(NGTError error) {
   }
 }
 
-bool ngt_search_index(NGTIndex index, double *query, int32_t query_dim, size_t size, float epsilon, NGTObjectDistances results, NGTError error) {
+bool ngt_search_index(NGTIndex index, double *query, int32_t query_dim, size_t size, float epsilon, float radius, NGTObjectDistances results, NGTError error) {
   if(index == NULL || query == NULL || results == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " query = " << query << " results = " << results;
@@ -275,7 +275,10 @@ bool ngt_search_index(NGTIndex index, double *query, int32_t query_dim, size_t s
   
   NGT::Index* pindex = static_cast<NGT::Index*>(index);    
   NGT::Object *ngtquery = NULL;
-  const float radius = FLT_MAX;
+
+  if(radius < 0.0){
+    radius = FLT_MAX;
+  }
 
   try{	  
     std::vector<double> vquery(&query[0], &query[query_dim]);
@@ -287,44 +290,6 @@ bool ngt_search_index(NGTIndex index, double *query, int32_t query_dim, size_t s
     sc.setSize(size);             // the number of resultant objects.
     sc.setRadius(radius);         // search radius.
     sc.setEpsilon(epsilon);           // set exploration coefficient.
-    
-    pindex->search(sc);
-    
-    // delete the query object.
-    pindex->deleteObject(ngtquery);
-  }catch(std::exception &err) {
-    std::stringstream ss;
-    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-    operate_error_string_(ss, error);      
-    if(ngtquery != NULL){
-      pindex->deleteObject(ngtquery);
-    }
-    return false;
-  }
-  return true;
-}
-
-bool ngt_search(NGTIndex index, double *query, NGTSearchParameter search_parameter, NGTObjectDistances results, NGTError error) {
-  if(index == NULL || query == NULL || results == NULL){
-    std::stringstream ss;
-    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " query = " << query << " results = " << results;
-    operate_error_string_(ss, error);
-    return false;
-  }
-  
-  NGT::Index* pindex = static_cast<NGT::Index*>(index);    
-  NGT::Object *ngtquery = NULL;
-
-  try{	  
-    std::vector<double> vquery(&query[0], &query[search_parameter.query_dim]);
-    ngtquery = pindex->allocateObject(vquery);
-    // set search prameters.
-    NGT::SearchContainer sc(*ngtquery);      // search parametera container.
-    
-    sc.setResults(static_cast<NGT::ObjectDistances*>(results));          // set the result set.
-    sc.setSize(search_parameter.result_size);             // the number of resultant objects.
-    sc.setRadius(search_parameter.radius);         // search radius.
-    sc.setEpsilon(search_parameter.epsilon);           // set exploration coefficient.
     
     pindex->search(sc);
     

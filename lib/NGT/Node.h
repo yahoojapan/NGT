@@ -373,7 +373,7 @@ namespace NGT {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
     void verify(size_t isize, size_t lsize, SharedMemoryAllocator &allocator) {
 #else
-      void verify(size_t isize, size_t lsize) {
+    void verify(size_t isize, size_t lsize) {
 #endif
       for (size_t i = 0; i < childrenSize; i++) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
@@ -617,9 +617,9 @@ namespace NGT {
     }
 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    void verify(size_t size, SharedMemoryAllocator &allocator) {
+    void verify(size_t size, vector<uint8_t> &status, SharedMemoryAllocator &allocator) {
 #else
-    void verify(size_t size) {
+      void verify(size_t size, vector<uint8_t> &status) {
 #endif
       for (size_t i = 0; i < objectSize; i++) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
@@ -627,6 +627,7 @@ namespace NGT {
 #else
 	size_t nid = getObjectIDs()[i].id;
 #endif
+	status[nid] |= 0x04;
 	if (nid >= size) {
 	  cerr << "Object id is too big. " << nid << ":" << size << endl;
 	}

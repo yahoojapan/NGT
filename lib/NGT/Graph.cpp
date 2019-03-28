@@ -145,8 +145,8 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
     ObjectDistance result;
     result.id = seeds[i].id;;
     if (objectRepository.isEmpty(result.id)) {
-      cerr << "setupseeds:fatal error " << result.id << endl;
-      assert(0);
+      cerr << "setupseeds:warning! unavailable object:" << result.id << "." << endl;
+      continue;
     }
     Distance d = comparator(sc.object, *objectRepository.get(result.id));
     result.distance = d;
@@ -169,8 +169,8 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
     ObjectDistance result;
     result.id = seeds[i].id;
     if (objectRepository.isEmpty(result.id)) {
-      cerr << "setupseeds:fatal error " << result.id << endl;
-      assert(0);
+      cerr << "setupseeds:warning! unavailable object:" << result.id << "." << endl;
+      continue;
     }
     result.distance = comparator(sc.object, *objects[result.id]);
     tmp.push_back(result);

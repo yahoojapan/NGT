@@ -258,6 +258,7 @@ insertMultipleSearchResults(GraphIndex &neighborhoodGraph,
 {
   // compute distances among all of the resultant objects
   if (neighborhoodGraph.NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeANNG ||
+      neighborhoodGraph.NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeIANNG ||
       neighborhoodGraph.NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeONNG ||
       neighborhoodGraph.NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeDNNG) {
     // This processing occupies about 30% of total indexing time when batch size is 200.

@@ -24,7 +24,7 @@
   NGT::Command::create(Args &args)
   {
     const string usage = "Usage: ngt create "
-      "-d dimension [-p #-of-thread] [-i index-type(t|g)] [-g graph-type(a|k|b|o)] "
+      "-d dimension [-p #-of-thread] [-i index-type(t|g)] [-g graph-type(a|k|b|o|i)] "
       "[-t truncation-edge-limit] [-E edge-size] [-S edge-size-for-search] [-L edge-size-limit] "
       "[-e epsilon] [-o object-type(f|c)] [-D distance-function(1|2|a|A|h|c|C)] [-n #-of-inserted-objects] "
       "[-P path-adjustment-interval] [-B dynamic-edge-size-base] [-A object-alignment(t|f)] "
@@ -71,6 +71,7 @@
     case 'b': property.graphType = NGT::Property::GraphType::GraphTypeBKNNG; break;
     case 'd': property.graphType = NGT::Property::GraphType::GraphTypeDNNG; break;
     case 'o': property.graphType = NGT::Property::GraphType::GraphTypeONNG; break;
+    case 'i': property.graphType = NGT::Property::GraphType::GraphTypeIANNG; break;
     default:
       cerr << "ngt: Error: Invalid graph type. " << graphType << endl;
       cerr << usage << endl;
@@ -284,7 +285,10 @@
 	    }
 	  }
 	} catch (NGT::Exception &err) {
-	  throw err;
+	  if (searchParameter.outputMode != "ei") {
+	    // not ignore exceptions
+	    throw err;
+	  }
 	}
 	totalTime += timer.time;
 	if (searchParameter.outputMode[0] == 'e') {
@@ -407,7 +411,7 @@
   void
   NGT::Command::remove(Args &args)
   {
-    const string usage = "Usage: ngt remove [-d object-ID-type(f|d)] index(input) object-ID(input)";
+    const string usage = "Usage: ngt remove [-d object-ID-type(f|d)] [-m f] index(input) object-ID(input)";
     string database;
     try {
       database = args.get("#1");
@@ -424,6 +428,11 @@
       return;
     }
     char dataType = args.getChar("d", 'f');
+    char mode = args.getChar("m", '-');
+    bool force = false;
+    if (mode == 'f') {
+      force = true;
+    }
     if (debugLevel >= 1) {
       cerr << "dataType=" << dataType << endl;
     }
@@ -472,7 +481,7 @@
 	cerr << "removed ID=" << id << endl;
 	objects.push_back(id);
       }
-      NGT::Index::remove(database, objects);
+      NGT::Index::remove(database, objects, force);
     } catch (NGT::Exception &err) {
       cerr << "ngt: Error " << err.what() << endl;
       cerr << usage << endl;
@@ -806,6 +815,10 @@
       size_t smsize = index.getSharedMemorySize(msg);
       cerr << "SharedMemorySize=" << smsize << endl;
       NGT::GraphIndex::showStatisticsOfGraph(static_cast<NGT::GraphIndex&>(index.getIndex()), mode, edgeSize);
+      if (mode == 'v') {
+	vector<uint8_t> status;
+	index.verify(status);
+      }
     } catch (NGT::Exception &err) {
       cerr << "ngt: Error " << err.what() << endl;
       cerr << usage << endl;

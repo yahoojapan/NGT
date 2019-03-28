@@ -291,7 +291,7 @@ namespace NGT {
     template<typename T> size_t append(vector<T> &object);
     static void append(const string &database, const string &dataFile, size_t threadSize, size_t dataSize); 
     static void append(const string &database, const float *data, size_t dataSize, size_t threadSize);
-    static void remove(const string &database, vector<ObjectID> &objects);
+    static void remove(const string &database, vector<ObjectID> &objects, bool force = false);
     static void exportIndex(const string &database, const string &file);
     static void importIndex(const string &database, const string &file);
     virtual void load(const string &ifile, size_t dataSize) { getIndex().load(ifile, dataSize); }
@@ -313,10 +313,10 @@ namespace NGT {
     virtual void linearSearch(NGT::SearchContainer &sc) { getIndex().linearSearch(sc); }
     virtual void search(NGT::SearchContainer &sc) { getIndex().search(sc); }
     virtual void search(NGT::SearchContainer &sc, ObjectDistances &seeds) { getIndex().search(sc, seeds); }
-    virtual void remove(ObjectID id) { getIndex().remove(id); }
+    virtual void remove(ObjectID id, bool force = false) { getIndex().remove(id, force); }
     virtual void exportIndex(const string &file) { getIndex().exportIndex(file); }
     virtual void importIndex(const string &file) { getIndex().importIndex(file); }
-    virtual void verify() { getIndex().verify(); }
+    virtual void verify(vector<uint8_t> &status) { getIndex().verify(status); }
     virtual ObjectSpace &getObjectSpace() { return getIndex().getObjectSpace(); }
     virtual size_t getSharedMemorySize(ostream &os, SharedMemoryAllocator::GetMemorySizeType t = SharedMemoryAllocator::GetTotalMemorySize) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
@@ -700,56 +700,78 @@ namespace NGT {
       }
     }
 
-    virtual void verify()
+    virtual void verify(vector<uint8_t> &status)
     {
       cerr << "Started verifying graph and objects" << endl;
       GraphRepository &repo = repository;
       ObjectRepository &fr = objectSpace->getRepository();
+      if (repo.size() > fr.size()) {
+	cerr << "# of nodes is larger than # of objects. " << repo.size() << ":" << fr.size() << endl;
+      }
+      status.clear();
+      status.resize(fr.size(), 0);
       for (size_t id = 1; id < fr.size(); id++){
-	if (repo[id] == 0) {
-	  cerr << "No." << id << " is empty." << endl;
-	  if (fr[id] != 0) {
-	    cerr << "Graph and object set are inconsistency." << endl;
+	status[id] |= repo[id] != 0 ? 0x02 : 0x00;
+	status[id] |= fr[id]   != 0 ? 0x01 : 0x00;
+      }
+      for (size_t id = 1; id < fr.size(); id++) {
+	if (fr[id] == 0) {
+	  //cerr << "No." << id << " is empty." << endl;
+	  if (id < repo.size() && repo[id] != 0) {
+	    cerr << "Error! The node exists in the graph, but the object does not exist. " << id << endl;;
 	  }
-	  continue;
+	}
+	if (fr[id] != 0 && repo[id] == 0) {
+	  cerr << "Warning. No." << id << " is not registerd in the graph." << endl;
 	}
 	if ((id % 1000000) == 0) {
 	  cerr << "  verified " << id << " entries." << endl;
 	}
+	if (fr[id] != 0) {
+	  try {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-	Object *po = objectSpace->allocateObject(*fr[id]);
+	    Object *po = objectSpace->allocateObject(*fr[id]);
 #else
-	Object *po = fr[id];
+	    Object *po = fr[id];
 #endif
-	if (po == 0) {
-	  cerr << "Cannot get the object." << endl;
-	  continue;
-	}
-	GraphNode *objects = getNode(id);
-	if (objects == 0) {
-	  cerr << "Cannot get the node." << endl;
-	}
-
+	    if (po == 0) {
+	      cerr << "Error! Cannot get the object. " << id << endl;
+	      continue;
+	    }
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-	objectSpace->deleteObject(po);
+	    objectSpace->deleteObject(po);
 #endif
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-	for (GraphNode::iterator ri = objects->begin(repo.allocator);
-	     ri != objects->end(repo.allocator); ++ri) {
-#else
-	for (GraphNode::iterator ri = objects->begin();
-	     ri != objects->end(); ++ri) {
-#endif
-	  if ((*ri).id == 0 || (*ri).id >= repo.size()) {
-	    cerr << "Neighbor's ID of the node is wrong." << endl;
+	  } catch (Exception &err) {
+	    cerr << "Error! Cannot get the object. " << id << " " << err.what() << endl;
+	    continue;
 	  }
-	  if ((*ri).distance < 0.0) {
-	    cerr << "Neighbor's distance is munus." << endl;
+	}
+	if (id < repo.size() && repo[id] != 0) {
+	  try {
+	    GraphNode *objects = getNode(id);
+	    if (objects == 0) {
+	      cerr << "Error! Cannot get the node. " << id << endl;
+	    }
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	    for (GraphNode::iterator ri = objects->begin(repo.allocator);
+		 ri != objects->end(repo.allocator); ++ri) {
+#else
+	    for (GraphNode::iterator ri = objects->begin();
+		 ri != objects->end(); ++ri) {
+#endif
+	      if ((*ri).id == 0 || (*ri).id >= repo.size()) {
+		cerr << "Error! Neighbor's ID of the node is wrong." << endl;
+	      }
+	      if ((*ri).distance < 0.0) {
+		cerr << "Error! Neighbor's distance is munus." << endl;
+	      }
+	    }
+	  } catch (Exception &err) {
+	    cerr << "Error! Cannot get the node. " << id << " " << err.what() << endl;
 	  }
 	}
       }
     }
-
 
     static void showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode = '-', size_t edgeSize = UINT_MAX)
     {
@@ -764,9 +786,13 @@ namespace NGT {
       vector<size_t> indegreeHistogram;
       vector<vector<float> > indegree;
       NGT::GraphRepository &graph = outGraph.repository;
+      NGT::ObjectRepository &repo = outGraph.objectSpace->getRepository();
       indegreeCount.resize(graph.size(), 0);
       indegree.resize(graph.size());
       for (size_t id = 1; id < graph.size(); id++) {
+	if (repo[id] == 0) {
+	  continue;
+	}
 	NGT::GraphNode *node = 0;
 	try {
 	  node = outGraph.getNode(id);
@@ -825,6 +851,9 @@ namespace NGT {
       size_t d10SkipCount = 0;
       const size_t dcsize = 10;
       for (size_t id = 1; id < graph.size(); id++) {
+	if (repo[id] == 0) {
+	  continue;
+	}
 	NGT::GraphNode *n = 0;
 	try {
 	  n = outGraph.getNode(id);
@@ -878,6 +907,9 @@ namespace NGT {
       double sumOfSquareOfOutdegree = 0;
       double sumOfSquareOfIndegree = 0;
       for (size_t id = 1; id < graph.size(); id++) {
+	if (repo[id] == 0) {
+	  continue;
+	}
 	NGT::GraphNode *node = 0;
 	try {
 	  node = outGraph.getNode(id);
@@ -1319,13 +1351,32 @@ namespace NGT {
       GraphIndex::importIndex(ifile);
     }
 
-    void remove(const ObjectID id) {
+    void remove(const ObjectID id, bool force = false) {
+      Object *obj = 0;
+      try {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-      Object &f = *GraphIndex::objectSpace->allocateObject(*GraphIndex::objectSpace->getRepository().get(id));
+	obj = GraphIndex::objectSpace->allocateObject(*GraphIndex::objectSpace->getRepository().get(id));
 #else
-      Object &f = *GraphIndex::objectSpace->getRepository().get(id);
+	obj = GraphIndex::objectSpace->getRepository().get(id);
 #endif
-      NGT::SearchContainer so(f);
+      } catch (Exception &err) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	GraphIndex::objectSpace->deleteObject(obj);
+#endif
+	if (force) {
+	  try {
+	    DVPTree::removeNaively(id);
+          } catch(...) {}
+	  try {
+	    GraphIndex::remove(id);
+          } catch(...) {}
+	  stringstream msg;
+	  msg << err.what() << " Even though the object could not be found, the object could be removed from the tree and graph if it existed in them.";
+	  NGTThrowException(msg);
+        }
+	throw err;
+      }
+      NGT::SearchContainer so(*obj);
       ObjectDistances results;
       so.setResults(&results);
       so.id = 0;
@@ -1336,7 +1387,7 @@ namespace NGT {
       seeds.push_back(ObjectDistance(id, 0.0));
       GraphIndex::search(so, seeds);
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-      GraphIndex::objectSpace->deleteObject(&f);
+      GraphIndex::objectSpace->deleteObject(obj);
 #endif
       if (results.size() == 0) {
 	NGTThrowException("No found the specified id");
@@ -1349,10 +1400,11 @@ namespace NGT {
 	  throw err;
 	}
       } else {
+	ObjectID replaceID = id == results[0].id ? results[1].id : results[0].id;
 	try {
-	  DVPTree::replace(id, results[1].id);
+	  DVPTree::replace(id, replaceID);
 	} catch(Exception &err) {
-	  cerr << "remove:: warning: cannot replace from tree. id=" << id << " " << err.what() << endl;
+	  cerr << "remove:: warning: cannot replace from tree. id=" << id << "," << results[1].id << " " << err.what() << endl;
 	}
       }
       GraphIndex::remove(id);
@@ -1479,9 +1531,53 @@ namespace NGT {
       return GraphIndex::getSharedMemorySize(os, t) + DVPTree::getSharedMemorySize(os, t);
     }
 
-    void verify() {
-      DVPTree::verify(GraphIndex::objectSpace->getRepository().size());
-      GraphIndex::verify();
+    void verify(vector<uint8_t> &status) {
+      GraphIndex::verify(status);
+      DVPTree::verify(GraphIndex::objectSpace->getRepository().size(), status);
+      // status: tree|graph|object
+      for (size_t id = 1; id < status.size(); id++) {
+	if (status[id] != 0x00 && status[id] != 0x07) {
+	  if (status[id] == 0x03) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	    NGT::Object *po = GraphIndex::objectSpace->allocateObject(*GraphIndex::getObjectRepository().get(id));
+	    NGT::SearchContainer sc(*po);
+#else
+	    NGT::SearchContainer sc(*GraphIndex::getObjectRepository().get(id));
+#endif
+	    NGT::ObjectDistances objects;
+	    sc.setResults(&objects);
+	    sc.setSize(status.size());
+	    sc.setRadius(0.0);
+	    search(sc);
+	    if (objects.size() <= 1) {
+	      cerr << "ID=" << id << ":" << static_cast<int>(status[id]) << endl;
+	      cerr << "  not found the same objects! " << objects.size() << endl;
+	      if (objects.size() == 1) {
+		cerr << "   ID=" << objects[0].id << endl;
+	      }
+	    } else {
+	      size_t n = 0;
+	      for (; n < objects.size(); n++) {
+		if (objects[n].id == id) {
+		  continue;
+		}
+		if (status[objects[n].id] != 0) {
+		  break;
+		}
+	      }
+	      if (n == objects.size()) {
+		cerr << "ID=" << id << ":" << static_cast<int>(status[id]) << endl;		
+		cerr << "  not found the valid same objects! " << objects.size() << endl;
+	      } else {
+		cerr << "ID=" << id << ":" << static_cast<int>(status[id]) << endl;
+		cerr << "  found the valid same objects. " << objects[n].id << endl;
+	      }
+	    }
+	  } else {
+	    cerr << "ID=" << id << ":" << static_cast<int>(status[id]) << endl;
+	  }
+	}
+      }
     }
 
   };
@@ -1570,8 +1666,8 @@ size_t NGT::Index::append(vector<T> &object)
 
   auto *o = getObjectSpace().getRepository().allocateNormalizedPersistentObject(object);
   getObjectSpace().getRepository().push_back(dynamic_cast<PersistentObject*>(o));
-
-  return getObjectSpace().getRepository().size() - 1;
+  size_t oid = getObjectSpace().getRepository().size() - 1;
+  return oid;
 }
 template<typename T>
 size_t NGT::Index::insert(vector<T> &object) 
@@ -1581,7 +1677,8 @@ size_t NGT::Index::insert(vector<T> &object)
   }
 
   auto *o = getObjectSpace().getRepository().allocateNormalizedPersistentObject(object);
-  return getObjectSpace().getRepository().insert(dynamic_cast<PersistentObject*>(o));
+  size_t oid = getObjectSpace().getRepository().insert(dynamic_cast<PersistentObject*>(o));
+  return oid;
 }
 
 inline void 
@@ -1676,13 +1773,13 @@ NGT::Index::append(const string &database, const float *data, size_t dataSize, s
 }
 
 inline void 
-NGT::Index::remove(const string &database, vector<ObjectID> &objects) {
+NGT::Index::remove(const string &database, vector<ObjectID> &objects, bool force) {
   NGT::Index	index(database);
   NGT::Timer	timer;
   timer.start();
   for (vector<ObjectID>::iterator i = objects.begin(); i != objects.end(); i++) {
     try {
-      index.remove(*i);
+      index.remove(*i, force);
     } catch (Exception &err) {
       cerr << "Warning: Cannot remove the node. ID=" << *i << " : " << err.what() << endl;
       continue;

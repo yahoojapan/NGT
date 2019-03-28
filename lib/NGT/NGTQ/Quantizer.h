@@ -330,7 +330,7 @@ public:
 		      double epsilon) = 0;
 
   virtual void search(NGT::Object *object, NGT::ObjectDistances &objs, size_t size,
-		      float expantion,
+		      float expansion,
 		      AggregationMode aggregationMode,
 		      double epsilon) = 0;
 
@@ -391,19 +391,46 @@ public:
 
 class QuantizedObjectDistance {
 public:
-  QuantizedObjectDistance():localDistanceLookup(0){}
-  virtual ~QuantizedObjectDistance() { 
-    if (localDistanceLookup != 0) {
-      delete[] localDistanceLookup;
-      localDistanceLookup = 0;
+  class Cache {
+  public:
+    Cache():localDistanceLookup(0) {}
+    ~Cache() {
+      if (localDistanceLookup != 0) {
+	delete[] localDistanceLookup;
+	localDistanceLookup = 0;
+      }
     }
-  }
+    bool isValid(size_t idx) { return flag[idx]; }
+#ifndef NGTQ_DISTANCE_ANGLE
+    void set(size_t idx, double d) { flag[idx] = true; localDistanceLookup[idx] = d; }
+    double getDistance(size_t idx) { return localDistanceLookup[idx]; }
+#endif
+    void initialize(size_t s) {
+      size = s;
+#ifdef NGTQ_DISTANCE_ANGLE
+      localDistanceLookup = new LocalDistanceLookup[size];
+#else
+      localDistanceLookup = new double[size];
+#endif
+      flag.resize(size, false);
+    }
+#ifdef NGTQ_DISTANCE_ANGLE
+    LocalDistanceLookup	*localDistanceLookup;
+#else
+    double		*localDistanceLookup;
+#endif
+    size_t		size;
+    vector<bool>	flag;
+  };
+
+  QuantizedObjectDistance(){}
+  virtual ~QuantizedObjectDistance() {}
 
   virtual double operator()(NGT::Object &object, size_t objectID, void *localID) = 0;
 
-  virtual double operator()(void *localID) = 0;
+  virtual double operator()(void *localID, Cache &cache) = 0;
 
-  virtual double cache(NGT::Object &object, size_t objectID, void *localID) = 0;
+  virtual double cache(NGT::Object &object, size_t objectID, void *localID, Cache &cache) = 0;
 
   template <typename T>
   inline double getAngleDistanceUint8(NGT::Object &object, size_t objectID, T localID[]) {
@@ -477,8 +504,7 @@ public:
       }
       distance += d;
     }
-    distance = sqrt(distance);
-    return distance;
+    return sqrt(distance);
   }
 #else 
   // AVX
@@ -606,14 +632,14 @@ public:
   }
 
 #ifdef NGTQ_DISTANCE_ANGLE
-  inline void createDistanceLookup(NGT::Object &object, size_t objectID) {
+  inline void createDistanceLookup(NGT::Object &object, size_t objectID, Cache &cache) {
     assert(globalCodebook != 0);
     NGT::Object &gcentroid = (NGT::Object &)*globalCodebook->getObjectSpace().getRepository().get(objectID);
     size_t sizeOfObject = globalCodebook->getObjectSpace().getByteSizeOfObject();
     size_t localDataSize = sizeOfObject  / localDivisionNo / sizeof(float);
     float *optr = (float*)&((NGT::Object&)object)[0];
     float *gcptr = (float*)&gcentroid[0];
-    LocalDistanceLookup *dlu = localDistanceLookup;
+    LocalDistanceLookup *dlu = cache.localDistanceLookup;
     size_t oft = 0;
     for (size_t li = 0; li < localCodebookNo; li++, oft += localDataSize) {
       dlu++;  
@@ -639,7 +665,7 @@ public:
     }
   }
 #else 
-  inline void createDistanceLookup(NGT::Object &object, size_t objectID) {
+  inline void createDistanceLookup(NGT::Object &object, size_t objectID, Cache &cache) {
     assert(globalCodebook != 0);
     NGT::Object &gcentroid = (NGT::Object &)*globalCodebook->getObjectSpace().getRepository().get(objectID);
     size_t sizeOfObject = globalCodebook->getObjectSpace().getByteSizeOfObject();
@@ -654,7 +680,7 @@ public:
 	*resptr++ = *optr++ - *gcptr++;
       }
     }
-    double *dlu = localDistanceLookup;
+    double *dlu = cache.localDistanceLookup;
     size_t oft = 0;
     for (size_t li = 0; li < localCodebookNo; li++, oft += localDataSize) {
       dlu++;  
@@ -679,12 +705,6 @@ public:
     localCodebook = lcb;
     localDivisionNo = dn;
     set(lcb, lcn);
-#ifdef NGTQ_DISTANCE_ANGLE
-    localDistanceLookup = new LocalDistanceLookup[localCodebookNo * localCodebookCentroidNo];
-#else
-    localDistanceLookup = new double[localCodebookNo * localCodebookCentroidNo];
-#endif
-    cacheFlag.resize(localCodebookNo * localCodebookCentroidNo, false);
   }
 
   void set(NGT::Index lcb[], size_t lcn) {
@@ -692,10 +712,8 @@ public:
     localCodebookCentroidNo = lcb[0].getObjectRepositorySize();
   }
 
-  void clearCache() {
-    size_t s = cacheFlag.size();
-    cacheFlag.clear();
-    cacheFlag.resize(s, false);
+  void initialize(Cache &c) {
+    c.initialize(localCodebookNo * localCodebookCentroidNo);
   }
 
   NGT::Index	*globalCodebook;
@@ -703,12 +721,6 @@ public:
   size_t	localDivisionNo;
   size_t	localCodebookNo;
   size_t	localCodebookCentroidNo;
-#ifdef NGTQ_DISTANCE_ANGLE
-  LocalDistanceLookup	*localDistanceLookup;
-#else
-  double	*localDistanceLookup;
-#endif
-  vector<bool>	cacheFlag;
 };
 
 template <typename T>
@@ -716,13 +728,13 @@ class QuantizedObjectDistanceUint8 : public QuantizedObjectDistance {
 public:
 
 #ifdef NGTQ_DISTANCE_ANGLE
-  inline double operator()(void *l) {
+  inline double operator()(void *l, Cache &cache) {
     T *localID = static_cast<T*>(l);
     double normA = 0.0F;
     double normB = 0.0F;
     double sum = 0.0F;
     for (size_t li = 0; li < localDivisionNo; li++) {
-      LocalDistanceLookup &ldl = *(localDistanceLookup + li * localCodebookCentroidNo + localID[li]);
+      LocalDistanceLookup &ldl = *(cache.localDistanceLookup + li * localCodebookCentroidNo + localID[li]);
       normA += ldl.a;
       normB += ldl.b;
       sum += ldl.sum;
@@ -739,27 +751,25 @@ public:
   inline double operator()(NGT::Object &object, size_t objectID, void *l) {
     return getAngleDistanceUint8(object, objectID, static_cast<T*>(l));
   }
-  inline double cache(NGT::Object &object, size_t objectID, void *l) {
+  inline double cache(NGT::Object &object, size_t objectID, void *l, Cache &cache) {
     cerr << "cache is not implemented" << endl;
     abort();
     return 0.0;
   }
 #else
-  inline double operator()(void *l) {
+  inline double operator()(void *l, Cache &cache) {
     T *localID = static_cast<T*>(l);
     double distance = 0.0;
     for (size_t li = 0; li < localDivisionNo; li++) {
-      distance += *(localDistanceLookup + li * localCodebookCentroidNo + localID[li]);
+      distance += cache.getDistance(li * localCodebookCentroidNo + localID[li]);
     }
     return sqrt(distance);	
   }
   inline double operator()(NGT::Object &object, size_t objectID, void *l) {
     return getL2DistanceUint8(object, objectID, static_cast<T*>(l));
   }
-  inline double cache(NGT::Object &object, size_t objectID, void *l) {
+  inline double cache(NGT::Object &object, size_t objectID, void *l, Cache &cache) {
     T *localID = static_cast<T*>(l);
-    double distance = 0.0;
-
     NGT::PersistentObject &gcentroid = *globalCodebook->getObjectSpace().getRepository().get(objectID);
     size_t sizeOfObject = globalCodebook->getObjectSpace().getByteSizeOfObject();
     size_t localDataSize = sizeOfObject / localDivisionNo  / sizeof(uint8_t);
@@ -769,10 +779,10 @@ public:
     unsigned char *gcptr = &gcentroid[0];
 #endif
     unsigned char *optr = &((NGT::Object&)object)[0];
-
+    double distance = 0.0;
     for (size_t li = 0; li < localDivisionNo; li++) {
-      if (cacheFlag[li * localCodebookCentroidNo + localID[li]]) {
-	distance += *(localDistanceLookup + li * localCodebookCentroidNo + localID[li]);
+      if (cache.isValid(li * localCodebookCentroidNo + localID[li])) {
+	distance += cache.getDistance(li * localCodebookCentroidNo + localID[li]);
 	optr += localDataSize;
 	gcptr += localDataSize;
       } else {
@@ -783,15 +793,14 @@ public:
 #else
 	float *lcptr = (float*)&lcentroid[0];
 #endif
-	float *lcendptr = lcptr + localDataSize;
 	double d = 0.0;
+	float *lcendptr = lcptr + localDataSize;
 	while (lcptr != lcendptr) {
 	  double sub = ((int)*optr++ - (int)*gcptr++) - *lcptr++;
 	  d += sub * sub;
 	}
 	distance += d;
-	cacheFlag[li * localCodebookCentroidNo + localID[li]] = true;
-	*(localDistanceLookup + li * localCodebookCentroidNo + localID[li]) = d;
+	cache.set(li * localCodebookCentroidNo + localID[li], d);
       }
     }
     return sqrt(distance);	
@@ -805,13 +814,13 @@ class QuantizedObjectDistanceFloat : public QuantizedObjectDistance {
 public:
 
 #ifdef NGTQ_DISTANCE_ANGLE
-  inline double operator()(void *l) {
+  inline double operator()(void *l, Cache &cache) {
     T *localID = static_cast<T*>(l);
     double normA = 0.0F;
     double normB = 0.0F;
     double sum = 0.0F;
     for (size_t li = 0; li < localDivisionNo; li++) {
-      LocalDistanceLookup &ldl = *(localDistanceLookup + li * localCodebookCentroidNo + localID[li]);
+      LocalDistanceLookup &ldl = *(cache.localDistanceLookup + li * localCodebookCentroidNo + localID[li]);
       normA += ldl.a;
       normB += ldl.b;
       sum += ldl.sum;
@@ -828,27 +837,25 @@ public:
   inline double operator()(NGT::Object &object, size_t objectID, void *l) {
     return getAngleDistanceFloat(object, objectID, static_cast<T*>(l));
   }
-  inline double cache(NGT::Object &object, size_t objectID, void *l) {
+  inline double cache(NGT::Object &object, size_t objectID, void *l, Cache &cache) {
     cerr << "cache is not implemented." << endl;
     abort();
     return 0.0;
   }
 #else 
-  inline double operator()(void *l) {
+  inline double operator()(void *l, Cache &cache) {
     T *localID = static_cast<T*>(l);
     double distance = 0.0;
     for (size_t li = 0; li < localDivisionNo; li++) {
-      distance += *(localDistanceLookup + li * localCodebookCentroidNo + localID[li]);
+      distance += cache.getDistance(li * localCodebookCentroidNo + localID[li]);
     }
     return sqrt(distance);	
   }
   inline double operator()(NGT::Object &object, size_t objectID, void *l) {
     return getL2DistanceFloat(object, objectID, static_cast<T*>(l));
   }
-  inline double cache(NGT::Object &object, size_t objectID, void *l) {
+  inline double cache(NGT::Object &object, size_t objectID, void *l, Cache &cache) {
     T *localID = static_cast<T*>(l);
-    double distance = 0.0;
-
     NGT::PersistentObject &gcentroid = *globalCodebook->getObjectSpace().getRepository().get(objectID);
     size_t sizeOfObject = globalCodebook->getObjectSpace().getByteSizeOfObject();
     size_t localDataSize = sizeOfObject / localDivisionNo  / sizeof(float);
@@ -858,10 +865,10 @@ public:
     float *gcptr = (float*)&gcentroid[0];
 #endif
     float *optr = (float*)&((NGT::Object&)object)[0];
-
+    double distance = 0.0;
     for (size_t li = 0; li < localDivisionNo; li++) {
-      if (cacheFlag[li * localCodebookCentroidNo + localID[li]]) {
-	distance += *(localDistanceLookup + li * localCodebookCentroidNo + localID[li]);
+      if (cache.isValid(li * localCodebookCentroidNo + localID[li])) {
+	distance += cache.getDistance(li * localCodebookCentroidNo + localID[li]);
 	optr += localDataSize;
 	gcptr += localDataSize;
       } else {
@@ -879,8 +886,7 @@ public:
 	  d += sub * sub;
 	}
 	distance += d;
-	cacheFlag[li * localCodebookCentroidNo + localID[li]] = true;
-	*(localDistanceLookup + li * localCodebookCentroidNo + localID[li]) = d;
+	cache.set(li * localCodebookCentroidNo + localID[li], d);
       }
     }
     return sqrt(distance);	
@@ -1795,7 +1801,9 @@ public:
   }
 
    inline void aggregateObjectsWithLookupTable(NGT::ObjectDistance &globalCentroid, NGT::Object *query, size_t size, NGT::ObjectSpace::ResultSet &results, size_t approximateSearchSize) {
-     (*quantizedObjectDistance).createDistanceLookup(*query, globalCentroid.id);
+     QuantizedObjectDistance::Cache cache;
+     (*quantizedObjectDistance).createDistanceLookup(*query, globalCentroid.id, cache);
+
      for (size_t j = 0; j < invertedIndex[globalCentroid.id]->size() && results.size() < approximateSearchSize; j++) {
 #ifdef NGTQ_SHARED_INVERTED_INDEX
        InvertedIndexObject<LOCAL_ID_TYPE, DIVISION_NO> &invertedIndexEntry = (*invertedIndex[globalCentroid.id]).at(j, invertedIndex.allocator);
@@ -1806,7 +1814,7 @@ public:
        if (invertedIndexEntry.localID[0] == 0) {
 	 distance = globalCentroid.distance;
        } else { 
-	 distance = (*quantizedObjectDistance)(invertedIndexEntry.localID);
+	 distance = (*quantizedObjectDistance)(invertedIndexEntry.localID, cache);
        }  
 
 
@@ -1822,7 +1830,9 @@ public:
 
    inline void aggregateObjectsWithCache(NGT::ObjectDistance &globalCentroid, NGT::Object *query, size_t size, NGT::ObjectSpace::ResultSet &results, size_t approximateSearchSize) {
 
-     (*quantizedObjectDistance).clearCache();
+     QuantizedObjectDistance::Cache cache;
+     (*quantizedObjectDistance).initialize(cache);
+
      for (size_t j = 0; j < invertedIndex[globalCentroid.id]->size() && results.size() < approximateSearchSize; j++) {
 #ifdef NGTQ_SHARED_INVERTED_INDEX
        InvertedIndexObject<LOCAL_ID_TYPE, DIVISION_NO> &invertedIndexEntry = (*invertedIndex[globalCentroid.id]).at(j, invertedIndex.allocator);
@@ -1833,7 +1843,7 @@ public:
        if (invertedIndexEntry.localID[0] == 0) {
 	 distance = globalCentroid.distance;
        } else { 
-	 distance = (*quantizedObjectDistance).cache(*query, globalCentroid.id, invertedIndexEntry.localID);
+	 distance = (*quantizedObjectDistance).cache(*query, globalCentroid.id, invertedIndexEntry.localID, cache);
        }  
 
 
@@ -1904,10 +1914,10 @@ public:
 
   void search(NGT::Object *query, NGT::ObjectDistances &objs, 
 	      size_t size, 
-      	      float expantion,
+      	      float expansion,
 	      AggregationMode aggregationMode,
 	      double epsilon = FLT_MAX) {
-    size_t approximateSearchSize = size * expantion;
+    size_t approximateSearchSize = size * expansion;
     size_t codebookSearchSize = approximateSearchSize / (objectList.size() / globalCodebook.getObjectRepositorySize()) + 1;
     search(query, objs, size, approximateSearchSize, codebookSearchSize, aggregationMode, epsilon);
   }
@@ -2006,7 +2016,8 @@ public:
     cerr << "Inverted index size=" << invertedIndex.size() << endl;
 
     cerr << "Started verifying global codebook..." << endl;
-    globalCodebook.verify();
+    vector<uint8_t> status;
+    globalCodebook.verify(status);
 
     cerr << "Started verifing the inverted index." << endl;
     size_t errorCount = 0;

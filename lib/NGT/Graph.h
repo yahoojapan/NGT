@@ -245,7 +245,8 @@ namespace NGT {
 	GraphTypeKNNG	= 2,
 	GraphTypeBKNNG	= 3,
 	GraphTypeONNG	= 4,
-	GraphTypeDNNG	= 5
+	GraphTypeIANNG	= 5,	// Improved ANNG
+	GraphTypeDNNG	= 6
       };
 
       enum SeedType {
@@ -353,6 +354,7 @@ namespace NGT {
 	  case NeighborhoodGraph::GraphTypeANNG: p.set("GraphType", "ANNG"); break;
 	  case NeighborhoodGraph::GraphTypeBKNNG: p.set("GraphType", "BKNNG"); break;
 	  case NeighborhoodGraph::GraphTypeONNG: p.set("GraphType", "ONNG"); break;
+	  case NeighborhoodGraph::GraphTypeIANNG: p.set("GraphType", "IANNG"); break;
 	  default: cerr << "Graph::exportProperty: Fatal error! Invalid Graph Type." << endl; abort();
 	  }
 	  switch (seedType) {
@@ -385,6 +387,7 @@ namespace NGT {
 	    else if (it->second == "ANNG")	graphType = NeighborhoodGraph::GraphTypeANNG;
 	    else if (it->second == "BKNNG")     graphType = NeighborhoodGraph::GraphTypeBKNNG;
 	    else if (it->second == "ONNG")      graphType = NeighborhoodGraph::GraphTypeONNG;
+	    else if (it->second == "IANNG")	graphType = NeighborhoodGraph::GraphTypeIANNG;
 	    else { cerr << "Graph::importProperty: Fatal error! Invalid Graph Type. " << it->second << endl; abort(); }
 	  }
 	  it = p.find("SeedType");
@@ -447,6 +450,9 @@ namespace NGT {
 	switch (property.graphType) {
 	case GraphTypeANNG:
 	  insertANNGNode(id, objects);	
+	  break;
+	case GraphTypeIANNG:
+	  insertIANNGNode(id, objects);	
 	  break;
 	case GraphTypeONNG:
 	  insertONNGNode(id, objects);	
@@ -530,6 +536,15 @@ namespace NGT {
 	return;
       }
 
+      void insertIANNGNode(ObjectID id, ObjectDistances &results) {
+	repository.insert(id, results);
+	for (ObjectDistances::iterator ri = results.begin(); ri != results.end(); ri++) {
+	  assert(id != (*ri).id);
+	  addEdgeDeletingExcessEdges((*ri).id, id, (*ri).distance);
+	}
+	return;
+      }
+
       void insertONNGNode(ObjectID id, ObjectDistances &results) {
 	if (property.truncationThreshold != 0) {
 	  stringstream msg;
@@ -589,8 +604,8 @@ namespace NGT {
 #endif
 
       void removeEdge(ObjectID fid, ObjectID rmid) {
-#ifdef NGT_SHARED_MEMORY_ALLOCATOR
 	GraphNode &rs = *getNode(fid);
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
 	for (GraphNode::iterator ri = rs.begin(repository.allocator); ri != rs.end(repository.allocator); ri++) {
 	  if ((*ri).id == rmid) {
 	    rs.erase(ri, repository.allocator);
@@ -598,7 +613,6 @@ namespace NGT {
 	  }
 	}
 #else
-	GraphNode &rs = *getNode(fid);
 	for (GraphNode::iterator ri = rs.begin(); ri != rs.end(); ri++) {
 	  if ((*ri).id == rmid) {
 	    rs.erase(ri);
@@ -606,6 +620,33 @@ namespace NGT {
 	  }
 	}
 #endif
+      }
+
+      void removeEdge(GraphNode &node, ObjectDistance &edge) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	GraphNode::iterator ni = std::lower_bound(node.begin(repository.allocator), node.end(repository.allocator), edge);
+	if (ni != node.end(repository.allocator) && (*ni).id == edge.id) {
+	  node.erase(ni, repository.allocator);
+#else
+	GraphNode::iterator ni = std::lower_bound(node.begin(), node.end(), edge);
+	if (ni != node.end() && (*ni).id == edge.id) {
+	  node.erase(ni);
+#endif
+	  return;
+	}
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	if (ni == node.end(repository.allocator)) {
+#else
+	if (ni == node.end()) {
+#endif
+	  stringstream msg;
+	  msg << "NGT::removeEdge: Cannot found " << edge.id;
+	  NGTThrowException(msg);
+	} else {
+	  stringstream msg;
+	  msg << "NGT::removeEdge: Cannot found " << (*ni).id << ":" << edge.id;
+	  NGTThrowException(msg);
+	}
       }
 
       void
@@ -702,11 +743,7 @@ namespace NGT {
       }
 
     public:
-      // identityCheck is checking whether the same edge has already added to the node.
-      // return whether truncation is needed that means the node has too many edges.
-      bool addEdge(ObjectID target, ObjectID addID, Distance addDistance,  bool identityCheck = true) {
-	size_t minsize = 0;
-	GraphNode &node = property.truncationThreshold == 0 ? *getNode(target) : *getNode(target, minsize);
+      void addEdge(GraphNode &node, ObjectID addID, Distance addDistance, bool identityCheck = true) {
 	ObjectDistance obj(addID, addDistance);
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
 	GraphNode::iterator ni = std::lower_bound(node.begin(repository.allocator), node.end(repository.allocator), obj);
@@ -716,7 +753,7 @@ namespace NGT {
 	    msg << "NGT::addEdge: already existed! " << (*ni).id << ":" << addID;
 	    NGTThrowException(msg);
 	  }
-	  return false;
+	  return;
 	}
 #else
 	GraphNode::iterator ni = std::lower_bound(node.begin(), node.end(), obj);
@@ -726,7 +763,7 @@ namespace NGT {
 	    msg << "NGT::addEdge: already existed! " << (*ni).id << ":" << addID;
 	    NGTThrowException(msg);
 	  }
-	  return false;
+	  return;
 	}
 #endif
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
@@ -734,12 +771,69 @@ namespace NGT {
 #else
 	node.insert(ni, obj);
 #endif
+      }
+
+      // identityCheck is checking whether the same edge has already added to the node.
+      // return whether truncation is needed that means the node has too many edges.
+      bool addEdge(ObjectID target, ObjectID addID, Distance addDistance, bool identityCheck = true) {
+	size_t minsize = 0;
+	GraphNode &node = property.truncationThreshold == 0 ? *getNode(target) : *getNode(target, minsize);
+	addEdge(node, addID, addDistance, identityCheck);
 	if ((size_t)property.truncationThreshold != 0 && node.size() - minsize > 
 	    (size_t)property.truncationThreshold) {
 	  return true;
 	}
 	return false;
       }
+
+      void addEdgeDeletingExcessEdges(ObjectID target, ObjectID addID, Distance addDistance, bool identityCheck = true) {
+	GraphNode &node = *getNode(target);
+	size_t kEdge = property.edgeSizeForCreation - 1;
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	if (node.size() > kEdge && node.at(kEdge, repository.allocator).distance >= addDistance) {
+	  GraphNode &linkedNode = *getNode(node.at(kEdge, repository.allocator).id);
+	  ObjectDistance linkedNodeEdge(target, node.at(kEdge, repository.allocator).distance);
+	  if ((linkedNode.size() > kEdge) && node.at(kEdge, repository.allocator).distance >= 
+	    linkedNode.at(kEdge, repository.allocator).distance) {
+#else
+	if (node.size() > kEdge && node[kEdge].distance >= addDistance) {
+	  GraphNode &linkedNode = *getNode(node[kEdge].id);
+	  ObjectDistance linkedNodeEdge(target, node[kEdge].distance);
+	  if ((linkedNode.size() > kEdge) && node[kEdge].distance >= linkedNode[kEdge].distance) {
+#endif
+	    try {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	      removeEdge(node, node.at(kEdge, repository.allocator));
+#else
+	      removeEdge(node, node[kEdge]);
+#endif
+	    } catch (Exception &exp) {
+	      stringstream msg;
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	      msg << "addEdge: Cannot remove. (a) " << target << "," << addID << "," << node.at(kEdge, repository.allocator).id << "," << node.at(kEdge, repository.allocator).distance;
+#else
+	      msg << "addEdge: Cannot remove. (a) " << target << "," << addID << "," << node[kEdge].id << "," << node[kEdge].distance;
+#endif
+	      msg << ":" << exp.what();
+	      NGTThrowException(msg.str());
+	    }
+	    try {
+	      removeEdge(linkedNode, linkedNodeEdge);
+	    } catch (Exception &exp) {
+	      stringstream msg;
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	      msg << "addEdge: Cannot remove. (b) " << target << "," << addID << "," << node.at(kEdge, repository.allocator).id << "," << node.at(kEdge, repository.allocator).distance;
+#else
+	      msg << "addEdge: Cannot remove. (b) " << target << "," << addID << "," << node[kEdge].id << "," << node[kEdge].distance;
+#endif
+	      msg << ":" << exp.what();
+	      NGTThrowException(msg.str());
+	    }
+	  }
+	}
+	addEdge(node, addID, addDistance, identityCheck);
+      }
+
 
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
       void loadSearchGraph(const string &database) {
