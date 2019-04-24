@@ -51,7 +51,7 @@ if sys.version_info.major >= 3:
         'include_dirs': ['/usr/local/include', 
                         os.path.dirname(locations.distutils_scheme('pybind11')['headers']),
                         os.path.dirname(locations.distutils_scheme('pybind11', True)['headers'])],
-        'extra_compile_args': ['-std=c++11', '-mavx', '-Ofast', '-march=native', '-lrt', '-DNDEBUG'],
+        'extra_compile_args': ['-std=c++11', '-Ofast', '-march=native', '-lrt', '-DNDEBUG'],
         'sources': ['src/ngtpy.cpp']
     }
     dynamic_lib_params = {

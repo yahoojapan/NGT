@@ -329,8 +329,17 @@ namespace NGT {
       if (!results.empty()) {
 	NGTThrowException("lenearSearch: results is not empty");
       }
+#ifndef NGT_PREFETCH_DISABLED
+      size_t byteSizeOfObject = getByteSizeOfObject();
+      const size_t prefetchOffset = getPrefetchOffset();
+#endif
       ObjectRepository &rep = *this;
       for (size_t idx = 0; idx < rep.size(); idx++) {
+#ifndef NGT_PREFETCH_DISABLED
+	if (idx + prefetchOffset < rep.size()) {
+	  MemoryCache::prefetch((unsigned char*)&(*static_cast<PersistentObject*>(rep[idx + prefetchOffset]))[0], byteSizeOfObject);
+	}
+#endif
 	if (rep[idx] == 0) {
 	  continue;
 	}

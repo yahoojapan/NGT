@@ -40,6 +40,11 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
 注：ロック機能はありませんので、複数プロセスで同一のインデックスを利用する場合には参照のみでご使用ください。
 
+#### 大規模データの利用
+
+約500万以上のオブジェクトを登録する場合には、検索速度向上のために以下のパラメータを追加してください。
+
+      $ cmake -DNGT_LARGE_DATASET=ON ..
 
 ユーティリティ
 -------------
@@ -86,7 +91,7 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 - Iwasaki, M.: Proximity search using approximate k nearest neighbor graph with a tree structured index (in Japanese). IPSJ Journal 52(2) (2011) 817-828. ([pdf](https://s.yimg.jp/i/docs/research_lab/articles/miwasaki-ipsj-jnl-2011.pdf))
 
 ##### [ANNG](bin/ngt/README-jp.md#anng)
-- Iwasaki, M.: Proximity search in metric spaces using approximate k nearest neigh-bor graph (in Japanese). IPSJ Trans. on Database 3(1) (2010) 18-28. ([pdf](https://s.yimg.jp/i/docs/research_lab/articles/miwasaki-ipsj-tod-2010.pdf))
+- Iwasaki, M.: Proximity search in metric spaces using approximate k nearest neighbor graph (in Japanese). IPSJ Trans. on Database 3(1) (2010) 18-28. ([pdf](https://s.yimg.jp/i/docs/research_lab/articles/miwasaki-ipsj-tod-2010.pdf))
 
 Copyright &copy; 2015-2019 Yahoo Japan Corporation All Rights Reserved.
 

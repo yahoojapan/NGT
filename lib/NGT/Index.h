@@ -80,6 +80,7 @@ namespace NGT {
 #else
 	databaseType	= DatabaseType::Memory;
 #endif
+	prefetchOffset	= 0;
       }
       void clear() {
 	dimension 	= -1;
@@ -95,6 +96,7 @@ namespace NGT {
       	treeSharedMemorySize	= -1;
       	objectSharedMemorySize	= -1;
 #endif
+	prefetchOffset	= -1;
       }
 
       void exportProperty(NGT::PropertySet &p) {
@@ -138,6 +140,7 @@ namespace NGT {
 	p.set("TreeSharedMemorySize", treeSharedMemorySize);
 	p.set("ObjectSharedMemorySize", objectSharedMemorySize);
 #endif
+	p.set("PrefetchOffset", prefetchOffset);
       }
 
       void importProperty(NGT::PropertySet &p) {
@@ -225,6 +228,7 @@ namespace NGT {
 	treeSharedMemorySize   = p.getl("TreeSharedMemorySize", treeSharedMemorySize);
 	objectSharedMemorySize = p.getl("ObjectSharedMemorySize", objectSharedMemorySize);
 #endif
+	prefetchOffset = p.getl("PrefetchOffset", prefetchOffset);
       }
 
       void set(NGT::Property &prop);
@@ -242,6 +246,7 @@ namespace NGT {
       int		treeSharedMemorySize;
       int		objectSharedMemorySize;
 #endif
+      int		prefetchOffset;
     };
 
     class InsertionResult {
@@ -564,8 +569,7 @@ namespace NGT {
       }
     }
 
-
-    void remove(const ObjectID id) {
+    void remove(const ObjectID id, bool force) {
       removeEdgesReliably(id);
       try {
 	getObjectRepository().remove(id);
@@ -716,7 +720,6 @@ namespace NGT {
       }
       for (size_t id = 1; id < fr.size(); id++) {
 	if (fr[id] == 0) {
-	  //cerr << "No." << id << " is empty." << endl;
 	  if (id < repo.size() && repo[id] != 0) {
 	    cerr << "Error! The node exists in the graph, but the object does not exist. " << id << endl;;
 	  }
@@ -1368,7 +1371,7 @@ namespace NGT {
 	    DVPTree::removeNaively(id);
           } catch(...) {}
 	  try {
-	    GraphIndex::remove(id);
+	    GraphIndex::remove(id, force);
           } catch(...) {}
 	  stringstream msg;
 	  msg << err.what() << " Even though the object could not be found, the object could be removed from the tree and graph if it existed in them.";
@@ -1407,7 +1410,7 @@ namespace NGT {
 	  cerr << "remove:: warning: cannot replace from tree. id=" << id << "," << results[1].id << " " << err.what() << endl;
 	}
       }
-      GraphIndex::remove(id);
+      GraphIndex::remove(id, force);
     }
 
     void searchForNNGInsertion(Object &po, ObjectDistances &result) {
@@ -1546,35 +1549,60 @@ namespace NGT {
 #endif
 	    NGT::ObjectDistances objects;
 	    sc.setResults(&objects);
-	    sc.setSize(status.size());
-	    sc.setRadius(0.0);
-	    search(sc);
-	    if (objects.size() <= 1) {
-	      cerr << "ID=" << id << ":" << static_cast<int>(status[id]) << endl;
-	      cerr << "  not found the same objects! " << objects.size() << endl;
-	      if (objects.size() == 1) {
-		cerr << "   ID=" << objects[0].id << endl;
+	    size_t step = 100;
+	    size_t size = step;
+	    for (;;) {
+	      objects.clear();
+	      sc.setSize(size);
+	      search(sc);
+	      for (auto i = objects.begin(); i != objects.end(); ++i) {
+		if ((*i).distance != 0.0) {
+		  objects.resize(distance(objects.begin(), i));
+		  break;
+		}
 	      }
+	      if (objects.size() < size) {
+		break;
+	      }
+	      size += step;
+	    }
+	    if (objects.size() == 0) {
+	      cerr << "Error! ID=" << id << ":" << static_cast<int>(status[id]) << endl;;
+	      cerr << "  not found the same objects! " << objects.size() << endl;
 	    } else {
 	      size_t n = 0;
+	      bool notRegisteredIdenticalObject = false;
 	      for (; n < objects.size(); n++) {
 		if (objects[n].id == id) {
 		  continue;
 		}
-		if (status[objects[n].id] != 0) {
-		  break;
+		if (status[objects[n].id] != 0x00) {
+		  if (status[objects[n].id] == 0x07) {
+		    notRegisteredIdenticalObject = false;
+		    break;
+		  } else {
+		    notRegisteredIdenticalObject = true;
+		  }
 		}
 	      }
 	      if (n == objects.size()) {
-		cerr << "ID=" << id << ":" << static_cast<int>(status[id]) << endl;		
+		cerr << "Error! ID=" << id << ":" << static_cast<int>(status[id]) << endl;		
 		cerr << "  not found the valid same objects! " << objects.size() << endl;
 	      } else {
-		cerr << "ID=" << id << ":" << static_cast<int>(status[id]) << endl;
-		cerr << "  found the valid same objects. " << objects[n].id << endl;
+		if (notRegisteredIdenticalObject) {
+		  cerr << "Error! ID=" << id << ":" << static_cast<int>(status[id]) << endl;
+		  cerr << "  found the not registered same objects. " << objects[n].id << endl;
+		} else {
+		  cerr << "Info ID=" << id << ":" << static_cast<int>(status[id]) << endl;
+		  cerr << "  found the valid same objects. " << objects[n].id << endl;
+		}
 	      }
 	    }
+	  } else if (status[id] == 0x01) {
+	    cerr << "Warning! ID=" << id << ":" << static_cast<int>(status[id]) << endl;
+	    cerr << "  not inserted into the indexes" << endl;
 	  } else {
-	    cerr << "ID=" << id << ":" << static_cast<int>(status[id]) << endl;
+	    cerr << "Error! ID=" << id << ":" << static_cast<int>(status[id]) << endl;
 	  }
 	}
       }
@@ -1632,7 +1660,6 @@ NGT::Index::open(const string &database, bool rdOnly) {
   index = idx;
   path = database;
 }
-
 
 inline void 
   NGT::Index::createGraphAndTree(const string &database, NGT::Property &prop, const string &dataFile,
@@ -1852,8 +1879,11 @@ NGT::GraphIndex::constructObjectSpace(NGT::Property &prop) {
     objectSpace = new ObjectSpaceRepository<unsigned char, int>(prop.dimension, typeid(uint8_t), prop.distanceType);
     break;
   default:
-    cerr << "Invalid Object Type in the property. " << prop.objectType << endl;
+    stringstream msg;
+    msg << "Invalid Object Type in the property. " << prop.objectType;
+    NGTThrowException(msg);	
   }
+  prop.prefetchOffset = objectSpace->setPrefetchOffset(prop.prefetchOffset);
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
   searchUnupdatableGraph = NeighborhoodGraph::Search::getMethod(prop.distanceType, prop.objectType);
 #endif
@@ -1874,6 +1904,7 @@ NGT::Index::Property::set(NGT::Property &prop) {
   if (prop.treeSharedMemorySize != -1) treeSharedMemorySize = prop.treeSharedMemorySize;
   if (prop.objectSharedMemorySize != -1) objectSharedMemorySize = prop.objectSharedMemorySize;
 #endif
+  if (prop.prefetchOffset != -1) prefetchOffset = prop.prefetchOffset;
 }
 
 inline void 
@@ -1890,6 +1921,7 @@ NGT::Index::Property::get(NGT::Property &prop) {
   prop.treeSharedMemorySize = treeSharedMemorySize;
   prop.objectSharedMemorySize = objectSharedMemorySize;
 #endif
+  prop.prefetchOffset = prefetchOffset;
 }
 
 inline void 

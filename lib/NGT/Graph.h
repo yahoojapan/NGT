@@ -701,12 +701,12 @@ namespace NGT {
       typedef priority_queue<ObjectDistance, vector<ObjectDistance>, greater<ObjectDistance> > UncheckedSet;
 #endif
 #endif
+      void setupDistances(NGT::SearchContainer &sc, ObjectDistances &seeds);
+      void setupDistances(NGT::SearchContainer &sc, ObjectDistances &seeds, double (&comparator)(const void*, const void*, size_t));
 
       void setupSeeds(SearchContainer &sc, ObjectDistances &seeds, ResultSet &results, 
 		      UncheckedSet &unchecked, DistanceCheckedSet &distanceChecked);
 
-      void setupSeeds(SearchContainer &sc, ObjectDistances &seeds, ResultSet &results, 
-		      priority_queue<NodeWithPosition, vector<NodeWithPosition>, greater<NodeWithPosition> > &unchecked, DistanceCheckedSet &distanceChecked);
 
       int getEdgeSize() {return property.edgeSizeForCreation;}
 

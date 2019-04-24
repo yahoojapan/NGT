@@ -59,6 +59,12 @@ The index can be placed in shared memory. Using shared memory can reduce the amo
 
 Note: Since there is no lock function, the index should be used only for reference when multiple processes are using the same index.
 
+#### Large-scale data use
+
+When you insert more than about 5 million objects, please add the following parameter to improve the search time.
+
+      $ cmake -DNGT_LARGE_DATASET=ON ..
+
 Utilities
 ---------
 
@@ -108,7 +114,7 @@ Publications
 - Iwasaki, M.: Proximity search using approximate k nearest neighbor graph with a tree structured index (in Japanese). IPSJ Journal 52(2) (2011) 817-828. ([pdf](https://s.yimg.jp/i/docs/research_lab/articles/miwasaki-ipsj-jnl-2011.pdf))
 
 ##### [ANNG](bin/ngt/README.md#anng)
-- Iwasaki, M.: Proximity search in metric spaces using approximate k nearest neigh-bor graph (in Japanese). IPSJ Trans. on Database 3(1) (2010) 18-28. ([pdf](https://s.yimg.jp/i/docs/research_lab/articles/miwasaki-ipsj-tod-2010.pdf))
+- Iwasaki, M.: Proximity search in metric spaces using approximate k nearest neighbor graph (in Japanese). IPSJ Trans. on Database 3(1) (2010) 18-28. ([pdf](https://s.yimg.jp/i/docs/research_lab/articles/miwasaki-ipsj-tod-2010.pdf))
 
 Copyright &copy; 2015-2019 Yahoo Japan Corporation All Rights Reserved.
 

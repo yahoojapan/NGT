@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include "PrimitiveComparator.h"
+
 class ObjectSpace;
 
 namespace NGT {
@@ -49,6 +51,17 @@ namespace NGT {
       this->resize(pq.size());
       for (int i = pq.size() - 1; i >= 0; i--) {
 	(*this)[i] = pq.top();
+	pq.pop();
+      }
+      assert(pq.size() == 0);
+    }
+
+    void moveFrom(priority_queue<ObjectDistance, vector<ObjectDistance>, less<ObjectDistance> > &pq, double (&f)(double)) {
+      this->clear();
+      this->resize(pq.size());
+      for (int i = pq.size() - 1; i >= 0; i--) {
+	(*this)[i] = pq.top();
+	(*this)[i].distance = f((*this)[i].distance);
 	pq.pop();
       }
       assert(pq.size() == 0);
@@ -243,13 +256,22 @@ namespace NGT {
 	data[i] = (double)data[i] / sum;
       }
     }
-
+    uint32_t getPrefetchOffset() { return prefetchOffset; }
+    uint32_t setPrefetchOffset(size_t offset) {
+      if (offset == 0) {
+	prefetchOffset = floor(300.0 / (static_cast<float>(getPaddedDimension()) + 30.0) + 1.0);
+      } else {
+	prefetchOffset = offset;
+      }
+      return prefetchOffset;
+    }
   protected:
     const size_t	dimension;
     const size_t	paddedDimension;
     DistanceType	distanceType;
     Comparator		*comparator;
     bool		normalization;
+    uint32_t		prefetchOffset;
   };
 
   class BaseObject {
@@ -340,7 +362,7 @@ namespace NGT {
   private:
     void clear() {
       if (vector != 0) {
-	delete[] vector;
+	MemoryCache::alignedFree(vector);
       }
       vector = 0;
     }
@@ -348,7 +370,7 @@ namespace NGT {
     void construct(size_t s) {
       assert(vector == 0);
       size_t allocsize = ((s - 1) / 16 + 1) * 16;	
-      vector = new uint8_t[allocsize];
+      vector = static_cast<uint8_t*>(MemoryCache::alignedAlloc(allocsize));
       memset(vector, 0, allocsize);
     }
 
@@ -421,8 +443,6 @@ namespace NGT {
     }
     off_t array;
   };
-#else
-  //typedef Object	PersistentObject;
 #endif // NGT_SHARED_MEMORY_ALLOCATOR
 
 }
