@@ -11,7 +11,7 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 -------
 
 - 2019/01/17 Python NGTはPYPIからpipでインストールが可能になりました。
-- 2018/12/14 [NGTQ](bin/ngtq/README-jp.md)(NGT with Quantization) が利用可能になりました。(v1.5.0)
+- 2018/12/14 [NGTQ](bin/ngtq/README-jp.md) (NGT with Quantization) が利用可能になりました。(v1.5.0)
 - 2018/08/08 [ONNG](README-jp.md#onng)が利用可能になりました。(v1.4.0)
 
 インストール
@@ -34,7 +34,7 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
 #### 共有メモリの利用
 
-インデックスを共有メモリに配置することが可能です。共有メモリを利用することにより複数のプロセスで同一のインデックスを利用する場合にメモリ使用量を抑制することが可能です。また、大量のデータが登録されているインデックスの起動時の速度が改善されます。共有メモリを利用するにはビルド時の変更が必要となりますので、cmake実行時に以下のパラメータを追加してください。
+メモリマップドファイルを用いた共有メモリにインデックスを配置することが可能です。共有メモリを利用することにより複数のプロセスが同一のインデックスを利用する場合にメモリ使用量を抑制することが可能です。さらに、メモリにロードできないような大量のオブジェクトを有するインデックスを扱うことが可能なだけでなく、インデックスをオープンする時間を削減することも可能です。共有メモリを利用するにはビルド時の変更が必要となりますので、cmake実行時に以下のパラメータを追加してください。
 
       $ cmake -DNGT_SHARED_MEMORY_ALLOCATOR=ON ..
 

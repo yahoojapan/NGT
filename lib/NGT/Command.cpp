@@ -671,11 +671,6 @@
       "\t\ta: Advanced method. High-speed. Not guarantee the paper method. (default)\n"
       "\t\tothers: Slow and less memory usage, but guarantee the paper method.\n";
 
-#ifdef NGT_SHARED_MEMORY_ALLOCATOR
-    cerr << "ngt::reconstructGraph: Not implemented" << endl;
-    abort();
-#else // NGT_SHARED_MEMORY_ALLOCATOR
-
     string inIndexName;
     try {
       inIndexName = args.get("#1");
@@ -703,15 +698,24 @@
       cerr << usage << endl;
       return;
     }
-
-
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+    if (access(outIndexName.c_str(), 0) == 0) {
+      cerr << "ngt:reconstructGraph: the specified index exists. " << outIndexName << endl;
+      cerr << usage << endl;
+      return;
+    }
+    const string com = "cp -r " + inIndexName + " " + outIndexName;
+    system(com.c_str());
+    NGT::Index	outIndex(outIndexName);
+#else
     NGT::Index	outIndex(inIndexName);
+#endif
     cerr << "ngt::reconstructGraph: Extract the graph data." << endl;
     // extract only edges from the index to reduce the memory usage.
     NGT::GraphIndex	&outGraph = (NGT::GraphIndex&)outIndex.getIndex();
     Timer timer;
     timer.start();
-    vector<NGT::GraphNode> graph;
+    vector<NGT::ObjectDistances> graph;
     graph.reserve(outGraph.repository.size());
     for (size_t id = 1; id < outGraph.repository.size(); id++) {
       if (id % 1000000 == 0) {
@@ -719,7 +723,16 @@
       }
       try {
 	NGT::GraphNode &node = *outGraph.getNode(id);
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	NGT::ObjectDistances nd;
+	nd.reserve(node.size());
+	for (auto n = node.begin(outGraph.repository.allocator); n != node.end(outGraph.repository.allocator); ++n) {
+	  nd.push_back(ObjectDistance((*n).id, (*n).distance));
+        }
+	graph.push_back(nd);
+#else
 	graph.push_back(node);
+#endif
 	if (graph.back().size() != graph.back().capacity()) {
 	  cerr << "ngt::reconstructGraph: Warning! The graph size must be the same as the capacity. " << id << endl;
 	}
@@ -787,7 +800,6 @@
 
     outGraph.saveIndex(outIndexName);
 
-#endif // NGT_SHARED_MEMORY_ALLOCATOR
   }
 
 

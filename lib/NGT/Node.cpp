@@ -277,3 +277,60 @@ LeafNode::removeObject(size_t id, size_t replaceId) {
   return;
 }
 
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+bool InternalNode::verify(PersistentRepository<InternalNode> &internalNodes, PersistentRepository<LeafNode> &leafNodes, 
+			  SharedMemoryAllocator &allocator) {
+#else
+bool InternalNode::verify(Repository<InternalNode> &internalNodes, Repository<LeafNode> &leafNodes) {
+#endif
+  size_t isize = internalNodes.size();
+  size_t lsize = leafNodes.size();
+  bool valid = true;
+  for (size_t i = 0; i < childrenSize; i++) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+    size_t nid = getChildren(allocator)[i].getID();
+    ID::Type type = getChildren(allocator)[i].getType();
+#else
+    size_t nid = getChildren()[i].getID();
+    ID::Type type = getChildren()[i].getType();
+#endif
+    size_t size = type == ID::Leaf ? lsize : isize;
+    if (nid >= size) {
+      cerr << "Error! Internal children node id is too big." << nid << ":" << size << endl;
+      valid = false;
+    }
+    try {
+      if (type == ID::Leaf) {
+	leafNodes.get(nid);
+      } else {
+	internalNodes.get(nid);
+      }
+    } catch (...) {
+      cerr << "Error! Cannot get the node. " << ((type == ID::Leaf) ? "Leaf" : "Internal") << endl;
+      valid = false;
+    }
+  }
+  return valid;
+}
+
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+bool LeafNode::verify(size_t nobjs, vector<uint8_t> &status, SharedMemoryAllocator &allocator) {
+#else
+bool LeafNode::verify(size_t nobjs, vector<uint8_t> &status) {
+#endif
+  bool valid = true;
+  for (size_t i = 0; i < objectSize; i++) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+    size_t nid = getObjectIDs(allocator)[i].id;
+#else
+    size_t nid = getObjectIDs()[i].id;
+#endif
+    if (nid > nobjs) {
+      cerr << "Error! Object id is too big. " << nid << ":" << nobjs << endl;
+      valid =false;
+      continue;
+    }
+    status[nid] |= 0x04;
+  }
+  return valid;
+}

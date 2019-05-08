@@ -11,7 +11,7 @@ News
 ----
 
 - 01/17/2019 Python NGT can be installed via pip from PyPI
-- 12/14/2018 [NGTQ](bin/ngtq/README.md)(NGT with Quantization) is now available (v1.5.0)
+- 12/14/2018 [NGTQ](bin/ngtq/README.md) (NGT with Quantization) is now available (v1.5.0)
 - 08/08/2018 [ONNG](README.md#onng) is now available. (v1.4.0)
 
 Installation
@@ -53,7 +53,7 @@ Installation
 
 #### Shared memory use
 
-The index can be placed in shared memory. Using shared memory can reduce the amount of memory needed when multiple processes are using the same index. It can also improve the boot-up speed of an index for a large volume of registration data. Since changes become necessary at build time, please add the following parameter when executing "cmake" in order to use shared memory.
+The index can be placed in shared memory with memory mapped files. Using shared memory can reduce the amount of memory needed when multiple processes are using the same index. In addition, it can not only handle an index with a large number of objects that cannot be loaded into memory, but also reduce time to open it. Since changes become necessary at build time, please add the following parameter when executing "cmake" in order to use shared memory.
 
       $ cmake -DNGT_SHARED_MEMORY_ALLOCATOR=ON ..
 

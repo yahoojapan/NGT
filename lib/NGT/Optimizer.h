@@ -16,7 +16,6 @@
 
 #pragma once
 
-#ifndef NGT_SHARED_MEMORY_ALLOCATOR
 #define NGT_LOG_BASED_OPTIMIZATION
 
 namespace NGT {
@@ -783,5 +782,5 @@ namespace NGT {
   };
 
 }; // NGT
-#endif // NGT_SHARED_MEMORY_ALLOCATOR
+
 

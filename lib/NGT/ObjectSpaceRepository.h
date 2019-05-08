@@ -360,9 +360,9 @@ namespace NGT {
     }
 
     void *getObject(size_t idx) {
-      if (idx >= ObjectRepository::size() || idx == 0) {
+      if (isEmpty(idx)) {
 	stringstream msg;
-	msg << "NGT::ObjectSpaceRepository: The specified ID is out of the range. Object ID is greater than zero. " << idx << ":" << ObjectRepository::size() << ".";
+	msg << "NGT::ObjectSpaceRepository: The specified ID is out of the range. The object ID should be greater than zero. " << idx << ":" << ObjectRepository::size() << ".";
 	NGTThrowException(msg);
       }
       PersistentObject &obj = *(*this)[idx];

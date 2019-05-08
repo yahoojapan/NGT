@@ -541,7 +541,7 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 	  continue;
 	}
 	objtbl.push_back(getObjectRepository().get((*i).id));
-	GraphNode *n = 0;
+	GraphNode *n = 0;	
 	try {
 	  n = getNode((*i).id);
 	} catch (Exception &err) {
@@ -621,12 +621,12 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 	  GraphNode &n = *nodetbl[i];
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
 	  GraphNode::iterator ei = std::lower_bound(n.begin(repository.allocator), n.end(repository.allocator), obj);
-	  if ((*ei).id != obj.id) {
+	  if ((ei == n.end(repository.allocator)) || ((*ei).id != obj.id)) {
 	    n.insert(ei, obj, repository.allocator);
 	  }
 #else
 	  GraphNode::iterator ei = std::lower_bound(n.begin(), n.end(), obj);
-	  if ((*ei).id != obj.id) {
+	  if ((ei == n.end()) || ((*ei).id != obj.id)) {
 	    n.insert(ei, obj);
 	  }
 #endif
@@ -641,11 +641,11 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 	  GraphNode &n = *nodetbl[minj];
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
 	  GraphNode::iterator ei = std::lower_bound(n.begin(repository.allocator), n.end(repository.allocator), obj);
-	  if ((*ei).id != obj.id) {
+	  if ((ei == n.end(repository.allocator)) || ((*ei).id != obj.id)) {
 	    n.insert(ei, obj, repository.allocator);
 #else
 	  GraphNode::iterator ei = std::lower_bound(n.begin(), n.end(), obj);
-	  if ((*ei).id != obj.id) {
+	  if ((ei == n.end()) || ((*ei).id != obj.id)) {
 	    n.insert(ei, obj);
 #endif
 	  }

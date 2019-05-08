@@ -138,10 +138,21 @@ namespace NGT {
     void search(SearchContainer &so, InternalNode &node, UncheckedNode &uncheckedNode);
     void search(SearchContainer &so, LeafNode &node, UncheckedNode &uncheckedNode);
 
-    void replace(ObjectID id, ObjectID replacedId) { remove(id, replacedId); }
-    
-    // remove the specified object.
-    void remove(ObjectID id, ObjectID replaceId = 0) {
+    bool searchObject(ObjectID id) {
+      LeafNode &ln = getLeaf(id);      
+      for (size_t i = 0; i < ln.getObjectSize(); i++) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+        if (ln.getObjectIDs(leafNodes.allocator)[i].id == id) {
+#else
+	if (ln.getObjectIDs()[i].id == id) {
+#endif
+	  return true;
+	}
+      }
+      return false;
+    }
+
+    LeafNode &getLeaf(ObjectID id) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
       Object *qobject = objectSpace->allocateObject(*getObjectRepository().get(id));
       SearchContainer q(*qobject);
@@ -151,7 +162,7 @@ namespace NGT {
       q.mode = SearchContainer::SearchLeaf;
       q.vptree = this;
       q.radius = 0.0;
-      q.size = 5;
+      q.size = 1;
 
       search(q);
 
@@ -159,7 +170,15 @@ namespace NGT {
       objectSpace->deleteObject(qobject);
 #endif
 
-      LeafNode &ln = *(LeafNode*)getNode(q.nodeID);
+      return *(LeafNode*)getNode(q.nodeID);
+
+    }
+
+    void replace(ObjectID id, ObjectID replacedId) { remove(id, replacedId); }
+
+    // remove the specified object.
+    void remove(ObjectID id, ObjectID replaceId = 0) {
+      LeafNode &ln = getLeaf(id);
       try {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
 	ln.removeObject(id, replaceId, leafNodes.allocator);
@@ -168,7 +187,7 @@ namespace NGT {
 #endif
       } catch(Exception &err) {
 	stringstream msg;
-	msg << "VpTree::remove: Inner error. Cannot remove object. leafNode=" << q.nodeID.getID() << ":" << err.what();
+	msg << "VpTree::remove: Inner error. Cannot remove object. leafNode=" << ln.id.getID() << ":" << err.what();
 	NGTThrowException(msg);
       }
       if (ln.getObjectSize() == 0) {
@@ -357,14 +376,15 @@ namespace NGT {
       }
     }
 
-    void verify(size_t objCount, vector<uint8_t> &status) {
+    bool verify(size_t objCount, vector<uint8_t> &status) {
       cerr << "Started verifying internal nodes..." << endl;
+      bool valid = true;
       for (size_t i = 0; i < internalNodes.size(); i++) {
 	if (internalNodes[i] != 0) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-	  (*internalNodes[i]).verify(internalNodes.size(), leafNodes.size(), internalNodes.allocator);
+	  valid = valid && (*internalNodes[i]).verify(internalNodes, leafNodes, internalNodes.allocator);
 #else
-	  (*internalNodes[i]).verify(internalNodes.size(), leafNodes.size());
+	  valid = valid && (*internalNodes[i]).verify(internalNodes, leafNodes);
 #endif
 	}
       }
@@ -372,12 +392,13 @@ namespace NGT {
       for (size_t i = 0; i < leafNodes.size(); i++) {
 	if (leafNodes[i] != 0) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-	  (*leafNodes[i]).verify(objCount, status, leafNodes.allocator);
+	  valid = valid && (*leafNodes[i]).verify(objCount, status, leafNodes.allocator);
 #else
-	  (*leafNodes[i]).verify(objCount, status);
+	  valid = valid && (*leafNodes[i]).verify(objCount, status);
 #endif
 	}
       }
+      return valid;
     }
 
     void deleteInMemory() {

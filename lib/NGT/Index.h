@@ -321,7 +321,7 @@ namespace NGT {
     virtual void remove(ObjectID id, bool force = false) { getIndex().remove(id, force); }
     virtual void exportIndex(const string &file) { getIndex().exportIndex(file); }
     virtual void importIndex(const string &file) { getIndex().importIndex(file); }
-    virtual void verify(vector<uint8_t> &status) { getIndex().verify(status); }
+    virtual bool verify(vector<uint8_t> &status, bool info = false) { return getIndex().verify(status, info); }
     virtual ObjectSpace &getObjectSpace() { return getIndex().getObjectSpace(); }
     virtual size_t getSharedMemorySize(ostream &os, SharedMemoryAllocator::GetMemorySizeType t = SharedMemoryAllocator::GetTotalMemorySize) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
@@ -704,13 +704,16 @@ namespace NGT {
       }
     }
 
-    virtual void verify(vector<uint8_t> &status)
+    virtual bool verify(vector<uint8_t> &status, bool info)
     {
+      bool valid = true;
       cerr << "Started verifying graph and objects" << endl;
       GraphRepository &repo = repository;
       ObjectRepository &fr = objectSpace->getRepository();
-      if (repo.size() > fr.size()) {
-	cerr << "# of nodes is larger than # of objects. " << repo.size() << ":" << fr.size() << endl;
+      if (repo.size() != fr.size()) {
+	if (info) {
+	  cerr << "Warning! # of nodes is different from # of objects. " << repo.size() << ":" << fr.size() << endl;
+	}
       }
       status.clear();
       status.resize(fr.size(), 0);
@@ -721,11 +724,13 @@ namespace NGT {
       for (size_t id = 1; id < fr.size(); id++) {
 	if (fr[id] == 0) {
 	  if (id < repo.size() && repo[id] != 0) {
-	    cerr << "Error! The node exists in the graph, but the object does not exist. " << id << endl;;
+	    cerr << "Error! The node exists in the graph, but the object does not exist. " << id << endl;
+	    valid = false;
 	  }
 	}
 	if (fr[id] != 0 && repo[id] == 0) {
-	  cerr << "Warning. No." << id << " is not registerd in the graph." << endl;
+	  cerr << "Error. No." << id << " is not registerd in the graph." << endl;
+	  valid = false;
 	}
 	if ((id % 1000000) == 0) {
 	  cerr << "  verified " << id << " entries." << endl;
@@ -739,6 +744,7 @@ namespace NGT {
 #endif
 	    if (po == 0) {
 	      cerr << "Error! Cannot get the object. " << id << endl;
+	      valid = false;
 	      continue;
 	    }
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
@@ -746,14 +752,20 @@ namespace NGT {
 #endif
 	  } catch (Exception &err) {
 	    cerr << "Error! Cannot get the object. " << id << " " << err.what() << endl;
+	    valid = false;
 	    continue;
 	  }
+	}
+	if (id >= repo.size()) {
+	  cerr << "Error. No." << id << " is not registerd in the object repository. " << repo.size() << endl;
+	  valid = false;
 	}
 	if (id < repo.size() && repo[id] != 0) {
 	  try {
 	    GraphNode *objects = getNode(id);
 	    if (objects == 0) {
 	      cerr << "Error! Cannot get the node. " << id << endl;
+	      valid = false;
 	    }
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
 	    for (GraphNode::iterator ri = objects->begin(repo.allocator);
@@ -764,19 +776,23 @@ namespace NGT {
 #endif
 	      if ((*ri).id == 0 || (*ri).id >= repo.size()) {
 		cerr << "Error! Neighbor's ID of the node is wrong." << endl;
+		valid = false;
 	      }
 	      if ((*ri).distance < 0.0) {
 		cerr << "Error! Neighbor's distance is munus." << endl;
+		valid = false;
 	      }
 	    }
 	  } catch (Exception &err) {
 	    cerr << "Error! Cannot get the node. " << id << " " << err.what() << endl;
+	    valid = false;
 	  }
 	}
       }
+      return valid;
     }
 
-    static void showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode = '-', size_t edgeSize = UINT_MAX)
+    static bool showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode = '-', size_t edgeSize = UINT_MAX)
     {
       long double distance = 0.0;
       size_t numberOfNodes = 0;
@@ -792,16 +808,19 @@ namespace NGT {
       NGT::ObjectRepository &repo = outGraph.objectSpace->getRepository();
       indegreeCount.resize(graph.size(), 0);
       indegree.resize(graph.size());
+      size_t removedObjectCount = 0;
+      bool valid = true;
       for (size_t id = 1; id < graph.size(); id++) {
 	if (repo[id] == 0) {
+	  removedObjectCount++;
 	  continue;
 	}
 	NGT::GraphNode *node = 0;
 	try {
 	  node = outGraph.getNode(id);
 	} catch(NGT::Exception &err) {
-	  cerr << "ngt info: Warning. Cannot get the node. ID=" << id << ":" << err.what() << endl;
-	  indegreeCount[id] = -1;
+	  cerr << "ngt info: Error. Cannot get the node. ID=" << id << ":" << err.what() << endl;
+	  valid = false;
 	  continue;
 	}
 	numberOfNodes++;
@@ -833,6 +852,7 @@ namespace NGT {
 #endif
 	  if (n.id == 0) {
 	    cerr << "ngt info: Warning. id is zero." << endl;
+	    valid = false;
 	  }
 	  indegreeCount[n.id]++;
 	  indegree[n.id].push_back(n.distance);
@@ -846,6 +866,63 @@ namespace NGT {
 	if (mode == 'e') {
 	  cout << endl;
 	}
+      }
+
+      if (mode == 'a') {
+	size_t count = 0;
+	for (size_t id = 1; id < graph.size(); id++) {
+	  if (repo[id] == 0) {
+	    continue;
+	  }
+	  NGT::GraphNode *n = 0;
+	  try {
+	    n = outGraph.getNode(id);
+	  } catch(NGT::Exception &err) {
+	    continue;
+	  }
+	  NGT::GraphNode &node = *n;
+	  for (size_t i = 0; i < node.size(); i++) {  
+	    NGT::GraphNode *nn = 0;
+	    try {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	      nn = outGraph.getNode(node.at(i, graph.allocator).id);
+#else
+	      nn = outGraph.getNode(node[i].id);
+#endif
+	    } catch(NGT::Exception &err) {
+	      count++;
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	      cerr << "Directed edge! " << id << "->" << node.at(i, graph.allocator).id << " no object. " 
+		   << node.at(i, graph.allocator).id << endl; 
+#else
+	      cerr << "Directed edge! " << id << "->" << node[i].id << " no object. " << node[i].id << endl; 
+#endif
+	      continue;
+	    }
+	    NGT::GraphNode &nnode = *nn;
+	    bool found = false;
+	    for (size_t i = 0; i < nnode.size(); i++) {  
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	      if (nnode.at(i, graph.allocator).id == id) {
+#else
+	      if (nnode[i].id == id) {
+#endif
+		found = true;
+		break;
+	      }
+	    }
+	    if (!found) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	      cerr << "Directed edge! " << id << "->" << node.at(i, graph.allocator).id << " no edge. " 
+		   << node.at(i, graph.allocator).id << "->" << id << endl; 
+#else
+	      cerr << "Directed edge! " << id << "->" << node[i].id << " no edge. " << node[i].id << "->" << id << endl; 
+#endif
+	      count++;
+	    }
+	  }
+	}
+	cerr << "# of not undirected edges=" << count << endl;
       }
 
       // calculate outdegree distance 10
@@ -929,11 +1006,13 @@ namespace NGT {
       size_t maxNumberOfIndegree = 0;
       size_t minNumberOfIndegree = INT64_MAX;
       for (size_t id = 1; id < graph.size(); id++) {
-	if (indegreeCount[id] < 0) {
+	if (graph[id] == 0) {
 	  continue;
 	}
 	if (indegreeCount[id] == 0) {
 	  numberOfNodesWithoutIndegree++;
+	  cerr << "Error! The node without incoming edges. " << id << endl;
+	  valid = false;
 	}
 	if (indegreeCount[id] > static_cast<int>(maxNumberOfIndegree)) {
 	  maxNumberOfIndegree = indegreeCount[id];
@@ -1013,6 +1092,8 @@ namespace NGT {
       c5 /= (double)numberOfNodes * 0.05;
       c1 /= (double)numberOfNodes * 0.01;
 
+      cerr << "The size of object array=" << repo.size() << endl;
+      cerr << "# of removed objects=" << removedObjectCount << "/" << repo.size() << endl;
       cerr << "# of nodes=" << numberOfNodes << endl;
       cerr << "# of edges=" << numberOfOutdegree << endl;
       cerr << "# of nodes without edges=" << numberOfNodesWithoutEdges << endl;
@@ -1033,7 +1114,6 @@ namespace NGT {
 	   << medianOutdegree << ":" << medianIndegree << ":" << modeOutdegree << ":" << modeIndegree 
 	   << ":" << c95 << ":" << c5 << ":" << c99 << ":" << c1 << ":" << distance10 << ":" << d10SkipCount << ":"
 	   << indegreeDistance10 << ":" << ind10SkipCount << endl;
-
       if (mode == 'h') {
 	cerr << "#\tout\tin" << endl;
 	for (size_t i = 0; i < outdegreeHistogram.size() || i < indegreeHistogram.size(); i++) {
@@ -1042,6 +1122,7 @@ namespace NGT {
 	  cerr << i << "\t" << out << "\t" << in << endl;
 	}
       }
+      return valid;
     }
 
     size_t getObjectRepositorySize() { return objectSpace->getRepository().size(); }
@@ -1407,7 +1488,6 @@ namespace NGT {
 	try {
 	  DVPTree::replace(id, replaceID);
 	} catch(Exception &err) {
-	  cerr << "remove:: warning: cannot replace from tree. id=" << id << "," << results[1].id << " " << err.what() << endl;
 	}
       }
       GraphIndex::remove(id, force);
@@ -1419,6 +1499,7 @@ namespace NGT {
       sc.size = NeighborhoodGraph::property.edgeSizeForCreation;
       sc.radius = FLT_MAX;
       sc.explorationCoefficient = NeighborhoodGraph::property.insertionRadiusCoefficient;
+      sc.useAllNodesInLeaf = true;
       try {
 	GraphAndTreeIndex::search(sc);
       } catch(Exception &err) {
@@ -1501,7 +1582,7 @@ namespace NGT {
 	NGTThrowException(msg);
       }
       sc.distanceComputationCount += tso.distanceComputationCount;
-      if (NeighborhoodGraph::property.seedType == NeighborhoodGraph::SeedTypeAllLeafNodes) {
+      if (sc.useAllNodesInLeaf || NeighborhoodGraph::property.seedType == NeighborhoodGraph::SeedTypeAllLeafNodes) {
 	return;
       }
       // if seedSize is zero, the result size of the query is used as seedSize.
@@ -1534,9 +1615,15 @@ namespace NGT {
       return GraphIndex::getSharedMemorySize(os, t) + DVPTree::getSharedMemorySize(os, t);
     }
 
-    void verify(vector<uint8_t> &status) {
-      GraphIndex::verify(status);
-      DVPTree::verify(GraphIndex::objectSpace->getRepository().size(), status);
+    bool verify(vector<uint8_t> &status, bool info) {
+      bool valid = GraphIndex::verify(status, info);
+      if (!valid) {
+	cerr << "The graph or object is invalid!" << endl;
+      }
+      valid = valid && DVPTree::verify(GraphIndex::objectSpace->getRepository().size(), status);
+      if (!valid) {
+	cerr << "The tree is invalid" << endl;
+      }
       // status: tree|graph|object
       for (size_t id = 1; id < status.size(); id++) {
 	if (status[id] != 0x00 && status[id] != 0x07) {
@@ -1549,63 +1636,100 @@ namespace NGT {
 #endif
 	    NGT::ObjectDistances objects;
 	    sc.setResults(&objects);
-	    size_t step = 100;
-	    size_t size = step;
-	    for (;;) {
+	    sc.id = 0;
+	    sc.radius = 0.0;
+	    sc.explorationCoefficient = 1.1;
+	    sc.edgeSize = 0;
+	    ObjectDistances	seeds;
+	    seeds.push_back(ObjectDistance(id, 0.0));
+	    objects.clear();
+	    GraphIndex::search(sc, seeds);
+	    size_t n = 0;
+	    bool registeredIdenticalObject = false;
+	    for (; n < objects.size(); n++) {
+	      if (objects[n].id != id && status[objects[n].id] == 0x07) {
+		registeredIdenticalObject = true;
+		break;
+	      }
+	    }
+	    if (!registeredIdenticalObject) {
+	      cerr << "Warning: not found the registered same objects. id=" << id << " size=" << objects.size() << endl;
+	      sc.id = 0;
+	      sc.radius = FLT_MAX;
+	      sc.explorationCoefficient = 1.2;
+	      sc.edgeSize = 0;
+	      sc.size = objects.size() < 100 ? 100 : objects.size() * 2;
+	      ObjectDistances	seeds;
+	      seeds.push_back(ObjectDistance(id, 0.0));
 	      objects.clear();
-	      sc.setSize(size);
-	      search(sc);
-	      for (auto i = objects.begin(); i != objects.end(); ++i) {
-		if ((*i).distance != 0.0) {
-		  objects.resize(distance(objects.begin(), i));
+	      GraphIndex::search(sc, seeds);
+	      registeredIdenticalObject = false;
+	      for (n = 0; n < objects.size(); n++) {
+		if (objects[n].distance != 0.0) break;
+		if (objects[n].id != id && status[objects[n].id] == 0x07) {
+		  registeredIdenticalObject = true;
+		  cerr << "info: found by using mode accurate search." << objects[n].id << endl;
 		  break;
 		}
 	      }
-	      if (objects.size() < size) {
-		break;
-	      }
-	      size += step;
 	    }
-	    if (objects.size() == 0) {
-	      cerr << "Error! ID=" << id << ":" << static_cast<int>(status[id]) << endl;;
-	      cerr << "  not found the same objects! " << objects.size() << endl;
-	    } else {
-	      size_t n = 0;
-	      bool notRegisteredIdenticalObject = false;
+	    if (!registeredIdenticalObject) {
+	      cerr << "Warning: not found by using more accurate search." << endl;
+	      sc.id = 0;
+	      sc.radius = 0.0;
+	      sc.explorationCoefficient = 1.1;
+	      sc.edgeSize = 0;
+	      sc.size = SIZE_MAX;
+	      objects.clear();
+	      linearSearch(sc);
+	      n = 0;
+	      registeredIdenticalObject = false;
 	      for (; n < objects.size(); n++) {
-		if (objects[n].id == id) {
-		  continue;
-		}
-		if (status[objects[n].id] != 0x00) {
-		  if (status[objects[n].id] == 0x07) {
-		    notRegisteredIdenticalObject = false;
-		    break;
-		  } else {
-		    notRegisteredIdenticalObject = true;
-		  }
+		if (objects[n].distance != 0.0) break;
+		if (objects[n].id != id && status[objects[n].id] == 0x07) {
+		  registeredIdenticalObject = true;
+		  cerr << "info: found by using linear search. " << objects[n].id << endl;
+		  break;
 		}
 	      }
-	      if (n == objects.size()) {
-		cerr << "Error! ID=" << id << ":" << static_cast<int>(status[id]) << endl;		
-		cerr << "  not found the valid same objects! " << objects.size() << endl;
-	      } else {
-		if (notRegisteredIdenticalObject) {
-		  cerr << "Error! ID=" << id << ":" << static_cast<int>(status[id]) << endl;
-		  cerr << "  found the not registered same objects. " << objects[n].id << endl;
-		} else {
-		  cerr << "Info ID=" << id << ":" << static_cast<int>(status[id]) << endl;
-		  cerr << "  found the valid same objects. " << objects[n].id << endl;
+	    }
+	    if (registeredIdenticalObject) {
+	      if (info) {
+		cerr << "Info ID=" << id << ":" << static_cast<int>(status[id]) << endl;
+		cerr << "  found the valid same objects. " << objects[n].id << endl;
+	      }
+
+	      GraphNode &node = *GraphIndex::getNode(id);
+	      bool found = false;
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	      for (auto i = node.begin(GraphIndex::repository.allocator); i != node.end(GraphIndex::repository.allocator); ++i) {
+#else
+	      for (auto i = node.begin(); i != node.end(); ++i) {
+#endif
+		if ((*i).id == objects[n].id) {
+		  found = true;
 		}
 	      }
+	      if (!found) {
+		cerr << "Warning no directed edge from " << id << " to " << objects[n].id << endl;
+	      }
+	    } else {
+	      cerr << "Warning: not found the valid same object even by using linear search." << endl;
+	      cerr << "Error! ID=" << id << ":" << static_cast<int>(status[id]) << endl;
+	      valid = false;
 	    }
 	  } else if (status[id] == 0x01) {
-	    cerr << "Warning! ID=" << id << ":" << static_cast<int>(status[id]) << endl;
-	    cerr << "  not inserted into the indexes" << endl;
+	    if (info) {
+	      cerr << "Warning! ID=" << id << ":" << static_cast<int>(status[id]) << endl;
+	      cerr << "  not inserted into the indexes" << endl;
+	    }
 	  } else {
 	    cerr << "Error! ID=" << id << ":" << static_cast<int>(status[id]) << endl;
+	    valid = false;
 	  }
 	}
       }
+      return valid;
     }
 
   };

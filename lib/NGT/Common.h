@@ -67,6 +67,7 @@ namespace NGT {
     virtual const char *what() const throw() {
       return message.c_str();
     }
+    string &getMessage() { return message; }
   protected:
     string message;
   };
@@ -555,11 +556,11 @@ namespace NGT {
   };
 
   namespace Serializer {
-    static void read(istream &is, uint8_t *v, size_t s) {
+    inline void read(istream &is, uint8_t *v, size_t s) {
       is.read((char*)v, s);
     }
 
-    static void write(ostream &os, const uint8_t *v, size_t s) {
+    inline void write(ostream &os, const uint8_t *v, size_t s) {
       os.write((const char*)v, s);
     }
 
@@ -772,7 +773,7 @@ namespace NGT {
       for (; i < e; i++) {
 	*i = *(i + 1);
       }
-      return ++back;
+      return back;
     }
 
     void pop_back() {
@@ -1721,6 +1722,7 @@ namespace NGT {
       distanceComputationCount = sc.distanceComputationCount;
       edgeSize = sc.edgeSize;
       workingResult = sc.workingResult;
+      useAllNodesInLeaf = sc.useAllNodesInLeaf;  
       return *this;
     }
     virtual ~SearchContainer() {}
@@ -1730,6 +1732,7 @@ namespace NGT {
       explorationCoefficient = 1.1;
       result = 0;
       edgeSize = -1;	// dynamically prune the edges during search. -1 means following the index property. 0 means using all edges.
+      useAllNodesInLeaf = false;
     }
     void setSize(size_t s) { size = s; };
     void setResults(ObjectDistances *r) { result = r; }
@@ -1754,6 +1757,7 @@ namespace NGT {
     int			edgeSize;
     size_t		distanceComputationCount;
     ResultPriorityQueue	workingResult;
+    bool		useAllNodesInLeaf;
 
   private:
     ObjectDistances	*result;

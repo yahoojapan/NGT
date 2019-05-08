@@ -23,6 +23,8 @@
 
 namespace NGT {
   class DVPTree;
+  class InternalNode;
+  class LeafNode;
   class Node {
   public:
     typedef unsigned int	NodeID;
@@ -371,24 +373,11 @@ namespace NGT {
     }
 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    void verify(size_t isize, size_t lsize, SharedMemoryAllocator &allocator) {
+    bool verify(PersistentRepository<InternalNode> &internalNodes, PersistentRepository<LeafNode> &leafNodes, 
+		SharedMemoryAllocator &allocator);
 #else
-    void verify(size_t isize, size_t lsize) {
+    bool verify(Repository<InternalNode> &internalNodes, Repository<LeafNode> &leafNodes);
 #endif
-      for (size_t i = 0; i < childrenSize; i++) {
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-	size_t nid = getChildren(allocator)[i].getID();
-	ID::Type type = getChildren(allocator)[i].getType();
-#else
-	size_t nid = getChildren()[i].getID();
-	ID::Type type = getChildren()[i].getType();
-#endif
-	size_t size = type == ID::Leaf ? lsize : isize;
-	if (nid >= size) {
-	  cerr << "Internal children node id is too big." << nid << ":" << size << endl;
-	}
-      }
-    }
 
     static const int InternalChildrenSizeMax	= 5;
     const size_t	childrenSize;
@@ -617,22 +606,11 @@ namespace NGT {
     }
 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    void verify(size_t size, vector<uint8_t> &status, SharedMemoryAllocator &allocator) {
+    bool verify(size_t nobjs, vector<uint8_t> &status, SharedMemoryAllocator &allocator);
 #else
-      void verify(size_t size, vector<uint8_t> &status) {
+    bool verify(size_t nobjs, vector<uint8_t> &status);
 #endif
-      for (size_t i = 0; i < objectSize; i++) {
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-	size_t nid = getObjectIDs(allocator)[i].id;
-#else
-	size_t nid = getObjectIDs()[i].id;
-#endif
-	status[nid] |= 0x04;
-	if (nid >= size) {
-	  cerr << "Object id is too big. " << nid << ":" << size << endl;
-	}
-      }
-    }
+
 
 #ifdef NGT_NODE_USE_VECTOR
     size_t getObjectSize() { return objectIDs.size(); }
