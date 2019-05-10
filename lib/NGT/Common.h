@@ -556,11 +556,11 @@ namespace NGT {
   };
 
   namespace Serializer {
-    inline void read(istream &is, uint8_t *v, size_t s) {
+    static inline void read(istream &is, uint8_t *v, size_t s) {
       is.read((char*)v, s);
     }
 
-    inline void write(ostream &os, const uint8_t *v, size_t s) {
+    static inline void write(ostream &os, const uint8_t *v, size_t s) {
       os.write((const char*)v, s);
     }
 

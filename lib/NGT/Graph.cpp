@@ -418,15 +418,13 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 #endif
 #endif
       neighborendptr = neighborptr;
-      if (edgeSize == 0) {
-	neighborendptr += neighbors->size();
-      } else {
-	neighborendptr += (neighbors->size() < edgeSize ? neighbors->size() : edgeSize);
-      }
+      size_t neighborSize = neighbors->size() < edgeSize ? neighbors->size() : edgeSize;
+      neighborendptr += neighborSize;
 #ifdef NGT_GRAPH_BETTER_FIRST_RESTORE
       neighborendptr -= position;
 #endif
-      for (size_t i = 0; i < prefetchOffset; i++) {
+      size_t prefetchSize = prefetchOffset < neighborSize ? prefetchOffset : neighborSize;
+      for (size_t i = 0; i < prefetchSize; i++) {
 	if (!distanceChecked[(*(neighborptr + i)).id]) {
 	  unsigned char *ptr = reinterpret_cast<unsigned char*>(objectRepository.get((*(neighborptr + i)).id));
 	  MemoryCache::prefetch(ptr, byteSizeOfObject);

@@ -96,16 +96,21 @@ CreateIndexThread::run() {
     } catch(NGT::ThreadTerminationException &err) {
       break;
     } catch(NGT::Exception &err) {
-      cerr << "CreateIndex::search:popFront " << err.what() << endl;
+      cerr << "CreateIndex::search:Error! popFront " << err.what() << endl;
       break;
     }
     ObjectDistances *rs = new ObjectDistances;
     Object &obj = *job.object;
-    if (graphIndex.NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeKNNG) {
-      graphIndex.searchForKNNGInsertion(obj, job.id, *rs);	// linear search
-    } else {
-      graphIndex.searchForNNGInsertion(obj, *rs);
-    }
+    try {
+      if (graphIndex.NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeKNNG) {
+	graphIndex.searchForKNNGInsertion(obj, job.id, *rs);	// linear search
+      } else {
+	graphIndex.searchForNNGInsertion(obj, *rs);
+      }
+    } catch(NGT::Exception &err) {
+      cerr << "CreateIndex::search:Fatal error! ID=" << job.id << " " << err.what() << endl;
+      abort();
+    } 
     job.results = rs;
     poolThread.getOutputJobQueue().pushBack(job);
   }
