@@ -82,6 +82,8 @@ main(int argc, char **argv)
       ngt.prune(args);
     } else if (command == "reconstruct-graph") {
       ngt.reconstructGraph(args);
+    } else if (command == "eval") {
+      NGT::Optimizer::evaluate(args);
 #ifndef NGT_SHARED_MEMORY_ALLOCATOR
     } else if (command == "extract-query") {
       NGT::Optimizer::extractQueries(args);

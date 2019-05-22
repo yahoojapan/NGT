@@ -779,6 +779,83 @@ namespace NGT {
       return 0;
     }
 
+    static void evaluate(Args &args)
+    {
+      const string usage = "Usage: ngt eval [-n number-of-results] [-m mode(r=recall)] [-g ground-truth-size] [-o output-mode] ground-truth search-result\n"
+	"   Make a ground truth list (linear search): \n"
+	"       ngt search -i s -n 20 -o e index query.list > ground-truth.list";
+
+      string gtFile, resultFile;
+      try {
+	gtFile = args.get("#1");
+      } catch (...) {
+	cerr << "ground truth is not specified." << endl;
+	cerr << usage << endl;
+	return;
+      }
+      try {
+	resultFile = args.get("#2");
+      } catch (...) {
+	cerr << "result file is not specified." << endl;
+	cerr << usage << endl;
+	return;
+      }
+
+      size_t resultSize = args.getl("n", 0);
+      if (resultSize != 0) {
+	cerr << "The specified number of results=" << resultSize << endl;
+      }
+
+      size_t groundTruthSize = args.getl("g", 0);
+
+      bool recall = false;
+      if (args.getChar("m", '-') == 'r') {
+	cerr << "Recall" << endl;
+	recall = true;
+      }
+      char omode = args.getChar("o", '-');
+    
+      ifstream	resultStream(resultFile);
+      if (!resultStream) {
+	cerr << "Cannot open the specified target file. " << resultFile << endl;
+	cerr << usage << endl;
+	return;
+      }
+
+      ifstream	gtStream(gtFile);
+      if (!gtStream) {
+	cerr << "Cannot open the specified GT file. " << gtFile << endl;
+	cerr << usage << endl;
+	return;
+      }
+
+      vector<Accuracy> accuracies;
+      string type;
+      size_t actualResultSize = 0;
+      evaluate(gtStream, resultStream, accuracies, type, actualResultSize, resultSize, groundTruthSize, recall);
+
+      cout << "# # of evaluated resultant objects per query=" << actualResultSize << endl;
+      if (recall) {
+	cout << "# " << type << "\t# of Queries\tRecall\t";
+      } else {
+	cout << "# " << type << "\t# of Queries\tPrecision\t";
+      }
+      if (omode == 'd') {
+	cout << "# of computations\t# of visted nodes" << endl;
+	for (auto it = accuracies.begin(); it != accuracies.end(); ++it) {
+	  cout << (*it).keyValue << "\t" << (*it).totalCount << "\t" << (*it).averageAccuracy << "\t" 
+	       << (*it).averageDistanceCount << "\t" << (*it).averageVisitCount << endl;
+	}
+      } else {
+	cout << "Time(msec)\t# of computations\t# of visted nodes" << endl;
+	for (auto it = accuracies.begin(); it != accuracies.end(); ++it) {
+	  cout << (*it).keyValue << "\t" << (*it).totalCount << "\t" << (*it).averageAccuracy << "\t" << (*it).averageTime << "\t" 
+	       << (*it).averageDistanceCount << "\t" << (*it).averageVisitCount << endl;
+	}
+      }
+
+    }
+
   };
 
 }; // NGT

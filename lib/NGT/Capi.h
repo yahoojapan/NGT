@@ -77,6 +77,8 @@ bool ngt_set_property_distance_type_cosine(NGTProperty, NGTError);
 NGTObjectDistances ngt_create_empty_results(NGTError);
 
 bool ngt_search_index(NGTIndex, double*, int32_t, size_t, float, float, NGTObjectDistances, NGTError);
+
+bool ngt_search_index_as_float(NGTIndex, float*, int32_t, size_t, float, float, NGTObjectDistances, NGTError);
   
 int32_t ngt_get_size(NGTObjectDistances, NGTError); // deprecated
   
@@ -87,6 +89,10 @@ NGTObjectDistance ngt_get_result(const NGTObjectDistances, const uint32_t, NGTEr
 ObjectID ngt_insert_index(NGTIndex, double*, uint32_t, NGTError);
 
 ObjectID ngt_append_index(NGTIndex, double*, uint32_t, NGTError);
+
+ObjectID ngt_insert_index_as_float(NGTIndex, float*, uint32_t, NGTError);
+
+ObjectID ngt_append_index_as_float(NGTIndex, float*, uint32_t, NGTError);
 
 bool ngt_batch_append_index(NGTIndex, float*, uint32_t, NGTError);
 

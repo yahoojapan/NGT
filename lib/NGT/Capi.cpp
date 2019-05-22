@@ -265,10 +265,57 @@ NGTObjectDistances ngt_create_empty_results(NGTError error) {
   }
 }
 
+static bool ngt_search_index_(NGT::Index* pindex, NGT::Object *ngtquery, size_t size, float epsilon, float radius, NGTObjectDistances results) {
+  // set search prameters.
+  NGT::SearchContainer sc(*ngtquery);      // search parametera container.
+  
+  sc.setResults(static_cast<NGT::ObjectDistances*>(results));          // set the result set.
+  sc.setSize(size);             // the number of resultant objects.
+  sc.setRadius(radius);         // search radius.
+  sc.setEpsilon(epsilon);           // set exploration coefficient.
+  
+  pindex->search(sc);
+  
+  // delete the query object.
+  pindex->deleteObject(ngtquery);
+  return true;
+}
+
 bool ngt_search_index(NGTIndex index, double *query, int32_t query_dim, size_t size, float epsilon, float radius, NGTObjectDistances results, NGTError error) {
-  if(index == NULL || query == NULL || results == NULL){
+  if(index == NULL || query == NULL || results == NULL || query_dim <= 0){
     std::stringstream ss;
-    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " query = " << query << " results = " << results;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " query = " << query << " results = " << results << " query_dim = " << query_dim;
+    operate_error_string_(ss, error);
+    return false;
+  }
+  
+  NGT::Index* pindex = static_cast<NGT::Index*>(index);    
+  NGT::Object *ngtquery = NULL;
+  
+  if(radius < 0.0){
+    radius = FLT_MAX;
+  }
+  
+  try{	  
+    std::vector<double> vquery(&query[0], &query[query_dim]);
+    ngtquery = pindex->allocateObject(vquery);
+    ngt_search_index_(pindex, ngtquery, size, epsilon, radius, results);
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);      
+    if(ngtquery != NULL){
+      pindex->deleteObject(ngtquery);
+    }
+    return false;
+  }
+  return true;
+}
+
+bool ngt_search_index_as_float(NGTIndex index, float *query, int32_t query_dim, size_t size, float epsilon, float radius, NGTObjectDistances results, NGTError error) {
+  if(index == NULL || query == NULL || results == NULL || query_dim <= 0){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " query = " << query << " results = " << results << " query_dim = " << query_dim;
     operate_error_string_(ss, error);
     return false;
   }
@@ -281,20 +328,9 @@ bool ngt_search_index(NGTIndex index, double *query, int32_t query_dim, size_t s
   }
 
   try{	  
-    std::vector<double> vquery(&query[0], &query[query_dim]);
+    std::vector<float> vquery(&query[0], &query[query_dim]);
     ngtquery = pindex->allocateObject(vquery);
-    // set search prameters.
-    NGT::SearchContainer sc(*ngtquery);      // search parametera container.
-    
-    sc.setResults(static_cast<NGT::ObjectDistances*>(results));          // set the result set.
-    sc.setSize(size);             // the number of resultant objects.
-    sc.setRadius(radius);         // search radius.
-    sc.setEpsilon(epsilon);           // set exploration coefficient.
-    
-    pindex->search(sc);
-    
-    // delete the query object.
-    pindex->deleteObject(ngtquery);
+    ngt_search_index_(pindex, ngtquery, size, epsilon, radius, results);
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
@@ -306,6 +342,7 @@ bool ngt_search_index(NGTIndex index, double *query, int32_t query_dim, size_t s
   }
   return true;
 }
+
 
 // * deprecated *
 int32_t ngt_get_size(NGTObjectDistances results, NGTError error) {
@@ -346,6 +383,13 @@ NGTObjectDistance ngt_get_result(const NGTObjectDistances results, const uint32_
 }
 
 ObjectID ngt_insert_index(NGTIndex index, double *obj, uint32_t obj_dim, NGTError error) {
+  if(index == NULL || obj == NULL || obj_dim == 0){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " obj = " << obj << " obj_dim = " << obj_dim;
+    operate_error_string_(ss, error);
+    return 0;
+  }
+
   try{
     NGT::Index* pindex = static_cast<NGT::Index*>(index);
     std::vector<double> vobj(&obj[0], &obj[obj_dim]);
@@ -359,9 +403,56 @@ ObjectID ngt_insert_index(NGTIndex index, double *obj, uint32_t obj_dim, NGTErro
 }
 
 ObjectID ngt_append_index(NGTIndex index, double *obj, uint32_t obj_dim, NGTError error) {
+  if(index == NULL || obj == NULL || obj_dim == 0){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " obj = " << obj << " obj_dim = " << obj_dim;
+    operate_error_string_(ss, error);
+    return 0;
+  }
+
   try{
     NGT::Index* pindex = static_cast<NGT::Index*>(index);
     std::vector<double> vobj(&obj[0], &obj[obj_dim]);
+    return pindex->append(vobj);    
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);      
+    return 0;
+  }
+}
+
+ObjectID ngt_insert_index_as_float(NGTIndex index, float *obj, uint32_t obj_dim, NGTError error) {
+  if(index == NULL || obj == NULL || obj_dim == 0){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " obj = " << obj << " obj_dim = " << obj_dim;
+    operate_error_string_(ss, error);
+    return 0;
+  }
+
+  try{
+    NGT::Index* pindex = static_cast<NGT::Index*>(index);
+    std::vector<float> vobj(&obj[0], &obj[obj_dim]);
+    return pindex->insert(vobj);    
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);      
+    return 0;
+  }
+}
+
+ObjectID ngt_append_index_as_float(NGTIndex index, float *obj, uint32_t obj_dim, NGTError error) {
+  if(index == NULL || obj == NULL || obj_dim == 0){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " obj = " << obj << " obj_dim = " << obj_dim;
+    operate_error_string_(ss, error);
+    return 0;
+  }
+
+  try{
+    NGT::Index* pindex = static_cast<NGT::Index*>(index);
+    std::vector<float> vobj(&obj[0], &obj[obj_dim]);
     return pindex->append(vobj);    
   }catch(std::exception &err) {
     std::stringstream ss;
