@@ -123,7 +123,7 @@ namespace MemoryManager{
       if(munmap(cntl_p, MMAP_CNTL_FILE_SIZE) == -1) throw MmapManagerException("munmap error : " + getErrorStr(errno));
       
       return true;
-    }catch(MmapManagerException e){
+    }catch(MmapManagerException &e){
       std::cerr << "init error. " << e.what() << std::endl;
       throw e;
     }
@@ -196,7 +196,7 @@ namespace MemoryManager{
       
       _impl->isOpen = true;
       return true;
-    }catch(MmapManagerException e){
+    }catch(MmapManagerException &e){
       std::cerr << "open error" << std::endl;
       throw e;
     }
@@ -235,7 +235,7 @@ namespace MemoryManager{
         }
         _impl->isOpen = false;
       }
-    }catch(MmapManagerException e){
+    }catch(MmapManagerException &e){
       std::cerr << "close error" << std::endl;
       throw e;
     }
@@ -292,7 +292,7 @@ namespace MemoryManager{
       unit_header->chunk_num++;
       
       return ret_p;
-    }catch(MmapManagerException e){
+    }catch(MmapManagerException &e){
       std::cerr << "allocation error" << std::endl;
       throw e;
     }

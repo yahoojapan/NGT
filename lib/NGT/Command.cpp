@@ -300,6 +300,7 @@
 	  stream << "# Epsilon=" << epsilon << endl;
 	  stream << "# Query Time (msec)=" << timer.time * 1000.0 << endl;
 	  stream << "# Distance Computation=" << sc.distanceComputationCount << endl;
+	  stream << "# Visit Count=" << sc.visitCount << endl;
 	} else {
 	  stream << "Query No." << queryCount << endl;
 	  stream << "Rank\tID\tDistance" << endl;
@@ -784,16 +785,19 @@
       cerr << "ngt::Path adjustment time=" << timer.time << " (sec) " << endl;
     }
 
-    float intervalFrom = 0.6;
-    float intervalTo = 0.8;
+    pair<float, float> baseAccuracyRange(0.30, 0.50);
+    pair<float, float> rateAccuracyRange(0.80, 0.90);
     size_t querySize = 100;
     double gtEpsilon = 0.1;
+    double mergin = 0.2;
 
+    NGT::Optimizer optimizer(outIndex);
     try {
-      size_t baseEdgeSize = NGT::Optimizer::adjustBaseSearchEdgeSize(outIndex, pair<float, float>(intervalFrom, intervalTo), querySize, gtEpsilon);
+      auto param = optimizer.adjustSearchEdgeSize(baseAccuracyRange, rateAccuracyRange, querySize, gtEpsilon, mergin);
       NeighborhoodGraph::Property &prop = outGraph.getGraphProperty();
-      prop.dynamicEdgeSizeBase = baseEdgeSize;
-      cerr << "Reconstruct Graph: adjust the base search edge size. " << baseEdgeSize << endl;
+      prop.dynamicEdgeSizeBase = param.first;
+      prop.dynamicEdgeSizeRate = param.second;
+      cerr << "Reconstruct Graph: adjust the base search edge size. " << param.first << ":" << param.second << endl;
     } catch(NGT::Exception &err) {
       cerr << "Warning: Cannot adjust the base edge size. " << err.what() << endl;
     }

@@ -629,4 +629,187 @@ GraphAndTreeIndex::createIndex(const vector<pair<NGT::Object*, size_t> > &object
   }
 }
 
+static bool 
+findPathAmongIdenticalObjects(GraphAndTreeIndex &graph, size_t srcid, size_t dstid) {
+  stack<size_t> nodes;
+  unordered_set<size_t> done;
+  nodes.push(srcid);
+  while (!nodes.empty()) {
+    auto tid = nodes.top();
+    nodes.pop();
+    done.insert(tid);
+    GraphNode &node = *graph.GraphIndex::getNode(tid);
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+    for (auto i = node.begin(graph.repository.allocator); i != node.end(graph.GraphIndex::repository.allocator); ++i) {
+#else
+    for (auto i = node.begin(); i != node.end(); ++i) {
+#endif
+      if ((*i).distance != 0.0) {
+	break;
+      }
+      if ((*i).id == dstid) {
+	return true;
+      }
+      if (done.count((*i).id) == 0) {
+        nodes.push((*i).id);
+      }
+    }
+  }
+  return false;
+}
+
+bool 
+GraphAndTreeIndex::verify(vector<uint8_t> &status, bool info) {
+  bool valid = GraphIndex::verify(status, info);
+  if (!valid) {
+    cerr << "The graph or object is invalid!" << endl;
+  }
+  valid = valid && DVPTree::verify(GraphIndex::objectSpace->getRepository().size(), status);
+  if (!valid) {
+    cerr << "The tree is invalid" << endl;
+  }
+  // status: tree|graph|object
+  for (size_t id = 1; id < status.size(); id++) {
+    if (status[id] != 0x00 && status[id] != 0x07) {
+      if (status[id] == 0x03) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	NGT::Object *po = GraphIndex::objectSpace->allocateObject(*GraphIndex::getObjectRepository().get(id));
+	NGT::SearchContainer sc(*po);
+#else
+	NGT::SearchContainer sc(*GraphIndex::getObjectRepository().get(id));
+#endif
+	NGT::ObjectDistances objects;
+	sc.setResults(&objects);
+	sc.id = 0;
+	sc.radius = 0.0;
+	sc.explorationCoefficient = 1.1;
+	sc.edgeSize = 0;
+	ObjectDistances	seeds;
+	seeds.push_back(ObjectDistance(id, 0.0));
+	objects.clear();
+	GraphIndex::search(sc, seeds);
+	size_t n = 0;
+	bool registeredIdenticalObject = false;
+	for (; n < objects.size(); n++) {
+	  if (objects[n].id != id && status[objects[n].id] == 0x07) {
+	    registeredIdenticalObject = true;
+	    break;
+	  }
+	}
+	if (!registeredIdenticalObject) {
+	  if (info) {
+	    cerr << "info: not found the registered same objects. id=" << id << " size=" << objects.size() << endl;
+	  }
+	  sc.id = 0;
+	  sc.radius = FLT_MAX;
+	  sc.explorationCoefficient = 1.2;
+	  sc.edgeSize = 0;
+	  sc.size = objects.size() < 100 ? 100 : objects.size() * 2;
+	  ObjectDistances	seeds;
+	  seeds.push_back(ObjectDistance(id, 0.0));
+	  objects.clear();
+	  GraphIndex::search(sc, seeds);
+	  registeredIdenticalObject = false;
+	  for (n = 0; n < objects.size(); n++) {
+	    if (objects[n].distance != 0.0) break;
+	    if (objects[n].id != id && status[objects[n].id] == 0x07) {
+	      registeredIdenticalObject = true;
+	      if (info) {
+		cerr << "info: found by using mode accurate search. " << objects[n].id << endl;
+	      }
+	      break;
+	    }
+	  }
+	}
+	if (!registeredIdenticalObject) {
+	  if (info) {
+	    cerr << "info: not found by using more accurate search." << endl;
+	  }
+	  sc.id = 0;
+	  sc.radius = 0.0;
+	  sc.explorationCoefficient = 1.1;
+	  sc.edgeSize = 0;
+	  sc.size = SIZE_MAX;
+	  objects.clear();
+	  linearSearch(sc);
+	  n = 0;
+	  registeredIdenticalObject = false;
+	  for (; n < objects.size(); n++) {
+	    if (objects[n].distance != 0.0) break;
+	    if (objects[n].id != id && status[objects[n].id] == 0x07) {
+	      registeredIdenticalObject = true;
+	      if (info) {
+		cerr << "info: found by using linear search. " << objects[n].id << endl;
+	      }
+	      break;
+	    }
+	  }
+	}
+	if (registeredIdenticalObject) {
+	  if (info) {
+	    cerr << "Info ID=" << id << ":" << static_cast<int>(status[id]) << endl;
+	    cerr << "  found the valid same objects. " << objects[n].id << endl;
+	  }
+	  GraphNode &fromNode = *GraphIndex::getNode(id);
+	  bool fromFound = false;
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	  for (auto i = fromNode.begin(GraphIndex::repository.allocator); i != fromNode.end(GraphIndex::repository.allocator); ++i) {
+#else
+	  for (auto i = fromNode.begin(); i != fromNode.end(); ++i) {
+#endif
+	    if ((*i).id == objects[n].id) {
+	      fromFound = true;
+	    }
+	  }
+	  GraphNode &toNode = *GraphIndex::getNode(objects[n].id);
+	  bool toFound = false;
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	  for (auto i = toNode.begin(GraphIndex::repository.allocator); i != toNode.end(GraphIndex::repository.allocator); ++i) {
+#else
+	  for (auto i = toNode.begin(); i != toNode.end(); ++i) {
+#endif
+	    if ((*i).id == id) {
+	      toFound = true;
+	    }
+	  }
+	  if (!fromFound || !toFound) {
+	    if (info) {
+	      if (!fromFound && !toFound) {
+		cerr << "Warning no undirected edge between " << id << "(" << fromNode.size() << ") and " 
+		     << objects[n].id << "(" << toNode.size() << ")." << endl;
+	      } else if (!fromFound) {
+		cerr << "Warning no directed edge from " << id << "(" << fromNode.size() << ") to " 
+		     << objects[n].id << "(" << toNode.size() << ")." << endl;
+	      } else if (!toFound) {
+		cerr << "Warning no reverse directed edge from " << id << "(" << fromNode.size() << ") to " 
+		     << objects[n].id << "(" << toNode.size() << ")." << endl;
+	      }
+	    }
+	    if (!findPathAmongIdenticalObjects(*this, id, objects[n].id)) {
+	      cerr << "Warning no path from " << id << " to " << objects[n].id << endl;
+	    }
+	    if (!findPathAmongIdenticalObjects(*this, objects[n].id, id)) {
+	      cerr << "Warning no reverse path from " << id << " to " << objects[n].id << endl;
+	    }
+	  }
+	} else {
+	  cerr << "Warning: not found the valid same object even by using linear search." << endl;
+	  cerr << "Error! ID=" << id << ":" << static_cast<int>(status[id]) << endl;
+	  valid = false;
+	}
+      } else if (status[id] == 0x01) {
+	  if (info) {
+	    cerr << "Warning! ID=" << id << ":" << static_cast<int>(status[id]) << endl;
+	    cerr << "  not inserted into the indexes" << endl;
+	  }
+      } else {
+	  cerr << "Error! ID=" << id << ":" << static_cast<int>(status[id]) << endl;
+	  valid = false;
+      }
+    }
+  }
+  return valid;
+}
+
+
 

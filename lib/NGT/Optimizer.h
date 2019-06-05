@@ -21,20 +21,24 @@
 namespace NGT {
   class Optimizer {
   public:
-    Optimizer() {}
+
+
+    Optimizer(NGT::Index &i, size_t n = 10):index(i), nOfResults(n) { 
+    }
     ~Optimizer() {}
 
-    class Accuracy {
+    class MeasuredValue {
     public:
+    MeasuredValue():keyValue(0.0), totalCount(0), meanAccuracy(0.0), meanTime(0.0), meanDistanceCount(0.0), meanVisitCount(0.0) {}
       double	keyValue;
       size_t	totalCount;
-      float	averageAccuracy;
-      double	averageTime;
-      double	averageDistanceCount;
-      double	averageVisitCount;
+      float	meanAccuracy;
+      double	meanTime;
+      double	meanDistanceCount;
+      double	meanVisitCount;
     };
 
-    static void search(NGT::Index &index, istream &gtStream, Command::SearchParameter &sp, vector<Accuracy> &acc) {
+    static void search(NGT::Index &index, istream &gtStream, Command::SearchParameter &sp, vector<MeasuredValue> &acc) {
       ifstream		is(sp.query);
       if (!is) {
 	stringstream msg;
@@ -45,22 +49,79 @@ namespace NGT {
       search(index, gtStream, sp, acc);
     }
 
-    static void search(NGT::Index &index, istream &queries, istream &gtStream, Command::SearchParameter &sp, vector<Accuracy> &acc) {
+    static void search(NGT::Index &index, istream &queries, istream &gtStream, Command::SearchParameter &sp, vector<MeasuredValue> &acc) {
       sp.stepOfEpsilon = 1.0;
       stringstream resultStream;
       NGT::Command::search(index, sp, queries, resultStream);
-      gtStream.clear();
-      gtStream.seekg(0, ios_base::beg);
       resultStream.clear();
       resultStream.seekg(0, ios_base::beg);
       string type;
       size_t actualResultSize = 0;
-      evaluate(gtStream, resultStream, acc, type, actualResultSize);
+      gtStream.seekg(0, ios_base::end);      
+      auto pos = gtStream.tellg();
+      if (pos == 0) {
+	evaluate(resultStream, acc, type, actualResultSize);
+      } else {
+	gtStream.clear();
+	gtStream.seekg(0, ios_base::beg);
+	evaluate(gtStream, resultStream, acc, type, actualResultSize);
+      }
+
       assert(acc.size() == 1);
     }
 
     static void
-      evaluate(istream &gtStream, istream &resultStream, vector<Accuracy> &accuracies, string &type, 
+      evaluate(istream &resultStream, vector<MeasuredValue> &accuracies, string &type, 
+	       size_t &resultDataSize, size_t specifiedResultSize = 0, size_t groundTruthSize = 0, bool recall = false)
+    {
+
+      resultDataSize = 0;
+
+      if (recall) {
+	if (specifiedResultSize == 0) {
+	  stringstream msg;
+	  msg << "For calculating recalls, the result size should be specified.";
+	  NGTThrowException(msg);
+	}
+	resultDataSize = specifiedResultSize;
+      } else {
+	checkAndGetSize(resultStream, resultDataSize);
+      }
+
+      string line;
+      size_t queryNo = 1;
+      map<double, double> totalAccuracy;
+      map<double, double> totalTime;
+      map<double, size_t> totalDistanceCount;
+      map<double, size_t> totalVisitCount;
+      map<double, size_t> totalCount;
+
+      resultStream.clear();
+      resultStream.seekg(0, ios_base::beg);
+
+      do {
+	unordered_set<size_t> gt;
+	double furthestDistance = 0.0;
+	sumup(resultStream, queryNo, totalAccuracy, totalTime, totalDistanceCount, totalVisitCount, totalCount, 
+	      gt, resultDataSize, type, recall, furthestDistance);
+	queryNo++;
+      } while (!resultStream.eof());
+
+      accuracies.clear();
+      for (auto it = totalAccuracy.begin(); it != totalAccuracy.end(); ++it) {
+	MeasuredValue a;
+	a.keyValue = (*it).first;
+	a.totalCount = totalCount[a.keyValue];
+	a.meanAccuracy = totalAccuracy[a.keyValue] / (double)totalCount[a.keyValue];
+	a.meanTime = totalTime[a.keyValue] / (double)totalCount[a.keyValue];
+	a.meanDistanceCount = (double)totalDistanceCount[a.keyValue] / (double)totalCount[a.keyValue];
+	a.meanVisitCount = (double)totalVisitCount[a.keyValue] / (double)totalCount[a.keyValue];
+	accuracies.push_back(a);
+      }
+    }
+
+    static void
+      evaluate(istream &gtStream, istream &resultStream, vector<MeasuredValue> &accuracies, string &type, 
 	       size_t &resultDataSize, size_t specifiedResultSize = 0, size_t groundTruthSize = 0, bool recall = false)
     {
 
@@ -97,13 +158,14 @@ namespace NGT {
 	if (tokens[0] == "# Query No.") {
 	  if (tokens.size() > 1 && (size_t)NGT::Common::strtol(tokens[1]) == queryNo) {
 	    unordered_set<size_t> gt;
+	    double furthestDistance;
 	    if (groundTruthSize == 0) {
-	      loadGroundTruth(gtStream, gt, resultDataSize);
+	      loadGroundTruth(gtStream, gt, resultDataSize, furthestDistance);
 	    } else {
-	      loadGroundTruth(gtStream, gt, groundTruthSize);
+	      loadGroundTruth(gtStream, gt, groundTruthSize, furthestDistance);
 	    }
 	    sumup(resultStream, queryNo, totalAccuracy, totalTime, totalDistanceCount, totalVisitCount, totalCount, 
-		  gt, resultDataSize, type, recall);
+		  gt, resultDataSize, type, recall, furthestDistance);
 	    queryNo++;
 	  }
 	}
@@ -111,19 +173,20 @@ namespace NGT {
 
       accuracies.clear();
       for (auto it = totalAccuracy.begin(); it != totalAccuracy.end(); ++it) {
-	Accuracy a;
+	MeasuredValue a;
 	a.keyValue = (*it).first;
 	a.totalCount = totalCount[a.keyValue];
-	a.averageAccuracy = totalAccuracy[a.keyValue] / (double)totalCount[a.keyValue];
-	a.averageTime = totalTime[a.keyValue] / (double)totalCount[a.keyValue];
-	a.averageDistanceCount = (double)totalDistanceCount[a.keyValue] / (double)totalCount[a.keyValue];
-	a.averageVisitCount = (double)totalVisitCount[a.keyValue] / (double)totalCount[a.keyValue];
+	a.meanAccuracy = totalAccuracy[a.keyValue] / (double)totalCount[a.keyValue];
+	a.meanTime = totalTime[a.keyValue] / (double)totalCount[a.keyValue];
+	a.meanDistanceCount = (double)totalDistanceCount[a.keyValue] / (double)totalCount[a.keyValue];
+	a.meanVisitCount = (double)totalVisitCount[a.keyValue] / (double)totalCount[a.keyValue];
 	accuracies.push_back(a);
       }
     }
 
+
     static void
-      loadGroundTruth(istream & gtf, unordered_set<size_t> & gt, size_t resultDataSize) {
+      loadGroundTruth(istream & gtf, unordered_set<size_t> & gt, size_t resultDataSize, double &distance) {
       string line;
       size_t dataCount = 0;
       size_t searchCount = 0;
@@ -163,6 +226,7 @@ namespace NGT {
 	  NGTThrowException(msg);
 	}
 	size_t id = NGT::Common::strtol(result[1]);
+	distance = NGT::Common::strtod(result[2]);
 	try {
 	  gt.insert(id);
 	} catch(...) {
@@ -248,7 +312,8 @@ namespace NGT {
 		      unordered_set<size_t> &gt,
 		      const size_t resultDataSize,
 		      string &keyValue,
-		      bool recall)
+		      bool recall,
+		      double furthestDistance)
     {
       string line;
       size_t lineNo = 0;
@@ -361,8 +426,16 @@ namespace NGT {
 		}
 		size_t rank = NGT::Common::strtol(result[0]);
 		size_t id = NGT::Common::strtol(result[1]);
+		double distance = NGT::Common::strtod(result[2]);
 		if (gt.count(id) != 0) {
 		  relevantCount++;
+		} else {
+		  if (furthestDistance > 0.0 && distance <= furthestDistance) {
+		    relevantCount++;
+		    if (distance < furthestDistance) {
+		      //cerr << "Optimizer:Warning!. The ground truth has a missing object. " << id << ":" << distance << ":" << furthestDistance << endl;
+		    }
+		  }
 		}
 		dataCount++;
 		if (rank != dataCount) {
@@ -380,7 +453,7 @@ namespace NGT {
     }
 
     static void exploreEpsilonForAccuracy(NGT::Index &index, istream &queries, istream &gtStream, 
-					  Command::SearchParameter &sp, pair<float, float> interval, double mergin) 
+					  Command::SearchParameter &sp, pair<float, float> accuracyRange, double mergin) 
     {
       double fromUnder = 0.0;
       double fromOver = 1.0;
@@ -391,23 +464,23 @@ namespace NGT {
       float toUnderEpsilon = -0.9;
       float toOverEpsilon = -0.9;
 
-      float intervalFrom = interval.first;
-      float intervalTo = interval.second;
+      float accuracyRangeFrom = accuracyRange.first;
+      float accuracyRangeTo = accuracyRange.second;
 
-      double range = intervalTo - intervalFrom;
+      double range = accuracyRangeTo - accuracyRangeFrom;
 
-      vector<Accuracy> acc;
+      vector<MeasuredValue> acc;
 
       {
-	float startEpsilon = -0.4;
+	float startEpsilon = -0.6;
 	float epsilonStep = 0.02;
 	size_t count;
 	for (count = 0;; count++) {
-	  float epsilon = startEpsilon + epsilonStep * count;
-	  if (epsilon > 0.2) {
+	  float epsilon = round((startEpsilon + epsilonStep * count) * 100.0F) / 100.0F; 
+	  if (epsilon > 0.25F) {
 	    stringstream msg;
 	    msg << "exploreEpsilonForAccuracy:" << endl;
-	    msg << "Error!! Epsilon is too large. " << epsilon;
+	    msg << "Error!! Epsilon (lower bound) is too large. " << epsilon << "," << startEpsilon << "," << epsilonStep << "," << count;
 	    NGTThrowException(msg);
 	  }
 	  acc.clear();
@@ -415,7 +488,7 @@ namespace NGT {
 	  queries.clear();
 	  queries.seekg(0, ios_base::beg);
 	  search(index, queries, gtStream, sp, acc);
-	  if (acc[0].averageAccuracy >= intervalFrom) {
+	  if (acc[0].meanAccuracy >= accuracyRangeFrom) {
 	    break;
 	  }
 	}
@@ -425,17 +498,17 @@ namespace NGT {
 	  msg << "Error! startEpsilon should be reduced for the specified range.";
 	  NGTThrowException(msg);
 	}
-	fromOver = acc[0].averageAccuracy;
+	fromOver = acc[0].meanAccuracy;
 
-	if (fromOver < intervalTo) {
+	if (fromOver < accuracyRangeTo) {
 	  startEpsilon = fromOverEpsilon;
 	  for (count = 0;; count++) {
-	    float epsilon = startEpsilon + epsilonStep * count;
+	    float epsilon = round((startEpsilon + epsilonStep * count) * 100.0F) / 100.0F; 
 	    sp.beginOfEpsilon = sp.endOfEpsilon = toOverEpsilon = epsilon;
-	    if (epsilon > 0.2) {
+	    if (epsilon > 0.25F) {
 	      stringstream msg;
 	      msg << "exploreEpsilonForAccuracy:" << endl;
-	      msg << "Error!! Epsilon is too large. " << epsilon;
+	      msg << "Error!! Epsilon (upper bound) is too large. " << epsilon << "," << startEpsilon << "," << epsilonStep << "," << count;
 	      NGTThrowException(msg);
 	    }
 	    acc.clear();
@@ -443,11 +516,11 @@ namespace NGT {
 	    queries.seekg(0, ios_base::beg);
 	    search(index, queries, gtStream, sp, acc);
 	    epsilon += epsilonStep;
-	    if (acc[0].averageAccuracy >= intervalTo) {
+	    if (acc[0].meanAccuracy >= accuracyRangeTo) {
 	      break;
 	    }
 	  }
-	  toOver = acc[0].averageAccuracy;
+	  toOver = acc[0].meanAccuracy;
 	} else {
 	  toOver = fromOver;
 	  toOverEpsilon = fromOverEpsilon;
@@ -463,39 +536,39 @@ namespace NGT {
 	queries.clear();
 	queries.seekg(0, ios_base::beg);
 	search(index, queries, gtStream, sp, acc);
-	if (acc[0].averageAccuracy >= fromUnder && acc[0].averageAccuracy <= intervalFrom) {
-	  fromUnder = acc[0].averageAccuracy;
+	if (acc[0].meanAccuracy >= fromUnder && acc[0].meanAccuracy <= accuracyRangeFrom) {
+	  fromUnder = acc[0].meanAccuracy;
 	  fromUnderEpsilon = acc[0].keyValue;
 	}
-	if (acc[0].averageAccuracy <= fromOver && acc[0].averageAccuracy > intervalFrom) {
-	  fromOver = acc[0].averageAccuracy;
+	if (acc[0].meanAccuracy <= fromOver && acc[0].meanAccuracy > accuracyRangeFrom) {
+	  fromOver = acc[0].meanAccuracy;
 	  fromOverEpsilon = acc[0].keyValue;
 	}
-	if (acc[0].averageAccuracy <= toOver && acc[0].averageAccuracy > intervalTo) {
-	  toOver = acc[0].averageAccuracy;
+	if (acc[0].meanAccuracy <= toOver && acc[0].meanAccuracy > accuracyRangeTo) {
+	  toOver = acc[0].meanAccuracy;
 	  toOverEpsilon = acc[0].keyValue;
 	}
-	if (acc[0].averageAccuracy >= toUnder && acc[0].averageAccuracy <= intervalTo) {
-	  toUnder = acc[0].averageAccuracy;
+	if (acc[0].meanAccuracy >= toUnder && acc[0].meanAccuracy <= accuracyRangeTo) {
+	  toUnder = acc[0].meanAccuracy;
 	  toUnderEpsilon = acc[0].keyValue;
 	}
 
-	if (fromUnder < intervalFrom - range * mergin) {
+	if (fromUnder < accuracyRangeFrom - range * mergin) {
 	  if ((fromUnderEpsilon + fromOverEpsilon) / 2.0 == sp.beginOfEpsilon) {
 	    stringstream msg;
 	    msg << "exploreEpsilonForAccuracy:" << endl;
 	    msg << "Error!! Not found proper under epsilon for mergin=" << mergin << " and the number of queries." << endl;
-	    msg << "        Should increase mergin or the number of queries to get the proper epsilon.";
+	    msg << "        Should increase mergin or the number of queries to get the proper epsilon. ";
 	    NGTThrowException(msg);
 	  } else {
 	    sp.beginOfEpsilon = sp.endOfEpsilon = (fromUnderEpsilon + fromOverEpsilon) / 2.0;
 	  }
-	} else if (toOver > intervalTo + range * mergin) {
+	} else if (toOver > accuracyRangeTo + range * mergin) {
 	  if ((toUnderEpsilon + toOverEpsilon) / 2.0 == sp.beginOfEpsilon) {
 	    stringstream msg;
 	    msg << "exploreEpsilonForAccuracy:" << endl;
 	    msg << "Error!! Not found proper over epsilon for mergin=" << mergin << " and the number of queries." << endl;
-	    msg << "        Should increase mergin or the number of queries to get the proper epsilon.";
+	    msg << "        Should increase mergin or the number of queries to get the proper epsilon. ";
 	    NGTThrowException(msg);
 	  } else {
 	    sp.beginOfEpsilon = sp.endOfEpsilon = (toUnderEpsilon + toOverEpsilon) / 2.0;
@@ -517,9 +590,9 @@ namespace NGT {
       NGTThrowException(msg);
     }
 
-    static double measureDistance(NGT::Index &index, istream &queries, istream &gtStream, Command::SearchParameter &searchParameter, pair<float, float> interval, double mergin) {
+    MeasuredValue measure(istream &queries, istream &gtStream, Command::SearchParameter &searchParameter, pair<float, float> accuracyRange, double mergin) {
 
-      exploreEpsilonForAccuracy(index, queries, gtStream, searchParameter, interval, mergin);
+      exploreEpsilonForAccuracy(index, queries, gtStream, searchParameter, accuracyRange, mergin);
     
       stringstream resultStream;
       queries.clear();
@@ -530,79 +603,282 @@ namespace NGT {
       resultStream.clear();
       resultStream.seekg(0, ios_base::beg);
       string type;
-      vector<Accuracy> accuracies;
+      vector<MeasuredValue> accuracies;
       size_t actualResultSize = 0;
       evaluate(gtStream, resultStream, accuracies, type, actualResultSize);
       size_t size;
-      double distanceCount;
-      calculateAverageDistanceCount(accuracies, interval.first, interval.second, size, distanceCount);
+      double distanceCount, visitCount, time;
+      calculateMeanValues(accuracies, accuracyRange.first, accuracyRange.second, size, distanceCount, visitCount, time);
       if (distanceCount == 0) {
 	stringstream msg;
 	msg << "measureDistance: Error! Distance count is zero.";
 	NGTThrowException(msg);
       }
-      return distanceCount;
+      MeasuredValue v;
+      v.meanVisitCount = visitCount;
+      v.meanDistanceCount = distanceCount;
+      v.meanTime = time;
+      return std::move(v);
     }
 
-    static size_t adjustBaseSearchEdgeSize(NGT::Index &index, pair<float, float> interval, size_t querySize, double epsilon, float mergin = 0.2) {
-
-      cerr << "adjustBaseSearchEdgeSize::Extract queries for GT..." << endl;
-      stringstream queries;
-      extractQueries(index, querySize, queries);
-
-      queries.clear();
-      queries.seekg(0, ios_base::beg);
-
-      Args args;
-      args.insert(pair<string, string>("#1", "dummy"));
-      args.insert(pair<string, string>("#2", "dummy"));
-      Command::SearchParameter searchParameter(args);
-      searchParameter.outputMode = 'e';
+    pair<size_t, double> adjustBaseSearchEdgeSize(stringstream &queries, Command::SearchParameter &searchParameter, stringstream &gtStream, pair<float, float> accuracyRange, float merginInit = 0.2, size_t prevBase = 0) {
       searchParameter.edgeSize = -2;
-      searchParameter.beginOfEpsilon = searchParameter.endOfEpsilon = epsilon;
-
-      cerr << "adjustBaseSearchEdgeSize::create GT..." << endl;
-      stringstream gtStream;
-      NGT::Command::search(index, searchParameter, queries, gtStream);
-
+      size_t minimumBase = 4;
+      size_t minimumStep = 2;
+      size_t baseStartInit = 1;
+      while (prevBase != 0) {
+	prevBase >>= 1;
+	baseStartInit <<= 1;
+      }
+      baseStartInit >>= 2;
+      baseStartInit = baseStartInit < minimumBase ? minimumBase : baseStartInit;
       while(true) {
-	double prevDistanceComputation = INT_MAX;
-	size_t prevEdgeBase = 0;
-	size_t edgeSizeBaseStart = 10;
-	size_t edgeSizeBaseStep = 10;
-	cerr << "adjustBaseSearchEdgeSize::explore for the mergin " << mergin << "..." << endl;
-	for (size_t edgeSizeBase = edgeSizeBaseStart; edgeSizeBase < 120; edgeSizeBase += edgeSizeBaseStep) {
-	  searchParameter.step = 10;
-	  NGT::GraphIndex &graphIndex = static_cast<GraphIndex&>(index.getIndex());
-	  NeighborhoodGraph::Property &prop = graphIndex.getGraphProperty();
-	  prop.dynamicEdgeSizeBase = edgeSizeBase;
-	  try {
-	    double distanceComputation = measureDistance(index, queries, gtStream, searchParameter, interval, mergin);
-	    cerr << "adjustBaseSearchEdgeSize::Base edge size=" << edgeSizeBase << ", distance computation=" << distanceComputation << endl;
-	    if (prevDistanceComputation < distanceComputation) {
-	      return prevEdgeBase;
+	try {
+	  float mergin = merginInit;
+	  size_t baseStart = baseStartInit;
+	  double minTime = DBL_MAX;
+	  size_t minBase = 0;
+	  map<size_t, double> times;
+	  cerr << "adjustBaseSearchEdgeSize::explore for the mergin " << mergin << ", " << baseStart << "..." << endl;
+	  for (size_t baseStep = 16; baseStep != 1; baseStep /= 2) {
+	    double prevTime = DBL_MAX;
+	    for (size_t base = baseStart; ; base += baseStep) {
+	      if (base > 1000) {
+		stringstream msg;
+		msg << "base is too large! " << base;
+		NGTThrowException(msg);
+	      }
+	      searchParameter.step = 10;
+	      NGT::GraphIndex &graphIndex = static_cast<GraphIndex&>(index.getIndex());
+	      NeighborhoodGraph::Property &prop = graphIndex.getGraphProperty();
+	      prop.dynamicEdgeSizeBase = base;
+	      double time;
+	      if (times.count(base) == 0) {
+		for (;;) {
+		  try {
+		    auto values = measure(queries, gtStream, searchParameter, accuracyRange, mergin);
+		    time = values.meanTime;
+		    break;
+		  } catch(NGT::Exception &err) {
+		    if (err.getMessage().find("Error!! Epsilon") != std::string::npos &&
+			err.getMessage().find("is too large") != std::string::npos) {
+		      cerr << "Warning: Cannot adjust the base edge size." << err.what() << endl;
+		      cerr << "Try again with the next base" << endl;
+		      NGTThrowException("**Retry**"); 
+		    }
+		    if (mergin > 0.4) {
+		      cerr << "Warning: Cannot adjust the base even for the widest mergin " << mergin << ". " << err.what();
+		      NGTThrowException("**Retry**"); 
+		    } else {
+		      cerr << "Warning: Cannot adjust the base edge size for mergin " << mergin << ". " << err.what() << endl;
+		      cerr << "Try again for the next mergin." << endl;
+		      mergin += 0.05;
+		    }
+		  }
+		}
+		times.insert(std::make_pair(base, time));
+		cerr << "adjustBaseSearchEdgeSize::base=" << base << ", query time=" << time << endl;
+	      } else {
+		time = times.at(base);
+	      }
+	      if (prevTime <= time) {
+		if (baseStep == minimumStep) {
+		  return std::make_pair(minBase, minTime);
+		} else {
+		  baseStart = static_cast<int>(minBase) - static_cast<int>(baseStep) < static_cast<int>(baseStart) ? baseStart : minBase - baseStep;
+		  break;
+		}
+	      }
+	      prevTime = time;
+	      if (time < minTime) {
+		minTime = time;
+		minBase = base;
+	      }
 	    }
-	    prevDistanceComputation = distanceComputation;
-	    prevEdgeBase = edgeSizeBase;
-	  } catch(NGT::Exception &err) {
-	    if (mergin > 0.4) {
-	      stringstream msg;
-	      msg << "Error: Cannot adjust the base edge size even for the widest mergin " << mergin << ". " << err.what();
-	      NGTThrowException(msg);
-	    }
-	    cerr << "Warning: Cannot adjust the base edge size for mergin " << mergin << ". " << err.what() << endl;
-	    cerr << "Try again for the next mergin." << endl;
-	    mergin += 0.05;
-	    break;
 	  }
-
+	} catch(NGT::Exception &err) {
+	  if (err.getMessage().find("**Retry**") != std::string::npos) {
+	    baseStartInit += minimumStep;
+	  } else {
+	    throw err;
+	  }
 	}
       }
     }
 
-    static void adjustBaseSearchEdgeSize(Args &args)
+    size_t adjustBaseSearchEdgeSize(pair<float, float> accuracyRange, size_t querySize, double epsilon, float mergin = 0.2) {
+      cerr << "adjustBaseSearchEdgeSize::Extract queries for GT..." << endl;
+      stringstream queries;
+      extractQueries(querySize, queries);
+
+      cerr << "adjustBaseSearchEdgeSize::create GT..." << endl;
+      Command::SearchParameter searchParameter;
+      stringstream gtStream;
+      createGroundTruth(index, epsilon, searchParameter, queries, gtStream);
+
+      auto base = adjustBaseSearchEdgeSize(queries, searchParameter, gtStream, accuracyRange, mergin);
+      return base.first;
+    }
+
+
+    pair<size_t, double> adjustRateSearchEdgeSize(stringstream &queries, Command::SearchParameter &searchParameter, stringstream &gtStream, pair<float, float> accuracyRange, float merginInit = 0.2, size_t prevRate = 0) {
+      searchParameter.edgeSize = -2;
+      size_t minimumRate = 2;
+      size_t minimumStep = 4;
+      size_t rateStartInit = 1;
+      while (prevRate != 0) {
+	prevRate >>= 1;
+	rateStartInit <<= 1;
+      }
+      rateStartInit >>= 2;
+      rateStartInit = rateStartInit < minimumRate ? minimumRate : rateStartInit;
+      while (true) {
+	try {
+	  float mergin = merginInit;
+	  size_t rateStart = rateStartInit;
+	  double minTime = DBL_MAX;
+	  size_t minRate = 0;
+	  map<size_t, double> times;
+	  cerr << "adjustRateSearchEdgeSize::explore for the mergin " << mergin << ", " << rateStart << "..." << endl;
+	  for (size_t rateStep = 16; rateStep != 1; rateStep /= 2) {
+	    double prevTime = DBL_MAX;
+	    for (size_t rate = rateStart; rate < 200; rate += rateStep) {
+	      if (rate > 1000) {
+		stringstream msg;
+		msg << "rate is too large! " << rate;
+		NGTThrowException(msg);
+	      }
+	      searchParameter.step = 10;
+	      NGT::GraphIndex &graphIndex = static_cast<GraphIndex&>(index.getIndex());
+	      NeighborhoodGraph::Property &prop = graphIndex.getGraphProperty();
+	      prop.dynamicEdgeSizeRate = rate;
+	      double time;
+	      if (times.count(rate) == 0) {
+		for (;;) {
+		  try {
+		    auto values = measure(queries, gtStream, searchParameter, accuracyRange, mergin);
+		    time = values.meanTime;
+		    break;
+		  } catch(NGT::Exception &err) {
+		    if (err.getMessage().find("Error!! Epsilon") != std::string::npos &&
+			err.getMessage().find("is too large") != std::string::npos) {
+		      cerr << "Warning: Cannot adjust the rate of edge size." << err.what() << endl;
+		      cerr << "Try again with the next rate" << endl;
+		      NGTThrowException("**Retry**");
+		    }
+		    if (mergin > 0.4) {
+		      cerr << "Error: Cannot adjust the rate even for the widest mergin " << mergin << ". " << err.what();
+		      NGTThrowException("**Retry**"); 
+		    } else {
+		      cerr << "Warning: Cannot adjust the rate of edge size for mergin " << mergin << ". " << err.what() << endl;
+		      cerr << "Try again for the next mergin." << endl;
+		      mergin += 0.05;
+		    }
+		  }
+		}
+		times.insert(std::make_pair(rate, time));
+		cerr << "adjustRateSearchEdgeSize::rate=" << rate << ", query time=" << time << endl;
+	      } else {
+		time = times.at(rate);
+	      }
+	      if (prevTime <= time) {
+		if (rateStep == minimumStep) {
+		  return std::make_pair(minRate, minTime);
+		} else {
+		  rateStart = static_cast<int>(minRate) - static_cast<int>(rateStep) < static_cast<int>(rateStart) ? rateStart : minRate - rateStep;
+		  break;
+		}
+	      }
+	      prevTime = time;
+	      if (time < minTime) {
+		minTime = time;
+		minRate = rate;
+	      }
+	    }
+	  }
+	} catch(NGT::Exception &err) {
+	  if (err.getMessage().find("**Retry**") != std::string::npos) {
+	    rateStartInit += minimumStep;
+	  } else {
+	    throw err;
+	  }
+	}
+      }
+    }
+
+
+
+    pair<size_t, size_t> adjustSearchEdgeSize(pair<float, float> baseAccuracyRange, pair<float, float> rateAccuracyRange, size_t querySize, double epsilon, float mergin = 0.2) {
+
+
+      stringstream queries;
+      stringstream gtStream;
+
+      Command::SearchParameter searchParameter;
+      NGT::GraphIndex &graphIndex = static_cast<GraphIndex&>(index.getIndex());
+      NeighborhoodGraph::Property &prop = graphIndex.getGraphProperty();
+      searchParameter.size = nOfResults;
+      try {
+	cerr << "adjustSearchEdgeSize::Extract queries for GT..." << endl;
+	extractQueries(querySize, queries);
+	cerr << "adjustSearchEdgeSize::create GT..." << endl;
+	createGroundTruth(index, epsilon, searchParameter, queries, gtStream);
+      } catch (NGT::Exception &err) {
+	cerr << "adjustSearchEdgeSize::Error!! Cannot adjust. " << err.what() << endl;
+	return pair<size_t, size_t>(0, 0);
+      }
+
+      auto prevBase = pair<size_t, double>(0, 0);
+      auto prevRate = pair<size_t, double>(0, 0);
+      auto base = pair<size_t, double>(0, 0);
+      auto rate = pair<size_t, double>(20, 0);
+
+      map<pair<size_t, size_t>, double> history;
+      for(;;) {
+	try {
+	  prop.dynamicEdgeSizeRate = rate.first;
+	  cerr << "adjustRateSearchEdgeSize::Base: rate=" << prop.dynamicEdgeSizeRate << endl;
+	  prevBase = base;
+	  base = adjustBaseSearchEdgeSize(queries, searchParameter, gtStream, baseAccuracyRange, mergin, prevBase.first);
+	  cerr << "adjustRateSearchEdgeSize::Base: base=" << prevBase.first << "->" << base.first << ",rate=" << prevRate.first << "->" << rate.first << endl;
+	  if (prevBase.first == base.first) {
+	    break;
+	  }
+	  prop.dynamicEdgeSizeBase = base.first;
+	  cerr << "adjustRateSearchEdgeSize::Rate: base=" << prop.dynamicEdgeSizeBase << endl;
+	  prevRate = rate;
+	  rate = adjustRateSearchEdgeSize(queries, searchParameter, gtStream, rateAccuracyRange, mergin, prevRate.first);
+	  cerr << "adjustRateSearchEdgeSize::Rate base=" << prevBase.first << "->" << base.first << ",rate=" << prevRate.first << "->" << rate.first << endl;
+	  if (prevRate.first == rate.first) {
+	    break;
+	  }
+	  if (history.count(std::make_pair(base.first, rate.first)) != 0) {
+	    cerr << "adjustRateSearchEdgeSize::Warning! Found an infinite loop." << endl;
+	    double minTime = rate.second;
+	    pair<size_t, size_t> min = std::make_pair(base.first, rate.first);
+	    for (auto i = history.begin(); i != history.end(); ++i) {
+	      double dc = (*i).second;
+	      if (dc < minTime) {
+		minTime = dc;
+		min = (*i).first;
+	      }
+	    }
+	    return min;
+	  }
+	  // store parameters here to prioritize high accuracy
+	  history.insert(std::make_pair(std::make_pair(base.first, rate.first), rate.second));
+	} catch (NGT::Exception &err) {
+	  cerr << "adjustRateSearchEdgeSize::Error!! Cannot adjust. " << err.what() << endl;
+	  return pair<size_t, size_t>(0, 0);
+	}
+      }
+      return std::make_pair(base.first, rate.first);
+
+    }
+
+    static void adjustSearchEdgeSize(Args &args)
     {
-      const string usage = "Usage: ngt performance [-m mergin] [-e epsilon-for-ground-truth] [-n #-of queries] index";
+      const string usage = "Usage: ngt adjust-edge-size [-m mergin] [-e epsilon-for-ground-truth] [-q #-of-queries] [-n #-of-results] index";
 
       string indexName;
       try {
@@ -613,41 +889,86 @@ namespace NGT {
 	return;
       }
 
-      float intervalFrom = 0.6;
-      float intervalTo = 0.8;
+      pair<float, float> baseAccuracyRange = pair<float, float>(0.30, 0.50);
+      pair<float, float> rateAccuracyRange = pair<float, float>(0.80, 0.90);
+
       string opt = args.getString("A", "");
       if (opt.size() != 0) {
 	vector<string> tokens;
 	NGT::Common::tokenize(opt, tokens, ":");
-	if (tokens.size() >= 1) { intervalFrom = NGT::Common::strtod(tokens[0]); }
-	if (tokens.size() >= 2) { intervalTo = NGT::Common::strtod(tokens[1]); }
+	if (tokens.size() >= 1) { baseAccuracyRange.first = NGT::Common::strtod(tokens[0]); }
+	if (tokens.size() >= 2) { baseAccuracyRange.second = NGT::Common::strtod(tokens[1]); }
+	if (tokens.size() >= 3) { rateAccuracyRange.first = NGT::Common::strtod(tokens[2]); }
+	if (tokens.size() >= 4) { rateAccuracyRange.second = NGT::Common::strtod(tokens[3]); }
       }
 
       double mergin = args.getf("m", 0.2);
       double epsilon = args.getf("e", 0.1);
-      size_t querySize = args.getl("n", 100);
+      size_t querySize = args.getl("q", 100);
+      size_t nOfResults = args.getl("n", 10);
+
+      cerr << "adjustRateSearchEdgeSize::range= " << baseAccuracyRange.first << "-" << baseAccuracyRange.second 
+	   << "," << rateAccuracyRange.first << "-" << rateAccuracyRange.second << endl;
+      cerr << "adjustRateSearchEdgeSize::# of queries=" << querySize << endl;
 
       NGT::Index	index(indexName);
 
-      size_t baseEdgeSize = 0;
+      Optimizer		optimizer(index, nOfResults);
       try {
-	baseEdgeSize = adjustBaseSearchEdgeSize(index, pair<float, float>(intervalFrom, intervalTo), querySize, epsilon, mergin);
+	auto v = optimizer.adjustSearchEdgeSize(baseAccuracyRange, rateAccuracyRange, querySize, epsilon, mergin);
+	NGT::GraphIndex &graphIndex = static_cast<GraphIndex&>(index.getIndex());
+	NeighborhoodGraph::Property &prop = graphIndex.getGraphProperty();
+	if (v.first > 0) {
+	  prop.dynamicEdgeSizeBase = v.first;
+	}
+	if (v.second > 0) {
+	  prop.dynamicEdgeSizeRate = v.second;
+	}
+	if (prop.dynamicEdgeSizeRate > 0 && prop.dynamicEdgeSizeBase > 0) {
+	  graphIndex.saveProperty(indexName);
+	}
       } catch (NGT::Exception &err) {
-	cerr << "adjustBaseSearchEdgeSize::Error!! Cannot adjust. " << err.what() << endl;
+	cerr << "adjustRateSearchEdgeSize::Error!! Cannot adjust. " << err.what() << endl;
 	return;
       }
-
-      cerr << "adjustBaseSearchEdgeSize::The best base edge size=" << baseEdgeSize << endl;
-      NGT::GraphIndex &graphIndex = static_cast<GraphIndex&>(index.getIndex());
-      NeighborhoodGraph::Property &prop = graphIndex.getGraphProperty();
-      prop.dynamicEdgeSizeBase = baseEdgeSize;
-      graphIndex.saveProperty(indexName);
-      cerr << "adjustBaseSearchEdgeSize::Set the base edge size to the index." << endl;
-
     }
 
-    static void
-      extractQueries(NGT::Index &index, size_t nqueries, ostream &os) {
+
+    void outputObject(ostream &os, size_t id1, size_t id2, NGT::Property &prop) {
+      switch (prop.objectType) {
+      case NGT::ObjectSpace::ObjectType::Uint8:
+	{
+	  auto *obj1 = static_cast<uint8_t*>(index.getObjectSpace().getObject(id1));
+	  auto *obj2 = static_cast<uint8_t*>(index.getObjectSpace().getObject(id2));
+	  for (int i = 0; i < prop.dimension; i++) {
+	    int d = (*obj1++ + *obj2++) / 2;
+	    os << d;
+	    if (i + 1 != prop.dimension) {
+	      os << "\t";
+	    }
+	  }
+	  os << endl;
+	}
+	break;
+      default:
+      case NGT::ObjectSpace::ObjectType::Float:
+	{
+	  auto *obj1 = static_cast<float*>(index.getObjectSpace().getObject(id1));
+	  auto *obj2 = static_cast<float*>(index.getObjectSpace().getObject(id2));
+	  for (int i = 0; i < prop.dimension; i++) {
+	    os << (*obj1++ + *obj2++) / 2.0F;
+	    if (i + 1 != prop.dimension) {
+	      os << "\t";
+	    }
+	  }
+	  os << endl;
+	}
+	break;
+      }
+    }
+
+    void
+      extractQueries(size_t nqueries, ostream &os, bool similarObject = false) {
 
       NGT::Property prop;
       index.getProperty(prop);
@@ -655,46 +976,60 @@ namespace NGT {
       size_t osize = index.getObjectRepositorySize();
       size_t interval = osize / nqueries;
       size_t count = 0;
-      for (size_t id = 1; id < osize && count < nqueries; id += interval, count++) {
+      for (size_t id1 = 1; id1 < osize && count < nqueries; id1 += interval, count++) {
 	size_t oft = 0;
-	while (index.getObjectSpace().getRepository().isEmpty(id + oft)) {
+	while (index.getObjectSpace().getRepository().isEmpty(id1 + oft)) {
 	  oft++;
-	  if (id + oft >= osize) {
-	    cerr << "Too many empty entries to extract." << endl;
-	    return;
+	  if (id1 + oft >= osize) {
+	    stringstream msg;
+	    msg << "Too many empty entries to extract.";
+	    NGTThrowException(msg);
 	  }
 	}
-	switch (prop.objectType) {
-	case NGT::ObjectSpace::ObjectType::Uint8:
-	  {
-	    auto *obj = static_cast<uint8_t*>(index.getObjectSpace().getObject(id + oft));
-	    for (int i = 0; i < prop.dimension; i++) {
-	      os << static_cast<int>(*obj++);
-	      if (i + 1 != prop.dimension) {
-		os << "\t";
-	      }
-	    }
-	    os << endl;
+	if (similarObject) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	  NGT::Object *query = index.getObjectSpace().allocateObject(*index.getObjectSpace().getRepository().get(id1 + oft));
+#else
+	  NGT::Object *query = index.getObjectSpace().getRepository().get(id1 + oft);
+#endif
+	  NGT::SearchContainer sc(*query);
+	  NGT::ObjectDistances results;
+	  sc.setResults(&results);
+	  sc.setSize(nOfResults);
+	  index.search(sc);
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	  index.getObjectSpace().deleteObject(query);
+#endif
+	  if (results.size() < 2) {
+	    stringstream msg;
+	    msg << "Cannot get even two results for queries.";
+	    NGTThrowException(msg);
 	  }
-	  break;
-	default:
-	case NGT::ObjectSpace::ObjectType::Float:
-	  {
-	    auto *obj = static_cast<float*>(index.getObjectSpace().getObject(id + oft));
-	    for (int i = 0; i < prop.dimension; i++) {
-	      os << *obj++;
-	      if (i + 1 != prop.dimension) {
-		os << "\t";
-	      }
+	  size_t id2 = 1;
+	  for (size_t i = 1; i < results.size(); i++) {
+	    if (results[i].distance > 0.0) {
+	      id2 = results[i].id;
+	      break;
 	    }
-	    os << endl;
 	  }
-	  break;
+	  outputObject(os, id1 + oft, id2, prop);
+	} else {
+	  size_t id2 = id1 + oft + 1;
+	  while (index.getObjectSpace().getRepository().isEmpty(id2)) {
+	    id2++;
+	    if (id2 >= osize) {
+	      stringstream msg;
+	      msg << "Too many empty entries to extract.";
+	      NGTThrowException(msg);
+	    }
+	  }
+	  outputObject(os, id1 + oft, id2, prop);
 	}
       }
       assert(count == nqueries);
     
     }
+
 
     static void
       extractQueries(Args &args)
@@ -712,70 +1047,127 @@ namespace NGT {
       size_t nqueries = args.getl("n", 1000);
 
       NGT::Index	index(indexName);
+      NGT::Optimizer	optimizer(index);
+      optimizer.extractQueries(nqueries, cout);
+    }
 
-      extractQueries(index, nqueries, cout);
+    static void createGroundTruth(NGT::Index &index, double epsilon, Command::SearchParameter &searchParameter, stringstream &queries, stringstream &gtStream){
+      queries.clear();
+      queries.seekg(0, ios_base::beg);
+
+      Args args;
+      args.insert(pair<string, string>("#1", "dummy"));
+      args.insert(pair<string, string>("#2", "dummy"));
+      searchParameter.parse(args);
+      searchParameter.outputMode = 'e';
+      searchParameter.edgeSize = -1;
+      searchParameter.beginOfEpsilon = searchParameter.endOfEpsilon = epsilon;
+
+      NGT::Command::search(index, searchParameter, queries, gtStream);
     }
 
     static int 
-      calculateAverageDistanceCount(vector<Accuracy> &accuracies, double intervalFrom, double intervalTo, size_t &size, 
-				    double &averageDistanceCount) {
+      calculateMeanValues(vector<MeasuredValue> &accuracies, double accuracyRangeFrom, double accuracyRangeTo, 
+			  size_t &size, double &meanDistanceCount, double &meanVisitCount, double &meanTime) {
       int stat = 0;
       size = 0;
-      averageDistanceCount = DBL_MAX;
-      if (accuracies.front().averageAccuracy > intervalFrom) {
+      if (accuracies.front().meanAccuracy > accuracyRangeFrom) {
 	stat = 0x1;
       }
-      if (accuracies.back().averageAccuracy < intervalTo) {
+      if (accuracies.back().meanAccuracy < accuracyRangeTo) {
 	stat |= 0x2;
       }
       if (stat != 0) {
 	return stat;
       }
-      vector<Accuracy> acc;
+      vector<MeasuredValue> acc;
       acc = accuracies;
       for (auto start = acc.rbegin(); start != acc.rend(); ++start) {
-	if ((*start).averageAccuracy <= intervalFrom) {
+	if ((*start).meanAccuracy <= accuracyRangeFrom) {
 	  ++start;
 	  acc.erase(acc.begin(), start.base());
 	  break;
 	}
       }
       for (auto end = acc.begin(); end != acc.end(); ++end) {
-	if ((*end).averageAccuracy >= intervalTo) {
+	if ((*end).meanAccuracy >= accuracyRangeTo) {
 	  end++;
 	  acc.erase(end, acc.end());
 	  break;
 	}
       }
-      vector<pair<double, double>> data;
+      vector<pair<double, double>> distance;
+      vector<pair<double, double>> visit;
+      vector<pair<double, double>> time;
       for (auto i = acc.begin(); i != acc.end(); ++i) {
 #ifdef NGT_LOG_BASED_OPTIMIZATION
-	if ((*i).averageDistanceCount > 0.0) {
-	  (*i).averageDistanceCount = log10((*i).averageDistanceCount);
+	if ((*i).meanDistanceCount > 0.0) {
+	  (*i).meanDistanceCount = log10((*i).meanDistanceCount);
 	}
-	if ((*i).averageVisitCount > 0.0) {
-	  (*i).averageVisitCount = log10((*i).averageVisitCount);
+	if ((*i).meanVisitCount > 0.0) {
+	  (*i).meanVisitCount = log10((*i).meanVisitCount);
 	}
 #endif
-	data.push_back(make_pair((*i).averageDistanceCount, (*i).averageAccuracy));
+	distance.push_back(make_pair((*i).meanDistanceCount, (*i).meanAccuracy));
+	visit.push_back(make_pair((*i).meanVisitCount, (*i).meanAccuracy));
+	time.push_back(make_pair((*i).meanTime, (*i).meanAccuracy));
       }
-      size_t last = data.size() - 1;
-      double xfrom = (data[1].second * data[0].first - data[0].second * data[1].first + 
-		      intervalFrom * (data[1].first - data[0].first)) / 
-	(data[1].second - data[0].second);
-      double xto = (data[last].second * data[last - 1].first - data[last - 1].second * data[last].first + 
-		    intervalTo * (data[last].first - data[last - 1].first)) / 
-	(data[last].second - data[last - 1].second);
-      data[0].first = xfrom;
-      data[0].second = intervalFrom;
-      data[last].first = xto;
-      data[last].second = intervalTo;
-      double area = 0.0;
-      for (size_t i = 0; i < data.size() - 1; ++i) {
-	area += ((data[i].first + data[i + 1].first) * (data[i + 1].second - data[i].second)) / 2.0;
+      {
+	size_t last = distance.size() - 1;
+	double xfrom = (distance[1].second * distance[0].first - distance[0].second * distance[1].first + 
+			accuracyRangeFrom * (distance[1].first - distance[0].first)) / 
+	  (distance[1].second - distance[0].second);
+	double xto = (distance[last].second * distance[last - 1].first - distance[last - 1].second * distance[last].first + 
+		      accuracyRangeTo * (distance[last].first - distance[last - 1].first)) / 
+	  (distance[last].second - distance[last - 1].second);
+	distance[0].first = xfrom;
+	distance[0].second = accuracyRangeFrom;
+	distance[last].first = xto;
+	distance[last].second = accuracyRangeTo;
+	double area = 0.0;
+	for (size_t i = 0; i < distance.size() - 1; ++i) {
+	  area += ((distance[i].first + distance[i + 1].first) * (distance[i + 1].second - distance[i].second)) / 2.0;
+	}
+	meanDistanceCount = area / (distance[last].second - distance[0].second);
       }
-      averageDistanceCount = area / (data[last].second - data[0].second);
-      size = data.size();
+      {
+	size_t last = visit.size() - 1;
+	double xfrom = (visit[1].second * visit[0].first - visit[0].second * visit[1].first + 
+			accuracyRangeFrom * (visit[1].first - visit[0].first)) / 
+	  (visit[1].second - visit[0].second);
+	double xto = (visit[last].second * visit[last - 1].first - visit[last - 1].second * visit[last].first + 
+		      accuracyRangeTo * (visit[last].first - visit[last - 1].first)) / 
+	  (visit[last].second - visit[last - 1].second);
+	visit[0].first = xfrom;
+	visit[0].second = accuracyRangeFrom;
+	visit[last].first = xto;
+	visit[last].second = accuracyRangeTo;
+	double area = 0.0;
+	for (size_t i = 0; i < visit.size() - 1; ++i) {
+	  area += ((visit[i].first + visit[i + 1].first) * (visit[i + 1].second - visit[i].second)) / 2.0;
+	}
+	meanVisitCount = area / (visit[last].second - visit[0].second);
+      }
+      {
+	size_t last = time.size() - 1;
+	double xfrom = (time[1].second * time[0].first - time[0].second * time[1].first + 
+			accuracyRangeFrom * (time[1].first - time[0].first)) / 
+	  (time[1].second - time[0].second);
+	double xto = (time[last].second * time[last - 1].first - time[last - 1].second * time[last].first + 
+		      accuracyRangeTo * (time[last].first - time[last - 1].first)) / 
+	  (time[last].second - time[last - 1].second);
+	time[0].first = xfrom;
+	time[0].second = accuracyRangeFrom;
+	time[last].first = xto;
+	time[last].second = accuracyRangeTo;
+	double area = 0.0;
+	for (size_t i = 0; i < time.size() - 1; ++i) {
+	  area += ((time[i].first + time[i + 1].first) * (time[i + 1].second - time[i].second)) / 2.0;
+	}
+	meanTime = area / (time[last].second - time[0].second);
+      }
+      assert(distance.size() == time.size());
+      size = distance.size();
       return 0;
     }
 
@@ -829,7 +1221,7 @@ namespace NGT {
 	return;
       }
 
-      vector<Accuracy> accuracies;
+      vector<MeasuredValue> accuracies;
       string type;
       size_t actualResultSize = 0;
       evaluate(gtStream, resultStream, accuracies, type, actualResultSize, resultSize, groundTruthSize, recall);
@@ -843,18 +1235,21 @@ namespace NGT {
       if (omode == 'd') {
 	cout << "# of computations\t# of visted nodes" << endl;
 	for (auto it = accuracies.begin(); it != accuracies.end(); ++it) {
-	  cout << (*it).keyValue << "\t" << (*it).totalCount << "\t" << (*it).averageAccuracy << "\t" 
-	       << (*it).averageDistanceCount << "\t" << (*it).averageVisitCount << endl;
+	  cout << (*it).keyValue << "\t" << (*it).totalCount << "\t" << (*it).meanAccuracy << "\t" 
+	       << (*it).meanDistanceCount << "\t" << (*it).meanVisitCount << endl;
 	}
       } else {
 	cout << "Time(msec)\t# of computations\t# of visted nodes" << endl;
 	for (auto it = accuracies.begin(); it != accuracies.end(); ++it) {
-	  cout << (*it).keyValue << "\t" << (*it).totalCount << "\t" << (*it).averageAccuracy << "\t" << (*it).averageTime << "\t" 
-	       << (*it).averageDistanceCount << "\t" << (*it).averageVisitCount << endl;
+	  cout << (*it).keyValue << "\t" << (*it).totalCount << "\t" << (*it).meanAccuracy << "\t" << (*it).meanTime << "\t" 
+	       << (*it).meanDistanceCount << "\t" << (*it).meanVisitCount << endl;
 	}
       }
 
     }
+
+    NGT::Index &index;
+    size_t nOfResults;
 
   };
 

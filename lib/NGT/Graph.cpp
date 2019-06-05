@@ -34,6 +34,7 @@ NeighborhoodGraph::Property::set(NGT::Property &prop) {
   if (prop.truncationThreadPoolSize != -1)	truncationThreadPoolSize = prop.truncationThreadPoolSize;
   if (prop.batchSizeForCreation != -1)		batchSizeForCreation = prop.batchSizeForCreation;
   if (prop.dynamicEdgeSizeBase != -1)           dynamicEdgeSizeBase = prop.dynamicEdgeSizeBase;
+  if (prop.dynamicEdgeSizeRate != -1)           dynamicEdgeSizeRate = prop.dynamicEdgeSizeRate;
   if (prop.buildTimeLimit != -1)                buildTimeLimit = prop.buildTimeLimit;
   if (prop.outgoingEdge != -1)                  outgoingEdge = prop.outgoingEdge;
   if (prop.incomingEdge != -1)                  incomingEdge = prop.incomingEdge;
@@ -56,6 +57,7 @@ NeighborhoodGraph::Property::get(NGT::Property &prop) {
   prop.truncationThreadPoolSize		= truncationThreadPoolSize;
   prop.batchSizeForCreation		= batchSizeForCreation;
   prop.dynamicEdgeSizeBase              = dynamicEdgeSizeBase;
+  prop.dynamicEdgeSizeRate              = dynamicEdgeSizeRate;
   prop.graphType			= graphType;
   prop.buildTimeLimit                   = buildTimeLimit;
   prop.outgoingEdge                     = outgoingEdge;
@@ -439,9 +441,7 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 	  unsigned char *ptr = reinterpret_cast<unsigned char*>(objectRepository.get((*(neighborptr + prefetchOffset)).id));
 	  MemoryCache::prefetch(ptr, byteSizeOfObject);
 	}
-#ifdef NGT_VISIT_COUNT
 	sc.visitCount++;
-#endif
 	ObjectDistance &neighbor = *neighborptr;
 	if (distanceChecked[neighbor.id]) {
 	  continue;

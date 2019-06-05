@@ -47,13 +47,23 @@ args = {
 }
 
 if sys.version_info.major >= 3:
-    params = {
-        'include_dirs': ['/usr/local/include', 
-                        os.path.dirname(locations.distutils_scheme('pybind11')['headers']),
-                        os.path.dirname(locations.distutils_scheme('pybind11', True)['headers'])],
-        'extra_compile_args': ['-std=c++11', '-Ofast', '-march=native', '-lrt', '-DNDEBUG'],
-        'sources': ['src/ngtpy.cpp']
-    }
+    if static_library:
+        params = {
+            'include_dirs': ['/usr/local/include', 
+                            os.path.dirname(locations.distutils_scheme('pybind11')['headers']),
+                            os.path.dirname(locations.distutils_scheme('pybind11', True)['headers'])],
+            'extra_compile_args': ['-std=c++11', '-Ofast', '-lrt', '-DNDEBUG'],
+            'sources': ['src/ngtpy.cpp']
+        }
+    else:
+        params = {
+            'include_dirs': ['/usr/local/include', 
+                            os.path.dirname(locations.distutils_scheme('pybind11')['headers']),
+                            os.path.dirname(locations.distutils_scheme('pybind11', True)['headers'])],
+            'extra_compile_args': ['-std=c++11', '-Ofast', '-march=native', '-lrt', '-DNDEBUG'],
+            'sources': ['src/ngtpy.cpp']
+        }
+
     dynamic_lib_params = {
         'library_dirs': ['/usr/local/lib', '/usr/local/lib64'],
         'libraries': ['ngt']

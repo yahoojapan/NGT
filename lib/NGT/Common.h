@@ -1723,6 +1723,7 @@ namespace NGT {
       edgeSize = sc.edgeSize;
       workingResult = sc.workingResult;
       useAllNodesInLeaf = sc.useAllNodesInLeaf;  
+      visitCount = sc.visitCount;
       return *this;
     }
     virtual ~SearchContainer() {}
@@ -1758,6 +1759,7 @@ namespace NGT {
     size_t		distanceComputationCount;
     ResultPriorityQueue	workingResult;
     bool		useAllNodesInLeaf;
+    size_t		visitCount;
 
   private:
     ObjectDistances	*result;

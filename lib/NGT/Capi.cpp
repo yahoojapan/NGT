@@ -254,6 +254,30 @@ bool ngt_set_property_distance_type_cosine(NGTProperty prop, NGTError error) {
   return true;
 }
 
+bool ngt_set_property_distance_type_normalized_angle(NGTProperty prop, NGTError error) {
+  if(prop == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
+    operate_error_string_(ss, error);
+    return false;
+  }
+ 
+  (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeNormalizedAngle;
+  return true;
+}
+
+bool ngt_set_property_distance_type_normalized_cosine(NGTProperty prop, NGTError error) {
+  if(prop == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
+    operate_error_string_(ss, error);
+    return false;
+  }
+ 
+  (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeNormalizedCosine;
+  return true;
+}
+
 NGTObjectDistances ngt_create_empty_results(NGTError error) {
   try{
     return static_cast<NGTObjectDistances>(new NGT::ObjectDistances());

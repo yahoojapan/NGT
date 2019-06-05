@@ -335,6 +335,7 @@ namespace NGT {
     }
     void searchUsingOnlyGraph(NGT::SearchContainer &sc) { 
       sc.distanceComputationCount = 0;
+      sc.visitCount = 0;
       ObjectDistances seeds; 
       getIndex().search(sc, seeds); 
     }
@@ -541,6 +542,7 @@ namespace NGT {
     // GraphIndex
     virtual void search(NGT::SearchContainer &sc) {
       sc.distanceComputationCount = 0;
+      sc.visitCount = 0;
       ObjectDistances seeds;
       search(sc, seeds);
     }
@@ -1225,6 +1227,7 @@ namespace NGT {
 	}
 	sc.workingResult = std::move(so.workingResult);
 	sc.distanceComputationCount = so.distanceComputationCount;
+	sc.visitCount = so.visitCount;
       } catch(Exception &err) {
 	cerr << err.what() << endl;
 	Exception e(err);
@@ -1566,6 +1569,7 @@ namespace NGT {
       tso.radius = 0.0;
       tso.size = 1;
       tso.distanceComputationCount = 0;
+      tso.visitCount = 0;
       try {
 	DVPTree::search(tso);
       } catch (Exception &err) {
@@ -1582,6 +1586,7 @@ namespace NGT {
 	NGTThrowException(msg);
       }
       sc.distanceComputationCount += tso.distanceComputationCount;
+      sc.visitCount += tso.visitCount;
       if (sc.useAllNodesInLeaf || NeighborhoodGraph::property.seedType == NeighborhoodGraph::SeedTypeAllLeafNodes) {
 	return;
       }
@@ -1606,6 +1611,7 @@ namespace NGT {
     // GraphAndTreeIndex
     void search(NGT::SearchContainer &sc) {
       sc.distanceComputationCount = 0;
+      sc.visitCount = 0;
       ObjectDistances	seeds;
       getSeedsFromTree(sc, seeds);
       GraphIndex::search(sc, seeds);
@@ -1615,122 +1621,7 @@ namespace NGT {
       return GraphIndex::getSharedMemorySize(os, t) + DVPTree::getSharedMemorySize(os, t);
     }
 
-    bool verify(vector<uint8_t> &status, bool info) {
-      bool valid = GraphIndex::verify(status, info);
-      if (!valid) {
-	cerr << "The graph or object is invalid!" << endl;
-      }
-      valid = valid && DVPTree::verify(GraphIndex::objectSpace->getRepository().size(), status);
-      if (!valid) {
-	cerr << "The tree is invalid" << endl;
-      }
-      // status: tree|graph|object
-      for (size_t id = 1; id < status.size(); id++) {
-	if (status[id] != 0x00 && status[id] != 0x07) {
-	  if (status[id] == 0x03) {
-#ifdef NGT_SHARED_MEMORY_ALLOCATOR
-	    NGT::Object *po = GraphIndex::objectSpace->allocateObject(*GraphIndex::getObjectRepository().get(id));
-	    NGT::SearchContainer sc(*po);
-#else
-	    NGT::SearchContainer sc(*GraphIndex::getObjectRepository().get(id));
-#endif
-	    NGT::ObjectDistances objects;
-	    sc.setResults(&objects);
-	    sc.id = 0;
-	    sc.radius = 0.0;
-	    sc.explorationCoefficient = 1.1;
-	    sc.edgeSize = 0;
-	    ObjectDistances	seeds;
-	    seeds.push_back(ObjectDistance(id, 0.0));
-	    objects.clear();
-	    GraphIndex::search(sc, seeds);
-	    size_t n = 0;
-	    bool registeredIdenticalObject = false;
-	    for (; n < objects.size(); n++) {
-	      if (objects[n].id != id && status[objects[n].id] == 0x07) {
-		registeredIdenticalObject = true;
-		break;
-	      }
-	    }
-	    if (!registeredIdenticalObject) {
-	      cerr << "Warning: not found the registered same objects. id=" << id << " size=" << objects.size() << endl;
-	      sc.id = 0;
-	      sc.radius = FLT_MAX;
-	      sc.explorationCoefficient = 1.2;
-	      sc.edgeSize = 0;
-	      sc.size = objects.size() < 100 ? 100 : objects.size() * 2;
-	      ObjectDistances	seeds;
-	      seeds.push_back(ObjectDistance(id, 0.0));
-	      objects.clear();
-	      GraphIndex::search(sc, seeds);
-	      registeredIdenticalObject = false;
-	      for (n = 0; n < objects.size(); n++) {
-		if (objects[n].distance != 0.0) break;
-		if (objects[n].id != id && status[objects[n].id] == 0x07) {
-		  registeredIdenticalObject = true;
-		  cerr << "info: found by using mode accurate search." << objects[n].id << endl;
-		  break;
-		}
-	      }
-	    }
-	    if (!registeredIdenticalObject) {
-	      cerr << "Warning: not found by using more accurate search." << endl;
-	      sc.id = 0;
-	      sc.radius = 0.0;
-	      sc.explorationCoefficient = 1.1;
-	      sc.edgeSize = 0;
-	      sc.size = SIZE_MAX;
-	      objects.clear();
-	      linearSearch(sc);
-	      n = 0;
-	      registeredIdenticalObject = false;
-	      for (; n < objects.size(); n++) {
-		if (objects[n].distance != 0.0) break;
-		if (objects[n].id != id && status[objects[n].id] == 0x07) {
-		  registeredIdenticalObject = true;
-		  cerr << "info: found by using linear search. " << objects[n].id << endl;
-		  break;
-		}
-	      }
-	    }
-	    if (registeredIdenticalObject) {
-	      if (info) {
-		cerr << "Info ID=" << id << ":" << static_cast<int>(status[id]) << endl;
-		cerr << "  found the valid same objects. " << objects[n].id << endl;
-	      }
-
-	      GraphNode &node = *GraphIndex::getNode(id);
-	      bool found = false;
-#ifdef NGT_SHARED_MEMORY_ALLOCATOR
-	      for (auto i = node.begin(GraphIndex::repository.allocator); i != node.end(GraphIndex::repository.allocator); ++i) {
-#else
-	      for (auto i = node.begin(); i != node.end(); ++i) {
-#endif
-		if ((*i).id == objects[n].id) {
-		  found = true;
-		}
-	      }
-	      if (!found) {
-		cerr << "Warning no directed edge from " << id << " to " << objects[n].id << endl;
-	      }
-	    } else {
-	      cerr << "Warning: not found the valid same object even by using linear search." << endl;
-	      cerr << "Error! ID=" << id << ":" << static_cast<int>(status[id]) << endl;
-	      valid = false;
-	    }
-	  } else if (status[id] == 0x01) {
-	    if (info) {
-	      cerr << "Warning! ID=" << id << ":" << static_cast<int>(status[id]) << endl;
-	      cerr << "  not inserted into the indexes" << endl;
-	    }
-	  } else {
-	    cerr << "Error! ID=" << id << ":" << static_cast<int>(status[id]) << endl;
-	    valid = false;
-	  }
-	}
-      }
-      return valid;
-    }
+    bool verify(vector<uint8_t> &status, bool info);
 
   };
 

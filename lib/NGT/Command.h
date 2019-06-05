@@ -25,8 +25,9 @@ public:
   class SearchParameter {
   public:
     SearchParameter() {}
-    SearchParameter(Args &args) {
-      openMode	= args.getChar("m", 'r');
+    SearchParameter(Args &args) { parse(args); }
+    void parse(Args &args) {
+      openMode = args.getChar("m", 'r');
       try {
 	query = args.get("#2");
       } catch (...) {

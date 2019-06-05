@@ -38,9 +38,9 @@ Installation
 
       $ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
       $ brew install cmake
-      $ brew install gcc
-      $ ln -s ./gcc-8 /usr/local/bin/gcc
-      $ ln -s ./g++-8 /usr/local/bin/g++
+      $ brew install gcc@9
+      $ ln -s ./gcc-9 /usr/local/bin/gcc
+      $ ln -s ./g++-9 /usr/local/bin/g++
       $ export CXX=g++
       $ export CC=gcc
       $ unzip NGT-x.x.x.zip

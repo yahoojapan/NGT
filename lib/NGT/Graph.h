@@ -121,7 +121,7 @@ namespace NGT {
 #endif
       try {
 	put(id, r);
-      } catch (Exception exp) {
+      } catch (Exception &exp) {
 	delete r;
 	throw exp;
       }
@@ -312,6 +312,7 @@ namespace NGT {
 	  batchSizeForCreation		= 200;
 	  graphType			= GraphTypeANNG;
 	  dynamicEdgeSizeBase		= 30;
+	  dynamicEdgeSizeRate		= 20;
 	  buildTimeLimit		= 0.0;
 	  outgoingEdge			= 10;
 	  incomingEdge			= 80;
@@ -328,6 +329,7 @@ namespace NGT {
 	  batchSizeForCreation		= -1;
 	  graphType			= GraphTypeNone;
 	  dynamicEdgeSizeBase		= -1;
+	  dynamicEdgeSizeRate		= -1;
 	  buildTimeLimit		= -1;
 	  outgoingEdge			= -1;
 	  incomingEdge			= -1;
@@ -346,6 +348,7 @@ namespace NGT {
 	  p.set("SeedSize", seedSize);
 	  p.set("TruncationThreadPoolSize", truncationThreadPoolSize);
 	  p.set("DynamicEdgeSizeBase", dynamicEdgeSizeBase);
+	  p.set("DynamicEdgeSizeRate", dynamicEdgeSizeRate);
 	  p.set("BuildTimeLimit", buildTimeLimit);
 	  p.set("OutgoingEdge", outgoingEdge);
 	  p.set("IncomingEdge", incomingEdge);
@@ -378,6 +381,7 @@ namespace NGT {
 	  seedSize = p.getl("SeedSize", seedSize);
 	  truncationThreadPoolSize = p.getl("TruncationThreadPoolSize", truncationThreadPoolSize);
 	  dynamicEdgeSizeBase = p.getl("DynamicEdgeSizeBase", dynamicEdgeSizeBase);
+	  dynamicEdgeSizeRate = p.getl("DynamicEdgeSizeRate", dynamicEdgeSizeRate);
 	  buildTimeLimit = p.getf("BuildTimeLimit", buildTimeLimit);
 	  outgoingEdge = p.getl("OutgoingEdge", outgoingEdge);
 	  incomingEdge = p.getl("IncomingEdge", incomingEdge);
@@ -413,6 +417,7 @@ namespace NGT {
 	  os << "batchSizeForCreation="		<< p.batchSizeForCreation << endl;
 	  os << "graphType="			<< p.graphType << endl;
 	  os << "dynamicEdgeSizeBase="		<< p.dynamicEdgeSizeBase << endl;
+	  os << "dynamicEdgeSizeRate="		<< p.dynamicEdgeSizeRate << endl;
 	  os << "outgoingEdge="			<< p.outgoingEdge << endl;
 	  os << "incomingEdge="			<< p.incomingEdge << endl;
 	  return os;
@@ -429,6 +434,7 @@ namespace NGT {
 	int16_t		batchSizeForCreation;
 	GraphType	graphType;
 	int16_t		dynamicEdgeSizeBase;
+	int16_t		dynamicEdgeSizeRate;
 	float		buildTimeLimit;
 	int16_t		outgoingEdge;
 	int16_t		incomingEdge;
@@ -587,7 +593,7 @@ namespace NGT {
 	size_t edgeSize = INT_MAX;
 	if (sc.edgeSize < 0) {
 	  if (sc.edgeSize == -2) {
-	    edgeSize = property.dynamicEdgeSizeBase + pow(10, (sc.explorationCoefficient - 1.0) * 20.0);
+	    edgeSize = property.dynamicEdgeSizeBase + pow(10, (sc.explorationCoefficient - 1.0) * static_cast<float>(property.dynamicEdgeSizeRate));
 	  } else {
 	    edgeSize = property.edgeSizeForSearch == 0 ? INT_MAX : property.edgeSizeForSearch;
 	  }

@@ -88,7 +88,7 @@ main(int argc, char **argv)
     } else if (command == "extract-query") {
       NGT::Optimizer::extractQueries(args);
     } else if (command == "adjust-edge-size") {
-      NGT::Optimizer::adjustBaseSearchEdgeSize(args);
+      NGT::Optimizer::adjustSearchEdgeSize(args);
 #endif
 
     } else if (command == "info") {
