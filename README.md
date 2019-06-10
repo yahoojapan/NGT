@@ -8,10 +8,9 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 **NGT** provides commands and a library for performing high-speed approximate nearest neighbor searches against a large volume of data (several million to several 10 million items of data) in high dimensional vector data space (several ten to several thousand dimensions).
 
 News
-----
-
-- 01/17/2019 Python NGT can be installed via pip from PyPI
-- 12/14/2018 [NGTQ](bin/ngtq/README.md) (NGT with Quantization) is now available (v1.5.0)
+- 06/10/2019 PyPI NGT package v1.7.5 is now available.
+- 01/17/2019 Python NGT can be installed via pip from PyPI. (v1.5.1)
+- 12/14/2018 [NGTQ](bin/ngtq/README.md) (NGT with Quantization) is now available. (v1.5.0)
 - 08/08/2018 [ONNG](README.md#onng) is now available. (v1.4.0)
 
 Installation
@@ -34,7 +33,7 @@ Installation
       $ make install
       $ ldconfig /usr/local/lib
 
-#### On Mac using homebrew
+#### On macOS using homebrew
 
       $ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
       $ brew install cmake
@@ -78,6 +77,25 @@ Supported Programming Languages
 - [Go](https://github.com/yahoojapan/gongt)
 - C
 - C++([sample code](bin/search/search.cpp))
+
+Benchmark Results
+-----------------
+The followings are the results of [ann benchmarks](https://github.com/erikbern/ann-benchmarks) on an AWS c5.4xlarge instance for NGT v1.7.5.
+
+#### glove-100-angular
+<img src="./tests/ann-benchmarks-results/glove-100-angular.png?raw=true" width="400">
+
+#### gist-960-euclidean
+<img src="./tests/ann-benchmarks-results/gist-960-euclidean.png?raw=true" width="400">
+
+#### fashion-mnist-784-euclidean
+<img src="./tests/ann-benchmarks-results/fashion-mnist-784-euclidean.png?raw=true" width="400">
+
+#### nytimes-256-angular
+<img src="./tests/ann-benchmarks-results/nytimes-256-angular.png?raw=true" width="400">
+
+#### sift-128-euclidean
+<img src="./tests/ann-benchmarks-results/sift-128-euclidean.png?raw=true" width="400">
 
 License
 -------

@@ -10,7 +10,8 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 ニュース
 -------
 
-- 2019/01/17 Python NGTはPYPIからpipでインストールが可能になりました。
+- 2019/06/10 PyPI NGT パッケージ v1.7.5 が利用可能になりました。
+- 2019/01/17 Python NGTはPYPIからpipでインストールが可能になりました。(v1.5.1)
 - 2018/12/14 [NGTQ](bin/ngtq/README-jp.md) (NGT with Quantization) が利用可能になりました。(v1.5.0)
 - 2018/08/08 [ONNG](README-jp.md#onng)が利用可能になりました。(v1.4.0)
 
@@ -23,6 +24,8 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
 ### ビルド
 
+#### Linux
+
       $ unzip NGT-x.x.x.zip
       $ cd NGT-x.x.x
       $ mkdir build
@@ -31,6 +34,23 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
       $ make 
       $ make install
       $ ldconfig /usr/local/lib
+
+#### macOS
+
+      $ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+      $ brew install cmake
+      $ brew install gcc@9
+      $ ln -s ./gcc-9 /usr/local/bin/gcc
+      $ ln -s ./g++-9 /usr/local/bin/g++
+      $ export CXX=g++
+      $ export CC=gcc
+      $ unzip NGT-x.x.x.zip
+      $ cd NGT-x.x.x
+      $ mkdir build
+      $ cd build 
+      $ cmake ..
+      $ make 
+      $ make install
 
 #### 共有メモリの利用
 
@@ -59,6 +79,26 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 - [Go](https://github.com/yahoojapan/gongt)
 - C
 - C++([sample code](bin/search/search.cpp))
+
+ベンチマーク結果
+---------------
+
+以下はAWS c5.4xlargeのインスタンス上で測定したNGT v1.7.5のベンチマーク（[ann benchmarks](https://github.com/erikbern/ann-benchmarks)）の結果です。
+
+#### glove-100-angular
+<img src="./tests/ann-benchmarks-results/glove-100-angular.png?raw=true" width="400">
+
+#### gist-960-euclidean
+<img src="./tests/ann-benchmarks-results/gist-960-euclidean.png?raw=true" width="400">
+
+#### fashion-mnist-784-euclidean
+<img src="./tests/ann-benchmarks-results/fashion-mnist-784-euclidean.png?raw=true" width="400">
+
+#### nytimes-256-angular
+<img src="./tests/ann-benchmarks-results/nytimes-256-angular.png?raw=true" width="400">
+
+#### sift-128-euclidean
+<img src="./tests/ann-benchmarks-results/sift-128-euclidean.png?raw=true" width="400">
 
 ライセンス
 ----------

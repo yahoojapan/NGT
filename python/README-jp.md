@@ -17,6 +17,7 @@ cd NGT_ROOT/python
 python3 setup.py sdist
 pip3 install dist/ngt-x.x.x.tar.gz
 ```
+なお、古いCPUでも動作するように、PyPIのngtpyは個々のコンピュータ上でビルドしたngtpyよりも検索が遅い点、ご注意ください。
 
 ## ドキュメント
 

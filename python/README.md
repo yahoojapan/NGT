@@ -18,6 +18,7 @@ cd NGT_ROOT/python
 python3 setup.py sdist
 pip3 install dist/ngt-x.x.x.tar.gz
 ```
+Please note that the search speed of the ngtpy packages from PyPI is slower than that of the ngtpy that is built on your computer so that the package can be run on older CPUs.  
 
 ## Documents
 
