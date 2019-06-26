@@ -119,6 +119,12 @@ NeighborhoodGraph::Search::hammingUint8(NeighborhoodGraph &graph, NGT::SearchCon
 {
   graph.searchReadOnlyGraph<PrimitiveComparator::HammingUint8>(sc, seeds);
 }
+
+void 
+NeighborhoodGraph::Search::jaccardUint8(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::JaccardUint8>(sc, seeds);
+}
 #endif
 
 void 

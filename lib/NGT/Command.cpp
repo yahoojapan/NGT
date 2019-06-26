@@ -26,7 +26,7 @@
     const string usage = "Usage: ngt create "
       "-d dimension [-p #-of-thread] [-i index-type(t|g)] [-g graph-type(a|k|b|o|i)] "
       "[-t truncation-edge-limit] [-E edge-size] [-S edge-size-for-search] [-L edge-size-limit] "
-      "[-e epsilon] [-o object-type(f|c)] [-D distance-function(1|2|a|A|h|c|C)] [-n #-of-inserted-objects] "
+      "[-e epsilon] [-o object-type(f|c)] [-D distance-function(1|2|a|A|h|j|c|C)] [-n #-of-inserted-objects] "
       "[-P path-adjustment-interval] [-B dynamic-edge-size-base] [-A object-alignment(t|f)] "
       "[-T build-time-limit] [-O outgoing x incoming] "
       "index(output) [data.tsv(input)]";
@@ -152,6 +152,9 @@
       break;
     case 'h':
       property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeHamming;
+      break;
+    case 'j':
+      property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeJaccard;
       break;
     case 'c':
       property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeCosine;

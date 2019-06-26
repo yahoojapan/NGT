@@ -72,6 +72,8 @@ bool ngt_set_property_distance_type_angle(NGTProperty, NGTError);
 
 bool ngt_set_property_distance_type_hamming(NGTProperty, NGTError);
 
+bool ngt_set_property_distance_type_jaccard(NGTProperty, NGTError);
+
 bool ngt_set_property_distance_type_cosine(NGTProperty, NGTError);
 
 bool ngt_set_property_distance_type_normalized_angle(NGTProperty, NGTError);

@@ -313,7 +313,6 @@ namespace NGT {
     }
 #endif
 
-
 #if defined(NGT_COMPARATOR_NO_AVX) || !defined(__POPCNT__)    
     inline static double popCount(uint32_t x) {
       x = (x & 0x55555555) + (x >> 1 & 0x55555555);
@@ -326,41 +325,76 @@ namespace NGT {
 
     template <typename OBJECT_TYPE> 
     inline static double compareHammingDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
-      const OBJECT_TYPE *last = a + size;
+      const uint32_t *last = reinterpret_cast<const uint32_t*>(a + size);
       
-      OBJECT_TYPE *uinta = (OBJECT_TYPE*)a;
-      OBJECT_TYPE *uintb = (OBJECT_TYPE*)b;
+      const uint32_t *uinta = reinterpret_cast<const uint32_t*>(a);
+      const uint32_t *uintb = reinterpret_cast<const uint32_t*>(b);
       size_t count = 0;
-      while( uinta < (OBJECT_TYPE*)last ){
-	count += popCount(*(uint32_t*)uinta ^ *(uint32_t*)uintb);
-	uinta += 4;
-	uintb += 4;
+      while( uinta < last ){
+	count += popCount(*uinta++ ^ *uintb++);
       }
 
-      return (double)count;
+      return static_cast<double>(count);
     }
 #else
     template <typename OBJECT_TYPE>
       inline static double compareHammingDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
-      const OBJECT_TYPE *last = a + size;
+      const uint64_t *last = reinterpret_cast<const uint64_t*>(a + size);
       
-      uint64_t *uinta = (uint64_t*)a;
-      uint64_t *uintb = (uint64_t*)b;
+      const uint64_t *uinta = reinterpret_cast<const uint64_t*>(a);
+      const uint64_t *uintb = reinterpret_cast<const uint64_t*>(b);
       size_t count = 0;
-      while( uinta < (uint64_t*)last ){
+      while( uinta < last ){
 	count += _mm_popcnt_u64(*uinta++ ^ *uintb++);
 	count += _mm_popcnt_u64(*uinta++ ^ *uintb++);
       }
       
-      return (double)count;
+      return static_cast<double>(count);
     }
 #endif
-    
+
+#if defined(NGT_COMPARATOR_NO_AVX) || !defined(__POPCNT__)    
+    template <typename OBJECT_TYPE>
+      inline static double compareJaccardDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
+      const uint32_t *last = reinterpret_cast<const uint32_t*>(a + size);
+
+      const uint32_t *uinta = reinterpret_cast<const uint32_t*>(a);
+      const uint32_t *uintb = reinterpret_cast<const uint32_t*>(b);
+      size_t count = 0;
+      size_t countDe = 0;
+      while( uinta < last ){
+	count   += popCount(*uinta   & *uintb);
+	countDe += popCount(*uinta++ | *uintb++);
+	count   += popCount(*uinta   & *uintb);
+	countDe += popCount(*uinta++ | *uintb++);
+      }
+
+      return 1.0 - static_cast<double>(count) / static_cast<double>(countDe);
+    }
+#else
+    template <typename OBJECT_TYPE>
+      inline static double compareJaccardDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
+      const uint64_t *last = reinterpret_cast<const uint64_t*>(a + size);
+
+      const uint64_t *uinta = reinterpret_cast<const uint64_t*>(a);
+      const uint64_t *uintb = reinterpret_cast<const uint64_t*>(b);
+      size_t count = 0;
+      size_t countDe = 0;
+      while( uinta < last ){
+	count   += _mm_popcnt_u64(*uinta   & *uintb);
+	countDe += _mm_popcnt_u64(*uinta++ | *uintb++);
+	count   += _mm_popcnt_u64(*uinta   & *uintb);
+	countDe += _mm_popcnt_u64(*uinta++ | *uintb++);
+      }
+
+      return 1.0 - static_cast<double>(count) / static_cast<double>(countDe);
+    }
+#endif
 
 #if defined(NGT_COMPARATOR_NO_AVX)
    template <typename OBJECT_TYPE> 
     inline static double compareDotProduct(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
-      double sum = 0.0F;
+      double sum = 0.0;
       for (size_t loc = 0; loc < size; loc++) {
 	sum += (double)a[loc] * (double)b[loc];
       }
@@ -369,9 +403,9 @@ namespace NGT {
 
     template <typename OBJECT_TYPE> 
     inline static double compareCosine(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
-      double normA = 0.0F;
-      double normB = 0.0F;
-      double sum = 0.0F;
+      double normA = 0.0;
+      double normB = 0.0;
+      double sum = 0.0;
       for (size_t loc = 0; loc < size; loc++) {
 	normA += (double)a[loc] * (double)a[loc];
 	normB += (double)b[loc] * (double)b[loc];
@@ -432,7 +466,7 @@ namespace NGT {
     }
 
     inline static double compareDotProduct(const unsigned char *a, const unsigned char *b, size_t size) {
-      double sum = 0.0F;
+      double sum = 0.0;
       for (size_t loc = 0; loc < size; loc++) {
 	sum += (double)a[loc] * (double)b[loc];
       }
@@ -479,9 +513,9 @@ namespace NGT {
     }
 
     inline static double compareCosine(const unsigned char *a, const unsigned char *b, size_t size) {
-      double normA = 0.0F;
-      double normB = 0.0F;
-      double sum = 0.0F;
+      double normA = 0.0;
+      double normB = 0.0;
+      double sum = 0.0;
       for (size_t loc = 0; loc < size; loc++) {
 	normA += (double)a[loc] * (double)a[loc];
 	normB += (double)b[loc] * (double)b[loc];
@@ -497,10 +531,10 @@ namespace NGT {
     template <typename OBJECT_TYPE> 
     inline static double compareAngleDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       double cosine = compareCosine(a, b, size);
-      if (cosine >= 1.0F) {
-	return 0.0F;
-      } else if (cosine <= -1.0F) {
-	return acos(-1.0F);
+      if (cosine >= 1.0) {
+	return 0.0;
+      } else if (cosine <= -1.0) {
+	return acos(-1.0);
       } else {
 	return acos(cosine);
       }
@@ -509,10 +543,10 @@ namespace NGT {
     template <typename OBJECT_TYPE> 
     inline static double compareNormalizedAngleDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       double cosine = compareDotProduct(a, b, size);
-      if (cosine >= 1.0F) {
-	return 0.0F;
-      } else if (cosine <= -1.0F) {
-	return acos(-1.0F);
+      if (cosine >= 1.0) {
+	return 0.0;
+      } else if (cosine <= -1.0) {
+	return acos(-1.0);
       } else {
 	return acos(cosine);
       }
@@ -547,6 +581,13 @@ namespace NGT {
     public:
       inline static double compare(const void *a, const void *b, size_t size) {
 	return PrimitiveComparator::compareHammingDistance((const uint8_t*)a, (const uint8_t*)b, size);
+      }
+    };
+
+    class JaccardUint8 {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	return PrimitiveComparator::compareJaccardDistance((const uint8_t*)a, (const uint8_t*)b, size);
       }
     };
 

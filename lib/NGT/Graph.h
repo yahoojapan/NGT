@@ -277,6 +277,7 @@ namespace NGT {
 	    case NGT::ObjectSpace::Uint8:
 	      switch (dtype) {
 	      case NGT::ObjectSpace::DistanceTypeHamming : return hammingUint8;
+	      case NGT::ObjectSpace::DistanceTypeJaccard : return jaccardUint8;
 	      case NGT::ObjectSpace::DistanceTypeL2 : 	   return l2Uint8;
 	      case NGT::ObjectSpace::DistanceTypeL1 : 	   return l1Uint8;
 	      default : 				   return l2Uint8;
@@ -290,6 +291,7 @@ namespace NGT {
 	static void l1Float(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void l2Float(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void hammingUint8(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void jaccardUint8(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void cosineSimilarityFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void angleFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void normalizedCosineSimilarityFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);

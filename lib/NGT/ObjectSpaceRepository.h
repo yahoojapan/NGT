@@ -93,6 +93,27 @@ namespace NGT {
 #endif
     };
 
+    class ComparatorJaccardDistance : public Comparator {
+      public:
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+        ComparatorJaccardDistance(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
+        double operator()(Object &objecta, Object &objectb) {
+	  return PrimitiveComparator::compareJaccardDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
+	}
+	double operator()(Object &objecta, PersistentObject &objectb) {
+	  return PrimitiveComparator::compareJaccardDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
+	}
+	double operator()(PersistentObject &objecta, PersistentObject &objectb) {
+	  return PrimitiveComparator::compareJaccardDistance((OBJECT_TYPE*)&objecta.at(0, allocator), (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
+	}
+#else
+        ComparatorJaccardDistance(size_t d) : Comparator(d) {}
+	double operator()(Object &objecta, Object &objectb) {
+	  return PrimitiveComparator::compareJaccardDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
+	}
+#endif
+    };
+
     class ComparatorAngleDistance : public Comparator {
       public:
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
@@ -277,6 +298,9 @@ namespace NGT {
 	break;
       case DistanceTypeHamming:
 	comparator = new ObjectSpaceRepository::ComparatorHammingDistance(ObjectSpace::getPaddedDimension());
+	break;
+      case DistanceTypeJaccard:
+	comparator = new ObjectSpaceRepository::ComparatorJaccardDistance(ObjectSpace::getPaddedDimension());
 	break;
       case DistanceTypeAngle:
 	comparator = new ObjectSpaceRepository::ComparatorAngleDistance(ObjectSpace::getPaddedDimension());

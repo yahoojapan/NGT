@@ -242,6 +242,18 @@ bool ngt_set_property_distance_type_hamming(NGTProperty prop, NGTError error) {
   return true;
 }
 
+bool ngt_set_property_distance_type_jaccard(NGTProperty prop, NGTError error) {
+  if(prop == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
+    operate_error_string_(ss, error);                        
+    return false;
+  }
+  
+  (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeJaccard;
+  return true;
+}
+
 bool ngt_set_property_distance_type_cosine(NGTProperty prop, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;

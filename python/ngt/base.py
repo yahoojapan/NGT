@@ -128,6 +128,8 @@ class Index(object):
 
     __ngt.ngt_set_property_distance_type_hamming.argtypes = [c_void_p, c_void_p]
 
+    __ngt.ngt_set_property_distance_type_jaccard.argtypes = [c_void_p, c_void_p]
+
     __ngt.ngt_set_property_distance_type_cosine.argtypes = [c_void_p, c_void_p]
 
     __ngt.ngt_create_empty_results.argtype = [c_void_p]
@@ -247,6 +249,10 @@ class Index(object):
                 Index._check_error_num(stat, err)
             elif distance_type == "Hamming":
                 stat = Index.__ngt.ngt_set_property_distance_type_hamming(
+                                                                prop, err)
+                Index._check_error_num(stat, err)
+            elif distance_type == "Jaccard":
+                stat = Index.__ngt.ngt_set_property_distance_type_jaccard(
                                                                 prop, err)
                 Index._check_error_num(stat, err)
             elif distance_type == "Cosine":

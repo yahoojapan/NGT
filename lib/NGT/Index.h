@@ -112,6 +112,7 @@ namespace NGT {
 	case DistanceType::DistanceTypeL1:			p.set("DistanceType", "L1"); break;
 	case DistanceType::DistanceTypeL2:			p.set("DistanceType", "L2"); break;
 	case DistanceType::DistanceTypeHamming:			p.set("DistanceType", "Hamming"); break;
+	case DistanceType::DistanceTypeJaccard:			p.set("DistanceType", "Jaccard"); break;
 	case DistanceType::DistanceTypeAngle:			p.set("DistanceType", "Angle"); break;
 	case DistanceType::DistanceTypeCosine:			p.set("DistanceType", "Cosine"); break;
 	case DistanceType::DistanceTypeNormalizedAngle:		p.set("DistanceType", "NormalizedAngle"); break;
@@ -169,6 +170,8 @@ namespace NGT {
 	    distanceType = DistanceType::DistanceTypeL2;
 	  } else if (it->second == "Hamming") {
 	    distanceType = DistanceType::DistanceTypeHamming;
+	  } else if (it->second == "Jaccard") {
+	    distanceType = DistanceType::DistanceTypeJaccard;
 	  } else if (it->second == "Angle") {
 	    distanceType = DistanceType::DistanceTypeAngle;
 	  } else if (it->second == "Cosine") {

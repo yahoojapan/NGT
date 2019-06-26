@@ -64,6 +64,8 @@ public:
       prop.distanceType = NGT::Property::DistanceType::DistanceTypeL2;
     } else if (distanceType == "Hamming") {
       prop.distanceType = NGT::Property::DistanceType::DistanceTypeHamming;
+    } else if (distanceType == "Jaccard") {
+      prop.distanceType = NGT::Property::DistanceType::DistanceTypeJaccard;
     } else if (distanceType == "Angle") {
       prop.distanceType = NGT::Property::DistanceType::DistanceTypeAngle;
     } else if (distanceType == "Normalized Angle") {
@@ -184,6 +186,68 @@ public:
     return results;
   }
 
+  py::object linearSearch(
+   py::object query,
+   size_t size = 10, 			// the number of resultant objects
+   bool withDistance = true
+  ) {
+    py::array_t<float> qobject(query);
+    py::buffer_info qinfo = qobject.request();
+    NGT::Object *ngtquery = 0;
+    try {
+      ngtquery = NGT::Index::allocateObject(static_cast<float*>(qinfo.ptr), qinfo.size);
+    } catch (NGT::Exception &e) {
+      std::cerr << e.what() << endl;
+      if (!withDistance) {
+	return py::array_t<int>();
+      } else {
+	return py::list();
+      }
+    }
+
+    NGT::SearchContainer sc(*ngtquery);
+    sc.setSize(size);				// the number of resultant objects.
+
+    NGT::Index::linearSearch(sc);
+
+    numOfDistanceComputations += sc.distanceComputationCount;
+
+    NGT::Index::deleteObject(ngtquery);
+    if (!withDistance) {
+      NGT::ResultPriorityQueue &r = sc.getWorkingResult();
+      py::array_t<int> ids(r.size());
+      py::buffer_info idsinfo = ids.request();
+      int *endptr = reinterpret_cast<int*>(idsinfo.ptr); 
+      int *ptr = endptr + (r.size() - 1);
+      if (zeroNumbering) {
+        while (ptr >= endptr) {
+	  *ptr-- = r.top().id - 1;
+	  r.pop();
+        }
+      } else {
+        while (ptr >= endptr) {
+	  *ptr-- = r.top().id;
+	  r.pop();
+        }
+      }
+
+      return ids;
+    }
+    py::list results;
+    NGT::ObjectDistances r;
+    r.moveFrom(sc.getWorkingResult());
+    if (zeroNumbering) {
+      for (auto ri = r.begin(); ri != r.end(); ++ri) {
+	results.append(py::make_tuple((*ri).id - 1, (*ri).distance));
+      }
+    } else {
+      for (auto ri = r.begin(); ri != r.end(); ++ri) {
+	results.append(py::make_tuple((*ri).id, (*ri).distance));
+      }
+    }
+    return results;
+  }
+
   void remove(size_t id) {
     id = zeroNumbering ? id + 1 : id;
     NGT::Index::remove(id);
@@ -245,6 +309,10 @@ PYBIND11_MODULE(ngtpy, m) {
            py::arg("size") = 10, 
            py::arg("epsilon") = 0.1, 
            py::arg("edge_size") = -1,
+           py::arg("with_distance") = true)
+      .def("linear_search", &::Index::linearSearch, 
+           py::arg("query"), 
+           py::arg("size") = 10, 
            py::arg("with_distance") = true)
       .def("get_num_of_distance_computations", &::Index::getNumOfDistanceComputations)
       .def("save", &NGT::Index::save)

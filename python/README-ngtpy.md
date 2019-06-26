@@ -154,6 +154,7 @@ Specifies the distance function for the objects.
 - __Cosine__: Cosine similarity
 - __Normalized Cosine__: Normalized cosine similarity. The specified data are automatically normalized to be appended to the index.
 - __Hamming__: Hamming distance
+- __Jaccard__: Jaccard distance
 
 **object\_type**  
 Specifies the data type of the objects.

@@ -124,7 +124,7 @@ create an empty index with the specified parameters.
   edge_size_for_creation : Number of edges for each node in the graph.
   edge_size_for_search   : Number of edges to search.
   object_type            : Type of the data object. (Float, Integer [Integer is 1 byte])
-  distance_type          : Type of the distance function. (L1,L2,Angle,Hamming)
+  distance_type          : Type of the distance function. (L1,L2,Angle,Hamming,Jaccard)
 
 <h2 id="ngt.base.Index.save">save</h2>
 

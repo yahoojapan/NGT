@@ -21,7 +21,7 @@ if sys.version_info.major >= 3:
         # for pip >= 10.0
         from pip._internal import locations
 
-version = '1.3.1'
+version = '1.4.0'
 
 if static_library:
     with open('../VERSION', 'r') as fh:
@@ -43,7 +43,7 @@ args = {
     'long_description_content_type': 'text/markdown',
     'license': 'Apache License Version 2.0',
     'packages': ['ngt'],
-    'install_requires': ['numpy']
+    'install_requires': ['numpy', 'pybind11']
 }
 
 if sys.version_info.major >= 3:

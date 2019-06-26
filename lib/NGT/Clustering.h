@@ -188,7 +188,7 @@ namespace NGT {
       double csum = 0.0;
       float *x = a;
       float *y = b;
-      for (int i = 0; i < size; i++) {
+      for (size_t i = 0; i < size; i++) {
         double d = (double)*x++ - (double)*y++;
 	csum += d * d;
       }
