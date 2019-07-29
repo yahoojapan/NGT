@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include "Command.h"
+
 #define NGT_LOG_BASED_OPTIMIZATION
 
 namespace NGT {
@@ -525,9 +527,6 @@ namespace NGT {
 	  toOver = fromOver;
 	  toOverEpsilon = fromOverEpsilon;
 	}
-	if (fromOverEpsilon == toOverEpsilon) {
-	  cerr << "Warning!! fromOverEpsilon equals toOverEpsilon  " << fromOverEpsilon << ". This might cause some problems." << endl;
-	}
 	fromUnderEpsilon = fromOverEpsilon - epsilonStep;
       }
       sp.beginOfEpsilon = sp.endOfEpsilon = fromUnderEpsilon;
@@ -742,7 +741,7 @@ namespace NGT {
 	  cerr << "adjustRateSearchEdgeSize::explore for the mergin " << mergin << ", " << rateStart << "..." << endl;
 	  for (size_t rateStep = 16; rateStep != 1; rateStep /= 2) {
 	    double prevTime = DBL_MAX;
-	    for (size_t rate = rateStart; rate < 200; rate += rateStep) {
+	    for (size_t rate = rateStart; rate < 2000; rate += rateStep) {
 	      if (rate > 1000) {
 		stringstream msg;
 		msg << "rate is too large! " << rate;

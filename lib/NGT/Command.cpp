@@ -716,35 +716,10 @@
 #endif
     cerr << "ngt::reconstructGraph: Extract the graph data." << endl;
     // extract only edges from the index to reduce the memory usage.
-    NGT::GraphIndex	&outGraph = (NGT::GraphIndex&)outIndex.getIndex();
     Timer timer;
     timer.start();
     vector<NGT::ObjectDistances> graph;
-    graph.reserve(outGraph.repository.size());
-    for (size_t id = 1; id < outGraph.repository.size(); id++) {
-      if (id % 1000000 == 0) {
-	cerr << "Processed " << id << " objects." << endl;
-      }
-      try {
-	NGT::GraphNode &node = *outGraph.getNode(id);
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-	NGT::ObjectDistances nd;
-	nd.reserve(node.size());
-	for (auto n = node.begin(outGraph.repository.allocator); n != node.end(outGraph.repository.allocator); ++n) {
-	  nd.push_back(ObjectDistance((*n).id, (*n).distance));
-        }
-	graph.push_back(nd);
-#else
-	graph.push_back(node);
-#endif
-	if (graph.back().size() != graph.back().capacity()) {
-	  cerr << "ngt::reconstructGraph: Warning! The graph size must be the same as the capacity. " << id << endl;
-	}
-      } catch(NGT::Exception &err) {
-	cerr << "ngt::reconstructGraph: Warning! Cannot get the node. ID=" << id << ":" << err.what() << endl;
-	continue;
-      }
-    }
+    GraphReconstructor::extractGraph(graph, outIndex);
 
     char mode = args.getChar("m", 's');
     char pamode = args.getChar("P", 'a');
@@ -794,7 +769,8 @@
     double gtEpsilon = 0.1;
     double mergin = 0.2;
 
-    NGT::Optimizer optimizer(outIndex);
+    NGT::Optimizer	optimizer(outIndex);
+    NGT::GraphIndex	&outGraph = (NGT::GraphIndex&)outIndex.getIndex();
     try {
       auto param = optimizer.adjustSearchEdgeSize(baseAccuracyRange, rateAccuracyRange, querySize, gtEpsilon, mergin);
       NeighborhoodGraph::Property &prop = outGraph.getGraphProperty();

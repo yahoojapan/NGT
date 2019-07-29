@@ -30,6 +30,36 @@ namespace NGT {
 
 class GraphReconstructor {
  public:
+  static void extractGraph(vector<NGT::ObjectDistances> &graph, NGT::Index &index) {
+    NGT::GraphIndex	&graphIndex = static_cast<NGT::GraphIndex&>(index.getIndex());
+    graph.reserve(graphIndex.repository.size());
+    for (size_t id = 1; id < graphIndex.repository.size(); id++) {
+      if (id % 1000000 == 0) {
+	cerr << "GraphReconstructor::extractGraph: Processed " << id << " objects." << endl;
+      }
+      try {
+	NGT::GraphNode &node = *graphIndex.getNode(id);
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	NGT::ObjectDistances nd;
+	nd.reserve(node.size());
+	for (auto n = node.begin(graphIndex.repository.allocator); n != node.end(graphIndex.repository.allocator); ++n) {
+	  nd.push_back(ObjectDistance((*n).id, (*n).distance));
+        }
+	graph.push_back(nd);
+#else
+	graph.push_back(node);
+#endif
+	if (graph.back().size() != graph.back().capacity()) {
+	  cerr << "GraphReconstructor::extractGraph: Warning! The graph size must be the same as the capacity. " << id << endl;
+	}
+      } catch(NGT::Exception &err) {
+	cerr << "GraphReconstructor::extractGraph: Warning! Cannot get the node. ID=" << id << ":" << err.what() << endl;
+	continue;
+      }
+    }
+
+  }
+
 
 
 
@@ -382,12 +412,14 @@ class GraphReconstructor {
     }
     originalEdgeTimer.stop();
 
-    reverseEdgeTimer.start();    
+    reverseEdgeTimer.start();
+    int insufficientNodeCount = 0;
     for (size_t id = 1; id <= graph.size(); ++id) {
       try {
 	NGT::ObjectDistances &node = graph[id - 1];
 	size_t rsize = reverseEdgeSize;
 	if (rsize > node.size()) {
+	  insufficientNodeCount++;
 	  rsize = node.size();
 	}
 	for (size_t i = 0; i < rsize; ++i) {
@@ -408,6 +440,9 @@ class GraphReconstructor {
       }
     } 
     reverseEdgeTimer.stop();    
+    if (insufficientNodeCount != 0) {
+      cerr << "# of the nodes edges of which are in short = " << insufficientNodeCount << endl;
+    }
 
     normalizeEdgeTimer.start();    
     for (size_t id = 1; id < outGraph.repository.size(); id++) {

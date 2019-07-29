@@ -102,6 +102,8 @@ ObjectID ngt_append_index_as_float(NGTIndex, float*, uint32_t, NGTError);
 
 bool ngt_batch_append_index(NGTIndex, float*, uint32_t, NGTError);
 
+bool ngt_batch_insert_index(NGTIndex, float*, uint32_t, uint32_t *, NGTError);
+
 bool ngt_create_index(NGTIndex, uint32_t, NGTError);
 
 bool ngt_remove_index(NGTIndex, ObjectID, NGTError);

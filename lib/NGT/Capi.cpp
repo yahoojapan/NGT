@@ -511,6 +511,27 @@ bool ngt_batch_append_index(NGTIndex index, float *obj, uint32_t data_count, NGT
   }
 }
 
+bool ngt_batch_insert_index(NGTIndex index, float *obj, uint32_t data_count, uint32_t *ids, NGTError error) {
+  NGT::Index* pindex = static_cast<NGT::Index*>(index);
+  int32_t dim = pindex->getObjectSpace().getDimension();
+
+  bool status = true;
+  float *objptr = obj;
+  for (size_t idx = 0; idx < data_count; idx++, objptr += dim) {
+    try{
+      std::vector<double> vobj(objptr, objptr + dim);
+      ids[idx] = pindex->insert(vobj);
+    }catch(std::exception &err) {
+      status = false;
+      ids[idx] = 0;
+      std::stringstream ss;
+      ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+      operate_error_string_(ss, error);      
+    }
+  }
+  return status;
+}
+
 bool ngt_create_index(NGTIndex index, uint32_t pool_size, NGTError error) {
   if(index == NULL){
     std::stringstream ss;
