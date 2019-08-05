@@ -617,7 +617,7 @@ namespace NGT {
       v.meanVisitCount = visitCount;
       v.meanDistanceCount = distanceCount;
       v.meanTime = time;
-      return std::move(v);
+      return v;
     }
 
     pair<size_t, double> adjustBaseSearchEdgeSize(stringstream &queries, Command::SearchParameter &searchParameter, stringstream &gtStream, pair<float, float> accuracyRange, float merginInit = 0.2, size_t prevBase = 0) {

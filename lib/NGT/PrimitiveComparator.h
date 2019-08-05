@@ -215,8 +215,8 @@ namespace NGT {
       const unsigned char *lastgroup = last - 7;
       const __m128i zero = _mm_setzero_si128();
       while (a < lastgroup) {
-	__m128i x1 = _mm_cvtepu8_epi16(*(__m128i const*)a);
-	__m128i x2 = _mm_cvtepu8_epi16(*(__m128i const*)b);
+	__m128i x1 = _mm_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)a));
+	__m128i x2 = _mm_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)b));
 	x1 = _mm_subs_epi16(x1, x2);
 	__m128i v = _mm_mullo_epi16(x1, x1);
 	sum = _mm_add_ps(sum, _mm_cvtepi32_ps(_mm_unpacklo_epi16(v, zero)));
@@ -293,8 +293,8 @@ namespace NGT {
       const unsigned char *lastgroup = last - 7;
       const __m128i zero = _mm_setzero_si128();
       while (a < lastgroup) {
-	__m128i x1 = _mm_cvtepu8_epi16(*(__m128i const*)a);
-	__m128i x2 = _mm_cvtepu8_epi16(*(__m128i const*)b);
+	__m128i x1 = _mm_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)a));
+	__m128i x2 = _mm_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)b));
 	x1 = _mm_subs_epi16(x1, x2);
 	x1 = _mm_sign_epi16(x1, x1);
 	sum = _mm_add_ps(sum, _mm_cvtepi32_ps(_mm_unpacklo_epi16(x1, zero)));

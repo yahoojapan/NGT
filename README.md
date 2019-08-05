@@ -2,8 +2,6 @@
 <img src="./assets/logo.svg" width="50%">
 </div>
 
-===
-
 Neighborhood Graph and Tree for Indexing High-dimensional Data
 
 [Home](/README.md) / [Installation](/README.md#Installation) / [Command](/bin/ngt/README.md#command) / [License](/README.md#license) / [Publications](/README.md#publications) / [About Us](http://research-lab.yahoo.co.jp/en/) / [日本語](/README-jp.md)

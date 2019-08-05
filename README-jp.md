@@ -1,5 +1,6 @@
-NGT
-===
+<div align="center">
+<img src="./assets/logo.svg" width="50%">
+</div>
 
 Neighborhood Graph and Tree for Indexing High-dimensional Data
 
