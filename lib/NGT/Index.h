@@ -370,6 +370,7 @@ namespace NGT {
     }
     
     static void version(ostream &os);
+    static string getVersion();
     string getPath(){ return path; }
   protected:
     static void loadAndCreateIndex(Index &index, const string &database, const string &dataFile,

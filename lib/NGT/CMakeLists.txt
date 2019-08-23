@@ -22,12 +22,16 @@ if( ${UNIX} )
 		target_link_libraries(ngt gomp rt)
 	endif(${APPLE})
 
+	add_custom_command(OUTPUT command DEPENDS ${NGT_SOURCES} WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND sh ${PROJECT_SOURCE_DIR}/utils/mk_version_defs_h.sh ${PROJECT_SOURCE_DIR} version_defs.h)
+	add_custom_target(versiondef DEPENDS command)
+	add_dependencies(ngtstatic versiondef)
+
 	install(TARGETS
 		ngt
 		ngtstatic
 		RUNTIME DESTINATION bin
 		LIBRARY DESTINATION lib
 		ARCHIVE DESTINATION lib)
-	install(FILES ${HEADER_FILES}  ${CMAKE_CURRENT_BINARY_DIR}/defines.h DESTINATION include/NGT)
+	install(FILES ${HEADER_FILES} ${CMAKE_CURRENT_BINARY_DIR}/defines.h  ${CMAKE_CURRENT_BINARY_DIR}/version_defs.h DESTINATION include/NGT)
 	install(FILES ${NGTQ_HEADER_FILES} DESTINATION include/NGT/NGTQ)
 endif()

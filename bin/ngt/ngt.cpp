@@ -17,6 +17,10 @@
 #include	"NGT/Command.h"
 #include	"NGT/Optimizer.h"
 
+#define NGT_VERSION_FOR_HEADER
+#include	"NGT/Version.h"
+
+
 #ifndef BUILD_DATE
 #define BUILD_DATE	"-"
 #endif
@@ -34,10 +38,7 @@ static void
 version(ostream &os)
 {
   os << "ngt:" << endl;
-  os << "  Built date:" << BUILD_DATE << endl;
-  os << "  The last git tag:" << GIT_TAG << endl;
-  os << "  The last git commit hash:" << GIT_HASH << endl;
-  os << "  The last git commit date:" << GIT_DATE << endl;
+  NGT::Version::get(os);
 }
 
 void help() {
@@ -92,8 +93,10 @@ main(int argc, char **argv)
 #endif
 
     } else if (command == "info") {
-      version(cerr);
-      NGT::Index::version(cerr);
+      if (NGT::Index::getVersion() != NGT::Version::getVersion()) {
+	version(cerr);
+	NGT::Index::version(cerr);
+      }
       ngt.info(args);
     } else {
       cerr << "ngt: Error: Illegal command. " << command << endl;

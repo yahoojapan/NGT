@@ -44,14 +44,14 @@ Constructs the specified index with the specified data.
           [-i index_type] [-g graph_type] [-t edge_reduction_threshold] 
           [-e search_range_coefficient] [-E no_of_edges] [-S no_of_edges_at_search_time] 
           [-o object_type] [-D distance_function] [-n no_of_registration_data] 
-          index registration_data
+          index [registration_data]
         
 
 *index*  
-Specifies the name of the directory for the index to be generated. After data registration, the directory consists of multiple files for the index.
+Specifies the name of the directory for the index to be generated. The generated directory consists of multiple files for the index.
 
 *registration\_data*  
-Specifies the vector data to be registered. These data shall consist of one object (data item) per line and each dimensional element shall be delimited by a space or tab.
+Specifies the vector data to be registered. These data shall consist of one object (data item) per line and each dimensional element shall be delimited by a space or tab. If omitted, the specified directory is just generated and initialized as the index.
 
 **-d** *no\_of\_dimensions*  
 Specifies the number of dimensions of registration data. Specification is unnecessary if each row of the registration data file consists only of dimensional elements. However, if attribute information or other types of data follow the dimensional elements, such subsequent data will be ignored based on the number of dimensions specified here.
@@ -79,10 +79,10 @@ Specifies the increase in number of edges that acts as a criterion for executing
 **-e** *search\_range\_coefficient* (default = recomended value = 0.1)  
 When specifying ANNG or BKNNG, neighboring nodes connected to an item of registration data (node) by edges are obtained by searching and combined by edges. This option specifies the magnification coefficient of the search range at search time.
 
-**-E** *no\_of\_edges* (default = recomended value = 10)  
+**-E** *no\_of\_edges* (default = 10)  
 Specifies the number of initial edges of each node at graph generation time. Once an index has been generated, the number of edges will be equal to or greater than this specified number in the case of ANNG or BKNNG and equal to this specified number in the case of KNNG.
 
-**-S** *no\_of\_edges\_at\_search\_time* (default = recomended value = 40)  
+**-S** *no\_of\_edges\_at\_search\_time* (default = 40)  
 Specifies the number of edges at search time accompanying or following index generation. This value is used when not specifying the number of edges by the search command. It is specified to conduct searches by a number of edges less than the actual number of edges of each node in the graph. Since a large number of edges may be generated in the case of ANNG or BKNNG, limiting the number of edges can help improve search performance. Specifying 0 here indicates that the number of edges is not to be limited (that all actual edges are to be used). If 0 is specified, index generation is relatively slow, but top performance can be obtained at search time.
 
 **-o** *object\_type*  
@@ -99,6 +99,7 @@ Specifies the distance function as follows.
 - __c__: Cosine similarity
 - __C__: Normalized cosine similarity. The specified data are automatically normalized to be appended to the index.
 - __h__: Hamming distance. 1 byte unsigned integer should be specified for the data object type.
+- __j__: Jaccard distance. 1 byte unsigned integer should be specified for the data object type.
 
 **-n** *no\_of\_registration\_data*  
 Specifies the number of data items to be registered. If not specified, all data in the specified file will be registered.
@@ -152,7 +153,7 @@ Specifies the magnification coefficient of the search range. A larger value mean
 **-n** *no\_of\_search\_results* (default: 20)  
 Specifies the number of search results.
 
-**-E** *max\_no\_of\_edges* (default = value specified with the create command or 40; recomended value = 40)   
+**-E** *max\_no\_of\_edges* (default = value specified with the create command or 40)   
 Specifies the maximum number of edges to be used in the search. This option is specified when conducting a search with fewer edges than the number of edges of each node on the graph. Since a large number of edges can be generated in the case of ANNG or BKNNG, limiting the number of edges in this way tends to improve search performance. Specifying zero here indicates no limiting of number of edges (use all actual edges).
 
 **-r** *search\_radius* (default = infinite circle)  
@@ -195,7 +196,7 @@ no\_of\_forcedly\_pruned\_edges should be greater than no\_of\_selectively\_prun
 
 constructs the index with the reconstructed graph from the specified index.
 
-      $ ngt reconstruct-graph [-m mode] -o no_of_original_edges -i no_of_reverse_edge input_index reconstructed_index
+      $ ngt reconstruct-graph [-m mode] [-I graph_type] -o no_of_original_edges -i no_of_reverse_edge input_index reconstructed_index
 
 *input_index*  
 Specifies the name of the existing index.
@@ -214,6 +215,10 @@ Specified the mode of the path adjustment.
 - __s__: no path adjustment.
 - __S__: path adjustment.
 
+**-I** *graph_type*
+既存のグラフのタイプを指定します。ANNG以外のグラフではANNGに変換してから再構成します。
+- __a__: ANNG
+- __o__: The others
 
 
 

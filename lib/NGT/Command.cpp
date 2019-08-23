@@ -721,7 +721,7 @@
     vector<NGT::ObjectDistances> graph;
     GraphReconstructor::extractGraph(graph, outIndex);
 
-    char mode = args.getChar("m", 's');
+    char mode = args.getChar("m", 'S');
     char pamode = args.getChar("P", 'a');
     char indexType = args.getChar("I", 'a');
 
@@ -792,6 +792,8 @@
   {
     const string usage = "Usage: ngt info [-E #-of-edges] [-m h|e] index";
 
+    cerr << "NGT version: " << NGT::Index::getVersion() << endl;
+
     string database;
     try {
       database = args.get("#1");
@@ -806,9 +808,6 @@
 
     try {
       NGT::Index	index(database);
-      stringstream msg;
-      size_t smsize = index.getSharedMemorySize(msg);
-      cerr << "SharedMemorySize=" << smsize << endl;
       NGT::GraphIndex::showStatisticsOfGraph(static_cast<NGT::GraphIndex&>(index.getIndex()), mode, edgeSize);
       if (mode == 'v') {
 	vector<uint8_t> status;

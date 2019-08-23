@@ -6,11 +6,19 @@ import glob
 import setuptools
 
 static_library_option = '--static-library'
+included_library_option = '--included-library'
+
 static_library = False
 if static_library_option in sys.argv:
     print('use the NGT static library')
     sys.argv.remove(static_library_option)
     static_library = True
+
+included_library = False
+if included_library_option in sys.argv:
+    print('use the NGT included library')
+    sys.argv.remove(included_library_option)
+    included_library = True
 
 if sys.version_info.major >= 3:
     from setuptools import Extension
@@ -23,7 +31,7 @@ if sys.version_info.major >= 3:
 
 version = '1.5.0'
 
-if static_library:
+if static_library or included_library:
     with open('../VERSION', 'r') as fh:
         version = fh.read()
 
@@ -47,12 +55,12 @@ args = {
 }
 
 if sys.version_info.major >= 3:
-    if static_library:
+    if static_library or included_library:
         params = {
             'include_dirs': ['/usr/local/include', 
                             os.path.dirname(locations.distutils_scheme('pybind11')['headers']),
                             os.path.dirname(locations.distutils_scheme('pybind11', True)['headers'])],
-            'extra_compile_args': ['-std=c++11', '-Ofast', '-lrt', '-DNDEBUG'],
+            'extra_compile_args': ['-std=c++11', '-Ofast', '-fopenmp', '-lrt', '-DNDEBUG'],
             'sources': ['src/ngtpy.cpp']
         }
     else:
@@ -60,13 +68,18 @@ if sys.version_info.major >= 3:
             'include_dirs': ['/usr/local/include', 
                             os.path.dirname(locations.distutils_scheme('pybind11')['headers']),
                             os.path.dirname(locations.distutils_scheme('pybind11', True)['headers'])],
-            'extra_compile_args': ['-std=c++11', '-Ofast', '-march=native', '-lrt', '-DNDEBUG'],
+            'extra_compile_args': ['-std=c++11', '-Ofast', '-fopenmp', '-march=native', '-lrt', '-DNDEBUG'],
             'sources': ['src/ngtpy.cpp']
         }
 
     dynamic_lib_params = {
         'library_dirs': ['/usr/local/lib', '/usr/local/lib64'],
-        'libraries': ['ngt']
+        'libraries': ['ngt', 'gomp']
+    }
+    included_lib_params = {
+        'library_dirs': ['/usr/local/lib', '/usr/local/lib64'],
+        'libraries': ['ngt', 'gomp'],
+        'extra_link_args': ['-static-libstdc++']
     }
     static_lib_params = {
         'extra_objects': ['../build/lib/NGT/libngt.a'],
@@ -74,6 +87,8 @@ if sys.version_info.major >= 3:
     }
     if static_library:
         params.update(static_lib_params)
+    elif included_library:
+        params.update(included_lib_params)
     else:
         params.update(dynamic_lib_params)
 

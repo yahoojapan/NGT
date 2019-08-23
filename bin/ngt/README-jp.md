@@ -42,14 +42,14 @@ CygWin といった POSIXLY_CORERECT が設定されている環境では、コ�
           [-i index_type] [-g graph_type] [-t edge_reduction_threshold] 
           [-e search_range_coefficient] [-E no_of_edges] [-S no_of_edges_at_search_time] 
           [-o object_type] [-D distance_function] [-n no_of_registration_data] 
-          index registration_data
+          index [registration_data]
         
 
 *index*  
 生成するインデックス名を指定します。データを登録後、本インデックス名のディレクトリが生成されてその中に複数のファイルからなるインデックスが生成されます。
 
 *registration\_data*  
-登録するベクトルデータを指定します。１行が１オブジェクト（データ）で構成され、各次元要素のデータはスペースまたはタブで区切られていなければなりません。
+登録するベクトルデータを指定します。１行が１オブジェクト（データ）で構成され、各次元要素のデータはスペースまたはタブで区切られていなければなりません。省略するとインデックスの初期化のみ行います。
 
 **-d** *no\_of\_dimensions*  
 登録データの次元数を指定します。登録データファイルの各行がすべて次元要素のみで構成されている場合には指定不要ですが、次元要素に続き属性情報などが存在している場合にはこの次元数に基づき後続データを無視します。
@@ -77,14 +77,14 @@ CygWin といった POSIXLY_CORERECT が設定されている環境では、コ�
 **-e** *search\_range\_coefficient* （デフォルト=推奨値=0.1） 
 ANNGやBKNNGを指定した場合には登録データ（ノード）からエッジで接続される近傍ノードは検索によって獲得され、エッジで結合されます。その検索時の探索範囲の拡大係数です。
 
-**-E** *no\_of\_edges* (default = recommend value = 10)  
+**-E** *no\_of\_edges* (default = 10)  
 グラフ生成時の各ノードの初期エッジ数を指定します。インデックス生成終了時にANNGやBKNNGでは指定されたエッジ数以上のエッジが付与されますが、KNNGでは指定されたエッジ数となります。
 
-**-S** *no\_of\_edges\_at\_search\_time* （デフォルト=推奨値=40）
+**-S** *no\_of\_edges\_at\_search\_time* （デフォルト=40）
 インデックス生成に伴う検索時及び生成後の検索時に利用するエッジ数を指定します。seachコマンドによる検索時においてエッジ数を指定しない場合にこの値が利用されます。グラフ上の各ノードの実エッジ数よりも少ないエッジ数で検索する場合に指定します。ANNGやBKNNGでは大量のエッジが生成される場合があり、エッジ数を制限することで検索性能が向上する傾向があります。エッジ数を制限しない（実エッジをすべて利用する）場合には0を指定します。0を指定した場合にはインデックスの生成が比較的遅くなりますが、検索時には最も高い性能を得られます。
     
 **-o** *object\_type*  
-データオブジェクトの型を指定する。
+データオブジェクトの型を指定します。
 - __c__: 1バイト整数
 - __f__: 4バイト浮動小数点（デフォルト）
 
@@ -97,6 +97,7 @@ ANNGやBKNNGを指定した場合には登録データ（ノード）からエ�
 - __c__: コサイン類似度
 - __C__: 正規化コサイン類似度。指定されたデータを正規化した上で保存します。
 - __h__: ハミング距離。データオブジェクトの型は1バイト整数を指定してください。
+- __j__: ジャッカード距離。データオブジェクトの型は1バイト整数を指定してください。
 
 **-n** *no\_of\_registration\_data*  
 登録するデータ数を指定します。指定しない場合には指定されたファイル中のすべてのデータを登録します。
@@ -150,7 +151,7 @@ ANNGやBKNNGを指定した場合には登録データ（ノード）からエ�
 **-n** *no\_of\_searches*（デフォルト：20） 
 検索結果数を指定します。
 
-**-E** *max\_no\_of\_edges*（デフォルト=createで指定した値または40、推奨値=40） 
+**-E** *max\_no\_of\_edges*（デフォルト=createで指定した値または40） 
 検索時に利用するエッジ数を指定します。グラフ上の各ノードのエッジ数よりも小さいエッジ数で検索する場合に指定します。ANNGやBKNNGでは大量のエッジが生成される場合があり、エッジ数制限を指定することで検索性能が向上する傾向があります。エッジ数制限しない（実エッジをすべて利用する）場合には0を指定します。
 
 **-r** *search\_radius* （デフォルト=無限円）  
@@ -191,7 +192,7 @@ no\_of\_forcedly\_pruned\_edgesはno\_of\_selectively\_pruned\_edgesより大き
 
 指定されたインデックスからグラフを再構成したインデックスを生成します。
 
-      $ ngt reconstruct-graph [-m mode] -o no_of_original_edges -i no_of_reverse_edge input_index reconstructed_index
+      $ ngt reconstruct-graph [-m mode] [-I graph_type]-o no_of_original_edges -i no_of_reverse_edge input_index reconstructed_index
 
 *input_index*  
 既存のインデックス名を指定します。
@@ -209,6 +210,11 @@ no\_of\_forcedly\_pruned\_edgesはno\_of\_selectively\_pruned\_edgesより大き
 グラフのパス最適化のモードを指定します。
 - __s__: パス最適化を行いません。
 - __S__: パス最適化を行います。
+
+**-I** *graph_type*
+既存のグラフのタイプを指定します。ANNG以外のグラフではANNGに変換してから再構成します。
+- __a__: ANNG
+- __o__: ANNG以外
 
 
 
