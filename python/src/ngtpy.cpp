@@ -29,13 +29,18 @@ public:
   Index(
    const string path, 			// ngt index path.
    bool readOnly = false,		// read only or not.
-   bool zeroBasedNumbering = true	// object ID numbering.
+   bool zeroBasedNumbering = true,	// object ID numbering.
+   bool logDisabled = true		// stderr log is disabled.
   ):NGT::Index(path, readOnly) {
-    if (readOnly) {
-      std::cerr << "ngtpy::Index read only!" << std::endl;
-    }
     zeroNumbering = zeroBasedNumbering;
     numOfDistanceComputations = 0;
+    numOfSearchObjects = 10;
+    searchRadius = FLT_MAX;
+    if (logDisabled) {
+      NGT::Index::disableLog();
+    } else {
+      NGT::Index::enableLog();
+    }
   }
 
   static void create(
@@ -56,8 +61,9 @@ public:
     } else if (objectType == "Byte" || objectType == "byte") {
       prop.objectType = NGT::Index::Property::ObjectType::Uint8;
     } else {
-      std::cerr << "ngtpy::create: invalid object type. " << objectType << std::endl;
-      return;
+      std::stringstream msg;
+      msg << "ngtpy::create: invalid object type. " << objectType;
+      NGTThrowException(msg);
     }
 
     if (distanceType == "L1") {
@@ -77,8 +83,9 @@ public:
     } else if (distanceType == "Normalized Cosine") {
       prop.distanceType = NGT::Property::DistanceType::DistanceTypeNormalizedCosine;
     } else {
-      std::cerr << "ngtpy::create: invalid distance type. " << distanceType << std::endl;
-      return;
+      std::stringstream msg;
+      msg << "ngtpy::create: invalid distance type. " << distanceType;
+      NGTThrowException(msg);
     }
     NGT::Index::createGraphAndTree(path, prop);
   }
@@ -97,8 +104,9 @@ public:
     NGT::Property prop;
     getProperty(prop);
     if (prop.dimension != info.shape[1]) {
-      std::cerr << "ngtpy::insert: Error! dimensions are inconsitency. " << prop.dimension << ":" << info.shape[1] << std::endl;
-      return;
+      std::stringstream msg;
+      msg << "ngtpy::insert: Error! dimensions are inconsitency. " << prop.dimension << ":" << info.shape[1];
+      NGTThrowException(msg);
     }
     NGT::Index::append(ptr, info.shape[0]);
     NGT::Index::createIndex(numThreads);
@@ -125,7 +133,7 @@ public:
 
   py::object search(
    py::object query,
-   size_t size = 10, 			// the number of resultant objects
+   size_t size = 0, 			// the number of resultant objects
    float epsilon = 0.1, 		// search parameter epsilon. the adequate range is from 0.0 to 0.15. minus value is acceptable.
    int edgeSize = -1,			// the number of used edges for each node during the exploration of the graph.
    bool withDistance = true
@@ -144,7 +152,12 @@ public:
       }
     }
     NGT::SearchContainer sc(*ngtquery);
-    sc.setSize(size);				// the number of resultant objects.
+    if (size == 0) {
+      sc.setSize(numOfSearchObjects);		// the number of resulting objects.
+    } else {
+      sc.setSize(size);				// the number of resulting objects.
+    }
+    sc.setRadius(searchRadius);			// the radius of search.
     sc.setEpsilon(epsilon);			// set exploration coefficient.
     sc.setEdgeSize(edgeSize);			// if maxEdge is minus, the specified value in advance is used.
 
@@ -190,7 +203,7 @@ public:
 
   py::object linearSearch(
    py::object query,
-   size_t size = 10, 			// the number of resultant objects
+   size_t size = 0, 			// the number of resultant objects
    bool withDistance = true
   ) {
     py::array_t<float> qobject(query);
@@ -208,7 +221,12 @@ public:
     }
 
     NGT::SearchContainer sc(*ngtquery);
-    sc.setSize(size);				// the number of resultant objects.
+    if (size == 0) {
+      sc.setSize(numOfSearchObjects);		// the number of resulting objects.
+    } else {
+      sc.setSize(size);				// the number of resulting objects.
+    }
+    sc.setRadius(searchRadius);			// the radius of search.
     NGT::ObjectDistances rs;
     sc.setResults(&rs);
 
@@ -278,28 +296,52 @@ public:
     return object;
   }
 
-  size_t	getNumOfDistanceComputations() { return numOfDistanceComputations; }
+  void set(size_t k, NGT::Distance r) {
+    if (k > 0) {
+      numOfSearchObjects = k;
+    }
+    if (r >= 0.0) {
+      searchRadius = r; 
+    }
+  }
 
-  bool		zeroNumbering;	// for object ID numbering. zero-based or one-based numbering.
+  size_t getNumOfDistanceComputations() { return numOfDistanceComputations; }
+
+  bool		zeroNumbering;	    // for object ID numbering. zero-based or one-based numbering.
   size_t	numOfDistanceComputations;
+  size_t	numOfSearchObjects; // k
+  NGT::Distance	searchRadius;
 };
 
 class Optimizer {
 public:
-  Optimizer() {
+  Optimizer(int outgoing, int incoming, int nofqs, 
+	    float baseAccuracyFrom, float baseAccuracyTo,
+	    float rateAccuracyFrom, float rateAccuracyTo,
+	    double qte, double m,
+	    bool log		// stderr log is disabled.
+	    ) {
     numOfOutgoingEdges = 10;
     numOfIncomingEdges= 120;
+    numOfQueries = 100;
     baseAccuracyRange = pair<float, float>(0.30, 0.50);
     rateAccuracyRange = pair<float, float>(0.80, 0.90);
-    numOfQueries = 100;
     gtEpsilon = 0.1;
     mergin = 0.2;
+    logDisabled = true;
+    set(outgoing, incoming, nofqs, baseAccuracyFrom, baseAccuracyTo,
+	rateAccuracyFrom, rateAccuracyTo, qte, m, log);
   }
 
   void adjustSearchCoefficients(const string indexPath){
     NGT::Index		index(indexPath);
     NGT::GraphIndex	&graph = static_cast<NGT::GraphIndex&>(index.getIndex());
     NGT::Optimizer	optimizer(index);
+    if (logDisabled) {
+      optimizer.disableLog();
+    } else {
+      optimizer.enableLog();
+    }
     try {
       auto coefficients = optimizer.adjustSearchEdgeSize(baseAccuracyRange, rateAccuracyRange, numOfQueries, gtEpsilon, mergin);
       NGT::NeighborhoodGraph::Property &prop = graph.getGraphProperty();
@@ -333,27 +375,38 @@ public:
 #else
     NGT::Index	outIndex(inIndexPath);
 #endif
-    cerr << "Optimizer::execute: Extract the graph data." << endl;
-    // extract only edges from the index to reduce the memory usage.
     NGT::GraphIndex	&outGraph = static_cast<NGT::GraphIndex&>(outIndex.getIndex());
     NGT::Timer timer;
     timer.start();
     vector<NGT::ObjectDistances> graph;
-    NGT::GraphReconstructor::extractGraph(graph, outIndex);
-
-    if (numOfOutgoingEdges >= 0) {
-      NGT::GraphReconstructor::convertToANNG(graph);
-      NGT::GraphReconstructor::reconstructGraph(graph, outIndex, numOfOutgoingEdges, numOfIncomingEdges);
+    NGT::StdOstreamRedirector redirector(logDisabled);
+    redirector.begin();
+    try {
+      cerr << "Optimizer::execute: Extract the graph data." << endl;
+      // extract only edges from the index to reduce the memory usage.
+      NGT::GraphReconstructor::extractGraph(graph, outIndex);
+      if (numOfOutgoingEdges >= 0) {
+	NGT::GraphReconstructor::convertToANNG(graph);
+	NGT::GraphReconstructor::reconstructGraph(graph, outIndex, numOfOutgoingEdges, numOfIncomingEdges);
+      }
+      timer.stop();
+      cerr << "Optimizer::execute: Graph reconstruction time=" << timer.time << " (sec) " << endl;
+      timer.reset();
+      timer.start();
+      NGT::GraphReconstructor::adjustPathsEffectively(outIndex);
+      timer.stop();
+      cerr << "Optimizer::execute: Path adjustment time=" << timer.time << " (sec) " << endl;
+    } catch (NGT::Exception &err) {
+      redirector.end();
+      throw(err);
     }
-    timer.stop();
-    cerr << "Optimizer::execute: Graph reconstruction time=" << timer.time << " (sec) " << endl;
-    timer.reset();
-    timer.start();
-    NGT::GraphReconstructor::adjustPathsEffectively(outIndex);
-    timer.stop();
-    cerr << "Optimizer::execute: Path adjustment time=" << timer.time << " (sec) " << endl;
-
+    redirector.end();
     NGT::Optimizer optimizer(outIndex);
+    if (logDisabled) {
+      optimizer.disableLog();
+    } else {
+      optimizer.enableLog();
+    }
     try {
       auto coefficients = optimizer.adjustSearchEdgeSize(baseAccuracyRange, rateAccuracyRange, numOfQueries, gtEpsilon, mergin);
       NGT::NeighborhoodGraph::Property &prop = outGraph.getGraphProperty();
@@ -364,7 +417,6 @@ public:
       msg << "Optimizer::execute: Cannot adjust the search coefficients. " << err.what();
       NGTThrowException(msg);      
     }
-
     outGraph.saveIndex(outIndexPath);
 
   }
@@ -372,7 +424,8 @@ public:
   void set(int outgoing, int incoming, int nofqs, 
 	   float baseAccuracyFrom, float baseAccuracyTo,
 	   float rateAccuracyFrom, float rateAccuracyTo,
-	   double qte, double m
+	   double qte, double m,
+	   bool log		// stderr log is disabled.
 	   ) {
     if (outgoing >= 0) {
       numOfOutgoingEdges = outgoing;
@@ -383,28 +436,25 @@ public:
     if (nofqs > 0) {
       numOfQueries = nofqs;
     }
-    auto range = baseAccuracyRange;
     if (baseAccuracyFrom > 0.0) {
-      range.first = baseAccuracyFrom;
+      baseAccuracyRange.first = baseAccuracyFrom;
     }
     if (baseAccuracyTo > 0.0) {
-      range.second = baseAccuracyTo;
+      baseAccuracyRange.second = baseAccuracyTo;
     }
-    baseAccuracyRange = range;
-    range = rateAccuracyRange;
     if (rateAccuracyFrom > 0.0) {
-      range.first = rateAccuracyFrom;
+      rateAccuracyRange.first = rateAccuracyFrom;
     }
     if (rateAccuracyTo > 0.0) {
-      range.second = rateAccuracyTo;
+      rateAccuracyRange.second = rateAccuracyTo;
     }
-    rateAccuracyRange = range;
     if (qte != DBL_MIN) {
       gtEpsilon = qte;
     }
     if (m > 0.0) {
       mergin = m;
     }
+    logDisabled = log;
   }
 
   size_t numOfOutgoingEdges;
@@ -414,7 +464,7 @@ public:
   size_t numOfQueries;
   double gtEpsilon;
   double mergin;
-
+  bool logDisabled;
 };
 
 
@@ -430,19 +480,20 @@ PYBIND11_MODULE(ngtpy, m) {
           py::arg("object_type") = "Float");
 
     py::class_<Index>(m, "Index")
-      .def(py::init<const std::string &, bool, bool>(), 
+      .def(py::init<const std::string &, bool, bool, bool>(), 
            py::arg("path"),
            py::arg("read_only") = false,
-           py::arg("zero_based_numbering") = true)
+           py::arg("zero_based_numbering") = true,
+           py::arg("log_disabled") = false)
       .def("search", &::Index::search, 
            py::arg("query"), 
-           py::arg("size") = 10, 
+           py::arg("size") = 0, 
            py::arg("epsilon") = 0.1, 
            py::arg("edge_size") = -1,
            py::arg("with_distance") = true)
       .def("linear_search", &::Index::linearSearch, 
            py::arg("query"), 
-           py::arg("size") = 10, 
+           py::arg("size") = 0, 
            py::arg("with_distance") = true)
       .def("get_num_of_distance_computations", &::Index::getNumOfDistanceComputations)
       .def("save", &NGT::Index::save)
@@ -459,10 +510,23 @@ PYBIND11_MODULE(ngtpy, m) {
            py::arg("debug") = false)
       .def("insert", &::Index::insert, 
            py::arg("object"),
-           py::arg("debug") = false);
+           py::arg("debug") = false)
+      .def("set", &::Index::set, 
+           py::arg("num_of_search_objects") = 0,
+	   py::arg("search_radius") = -1.0);
 
     py::class_<Optimizer>(m, "Optimizer")
-      .def(py::init<>())
+      .def(py::init<int, int, int, float, float, float, float, double, double, bool>(),
+	   py::arg("num_of_outgoings") = -1,
+	   py::arg("num_of_incomings") = -1,
+	   py::arg("num_of_queries") = -1,
+	   py::arg("low_accuracy_from") = -1.0,
+	   py::arg("low_accuracy_to") = -1.0,
+	   py::arg("high_accuracy_from") = -1.0,
+	   py::arg("high_accuracy_to") = -1.0,
+	   py::arg("gt_epsilon") = DBL_MIN,
+	   py::arg("merge") = -1.0,
+	   py::arg("log_disabled") = false)
       .def("execute", &::Optimizer::execute, 
 	   py::arg("in_index_path"),
 	   py::arg("out_index_path"))
@@ -477,7 +541,7 @@ PYBIND11_MODULE(ngtpy, m) {
 	   py::arg("high_accuracy_from") = -1.0,
 	   py::arg("high_accuracy_to") = -1.0,
 	   py::arg("gt_epsilon") = DBL_MIN,
-	   py::arg("merge") = -1.0
-	   );
+	   py::arg("merge") = -1.0,
+	   py::arg("log_disabled") = false);
 }
 

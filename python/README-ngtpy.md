@@ -9,24 +9,27 @@ Class Index
 ## Member Functions
 
 ### \_\_init\_\_
-Opens the specified index and creates the index object for the index.
+Open the specified index and creates the index object for the index.
 
-      __init__(self: ngtpy.Index, path: str, read_only: bool=False, zero_based_numbering: bool=True)
+      __init__(self: ngtpy.Index, path: str, read_only: bool=False, zero_based_numbering: bool=True, log_disabled: bool=False)
 
 **Returns**  
 None.
 
 **path**   
-Specifies the path of the index to open.
+Specify the path of the index to open.
 
-**read\_only**   
-Opens the index as read-only. False means opening as read-write.
+**read_only**   
+Open the index as read-only. False means opening as read-write.
 
-**zero\_based\_numbering**   
-Specifies zero-based numbering for object IDs. False means one-based numbering.
+**zero_based_numbering**   
+Specify zero-based numbering for object IDs. False means one-based numbering.
+
+**log_disabled**    
+Disable stderr messages about the progression of an operation.
 
 ### close
-Closes the index.
+Close the index.
 
       close(self: ngtpy.Index)
 
@@ -34,7 +37,7 @@ Closes the index.
 None.
 
 ### insert
-Inserts the specified object into the index. Not build the index for the object. The function build_index below should be called to build the index after inserting objects by using this function.
+Insert the specified object into the index. Not build the index for the object. The function build_index below should be called to build the index after inserting objects by using this function.
 
       int insert(self: ngtpy.Index, object: numpy.ndarray[float64])
 
@@ -42,7 +45,7 @@ Inserts the specified object into the index. Not build the index for the object.
 ID for the inserted object.
 
 **object**   
-Specifies the inserted object.
+Specify the inserted object.
 
 ### build_index
 Build the index for the objects that have been inserted by using the function insert.
@@ -53,10 +56,10 @@ Build the index for the objects that have been inserted by using the function in
 None.
 
 **num_thread**  
-Specifies the number of threads to build the index.
+Specify the number of threads to build the index.
 
 ### batch_insert
-Inserts the specified objects and builds the index for the objects. This function is almost the same as executing the ngt command "ngt append". You may execute the ngt command instead of calling this function.
+Insert the specified objects and builds the index for the objects. This function is almost the same as executing the ngt command "ngt append". You may execute the ngt command instead of calling this function.
 
       batch_insert(self: ngtpy.Index, objects: numpy.ndarray[float64], num_threads: int=8)
 
@@ -64,25 +67,25 @@ Inserts the specified objects and builds the index for the objects. This functio
 None.
 
 **objects**   
-Specifies the inserted objects.
+Specify the inserted objects.
 
 **num_thread**   
-Specifies the number of threads to build the index.
+Specify the number of threads to build the index.
 
 
 ### remove
-Removes the specified object.
+Remove the specified object.
 
       remove(self: ngtpy.Index, object_id: int)
 
 **Returns**  
 None.
 
-**object\_id**   
-Specifies the removed object ID.
+**object_id**   
+Specify the removed object ID.
 
 ### save
-Saves the index.
+Save the index.
 
       save(self: ngtpy.Index)
 
@@ -90,7 +93,7 @@ Saves the index.
 None.
 
 ### get_object
-Gets the specified object.
+Get the specified object.
 
       List[float] get_object(self: ngtpy.Index, object_id: int)
 
@@ -99,33 +102,49 @@ The specified object.
 
 
 ### search
-Searches the nearest objects to the specified query object.
+Search the nearest objects to the specified query object.
 
-      object search(self: ngtpy.Index, query: object, size: int=10, epsilon: float=0.1, edge_size: int=-1, with_distance: bool=True)
+      object search(self: ngtpy.Index, query: object, size, epsilon: float=0.1, edge_size: int=-1, with_distance: bool=True)
 
 **Returns**   
 The list of tuples(object ID, distance) as the search result. 
 
 **query**   
-Specifies the query object.
+Specify the query object.
 
 **size**   
-Specifies the number of the objects as the search result.
+Specify the number of the objects as the search result.
 
 **epsilon**   
-Specifies epsilon which defines the explored range for the graph.
+Specify epsilon which defines the explored range for the graph.
 
-**edge\_size**   
-Specifies the number of edges for each node to explore the graph.
+**edge_size**   
+Specify the number of edges for each node to explore the graph.
 
-**with\_distance**   
-Specifies object IDs with distances as the result. False means that the result is a list of only object IDs.
+**with_distance**   
+Specify object IDs with distances as the result. False means that the result is a list of only object IDs.
+
+
+### set
+Specify the search parameters.
+
+      set(self: ngtpy.Index, num_of_search_objects, search_radius)
+
+**num_of_search_objects**    
+Specify the number of search objects. The default is 10.
+
+**search_radius**    
+Specify the search radius. The default is infinity.
+
+**Returns**   
+None.
+
 
 FUNCTIONS
 =========
 
 ### create
-Creates an empty index. This function is almost the same as executing the ngt command "ngt create" with an empty inserted object file. You may execute the ngt command instead of calling this function.
+Create an empty index. This function is almost the same as executing the ngt command "ngt create" with an empty inserted object file. You may execute the ngt command instead of calling this function.
 
       create(path: str, dimension: int, edge_size_for_creation: int=10, edge_size_for_search: int=40, distance_type: str='L2', object_type: str='Float')
 
@@ -134,19 +153,19 @@ Creates an empty index. This function is almost the same as executing the ngt co
 None.
 
 **path**   
-Specifies the path of the index.
+Specify the path of the index.
 
 **dimension**  
-Specifies the dimensionality of the inserted object.
+Specify the dimensionality of the inserted object.
 
-**edge\_size\_for\_creation**   
-Specifies the initial number of edges for each node.
+**edge_size_for_creation**   
+Specify the initial number of edges for each node.
 
-**edge\_size\_for\_search**   
-Specifies the number of edges for each node to explore the graph for the search processing.
+**edge_size_for_search**   
+Specify the number of edges for each node to explore the graph for the search processing.
 
-**distance\_type**   
-Specifies the distance function for the objects.
+**distance_type**   
+Specify the distance function for the objects.
 - __L1__: L1 distance
 - __L2__: L2 distance (default)
 - __Angle__: Angle distance
@@ -156,8 +175,50 @@ Specifies the distance function for the objects.
 - __Hamming__: Hamming distance
 - __Jaccard__: Jaccard distance
 
-**object\_type**  
-Specifies the data type of the objects.
+**object_type**  
+Specify the data type of the objects.
 - __Float__: 4 byte floating point number
 - __Byte__: 1 byte unsigned integer
 
+
+Class Optimizer
+===============
+
+### \_\_init\_\_
+Create the optimizer object with the specified parameters.
+
+      __init__(self: ngtpy.Optimizer, num_of_outgoings: int=10, num_of_incomings: int=120, log_disabled: bool=False)
+
+**Returns**  
+None.
+
+**num_of_outgoings**    
+Specify the number of outgoing edges for each node to add to the reconstructed graph from the inout graph. The specified number also means the lower bound of the outdegrees of the reconstructed graph.
+
+**num_of_incomings**    
+Specify the number of incoming edges for each node to add to the reconstructed graph from the input graph. Unlike *num_of_outgoings*, after the direction of the edges are reversed, the edges are added to the reconstructed graph. The specified number also means the lower bound of the indegrees of the reconstructed graph.
+
+**log_disabled**    
+Disable stderr messages about the progression of an operation.
+
+### execute
+Reconstruct an index from the specified index with the previously specified parameters, and optimize search coefficients, which is the same as call *adjust_search_coefficients* below.
+
+
+      execute(self: ngtpy.Optimizer, in_index_path, out_index_path)
+
+
+**in_index_path**   
+Specify the input index path.
+
+
+**out_index_path**    
+Specify the output index path.
+
+### adjust_search_coefficients
+Optimize search coefficients.
+
+      adjust_search_coefficients(self: ngtpy.Optimizer, index_path)
+
+**index_path**   
+Specify the index which is optimized.

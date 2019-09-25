@@ -292,9 +292,9 @@ namespace NGT {
 	NGTThrowException(msg);	
       }
     }
-    static void createGraphAndTree(const string &database, NGT::Property &prop, const string &dataFile, size_t dataSize = 0);
-    static void createGraphAndTree(const string &database, NGT::Property &prop) { createGraphAndTree(database, prop, ""); }
-    static void createGraph(const string &database, NGT::Property &prop, const string &dataFile, size_t dataSize = 0);
+    static void createGraphAndTree(const string &database, NGT::Property &prop, const string &dataFile, size_t dataSize = 0, bool redirect = false);
+    static void createGraphAndTree(const string &database, NGT::Property &prop) { createGraphAndTree(database, prop, "", false); }
+    static void createGraph(const string &database, NGT::Property &prop, const string &dataFile, size_t dataSize = 0, bool redirect = false);
     template<typename T> size_t insert(vector<T> &object);
     template<typename T> size_t append(vector<T> &object);
     static void append(const string &database, const string &dataFile, size_t threadSize, size_t dataSize); 
@@ -305,9 +305,27 @@ namespace NGT {
     virtual void load(const string &ifile, size_t dataSize) { getIndex().load(ifile, dataSize); }
     virtual void append(const string &ifile, size_t dataSize) { getIndex().append(ifile, dataSize); }
     virtual void append(const float *data, size_t dataSize) { getIndex().append(data, dataSize); } 
-    virtual void append(const double *data, size_t dataSize) { getIndex().append(data, dataSize); } 
+    virtual void append(const double *data, size_t dataSize) {  
+      redirector.begin();
+      try {
+	getIndex().append(data, dataSize); 
+      } catch(Exception &err) {
+	redirector.end();
+	throw err;
+      }
+      redirector.end();
+    }
     virtual size_t getObjectRepositorySize() { return getIndex().getObjectRepositorySize(); }
-    virtual void createIndex(size_t threadNumber) { getIndex().createIndex(threadNumber); }
+    virtual void createIndex(size_t threadNumber) {
+      redirector.begin();
+      try {
+	getIndex().createIndex(threadNumber); 
+      } catch(Exception &err) {
+	redirector.end();
+	throw err;
+      }
+      redirector.end();
+    }
     virtual void saveIndex(const string &ofile) { getIndex().saveIndex(ofile); }
     virtual void loadIndex(const string &ofile) { getIndex().loadIndex(ofile); }
     virtual Object *allocateObject(const string &textLine, const string &sep) { return getIndex().allocateObject(textLine, sep); }
@@ -349,6 +367,8 @@ namespace NGT {
       }
       return *index;
     }
+    void enableLog() { redirector.disable(); }
+    void disableLog() { redirector.enable(); }
 
     static void destroy(const string &path) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
@@ -378,6 +398,7 @@ namespace NGT {
 
     Index *index;
     string path;
+    StdOstreamRedirector redirector;
   };
 
   class GraphIndex : public Index, 
@@ -1682,7 +1703,7 @@ NGT::Index::open(const string &database, bool rdOnly) {
 
 inline void 
   NGT::Index::createGraphAndTree(const string &database, NGT::Property &prop, const string &dataFile,
-					   size_t dataSize) {
+				 size_t dataSize, bool redirect) {
   if (prop.dimension == 0) {
     NGTThrowException("Index::createGraphAndTree. Dimension is not specified.");
   }
@@ -1695,14 +1716,19 @@ inline void
   idx = new NGT::GraphAndTreeIndex(prop);
 #endif
   assert(idx != 0);
+  StdOstreamRedirector redirector(redirect);
+  redirector.begin();
   try {
     loadAndCreateIndex(*idx, database, dataFile, prop.threadPoolSize, dataSize);
   } catch(Exception &err) {
     delete idx;
+    redirector.end();
     throw err;
   }
   delete idx;
+  redirector.end();
 }
+
 template<typename T>
 size_t NGT::Index::append(vector<T> &object) 
 {
@@ -1728,7 +1754,7 @@ size_t NGT::Index::insert(vector<T> &object)
 }
 
 inline void 
-  NGT::Index::createGraph(const string &database, NGT::Property &prop, const string &dataFile, size_t dataSize) {
+  NGT::Index::createGraph(const string &database, NGT::Property &prop, const string &dataFile, size_t dataSize, bool redirect) {
   if (prop.dimension == 0) {
     NGTThrowException("Index::createGraphAndTree. Dimension is not specified.");
   }
@@ -1741,13 +1767,17 @@ inline void
   idx = new NGT::GraphIndex(prop);
 #endif
   assert(idx != 0);
+  StdOstreamRedirector redirector(redirect);
+  redirector.begin();
   try {
     loadAndCreateIndex(*idx, database, dataFile, prop.threadPoolSize, dataSize);
   } catch(Exception &err) {
     delete idx;
+    redirector.end();
     throw err;
   }
   delete idx;
+  redirector.end();
 }
 
 inline void 

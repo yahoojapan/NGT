@@ -11,7 +11,7 @@ Class Index
 ### \_\_init\_\_
 指定されたインデックスをオープンし、そのインデックスのオブジェクトを生成します。
 
-      __init__(self: ngtpy.Index, path: str, read_only: bool=False, zero_based_numbering: bool=True)
+      __init__(self: ngtpy.Index, path: str, read_only: bool=False, zero_based_numbering: bool=True, log_disabled: bool=False)
 
 **Returns**  
 なし
@@ -19,11 +19,14 @@ Class Index
 **path**   
 オープンするインデックスのパスを指定します。
 
-**read\_only**   
+**read_only**   
 書込み不可でインデックスをオープンします。Falseは書込み可を意味します。
 
-**zero\_based\_numbering**   
+**zero_based_numbering**   
 オブジェクトIDが０から始まることを指定します。Falseは１から始まることを意味します。
+
+**log_disabled**    
+処理の進捗に関する標準エラーのメッセージを無効にします。
 
 ### close
 インデックスをクローズします。
@@ -78,7 +81,7 @@ Class Index
 **Returns**  
 なし
 
-**object\_id**   
+**object_id**   
 削除するオブジェクトのIDを指定します。
 
 ### save
@@ -100,7 +103,7 @@ Class Index
 ### search
 指定されたクエリオブジェクトに対する近傍のオブジェクトを検索する。
 
-      object search(self: ngtpy.Index, query: object, size: int=10, epsilon: float=0.1, edge_size: int=-1, with_distance: bool=True)
+      object search(self: ngtpy.Index, query: object, size: int, epsilon: float=0.1, edge_size: int=-1, with_distance: bool=True)
 
 **Returns**   
 検索結果としてタプル（ID、距離）のリスト
@@ -114,11 +117,26 @@ Class Index
 **epsilon**   
 グラフの探索範囲を決定する変数イプシロンを指定します。
 
-**edge\_size**   
+**edge_size**   
 グラフを探索するのに利用する各ノードのエッジ数を指定します。
 
-**with\_distance**   
+**with_distance**   
 距離付きオブジェクトIDの検索結果を返すことを指定します。Falseは結果がオブジェクトIDののみのリストとなることを意味します。
+
+### set
+検索パラメータを指定します。
+
+      set(self: ngtpy.Index, num_of_search_objects, search_radius)
+
+**num_of_search_objects**    
+検索結果数を指定します。デフォルトは10です。
+
+**search_radius**    
+検索範囲を指定します。デフォルトは無限です。
+
+**Returns**   
+なし。
+
 
 FUNCTIONS
 =========
@@ -137,13 +155,13 @@ FUNCTIONS
 **dimension**  
 登録するオブジェクトの次元数を指定します。
 
-**edge\_size\_for\_creation**   
+**edge_size_for_creation**   
 各ノードの初期エッジ数を指定します。
 
-**edge\_size\_for\_search**   
+**edge_size_for_search**   
 検索時にグラフを探索するためのノードのエッジ数を指定します。
 
-**distance\_type**   
+**distance_type**   
 オブジェクトの距離関数を指定します。
 - __L1__: L1 距離
 - __L2__: L2 距離（デフォルト）
@@ -154,8 +172,50 @@ FUNCTIONS
 - __Hamming__: ハミング距離
 - __Jaccard__: ジャッカード距離
 
-**object\_type**  
+**object_type**  
 オブジェクトのデータタイプを指定します。
 - __Float__: 4 バイト浮動小数点
 - __Byte__: 1 バイト符号なし整数
 
+
+Class Optimizer
+===============
+
+### \_\_init\_\_
+指定されたパラメータを設定したoptimizerオブジェクトを生成します。
+
+      __init__(self: ngtpy.Optimizer, num_of_outgoings: int=10, num_of_incomings: int=120, log_disabled: bool=False)
+
+**Returns**  
+なし
+
+**num_of_outgoings**    
+入力のグラフから再構築のグラフへ加える各ノードの出力エッジ数を指定します。指定された値は再構築グラフの出次数の下限値を意味します。
+
+**num_of_incomings**    
+入力のグラフから再構築のグラフへ加える各ノードの入力エッジ数を指定します。*num_of_outgoings*とは異り、エッジの方向を逆転した後、再構築のグラフに加ます。この値は再構築グラフの入次数の下限値を意味します。
+
+**log_disabled**    
+処理の進捗に関する標準エラーのメッセージを無効にします。
+
+### execute
+事前に指定されたパラメータを用いて指定されたインデックスから新なインデックスを再構築し、検索時の係数を最適化します。この最適化は*adjust_search_coefficients*を呼び出すのと同じです。
+
+
+      execute(self: ngtpy.Optimizer, in_index_path, out_index_path)
+
+
+**in_index_path**    
+入力のインデックスを指定します。
+
+
+**out_index_path**    
+出力のインデックスを指定します。
+
+### adjust_search_coefficients
+検索係数を最適化します。
+
+      adjust_search_coefficients(self: ngtpy.Optimizer, index_path)
+
+**index_path**    
+最適化するインデックスを指定します。

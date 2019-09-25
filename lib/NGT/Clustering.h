@@ -18,6 +18,22 @@
 
 #include "NGT/Index.h"
 
+#if defined(NGT_AVX_DISABLED) 
+#define NGT_CLUSTER_NO_AVX
+#else
+#if defined(__AVX2__)
+#define NGT_CLUSTER_AVX2
+#else
+#define NGT_CLUSTER_NO_AVX
+#endif
+#endif
+
+#if defined(NGT_CLUSTER_NO_AVX)
+#warning "*** SIMD is *NOT* available! ***"
+#else
+#include	<immintrin.h>
+#endif
+
 #include <omp.h>
 #include <random>
 
@@ -161,7 +177,7 @@ namespace NGT {
 	exit(1);
       }
     }
-#if !defined(NGT_AVX_DISABLED) && defined(__AVX__)
+#if !defined(NGT_CLUSTER_NO_AVX)
     static double 
       sumOfSquares(float *a, float *b, size_t size) {
       __m256 sum = _mm256_setzero_ps();

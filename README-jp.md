@@ -41,10 +41,8 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
       $ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
       $ brew install cmake
       $ brew install gcc@9
-      $ ln -s ./gcc-9 /usr/local/bin/gcc
-      $ ln -s ./g++-9 /usr/local/bin/g++
-      $ export CXX=g++
-      $ export CC=gcc
+      $ export CXX=/usr/local/bin/g++
+      $ export CC=/usr/local/bin/gcc
       $ unzip NGT-x.x.x.zip
       $ cd NGT-x.x.x
       $ mkdir build

@@ -33,6 +33,7 @@
 #include	<typeinfo>
 
 #include	<sys/time.h>
+#include	<fcntl.h>
 
 #include	"NGT/defines.h"
 #include	"NGT/SharedMemoryAllocator.h"
@@ -223,6 +224,54 @@ namespace NGT {
     static int getProcessVmRSS() { return strtol(getProcessStatus("VmRSS")); }
   };
 
+  class StdOstreamRedirector {
+  public:
+    StdOstreamRedirector(bool e = false, const std::string path = "/dev/null", mode_t m = S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH, int f = 2) { 
+      logFilePath	= path;
+      mode	= m; 
+      logFD	= -1;
+      fdNo	= f;
+      enabled	= e;
+    }
+    ~StdOstreamRedirector() { end(); }
+
+    void enable() { enabled = true; }
+    void disable() { enabled = false; }
+    void begin() {
+      if (!enabled) {
+	return;
+      }
+      if (logFilePath != "/dev/null") {
+	logFD = open("log", O_WRONLY|O_APPEND, mode);
+      } else {
+	logFD = open("log", O_CREAT|O_WRONLY|O_APPEND, mode);
+      }
+      if (logFD < 0) {
+	std::cerr << "Logger: Cannot begin logging." << std::endl;
+	logFD = -1;
+	return;
+      }
+      savedFdNo = dup(fdNo);
+      std::cerr << std::flush;
+      dup2(logFD, fdNo);
+    }
+
+    void end() {
+      if (logFD < 0) {
+	return;
+      }
+      std::cerr << std::flush;
+      dup2(savedFdNo, fdNo);
+      savedFdNo = -1;
+    }
+
+    std::string	logFilePath;
+    mode_t	mode;
+    int		logFD;
+    int		savedFdNo;
+    int		fdNo;
+    bool	enabled;
+  };
 
   template <class TYPE> 
     class CompactVector {

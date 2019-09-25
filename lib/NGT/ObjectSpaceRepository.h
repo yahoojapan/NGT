@@ -360,7 +360,7 @@ namespace NGT {
       ObjectRepository &rep = *this;
       for (size_t idx = 0; idx < rep.size(); idx++) {
 #ifndef NGT_PREFETCH_DISABLED
-	if (idx + prefetchOffset < rep.size()) {
+	if (idx + prefetchOffset < rep.size() && rep[idx + prefetchOffset] != 0) {
 	  MemoryCache::prefetch((unsigned char*)&(*static_cast<PersistentObject*>(rep[idx + prefetchOffset]))[0], byteSizeOfObject);
 	}
 #endif

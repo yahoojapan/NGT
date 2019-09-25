@@ -9,6 +9,8 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 **NGT** provides commands and a library for performing high-speed approximate nearest neighbor searches against a large volume of data (several million to several 10 million items of data) in high dimensional vector data space (several ten to several thousand dimensions).
 
 News
+----
+
 - 06/26/2019 Jaccard distance is available. (v1.7.6)
 - 06/10/2019 PyPI NGT package v1.7.5 is now available.
 - 01/17/2019 Python NGT can be installed via pip from PyPI. (v1.5.1)
@@ -40,10 +42,8 @@ Installation
       $ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
       $ brew install cmake
       $ brew install gcc@9
-      $ ln -s ./gcc-9 /usr/local/bin/gcc
-      $ ln -s ./g++-9 /usr/local/bin/g++
-      $ export CXX=g++
-      $ export CC=gcc
+      $ export CXX=/usr/local/bin/g++
+      $ export CC=/usr/local/bin/gcc
       $ unzip NGT-x.x.x.zip
       $ cd NGT-x.x.x
       $ mkdir build

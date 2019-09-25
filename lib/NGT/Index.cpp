@@ -661,6 +661,9 @@ GraphAndTreeIndex::verify(vector<uint8_t> &status, bool info) {
   }
   // status: tree|graph|object
   for (size_t id = 1; id < status.size(); id++) {
+    if (id % 100000 == 0) {
+      cerr << "The number of processed objects=" << id << endl;
+    }
     if (status[id] != 0x00 && status[id] != 0x07) {
       if (status[id] == 0x03) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR

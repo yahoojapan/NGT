@@ -40,6 +40,9 @@ namespace NGT {
       double	meanVisitCount;
     };
 
+    void enableLog() { redirector.disable(); }
+    void disableLog() { redirector.enable(); }
+
     static void search(NGT::Index &index, istream &gtStream, Command::SearchParameter &sp, vector<MeasuredValue> &acc) {
       ifstream		is(sp.query);
       if (!is) {
@@ -817,6 +820,7 @@ namespace NGT {
       NGT::GraphIndex &graphIndex = static_cast<GraphIndex&>(index.getIndex());
       NeighborhoodGraph::Property &prop = graphIndex.getGraphProperty();
       searchParameter.size = nOfResults;
+      redirector.begin();
       try {
 	cerr << "adjustSearchEdgeSize::Extract queries for GT..." << endl;
 	extractQueries(querySize, queries);
@@ -824,8 +828,10 @@ namespace NGT {
 	createGroundTruth(index, epsilon, searchParameter, queries, gtStream);
       } catch (NGT::Exception &err) {
 	cerr << "adjustSearchEdgeSize::Error!! Cannot adjust. " << err.what() << endl;
+	redirector.end();
 	return pair<size_t, size_t>(0, 0);
       }
+      redirector.end();
 
       auto prevBase = pair<size_t, double>(0, 0);
       auto prevRate = pair<size_t, double>(0, 0);
@@ -833,6 +839,7 @@ namespace NGT {
       auto rate = pair<size_t, double>(20, 0);
 
       map<pair<size_t, size_t>, double> history;
+      redirector.begin();
       for(;;) {
 	try {
 	  prop.dynamicEdgeSizeRate = rate.first;
@@ -868,11 +875,12 @@ namespace NGT {
 	  history.insert(std::make_pair(std::make_pair(base.first, rate.first), rate.second));
 	} catch (NGT::Exception &err) {
 	  cerr << "adjustRateSearchEdgeSize::Error!! Cannot adjust. " << err.what() << endl;
+	  redirector.end();
 	  return pair<size_t, size_t>(0, 0);
 	}
       }
+      redirector.end();
       return std::make_pair(base.first, rate.first);
-
     }
 
     static void adjustSearchEdgeSize(Args &args)
@@ -1249,7 +1257,7 @@ namespace NGT {
 
     NGT::Index &index;
     size_t nOfResults;
-
+    StdOstreamRedirector redirector;
   };
 
 }; // NGT
