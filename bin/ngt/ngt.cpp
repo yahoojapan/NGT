@@ -42,8 +42,13 @@ version(ostream &os)
 }
 
 void help() {
-  cerr << "Usage : ngt command database data" << endl;
+  cerr << "Usage : ngt command index [data]" << endl;
   cerr << "           command : create search remove append export import prune reconstruct-graph" << endl;
+  cerr << "Version : " << NGT::Index::getVersion() << endl;
+  if (NGT::Index::getVersion() != NGT::Version::getVersion()) {
+    version(cerr);
+    NGT::Index::version(cerr);
+  }
 }
 
 int

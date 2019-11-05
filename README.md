@@ -10,7 +10,7 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
 News
 ----
-
+- 11/04/2019 [NGT tutorial](https://github.com/yahoojapan/NGT/wiki) has been released.
 - 06/26/2019 Jaccard distance is available. (v1.7.6)
 - 06/10/2019 PyPI NGT package v1.7.5 is now available.
 - 01/17/2019 Python NGT can be installed via pip from PyPI. (v1.5.1)
@@ -76,9 +76,15 @@ Supported Programming Languages
 -------------------------------
 
 - [Python](/python/README.md)
+- [Ruby](https://github.com/ankane/ngt) (Thanks Andrew!)
 - [Go](https://github.com/yahoojapan/gongt)
 - C
 - C++([sample code](bin/search/search.cpp))
+
+Documents
+---------
+
+- [NGT tutorial](https://github.com/yahoojapan/NGT/wiki)
 
 Benchmark Results
 -----------------
@@ -111,7 +117,7 @@ Licensed under the Apache License, Version 2.0 (the "License"); you may not use 
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.
 
-Yahoo Japan Corporation has aquired several patents on the technologies utilized in this software. However, the patent rights shall not be exercised under Apache License Version 2.0, only when the patented techniques are used with this software.
+Yahoo Japan Corporation has acquired several patents on the technologies utilized in this software. However, the patent rights shall not be exercised under Apache License Version 2.0, only when the patented techniques are used with this software.
 
 Contributor License Agreement
 -----------------------------

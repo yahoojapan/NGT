@@ -104,7 +104,7 @@ The specified object.
 ### search
 Search the nearest objects to the specified query object.
 
-      object search(self: ngtpy.Index, query: object, size, epsilon: float=0.1, edge_size: int=-1, with_distance: bool=True)
+      object search(self: ngtpy.Index, query: object, size: int, epsilon: float=0.1, edge_size: int=-1, with_distance: bool=True)
 
 **Returns**   
 The list of tuples(object ID, distance) as the search result. 
@@ -128,7 +128,7 @@ Specify object IDs with distances as the result. False means that the result is 
 ### set
 Specify the search parameters.
 
-      set(self: ngtpy.Index, num_of_search_objects, search_radius)
+      set(self: ngtpy.Index, num_of_search_objects: int, search_radius: float)
 
 **num_of_search_objects**    
 Specify the number of search objects. The default is 10.
@@ -193,7 +193,7 @@ Create the optimizer object with the specified parameters.
 None.
 
 **num_of_outgoings**    
-Specify the number of outgoing edges for each node to add to the reconstructed graph from the inout graph. The specified number also means the lower bound of the outdegrees of the reconstructed graph.
+Specify the number of outgoing edges for each node to add to the reconstructed graph from the input graph. The specified number also means the lower bound of the outdegrees of the reconstructed graph.
 
 **num_of_incomings**    
 Specify the number of incoming edges for each node to add to the reconstructed graph from the input graph. Unlike *num_of_outgoings*, after the direction of the edges are reversed, the edges are added to the reconstructed graph. The specified number also means the lower bound of the indegrees of the reconstructed graph.
@@ -205,7 +205,7 @@ Disable stderr messages about the progression of an operation.
 Reconstruct an index from the specified index with the previously specified parameters, and optimize search coefficients, which is the same as call *adjust_search_coefficients* below.
 
 
-      execute(self: ngtpy.Optimizer, in_index_path, out_index_path)
+      execute(self: ngtpy.Optimizer, in_index_path: str, out_index_path: str)
 
 
 **in_index_path**   
@@ -218,7 +218,7 @@ Specify the output index path.
 ### adjust_search_coefficients
 Optimize search coefficients.
 
-      adjust_search_coefficients(self: ngtpy.Optimizer, index_path)
+      adjust_search_coefficients(self: ngtpy.Optimizer, index_path: str)
 
 **index_path**   
 Specify the index which is optimized.

@@ -86,12 +86,17 @@ namespace NGT {
     }
 
     virtual PersistentObject *allocateNormalizedPersistentObject(const vector<double> &obj) {
-      cerr << "ObjectRepository::allocateNormalizedPersistentObject: Fatal error! Something wrong!" << endl;
+      cerr << "ObjectRepository::allocateNormalizedPersistentObject(double): Fatal error! Something wrong!" << endl;
       abort();
     }
 
     virtual PersistentObject *allocateNormalizedPersistentObject(const vector<float> &obj) {
-      cerr << "ObjectRepository::allocateNormalizedPersistentObject: Fatal error! Something wrong!" << endl;
+      cerr << "ObjectRepository::allocateNormalizedPersistentObject(float): Fatal error! Something wrong!" << endl;
+      abort();
+    }
+
+    virtual PersistentObject *allocateNormalizedPersistentObject(const vector<uint8_t> &obj) {
+      cerr << "ObjectRepository::allocateNormalizedPersistentObject(uint8_t): Fatal error! Something wrong!" << endl;
       abort();
     }
 
@@ -222,22 +227,22 @@ namespace NGT {
 	     << dimension << " The specified object=" << size << endl;
 	assert(dimension == size);
       }
-      void *object = (void*)(&(*po)[0]);
+      void *object = static_cast<void*>(&(*po)[0]);
       if (type == typeid(uint8_t)) {
-	uint8_t *obj = (uint8_t*)object;
+	uint8_t *obj = static_cast<uint8_t*>(object);
 	for (size_t i = 0; i < dimension; i++) {
-	  obj[i] = (uint8_t)o[i];
+	  obj[i] = static_cast<uint8_t>(o[i]);
 	}
       } else if (type == typeid(float)) {
-	float *obj = (float*)object;
+	float *obj = static_cast<float*>(object);
 	for (size_t i = 0; i < dimension; i++) {
-	  obj[i] = (float)o[i];
+	  obj[i] = static_cast<float>(o[i]);
 	}
       } else {
 	cerr << "ObjectSpace::allocate: Fatal error: unsupported type!" << endl;
 	abort();
       }
-      return (Object*)po;
+      return po;
     }
 
     template <typename T>
@@ -273,16 +278,16 @@ namespace NGT {
 	     << dimension << " The specified object=" << size << endl;
 	assert(dimension == size);
       }
-      void *object = (void*)(&(*po).at(0, allocator));
+      void *object = static_cast<void*>(&(*po).at(0, allocator));
       if (type == typeid(uint8_t)) {
-	uint8_t *obj = (uint8_t*)object;
+	uint8_t *obj = static_cast<uint8_t*>(object);
 	for (size_t i = 0; i < dimension; i++) {
-	  obj[i] = (uint8_t)o[i];
+	  obj[i] = static_cast<uint8_t>(o[i]);
 	}
       } else if (type == typeid(float)) {
-	float *obj = (float*)object;
+	float *obj = static_cast<float*>(object);
 	for (size_t i = 0; i < dimension; i++) {
-	  obj[i] = (float)o[i];
+	  obj[i] = static_cast<float>(o[i]);
 	}
       } else {
 	cerr << "ObjectSpace::allocate: Fatal error: unsupported type!" << endl;

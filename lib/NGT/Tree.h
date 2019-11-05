@@ -377,7 +377,7 @@ namespace NGT {
     }
 
     bool verify(size_t objCount, vector<uint8_t> &status) {
-      cerr << "Started verifying internal nodes..." << endl;
+      cerr << "Started verifying internal nodes. size=" << internalNodes.size() << "..." << endl;
       bool valid = true;
       for (size_t i = 0; i < internalNodes.size(); i++) {
 	if (internalNodes[i] != 0) {
@@ -388,7 +388,7 @@ namespace NGT {
 #endif
 	}
       }
-      cerr << "Started verifying leaf nodes..." << endl;
+      cerr << "Started verifying leaf nodes. size=" << leafNodes.size() << " ..." << endl;
       for (size_t i = 0; i < leafNodes.size(); i++) {
 	if (leafNodes[i] != 0) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR

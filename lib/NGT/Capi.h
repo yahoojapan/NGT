@@ -30,6 +30,7 @@ typedef void* NGTProperty;
 typedef void* NGTObjectSpace;
 typedef void* NGTObjectDistances;
 typedef void* NGTError;
+typedef void* NGTOptimizer;
 
 typedef struct {
   ObjectID id;
@@ -39,6 +40,8 @@ typedef struct {
 NGTIndex ngt_open_index(const char *, NGTError);
 
 NGTIndex ngt_create_graph_and_tree(const char *, NGTProperty, NGTError);
+
+NGTIndex ngt_create_graph_and_tree_in_memory(NGTProperty, NGTError);
 
 NGTProperty ngt_create_property(NGTError);
 
@@ -134,6 +137,18 @@ void ngt_clear_error_string(NGTError);
   
 void ngt_destroy_error_object(NGTError);
   
+NGTOptimizer ngt_create_optimizer(NGTError);
+
+bool ngt_optimizer_adjust_search_coefficients(NGTOptimizer, const char *, NGTError);
+
+bool ngt_optimizer_execute(NGTOptimizer, const char *, const char *, NGTError);
+
+bool ngt_optimizer_set(NGTOptimizer optimizer, int outgoing, int incoming, int nofqs, 
+		       float baseAccuracyFrom, float baseAccuracyTo,
+		       float rateAccuracyFrom, float rateAccuracyTo,
+		       double qte, double m, int log, NGTError error);
+
+void ngt_destroy_optimizer(NGTOptimizer);
 
 #ifdef __cplusplus
 }

@@ -16,7 +16,6 @@
 
 #include	"NGT/Command.h"
 #include	"NGT/GraphReconstructor.h"
-
 #include	"NGT/Optimizer.h"
 
 

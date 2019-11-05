@@ -126,7 +126,7 @@ Class Index
 ### set
 検索パラメータを指定します。
 
-      set(self: ngtpy.Index, num_of_search_objects, search_radius)
+      set(self: ngtpy.Index, num_of_search_objects: int, search_radius: float)
 
 **num_of_search_objects**    
 検索結果数を指定します。デフォルトは10です。
@@ -202,7 +202,7 @@ Class Optimizer
 事前に指定されたパラメータを用いて指定されたインデックスから新なインデックスを再構築し、検索時の係数を最適化します。この最適化は*adjust_search_coefficients*を呼び出すのと同じです。
 
 
-      execute(self: ngtpy.Optimizer, in_index_path, out_index_path)
+      execute(self: ngtpy.Optimizer, in_index_path: str, out_index_path: str)
 
 
 **in_index_path**    
@@ -215,7 +215,7 @@ Class Optimizer
 ### adjust_search_coefficients
 検索係数を最適化します。
 
-      adjust_search_coefficients(self: ngtpy.Optimizer, index_path)
+      adjust_search_coefficients(self: ngtpy.Optimizer, index_path: str)
 
 **index_path**    
 最適化するインデックスを指定します。

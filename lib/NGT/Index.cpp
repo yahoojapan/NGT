@@ -38,6 +38,320 @@ Index::getVersion()
   return Version::getVersion();
 }
 
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+NGT::Index::Index(NGT::Property &prop, const string &database) {
+  if (prop.dimension == 0) {
+    NGTThrowException("Index::Index. Dimension is not specified.");
+  }
+  Index* idx = 0;
+  mkdir(database);
+  if (prop.indexType == NGT::Index::Property::GraphAndTree) {
+    idx = new NGT::GraphAndTreeIndex(database, prop);
+  } else if (prop.indexType == NGT::Index::Property::Graph) {
+    idx = new NGT::GraphIndex(database, prop);
+  } else {
+    NGTThrowException("Index::Index: Not found IndexType in property file.");
+  }
+  if (idx == 0) {
+    stringstream msg;
+    msg << "Index::Index: Cannot construct. ";
+    NGTThrowException(msg);
+  }
+  index = idx;
+  path = "";
+}
+#else
+NGT::Index::Index(NGT::Property &prop) {
+  if (prop.dimension == 0) {
+    NGTThrowException("Index::Index. Dimension is not specified.");
+  }
+  Index* idx = 0;
+  if (prop.indexType == NGT::Index::Property::GraphAndTree) {
+    idx = new NGT::GraphAndTreeIndex(prop);
+  } else if (prop.indexType == NGT::Index::Property::Graph) {
+    idx = new NGT::GraphIndex(prop);
+  } else {
+    NGTThrowException("Index::Index: Not found IndexType in property file.");
+  }
+  if (idx == 0) {
+    stringstream msg;
+    msg << "Index::Index: Cannot construct. ";
+    NGTThrowException(msg);
+  }
+  index = idx;
+  path = "";
+}
+#endif
+
+void 
+NGT::Index::open(const string &database, bool rdOnly) {
+  NGT::Property prop;
+  prop.load(database);
+  Index* idx = 0;
+  if (prop.indexType == NGT::Index::Property::GraphAndTree) {
+    idx = new NGT::GraphAndTreeIndex(database, rdOnly);
+  } else if (prop.indexType == NGT::Index::Property::Graph) {
+    idx = new NGT::GraphIndex(database, rdOnly);
+  } else {
+    NGTThrowException("Index::Open: Not found IndexType in property file.");
+  }
+  if (idx == 0) {
+    stringstream msg;
+    msg << "Index::open: Cannot open. " << database;
+    NGTThrowException(msg);
+  }
+  index = idx;
+  path = database;
+}
+
+void 
+NGT::Index::createGraphAndTree(const string &database, NGT::Property &prop, const string &dataFile,
+			       size_t dataSize, bool redirect) {
+  if (prop.dimension == 0) {
+    NGTThrowException("Index::createGraphAndTree. Dimension is not specified.");
+  }
+  prop.indexType = NGT::Index::Property::IndexType::GraphAndTree;
+  Index *idx = 0;
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+  mkdir(database);
+  idx = new NGT::GraphAndTreeIndex(database, prop);
+#else
+  idx = new NGT::GraphAndTreeIndex(prop);
+#endif
+  assert(idx != 0);
+  StdOstreamRedirector redirector(redirect);
+  redirector.begin();
+  try {
+    loadAndCreateIndex(*idx, database, dataFile, prop.threadPoolSize, dataSize);
+  } catch(Exception &err) {
+    delete idx;
+    redirector.end();
+    throw err;
+  }
+  delete idx;
+  redirector.end();
+}
+
+void 
+NGT::Index::createGraph(const string &database, NGT::Property &prop, const string &dataFile, size_t dataSize, bool redirect) {
+  if (prop.dimension == 0) {
+    NGTThrowException("Index::createGraphAndTree. Dimension is not specified.");
+  }
+  prop.indexType = NGT::Index::Property::IndexType::Graph;
+  Index *idx = 0;
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+  mkdir(database);
+  idx = new NGT::GraphIndex(database, prop);
+#else
+  idx = new NGT::GraphIndex(prop);
+#endif
+  assert(idx != 0);
+  StdOstreamRedirector redirector(redirect);
+  redirector.begin();
+  try {
+    loadAndCreateIndex(*idx, database, dataFile, prop.threadPoolSize, dataSize);
+  } catch(Exception &err) {
+    delete idx;
+    redirector.end();
+    throw err;
+  }
+  delete idx;
+  redirector.end();
+}
+
+void 
+NGT::Index::loadAndCreateIndex(Index &index, const string &database, const string &dataFile, size_t threadSize, size_t dataSize) {
+  NGT::Timer timer;
+  timer.start();
+  if (dataFile.size() != 0) {
+    index.load(dataFile, dataSize);
+  } else {
+    index.saveIndex(database);
+    return;
+  }
+  timer.stop();
+  cerr << "Data loading time=" << timer.time << " (sec) " << timer.time * 1000.0 << " (msec)" << endl;
+  if (index.getObjectRepositorySize() == 0) {
+    NGTThrowException("Index::create: Data file is empty.");
+  }
+  cerr << "# of objects=" << index.getObjectRepositorySize() - 1 << endl;
+  timer.reset();
+  timer.start();
+  index.createIndex(threadSize);
+  timer.stop();
+  index.saveIndex(database);
+  cerr << "Index creation time=" << timer.time << " (sec) " << timer.time * 1000.0 << " (msec)" << endl;
+}
+
+void 
+NGT::Index::append(const string &database, const string &dataFile, size_t threadSize, size_t dataSize) {
+  NGT::Index	index(database);
+  NGT::Timer	timer;
+  timer.start();
+  if (dataFile.size() != 0) {
+    index.append(dataFile, dataSize);
+  } else {
+    NGTThrowException("Index::append: No data file.");
+  }
+  timer.stop();
+  cerr << "Data loading time=" << timer.time << " (sec) " << timer.time * 1000.0 << " (msec)" << endl;
+  cerr << "# of objects=" << index.getObjectRepositorySize() - 1 << endl;
+  timer.reset();
+  timer.start();
+  index.createIndex(threadSize);
+  timer.stop();
+  index.saveIndex(database);
+  cerr << "Index creation time=" << timer.time << " (sec) " << timer.time * 1000.0 << " (msec)" << endl;
+  return;
+}
+
+void 
+NGT::Index::append(const string &database, const float *data, size_t dataSize, size_t threadSize) {
+  NGT::Index	index(database);
+  NGT::Timer	timer;
+  timer.start();
+  if (data != 0 && dataSize != 0) {
+    index.append(data, dataSize);
+  } else {
+    NGTThrowException("Index::append: No data.");
+  }
+  timer.stop();
+  cerr << "Data loading time=" << timer.time << " (sec) " << timer.time * 1000.0 << " (msec)" << endl;
+  cerr << "# of objects=" << index.getObjectRepositorySize() - 1 << endl;
+  timer.reset();
+  timer.start();
+  index.createIndex(threadSize);
+  timer.stop();
+  index.saveIndex(database);
+  cerr << "Index creation time=" << timer.time << " (sec) " << timer.time * 1000.0 << " (msec)" << endl;
+  return;
+}
+
+void 
+NGT::Index::remove(const string &database, vector<ObjectID> &objects, bool force) {
+  NGT::Index	index(database);
+  NGT::Timer	timer;
+  timer.start();
+  for (vector<ObjectID>::iterator i = objects.begin(); i != objects.end(); i++) {
+    try {
+      index.remove(*i, force);
+    } catch (Exception &err) {
+      cerr << "Warning: Cannot remove the node. ID=" << *i << " : " << err.what() << endl;
+      continue;
+    }
+  }
+  timer.stop();
+  cerr << "Data removing time=" << timer.time << " (sec) " << timer.time * 1000.0 << " (msec)" << endl;
+  cerr << "# of objects=" << index.getObjectRepositorySize() - 1 << endl;
+  index.saveIndex(database);
+  return;
+}
+
+void 
+NGT::Index::importIndex(const string &database, const string &file) {
+  Index *idx = 0;
+  NGT::Property property;
+  property.importProperty(file);
+  NGT::Timer	timer;
+  timer.start();
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+  property.databaseType = NGT::Index::Property::DatabaseType::MemoryMappedFile;
+  mkdir(database);
+#else
+  property.databaseType = NGT::Index::Property::DatabaseType::Memory;
+#endif
+  if (property.indexType == NGT::Index::Property::IndexType::GraphAndTree) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+    idx = new NGT::GraphAndTreeIndex(database, property);
+#else
+    idx = new NGT::GraphAndTreeIndex(property);
+#endif
+    assert(idx != 0);
+  } else if (property.indexType == NGT::Index::Property::IndexType::Graph) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+    idx = new NGT::GraphIndex(database, property);
+#else
+    idx = new NGT::GraphIndex(property);
+#endif
+    assert(idx != 0);
+  } else {
+    NGTThrowException("Index::Open: Not found IndexType in property file.");
+  }
+  idx->importIndex(file);
+  timer.stop();
+  cerr << "Data importing time=" << timer.time << " (sec) " << timer.time * 1000.0 << " (msec)" << endl;
+  cerr << "# of objects=" << idx->getObjectRepositorySize() - 1 << endl;
+  idx->saveIndex(database);
+  delete idx;
+}
+
+void 
+NGT::Index::exportIndex(const string &database, const string &file) {
+  NGT::Index	idx(database);
+  NGT::Timer	timer;
+  timer.start();
+  idx.exportIndex(file);
+  timer.stop();
+  cerr << "Data exporting time=" << timer.time << " (sec) " << timer.time * 1000.0 << " (msec)" << endl;
+  cerr << "# of objects=" << idx.getObjectRepositorySize() - 1 << endl;
+}
+
+void 
+NGT::GraphIndex::constructObjectSpace(NGT::Property &prop) {
+  assert(prop.dimension != 0);
+  switch (prop.objectType) {
+  case NGT::ObjectSpace::ObjectType::Float :
+    objectSpace = new ObjectSpaceRepository<float, double>(prop.dimension, typeid(float), prop.distanceType);
+    break;
+  case NGT::ObjectSpace::ObjectType::Uint8 :
+    objectSpace = new ObjectSpaceRepository<unsigned char, int>(prop.dimension, typeid(uint8_t), prop.distanceType);
+    break;
+  default:
+    stringstream msg;
+    msg << "Invalid Object Type in the property. " << prop.objectType;
+    NGTThrowException(msg);	
+  }
+  prop.prefetchOffset = objectSpace->setPrefetchOffset(prop.prefetchOffset);
+#ifdef NGT_GRAPH_READ_ONLY_GRAPH
+  searchUnupdatableGraph = NeighborhoodGraph::Search::getMethod(prop.distanceType, prop.objectType);
+#endif
+}
+
+void 
+NGT::Index::Property::set(NGT::Property &prop) {
+  if (prop.dimension != -1) dimension = prop.dimension;
+  if (prop.threadPoolSize != -1) threadPoolSize = prop.threadPoolSize;
+  if (prop.objectType != ObjectSpace::ObjectTypeNone) objectType = prop.objectType;
+  if (prop.distanceType != DistanceType::DistanceTypeNone) distanceType = prop.distanceType;
+  if (prop.indexType != IndexTypeNone) indexType = prop.indexType;
+  if (prop.databaseType != DatabaseTypeNone) databaseType = prop.databaseType;
+  if (prop.objectAlignment != ObjectAlignmentNone) objectAlignment = prop.objectAlignment;
+  if (prop.pathAdjustmentInterval != -1) pathAdjustmentInterval = prop.pathAdjustmentInterval;
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+  if (prop.graphSharedMemorySize != -1) graphSharedMemorySize = prop.graphSharedMemorySize;
+  if (prop.treeSharedMemorySize != -1) treeSharedMemorySize = prop.treeSharedMemorySize;
+  if (prop.objectSharedMemorySize != -1) objectSharedMemorySize = prop.objectSharedMemorySize;
+#endif
+  if (prop.prefetchOffset != -1) prefetchOffset = prop.prefetchOffset;
+}
+
+void 
+NGT::Index::Property::get(NGT::Property &prop) {
+  prop.dimension = dimension;
+  prop.threadPoolSize = threadPoolSize;
+  prop.objectType = objectType;
+  prop.distanceType = distanceType;
+  prop.indexType = indexType;
+  prop.databaseType = databaseType;
+  prop.pathAdjustmentInterval = pathAdjustmentInterval;
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+  prop.graphSharedMemorySize = graphSharedMemorySize;
+  prop.treeSharedMemorySize = treeSharedMemorySize;
+  prop.objectSharedMemorySize = objectSharedMemorySize;
+#endif
+  prop.prefetchOffset = prefetchOffset;
+}
+
 class CreateIndexJob {
 public:
   CreateIndexJob() {}
@@ -189,6 +503,56 @@ GraphAndTreeIndex::createTreeIndex()
 #endif
   }
 }
+
+void 
+NGT::GraphIndex::loadIndex(const string &ifile, bool readOnly) {
+  objectSpace->deserialize(ifile + "/obj");
+#ifdef NGT_GRAPH_READ_ONLY_GRAPH
+  if (readOnly && property.indexType == NGT::Index::Property::IndexType::Graph) {
+    GraphIndex::NeighborhoodGraph::loadSearchGraph(ifile);
+  } else {
+    ifstream isg(ifile + "/grp");
+    repository.deserialize(isg);
+  }
+#else
+  ifstream isg(ifile + "/grp");
+  repository.deserialize(isg);
+#endif
+}
+
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+NGT::GraphIndex::GraphIndex(const string &allocator, bool rdonly):readOnly(rdonly) {
+  NGT::Property prop;
+  prop.load(allocator);
+  if (prop.databaseType != NGT::Index::Property::DatabaseType::MemoryMappedFile) {
+    NGTThrowException("GraphIndex: Cannot open. Not memory mapped file type.");
+  }
+  initialize(allocator, prop);
+}
+
+NGT::GraphAndTreeIndex::GraphAndTreeIndex(const string &allocator, NGT::Property &prop):GraphIndex(allocator, prop) {
+  initialize(allocator, prop.treeSharedMemorySize);
+}
+
+void 
+NGT::GraphIndex::initialize(const string &allocator, NGT::Property &prop) {
+  constructObjectSpace(prop);
+  repository.open(allocator + "/grp", prop.graphSharedMemorySize);
+  objectSpace->open(allocator + "/obj", prop.objectSharedMemorySize);
+  setProperty(prop);
+}
+#else // NGT_SHARED_MEMORY_ALLOCATOR
+NGT::GraphIndex::GraphIndex(const string &database, bool rdOnly):readOnly(rdOnly) {
+  NGT::Property prop;
+  prop.load(database);
+  if (prop.databaseType != NGT::Index::Property::DatabaseType::Memory) {
+    NGTThrowException("GraphIndex: Cannot open. Not memory type.");
+  }
+  assert(prop.dimension != 0);
+  initialize(prop);
+  loadIndex(database, readOnly);
+}
+#endif
 
 void
 GraphIndex::createIndex()
@@ -655,11 +1019,13 @@ GraphAndTreeIndex::verify(vector<uint8_t> &status, bool info) {
   if (!valid) {
     cerr << "The graph or object is invalid!" << endl;
   }
-  valid = valid && DVPTree::verify(GraphIndex::objectSpace->getRepository().size(), status);
-  if (!valid) {
+  bool treeValid = DVPTree::verify(GraphIndex::objectSpace->getRepository().size(), status);
+  if (!treeValid) {
     cerr << "The tree is invalid" << endl;
   }
+  valid = valid && treeValid;
   // status: tree|graph|object
+  cerr << "Started checking consistency..." << endl;
   for (size_t id = 1; id < status.size(); id++) {
     if (id % 100000 == 0) {
       cerr << "The number of processed objects=" << id << endl;
@@ -681,7 +1047,12 @@ GraphAndTreeIndex::verify(vector<uint8_t> &status, bool info) {
 	ObjectDistances	seeds;
 	seeds.push_back(ObjectDistance(id, 0.0));
 	objects.clear();
-	GraphIndex::search(sc, seeds);
+	try {
+	  GraphIndex::search(sc, seeds);
+	} catch(Exception &err) {
+	  cerr << "Fatal Error!: Cannot search! " << err.what() << endl;
+	  objects.clear();
+	}
 	size_t n = 0;
 	bool registeredIdenticalObject = false;
 	for (; n < objects.size(); n++) {
@@ -702,7 +1073,12 @@ GraphAndTreeIndex::verify(vector<uint8_t> &status, bool info) {
 	  ObjectDistances	seeds;
 	  seeds.push_back(ObjectDistance(id, 0.0));
 	  objects.clear();
-	  GraphIndex::search(sc, seeds);
+	  try {
+	    GraphIndex::search(sc, seeds);
+	  } catch(Exception &err) {
+	    cerr << "Fatal Error!: Cannot search! " << err.what() << endl;
+	    objects.clear();
+	  }
 	  registeredIdenticalObject = false;
 	  for (n = 0; n < objects.size(); n++) {
 	    if (objects[n].distance != 0.0) break;

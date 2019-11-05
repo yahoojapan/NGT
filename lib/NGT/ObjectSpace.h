@@ -222,6 +222,7 @@ namespace NGT {
     virtual Object *allocateNormalizedObject(const string &textLine, const string &sep) = 0;
     virtual Object *allocateNormalizedObject(const vector<double> &obj) = 0;
     virtual Object *allocateNormalizedObject(const vector<float> &obj) = 0;
+    virtual Object *allocateNormalizedObject(const vector<uint8_t> &obj) = 0;
     virtual Object *allocateNormalizedObject(const float *obj, size_t size) = 0;
     virtual PersistentObject *allocateNormalizedPersistentObject(const vector<double> &obj) = 0;
     virtual PersistentObject *allocateNormalizedPersistentObject(const vector<float> &obj) = 0;
@@ -392,7 +393,7 @@ namespace NGT {
       construct(s, allocator);
     }
 
-    virtual ~PersistentObject() {}
+    ~PersistentObject() {}
 
     uint8_t &at(size_t idx, SharedMemoryAllocator &allocator) const { 
       uint8_t *a = (uint8_t *)allocator.getAddr(array);

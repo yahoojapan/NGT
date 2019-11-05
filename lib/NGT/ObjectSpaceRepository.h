@@ -449,6 +449,13 @@ namespace NGT {
       }
       return allocatedObject;
     }
+    Object *allocateNormalizedObject(const vector<uint8_t> &obj) {
+      Object *allocatedObject = ObjectRepository::allocateObject(obj);
+      if (normalization) {
+	normalize(*allocatedObject);
+      }
+      return allocatedObject;
+    }
     Object *allocateNormalizedObject(const float *obj, size_t size) {
       Object *allocatedObject = ObjectRepository::allocateObject(obj, size);
       if (normalization) {
@@ -466,6 +473,14 @@ namespace NGT {
     }
 
     PersistentObject *allocateNormalizedPersistentObject(const vector<float> &obj) {
+      PersistentObject *allocatedObject = ObjectRepository::allocatePersistentObject(obj);
+      if (normalization) {
+	normalize(*allocatedObject);
+      }
+      return allocatedObject;
+    }
+
+    PersistentObject *allocateNormalizedPersistentObject(const vector<uint8_t> &obj) {
       PersistentObject *allocatedObject = ObjectRepository::allocatePersistentObject(obj);
       if (normalization) {
 	normalize(*allocatedObject);

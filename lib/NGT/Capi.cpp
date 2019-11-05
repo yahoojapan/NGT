@@ -19,6 +19,7 @@
 #include <sstream>
 
 #include "NGT/Index.h"
+#include "NGT/GraphOptimizer.h"
 #include "Capi.h"
 
 static bool operate_error_string_(const std::stringstream &ss, NGTError error){
@@ -39,7 +40,9 @@ static bool operate_error_string_(const std::stringstream &ss, NGTError error){
 NGTIndex ngt_open_index(const char *index_path, NGTError error) {
   try{
     std::string index_path_str(index_path);
-    return static_cast<NGTIndex>(new NGT::Index(index_path_str));
+    NGT::Index *index = new NGT::Index(index_path_str);
+    index->disableLog();
+    return static_cast<NGTIndex>(index);
   }catch(std::exception &err){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
@@ -53,9 +56,9 @@ NGTIndex ngt_create_graph_and_tree(const char *database, NGTProperty prop, NGTEr
   try{
     std::string database_str(database);
     NGT::Property prop_i = *(static_cast<NGT::Property*>(prop));    
-
-    NGT::Index::createGraphAndTree(database_str, prop_i);    
+    NGT::Index::createGraphAndTree(database_str, prop_i, true);
     index = new NGT::Index(database_str);
+    index->disableLog();
     return static_cast<NGTIndex>(index);
   }catch(std::exception &err){
     std::stringstream ss;
@@ -64,6 +67,26 @@ NGTIndex ngt_create_graph_and_tree(const char *database, NGTProperty prop, NGTEr
     delete index;
     return NULL;
   }
+}
+
+NGTIndex ngt_create_graph_and_tree_in_memory(NGTProperty prop, NGTError error) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+  std::stringstream ss;
+  ss << "Capi : " << __FUNCTION__ << "() : Error: " << __FUNCTION__ << " is unavailable for shared-memory-type NGT.";
+  operate_error_string_(ss, error);        
+  return NULL;
+#else
+  try{
+    NGT::Index *index = new NGT::GraphAndTreeIndex(*(static_cast<NGT::Property*>(prop)));
+    index->disableLog();
+    return static_cast<NGTIndex>(index);
+  }catch(std::exception &err){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);        
+    return NULL;
+  }
+#endif
 }
 
 NGTProperty ngt_create_property(NGTError error) {
@@ -595,9 +618,8 @@ float* ngt_get_object_as_float(NGTObjectSpace object_space, ObjectID id, NGTErro
     operate_error_string_(ss, error);      
     return NULL;
   }
-  
   try{
-    return static_cast<float*>((static_cast<NGT::ObjectSpace*>(object_space))->getObject(id));    
+    return static_cast<float*>((static_cast<NGT::ObjectSpace*>(object_space))->getObject(id));
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
@@ -613,9 +635,8 @@ uint8_t* ngt_get_object_as_integer(NGTObjectSpace object_space, ObjectID id, NGT
     operate_error_string_(ss, error);      
     return NULL;
   }
-
   try{
-    return static_cast<uint8_t*>((static_cast<NGT::ObjectSpace*>(object_space))->getObject(id));;    
+    return static_cast<uint8_t*>((static_cast<NGT::ObjectSpace*>(object_space))->getObject(id));
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
@@ -698,3 +719,80 @@ void ngt_destroy_error_object(NGTError error)
   std::string *error_str = static_cast<std::string*>(error);
   delete error_str;
 }
+
+NGTOptimizer ngt_create_optimizer(bool logDisabled, NGTError error)
+{
+  try{
+    return static_cast<NGTOptimizer>(new NGT::GraphOptimizer(logDisabled));
+  }catch(std::exception &err){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    return NULL;
+  }
+}
+
+bool ngt_optimizer_adjust_search_coefficients(NGTOptimizer optimizer, const char *index, NGTError error) {
+  if(optimizer == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: optimizer = " << optimizer;
+    operate_error_string_(ss, error);      
+    return false;
+  }
+  try{
+    (static_cast<NGT::GraphOptimizer*>(optimizer))->adjustSearchCoefficients(std::string(index));
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);                  
+    return false;
+  }
+  return true;
+}
+
+bool ngt_optimizer_execute(NGTOptimizer optimizer, const char *inIndex, const char *outIndex, NGTError error) {
+  if(optimizer == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: optimizer = " << optimizer;
+    operate_error_string_(ss, error);      
+    return false;
+  }
+  try{
+    (static_cast<NGT::GraphOptimizer*>(optimizer))->execute(std::string(inIndex), std::string(outIndex));
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);                  
+    return false;
+  }
+  return true;
+}
+
+bool ngt_optimizer_set(NGTOptimizer optimizer, int outgoing, int incoming, int nofqs, 
+		       float baseAccuracyFrom, float baseAccuracyTo,
+		       float rateAccuracyFrom, float rateAccuracyTo,
+		       double qte, double m, NGTError error) {
+  if(optimizer == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: optimizer = " << optimizer;
+    operate_error_string_(ss, error);      
+    return false;
+  }
+  try{
+    (static_cast<NGT::GraphOptimizer*>(optimizer))->set(outgoing, incoming, nofqs, baseAccuracyFrom, baseAccuracyTo,
+							rateAccuracyFrom, rateAccuracyTo, qte, m);
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);                  
+    return false;
+  }
+  return true;
+}
+
+void ngt_destroy_optimizer(NGTOptimizer optimizer)
+{
+    if(optimizer == NULL) return;  
+    delete(static_cast<NGT::GraphOptimizer*>(optimizer));
+}
+

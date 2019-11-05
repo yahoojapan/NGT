@@ -659,7 +659,7 @@ namespace NGT {
 
       void
 	removeNode(ObjectID id) {
-	repository.remove(id);
+	repository.erase(id);
       }
 
       class BooleanVector : public vector<bool> {

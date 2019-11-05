@@ -18,7 +18,7 @@ Command
         
 **Note:**
 
-When the environment variable POSIXLY_CORERECT is set on some platforms such as Cygwin or macOS, you should specifiy options 
+When the environment variable POSIXLY_CORRECT is set on some platforms such as Cygwin or macOS, you should specifiy options 
 before the command as follows.
 
       $ ngt [options] command index [additional arguments]
@@ -80,7 +80,7 @@ Specify the increase in number of edges that acts as a criterion for executing e
 When specifying ANNG or BKNNG, neighboring nodes connected to an item of registration data (node) by edges are obtained by searching and combined by edges. This option specifies the magnification coefficient of the search range at search time.
 
 **-E** *no\_of\_edges* (default = 10)  
-Specify the number of initial edges of each node at graph generation time. Once an index has been generated, the number of edges will be equal to or greater than this specified number in the case of ANNG or BKNNG and equal to this specified number in the case of KNNG.
+Specify the number of initial edges of each node at graph generation time. Once an index has been generated, the number of edges of each node will be equal to or greater than this specified number in the case of an ANNG or BKNNG and equal to this specified number in the case of a KNNG.
 
 **-S** *no\_of\_edges\_at\_search\_time* (default = 40)  
 Specify the number of edges at search time accompanying or following index generation. This value is used when not specifying the number of edges by the search command. It is specified to conduct searches by a number of edges less than the actual number of edges of each node in the graph. Since a large number of edges may be generated in the case of ANNG or BKNNG, limiting the number of edges can help improve search performance. Specifying 0 here indicates that the number of edges is not to be limited (that all actual edges are to be used).
@@ -154,7 +154,7 @@ Specify the magnification coefficient of the search range. A larger value means 
 Specify the number of search results.
 
 **-E** *max\_no\_of\_edges* (default = value specified with the create command or 40)   
-Specify the maximum number of edges to be used in the search. This option is specified when conducting a search with fewer edges than the number of edges of each node on the graph. Since a large number of edges can be generated in the case of ANNG or BKNNG, limiting the number of edges in this way tends to improve search performance. Specifying zero here indicates no limiting of number of edges (use all actual edges).
+Specify the maximum number of edges to be used in the search. This option is specified when conducting a search with fewer edges than the number of edges of each node on the graph. Since a large number of edges can be generated in the case of an ANNG or BKNNG, limiting the number of edges in this way tends to improve search performance. Specifying zero here indicates no limitation of the number of edges (use all actual edges).
 
 **-r** *search\_radius* (default = infinite circle)  
 Specifys the search range in terms of the radius of a circle.

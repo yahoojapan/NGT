@@ -1063,14 +1063,17 @@ namespace NGT {
       set(idx, n);
     }
 
-    void remove(size_t idx) {
+    void erase(size_t idx) {
       if (isEmpty(idx)) {
-	NGTThrowException("remove: Not in-memory or invalid id");  
+	NGTThrowException("erase: Not in-memory or invalid id");  
       }
-      SharedMemoryAllocator &allocator = getAllocator();
       (*this)[idx]->~TYPE();
       allocator.free((*this)[idx]);
       set(idx, (TYPE*)0);
+    }
+
+    void remove(size_t idx) {
+      erase(idx);
 #ifdef ADVANCED_USE_REMOVED_LIST
       removedListPush(idx);
 #endif
@@ -1269,195 +1272,6 @@ namespace NGT {
 
   class ObjectSpace;
 
-  template <class TYPE>
-    class ObjectArray : public vector<TYPE> {
-  public:
-
-    size_t push(TYPE &n) {
-      if (vector<TYPE>::size() == 0) {
-	vector<TYPE>::push_back(0);
-      }
-      vector<TYPE>::push_back(n);
-      return vector<TYPE>::size() - 1;
-    }
-
-    size_t insert(TYPE &n) {
-#ifdef ADVANCED_USE_REMOVED_LIST
-      if (!removedList.empty()) {
-	size_t idx = removedList.top();
-	removedList.pop();
-	put(idx, n);
-	return idx;
-      }
-#endif
-      return push(n);
-    }
-
-    bool isEmpty(size_t idx) {
-      if (idx < vector<TYPE>::size()) {
-	return false;
-      } else {
-	return true;
-      }
-    }
-
-    void put(size_t idx, TYPE &n) {
-      if (vector<TYPE>::size() <= idx) {
-	vector<TYPE>::resize(idx + 1);
-      }
-      (*this)[idx] = n;
-    }
-
-    void remove(size_t idx) {
-      if (isEmpty(idx)) {
-	NGTThrowException("remove: Not in-memory or invalid id");  
-      }
-    }
-
-    TYPE &get(size_t idx) {
-      if (isEmpty(idx)) {
-	stringstream msg;
-	msg << "get: Not in-memory or invalid offset of node. " << idx << ":" << this->size();
-	NGTThrowException(msg.str());
-      }
-      return (*this)[idx];
-    }
-
-    void serialize(ofstream &os, ObjectSpace *objectspace = 0) {
-      if (!os.is_open()) {
-	NGTThrowException("NGT::Common: Not open the specified stream yet.");
-      }
-      NGT::Serializer::write(os, vector<TYPE>::size());    
-      for (size_t idx = 0; idx < vector<TYPE>::size(); idx++) {
-	if ((*this).isEmpty(idx)) {
-	  NGT::Serializer::write(os, '-');
-	} else {
-	  NGT::Serializer::write(os, '+');
-	  if (objectspace == 0) {
-	    get(idx).serialize(os);
-	  } else {
-	    get(idx).serialize(os, objectspace);
-	  }
-	}
-      }
-    }
-
-    void deserialize(ifstream &is, ObjectSpace *objectspace = 0) {
-      if (!is.is_open()) {
-	NGTThrowException("NGT::Common: Not open the specified stream yet.");
-      }
-      vector<TYPE>::clear();
-      size_t s;
-      NGT::Serializer::read(is, s);
-      vector<TYPE>::reserve(s);
-      for (size_t i = 0; i < s; i++) {
-	char type;
-	NGT::Serializer::read(is, type);
-	switch(type) {
-	case '-':
-	  {
-	    TYPE dummy;
-	    vector<TYPE>::push_back(dummy);
-	  }
-	  break;
-	case '+':
-	  {
-	    TYPE v;
-	    if (objectspace == 0) {
-	      v.deserialize(is);
-	    } else {
-	      v.deserialize(is, objectspace);
-	    }
-	    vector<TYPE>::push_back(v);
-	  }
-	  break;
-	default:
-	  {
-	    assert(type == '-' || type == '+');
-	    break;
-	  }
-	}
-      }
-    }
-
-    void serializeAsText(ofstream &os, ObjectSpace *objectspace = 0) {
-      if (!os.is_open()) {
-	NGTThrowException("NGT::Common: Not open the specified stream yet.");
-      }
-      os.setf(std::ios_base::fmtflags(0), std::ios_base::floatfield);
-      os << std::setprecision(8);
-
-      os << vector<TYPE>::size() << endl;
-      for (size_t idx = 0; idx < vector<TYPE>::size(); idx++) {
-	if ((*this).isEmpty(idx)) {
-	  os << idx << " - " << endl;
-	} else {
-	  os << idx << " + ";
-	  if (objectspace == 0) {
-	    (*this)[idx].serializeAsText(os);
-	  } else {
-	    (*this)[idx].serializeAsText(os, objectspace);
-	  }
-	  os << endl;
-	}
-      }
-      os << fixed;
-    }
-
-    void deserializeAsText(ifstream &is, ObjectSpace *objectspace = 0) {
-      if (!is.is_open()) {
-	NGTThrowException("NGT::Common: Not open the specified stream yet.");
-      }
-      vector<TYPE>::clear();
-      size_t s;
-      NGT::Serializer::readAsText(is, s);
-      vector<TYPE>::reserve(s);
-      for (size_t i = 0; i < s; i++) {
-	size_t idx;
-	NGT::Serializer::readAsText(is, idx);
-	if (i != idx) {
-	  cerr << "ObjectArray: Error. index of a specified import file is invalid. " << idx << ":" << i << endl;
-	}
-	char type;
-	NGT::Serializer::readAsText(is, type);
-	switch(type) {
-	case '-':
-	  {
-	    TYPE dummy;
-	    vector<TYPE>::push_back(dummy);
-	  }
-	  break;
-	case '+':
-	  {
-	    TYPE v;
-	    if (objectspace == 0) {
-	      v.deserializeAsText(is);
-	    } else {
-	      v.deserializeAsText(is, objectspace);
-	    }
-	    vector<TYPE>::push_back(v);
-	  }
-	  break;
-	default:
-	  {
-	    assert(type == '-' || type == '+');
-	    break;
-	  }
-	}
-      }
-    }
-
-    void set(size_t idx, TYPE &n) {
-      (*this)[idx] = n;
-    }
-
-    void deleteAll() {}
-
-#ifdef ADVANCED_USE_REMOVED_LIST
-  protected:
-    priority_queue<size_t, vector<size_t>, greater<size_t> >	removedList;
-#endif
-  };
 
   template <class TYPE>
     class Repository : public vector<TYPE*> {
@@ -1503,12 +1317,16 @@ namespace NGT {
       (*this)[idx] = n;
     }
 
-    void remove(size_t idx) {
+    void erase(size_t idx) {
       if (isEmpty(idx)) {
-	NGTThrowException("remove: Not in-memory or invalid id");  
+	NGTThrowException("erase: Not in-memory or invalid id");  
       }
       delete (*this)[idx];
       (*this)[idx] = 0;
+    }
+
+    void remove(size_t idx) {
+      erase(idx);
 #ifdef ADVANCED_USE_REMOVED_LIST
       removedList.push(idx);
 #endif

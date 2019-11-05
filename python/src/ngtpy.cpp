@@ -15,8 +15,7 @@
 //
 
 #include	"NGT/Index.h"
-#include	"NGT/GraphReconstructor.h"
-#include	"NGT/Optimizer.h"
+#include	"NGT/GraphOptimizer.h"
 
 #include	<pybind11/pybind11.h>
 #include	<pybind11/stl.h>
@@ -28,9 +27,9 @@ class Index : public NGT::Index {
 public:
   Index(
    const string path, 			// ngt index path.
-   bool readOnly = false,		// read only or not.
-   bool zeroBasedNumbering = true,	// object ID numbering.
-   bool logDisabled = true		// stderr log is disabled.
+   bool readOnly,			// read only or not.
+   bool zeroBasedNumbering,		// object ID numbering.
+   bool logDisabled			// stderr log is disabled.
   ):NGT::Index(path, readOnly) {
     zeroNumbering = zeroBasedNumbering;
     numOfDistanceComputations = 0;
@@ -313,161 +312,6 @@ public:
   NGT::Distance	searchRadius;
 };
 
-class Optimizer {
-public:
-  Optimizer(int outgoing, int incoming, int nofqs, 
-	    float baseAccuracyFrom, float baseAccuracyTo,
-	    float rateAccuracyFrom, float rateAccuracyTo,
-	    double qte, double m,
-	    bool log		// stderr log is disabled.
-	    ) {
-    numOfOutgoingEdges = 10;
-    numOfIncomingEdges= 120;
-    numOfQueries = 100;
-    baseAccuracyRange = pair<float, float>(0.30, 0.50);
-    rateAccuracyRange = pair<float, float>(0.80, 0.90);
-    gtEpsilon = 0.1;
-    mergin = 0.2;
-    logDisabled = true;
-    set(outgoing, incoming, nofqs, baseAccuracyFrom, baseAccuracyTo,
-	rateAccuracyFrom, rateAccuracyTo, qte, m, log);
-  }
-
-  void adjustSearchCoefficients(const string indexPath){
-    NGT::Index		index(indexPath);
-    NGT::GraphIndex	&graph = static_cast<NGT::GraphIndex&>(index.getIndex());
-    NGT::Optimizer	optimizer(index);
-    if (logDisabled) {
-      optimizer.disableLog();
-    } else {
-      optimizer.enableLog();
-    }
-    try {
-      auto coefficients = optimizer.adjustSearchEdgeSize(baseAccuracyRange, rateAccuracyRange, numOfQueries, gtEpsilon, mergin);
-      NGT::NeighborhoodGraph::Property &prop = graph.getGraphProperty();
-      prop.dynamicEdgeSizeBase = coefficients.first;
-      prop.dynamicEdgeSizeRate = coefficients.second;
-    } catch(NGT::Exception &err) {
-      stringstream msg;
-      msg << "Optimizer::adjustSearchCoefficients: Cannot adjust the search coefficients. " << err.what();
-      NGTThrowException(msg);      
-    }
-    graph.saveIndex(indexPath);
-  }
-
-  void execute(
-   const string inIndexPath,
-   const string outIndexPath
-	       ){
-    if ((numOfOutgoingEdges < 0 && numOfIncomingEdges >= 0) ||
-	(numOfOutgoingEdges >= 0 && numOfIncomingEdges < 0)) {
-      NGTThrowException("Optimizer::execute: Specified any of the number of edges is invalid.");
-    }
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    if (access(outIndexPath.c_str(), 0) == 0) {
-      stringstream msg;
-      msg << "Optimizer::execute: The specified index exists. " << outIndexPath;
-      NGTThrowException(msg);
-    }
-    const string com = "cp -r " + inIndexPath + " " + outIndexPath;
-    system(com.c_str());
-    NGT::Index	outIndex(outIndexPath);
-#else
-    NGT::Index	outIndex(inIndexPath);
-#endif
-    NGT::GraphIndex	&outGraph = static_cast<NGT::GraphIndex&>(outIndex.getIndex());
-    NGT::Timer timer;
-    timer.start();
-    vector<NGT::ObjectDistances> graph;
-    NGT::StdOstreamRedirector redirector(logDisabled);
-    redirector.begin();
-    try {
-      cerr << "Optimizer::execute: Extract the graph data." << endl;
-      // extract only edges from the index to reduce the memory usage.
-      NGT::GraphReconstructor::extractGraph(graph, outIndex);
-      if (numOfOutgoingEdges >= 0) {
-	NGT::GraphReconstructor::convertToANNG(graph);
-	NGT::GraphReconstructor::reconstructGraph(graph, outIndex, numOfOutgoingEdges, numOfIncomingEdges);
-      }
-      timer.stop();
-      cerr << "Optimizer::execute: Graph reconstruction time=" << timer.time << " (sec) " << endl;
-      timer.reset();
-      timer.start();
-      NGT::GraphReconstructor::adjustPathsEffectively(outIndex);
-      timer.stop();
-      cerr << "Optimizer::execute: Path adjustment time=" << timer.time << " (sec) " << endl;
-    } catch (NGT::Exception &err) {
-      redirector.end();
-      throw(err);
-    }
-    redirector.end();
-    NGT::Optimizer optimizer(outIndex);
-    if (logDisabled) {
-      optimizer.disableLog();
-    } else {
-      optimizer.enableLog();
-    }
-    try {
-      auto coefficients = optimizer.adjustSearchEdgeSize(baseAccuracyRange, rateAccuracyRange, numOfQueries, gtEpsilon, mergin);
-      NGT::NeighborhoodGraph::Property &prop = outGraph.getGraphProperty();
-      prop.dynamicEdgeSizeBase = coefficients.first;
-      prop.dynamicEdgeSizeRate = coefficients.second;
-    } catch(NGT::Exception &err) {
-      stringstream msg;
-      msg << "Optimizer::execute: Cannot adjust the search coefficients. " << err.what();
-      NGTThrowException(msg);      
-    }
-    outGraph.saveIndex(outIndexPath);
-
-  }
-
-  void set(int outgoing, int incoming, int nofqs, 
-	   float baseAccuracyFrom, float baseAccuracyTo,
-	   float rateAccuracyFrom, float rateAccuracyTo,
-	   double qte, double m,
-	   bool log		// stderr log is disabled.
-	   ) {
-    if (outgoing >= 0) {
-      numOfOutgoingEdges = outgoing;
-    }
-    if (incoming >= 0) {
-      numOfIncomingEdges = incoming;
-    }
-    if (nofqs > 0) {
-      numOfQueries = nofqs;
-    }
-    if (baseAccuracyFrom > 0.0) {
-      baseAccuracyRange.first = baseAccuracyFrom;
-    }
-    if (baseAccuracyTo > 0.0) {
-      baseAccuracyRange.second = baseAccuracyTo;
-    }
-    if (rateAccuracyFrom > 0.0) {
-      rateAccuracyRange.first = rateAccuracyFrom;
-    }
-    if (rateAccuracyTo > 0.0) {
-      rateAccuracyRange.second = rateAccuracyTo;
-    }
-    if (qte != DBL_MIN) {
-      gtEpsilon = qte;
-    }
-    if (m > 0.0) {
-      mergin = m;
-    }
-    logDisabled = log;
-  }
-
-  size_t numOfOutgoingEdges;
-  size_t numOfIncomingEdges;
-  pair<float, float> baseAccuracyRange;
-  pair<float, float> rateAccuracyRange;
-  size_t numOfQueries;
-  double gtEpsilon;
-  double mergin;
-  bool logDisabled;
-};
-
-
 PYBIND11_MODULE(ngtpy, m) {
     m.doc() = "ngt python";
 
@@ -515,7 +359,7 @@ PYBIND11_MODULE(ngtpy, m) {
            py::arg("num_of_search_objects") = 0,
 	   py::arg("search_radius") = -1.0);
 
-    py::class_<Optimizer>(m, "Optimizer")
+    py::class_<NGT::GraphOptimizer>(m, "Optimizer")
       .def(py::init<int, int, int, float, float, float, float, double, double, bool>(),
 	   py::arg("num_of_outgoings") = -1,
 	   py::arg("num_of_incomings") = -1,
@@ -527,12 +371,12 @@ PYBIND11_MODULE(ngtpy, m) {
 	   py::arg("gt_epsilon") = DBL_MIN,
 	   py::arg("merge") = -1.0,
 	   py::arg("log_disabled") = false)
-      .def("execute", &::Optimizer::execute, 
+      .def("execute", &NGT::GraphOptimizer::execute, 
 	   py::arg("in_index_path"),
 	   py::arg("out_index_path"))
-      .def("adjust_search_coefficients", &::Optimizer::adjustSearchCoefficients, 
+      .def("adjust_search_coefficients", &NGT::GraphOptimizer::adjustSearchCoefficients, 
 	   py::arg("index_path"))
-      .def("set", &::Optimizer::set, 
+      .def("set", &NGT::GraphOptimizer::set, 
 	   py::arg("num_of_outgoings") = -1,
 	   py::arg("num_of_incomings") = -1,
 	   py::arg("num_of_queries") = -1,
@@ -541,7 +385,6 @@ PYBIND11_MODULE(ngtpy, m) {
 	   py::arg("high_accuracy_from") = -1.0,
 	   py::arg("high_accuracy_to") = -1.0,
 	   py::arg("gt_epsilon") = DBL_MIN,
-	   py::arg("merge") = -1.0,
-	   py::arg("log_disabled") = false);
+	   py::arg("merge") = -1.0);
 }
 

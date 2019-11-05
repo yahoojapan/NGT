@@ -17,7 +17,7 @@ Command
       $ ngt command [option] index [data]
         
 **注：**
-CygWin といった POSIXLY_CORERECT が設定されている環境では、コマンドの前にオプションを指定しなければなりません。
+CygWin といった POSIXLY_CORRECT が設定されている環境では、コマンドの前にオプションを指定しなければなりません。
 
       $ ngt [option] command index [data]
 
@@ -48,7 +48,7 @@ CygWin といった POSIXLY_CORERECT が設定されている環境では、コ�
 *index*  
 生成するインデックス名を指定します。データを登録後、本インデックス名のディレクトリが生成されてその中に複数のファイルからなるインデックスが生成されます。
 
-*registration\_data*  
+*registration_data*  
 登録するベクトルデータを指定します。１行が１オブジェクト（データ）で構成され、各次元要素のデータはスペースまたはタブで区切られていなければなりません。省略するとインデックスの初期化のみ行います。
 
 **-d** *no\_of\_dimensions*  
