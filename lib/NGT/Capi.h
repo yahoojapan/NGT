@@ -136,8 +136,8 @@ const char *ngt_get_error_string(const NGTError);
 void ngt_clear_error_string(NGTError);
   
 void ngt_destroy_error_object(NGTError);
-  
-NGTOptimizer ngt_create_optimizer(NGTError);
+
+NGTOptimizer ngt_create_optimizer(bool logDisabled, NGTError);
 
 bool ngt_optimizer_adjust_search_coefficients(NGTOptimizer, const char *, NGTError);
 
@@ -146,7 +146,7 @@ bool ngt_optimizer_execute(NGTOptimizer, const char *, const char *, NGTError);
 bool ngt_optimizer_set(NGTOptimizer optimizer, int outgoing, int incoming, int nofqs, 
 		       float baseAccuracyFrom, float baseAccuracyTo,
 		       float rateAccuracyFrom, float rateAccuracyTo,
-		       double qte, double m, int log, NGTError error);
+		       double qte, double m, NGTError error);
 
 void ngt_destroy_optimizer(NGTOptimizer);
 

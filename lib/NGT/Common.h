@@ -241,10 +241,10 @@ namespace NGT {
       if (!enabled) {
 	return;
       }
-      if (logFilePath != "/dev/null") {
-	logFD = open("log", O_WRONLY|O_APPEND, mode);
+      if (logFilePath == "/dev/null") {
+	logFD = open(logFilePath.c_str(), O_WRONLY|O_APPEND, mode);
       } else {
-	logFD = open("log", O_CREAT|O_WRONLY|O_APPEND, mode);
+	logFD = open(logFilePath.c_str(), O_CREAT|O_WRONLY|O_APPEND, mode);
       }
       if (logFD < 0) {
 	std::cerr << "Logger: Cannot begin logging." << std::endl;
