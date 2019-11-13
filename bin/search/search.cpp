@@ -19,56 +19,51 @@
 int
 main(int argc, char **argv)
 {
-  string	indexFile	= "index";	// Index.
-  string	query		= "./data/sift-query-3.tsv";	// Query file.
+  std::string	indexFile	= "index";	// Index.
+  std::string	query		= "./data/sift-query-3.tsv";	// Query file.
   int		size		= 20;		// The number of resultant objects.
   float		radius		= FLT_MAX;	// Radius of search range.
-  float		epsilon		= 0.1;		// Epsilon to expand explored range.
+  float		epsilon		= 0.1;		// Exploration coefficient(epsilon) to expand explored range
 
   try {
     NGT::Index	index(indexFile);		// open the specified index.
-    ifstream	is(query);			// open a query file.
+    std::ifstream	is(query);			// open a query file.
     if (!is) {
-      cerr << "Cannot open the specified file. " << query << endl;
+      std::cerr << "Cannot open the specified file. " << query << std::endl;
       return 1;
     }
-    string line;
+    std::string line;
     if (getline(is, line)) {    		// read  a query object from a query file.
-      NGT::Object *query = 0;
+      std::vector<double> queryObject;
       {
-	vector<string> tokens;
+	std::vector<std::string> tokens;
 	NGT::Common::tokenize(line, tokens, " \t");      // split a string into words by the separators.
 	// create a vector from the words.
-	vector<double> obj;
-	for (vector<string>::iterator ti = tokens.begin(); ti != tokens.end(); ++ti) {
-	  obj.push_back(NGT::Common::strtol(*ti));
+	for (std::vector<std::string>::iterator ti = tokens.begin(); ti != tokens.end(); ++ti) {
+	  queryObject.push_back(NGT::Common::strtol(*ti));
 	}
-	// allocate query object.
-	query = index.allocateObject(obj);
       }
       // set search prameters.
-      NGT::SearchContainer sc(*query);		// search parametera container.
-      NGT::ObjectDistances objects;		// a result set.
-      sc.setResults(&objects);			// set the result set.
-      sc.setSize(size);				// the number of resultant objects.
-      sc.setRadius(radius);			// search radius.
-      sc.setEpsilon(epsilon);			// set exploration coefficient.
+      NGT::SearchQuery query(queryObject);	// search query
+      NGT::ObjectDistances objects;		// result objects
+      query.setResults(&objects);		// set the result objects.
+      query.setSize(size);			// the number of result objects
+      query.setRadius(radius);			// search radius
+      query.setEpsilon(epsilon);		// set exploration coefficient.
 
-      index.search(sc);
+      index.search(query);
 
       // output resultant objects.
-      cout << "Rank\tID\tDistance" << endl;
+      std::cout << "Rank\tID\tDistance" << std::endl;
       for (size_t i = 0; i < objects.size(); i++) {
-	cout << i + 1 << "\t" << objects[i].id << "\t" << objects[i].distance << endl;
+	std::cout << i + 1 << "\t" << objects[i].id << "\t" << objects[i].distance << std::endl;
       }
-      // delete the query object.
-      index.deleteObject(query);
     }
   } catch (NGT::Exception &err) {
-    cerr << "Error " << err.what() << endl;
+    std::cerr << "Error " << err.what() << std::endl;
     return 1;
   } catch (...) {
-    cerr << "Error" << endl;
+    std::cerr << "Error" << std::endl;
     return 1;
   }
 

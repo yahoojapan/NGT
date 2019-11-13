@@ -50,8 +50,8 @@ public:
       trial		= args.getl("t", 1);
       {
 	beginOfEpsilon = endOfEpsilon = stepOfEpsilon = 0.1;
-	string epsilon = args.getString("e", "0.1");
-	vector<string> tokens;
+	std::string epsilon = args.getString("e", "0.1");
+	std::vector<std::string> tokens;
 	NGT::Common::tokenize(epsilon, tokens, ":");
 	if (tokens.size() >= 1) { beginOfEpsilon = endOfEpsilon = NGT::Common::strtod(tokens[0]); }
 	if (tokens.size() >= 2) { endOfEpsilon = NGT::Common::strtod(tokens[1]); }
@@ -61,12 +61,12 @@ public:
       }
     }
     char	openMode;
-    string	query;
+    std::string	query;
     size_t	querySize;
     char	indexType;
     int		size;
     long	edgeSize;
-    string	outputMode;
+    std::string	outputMode;
     float	radius;
     float	beginOfEpsilon;
     float	endOfEpsilon;
@@ -79,16 +79,16 @@ public:
 
   void create(Args &args);
   void append(Args &args);
-  static void search(NGT::Index &index, SearchParameter &searchParameter, ostream &stream)
+  static void search(NGT::Index &index, SearchParameter &searchParameter, std::ostream &stream)
   {
-    ifstream		is(searchParameter.query);
+    std::ifstream		is(searchParameter.query);
     if (!is) {
-      cerr << "Cannot open the specified file. " << searchParameter.query << endl;
+      std::cerr << "Cannot open the specified file. " << searchParameter.query << std::endl;
       return;
     }
     search(index, searchParameter, is, stream);
   }
-  static void search(NGT::Index &index, SearchParameter &searchParameter, istream &is, ostream &stream);
+  static void search(NGT::Index &index, SearchParameter &searchParameter, std::istream &is, std::ostream &stream);
   void search(Args &args);
   void remove(Args &args);
   void exportIndex(Args &args);

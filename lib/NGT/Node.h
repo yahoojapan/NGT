@@ -52,10 +52,10 @@ namespace NGT {
       void setType(Type t) { id = (t << 31) | getID(); }
       void setRaw(NodeID i) { id = i; }
       void setNull() { id = 0; }
-      void serialize(ofstream &os) { NGT::Serializer::write(os, id); }
-      void deserialize(ifstream &is) { NGT::Serializer::read(is, id); }
-      void serializeAsText(ofstream &os) { NGT::Serializer::writeAsText(os, id);	}
-      void deserializeAsText(ifstream &is) { NGT::Serializer::readAsText(is, id); }
+      void serialize(std::ofstream &os) { NGT::Serializer::write(os, id); }
+      void deserialize(std::ifstream &is) { NGT::Serializer::read(is, id); }
+      void serializeAsText(std::ofstream &os) { NGT::Serializer::writeAsText(os, id);	}
+      void deserializeAsText(std::ifstream &is) { NGT::Serializer::readAsText(is, id); }
     protected:
       NodeID id;
     };
@@ -72,7 +72,7 @@ namespace NGT {
       int		clusterID;
     };
 
-    typedef vector<Object>	Objects;
+    typedef std::vector<Object>	Objects;
 
     Node() {
       parent.setNull();
@@ -87,23 +87,23 @@ namespace NGT {
       return *this;
     }
 
-    void serialize(ofstream &os) {
+    void serialize(std::ofstream &os) {
       id.serialize(os);
       parent.serialize(os);
     }
 
-    void deserialize(ifstream &is) {
+    void deserialize(std::ifstream &is) {
       id.deserialize(is);
       parent.deserialize(is);
     }
 
-    void serializeAsText(ofstream &os) {
+    void serializeAsText(std::ofstream &os) {
       id.serializeAsText(os);
       os << " ";
       parent.serializeAsText(os);
     }
 
-    void deserializeAsText(ifstream &is) {
+    void deserializeAsText(std::ifstream &is) {
       id.deserializeAsText(is);
       parent.deserializeAsText(is);
     }
@@ -219,9 +219,9 @@ namespace NGT {
 #endif // NGT_SHARED_MEMORY_ALLOCATOR
 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR) 
-    void serialize(ofstream &os, SharedMemoryAllocator &allocator, ObjectSpace *objectspace = 0) {
+    void serialize(std::ofstream &os, SharedMemoryAllocator &allocator, ObjectSpace *objectspace = 0) {
 #else
-    void serialize(ofstream &os, ObjectSpace *objectspace = 0) {
+    void serialize(std::ofstream &os, ObjectSpace *objectspace = 0) {
 #endif
       Node::serialize(os);
       if (pivot == 0) {
@@ -249,7 +249,7 @@ namespace NGT {
 #endif
       }
     }
-    void deserialize(ifstream &is, ObjectSpace *objectspace = 0) {
+    void deserialize(std::ifstream &is, ObjectSpace *objectspace = 0) {
       Node::deserialize(is);
       if (pivot == 0) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
@@ -260,7 +260,7 @@ namespace NGT {
       }
       assert(objectspace != 0);
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-      cerr << "not implemented" << endl;
+      std::cerr << "not implemented" << std::endl;
       assert(0);
 #else
       getPivot().deserialize(is, objectspace);
@@ -285,9 +285,9 @@ namespace NGT {
     }
 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    void serializeAsText(ofstream &os, SharedMemoryAllocator &allocator, ObjectSpace *objectspace = 0) {
+    void serializeAsText(std::ofstream &os, SharedMemoryAllocator &allocator, ObjectSpace *objectspace = 0) {
 #else
-    void serializeAsText(ofstream &os, ObjectSpace *objectspace = 0) {
+    void serializeAsText(std::ofstream &os, ObjectSpace *objectspace = 0) {
 #endif
       Node::serializeAsText(os);
       if (pivot == 0) {
@@ -321,9 +321,9 @@ namespace NGT {
       }
     }
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    void deserializeAsText(ifstream &is, SharedMemoryAllocator &allocator, ObjectSpace *objectspace = 0) {
+    void deserializeAsText(std::ifstream &is, SharedMemoryAllocator &allocator, ObjectSpace *objectspace = 0) {
 #else
-    void deserializeAsText(ifstream &is, ObjectSpace *objectspace = 0) {
+    void deserializeAsText(std::ifstream &is, ObjectSpace *objectspace = 0) {
 #endif
       Node::deserializeAsText(is);
       if (pivot == 0) {
@@ -361,15 +361,15 @@ namespace NGT {
     }
 
     void show() {
-      cout << "Show internal node " << childrenSize << ":";
+      std::cout << "Show internal node " << childrenSize << ":";
       for (size_t i = 0; i < childrenSize; i++) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
 	assert(0);
 #else
-	cout << getChildren()[i].getID() << " ";
+	std::cout << getChildren()[i].getID() << " ";
 #endif
       }
-      cout << endl;
+      std::cout << std::endl;
     }
 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
@@ -451,7 +451,7 @@ namespace NGT {
     NGT::ObjectDistance *getObjectIDs() { return objectIDs; }
 #endif // NGT_SHARED_MEMORY_ALLOCATOR
 
-    void serialize(ofstream &os, ObjectSpace *objectspace = 0) {
+    void serialize(std::ofstream &os, ObjectSpace *objectspace = 0) {
       Node::serialize(os);
 #ifdef NGT_NODE_USE_VECTOR
       NGT::Serializer::write(os, objectIDs);
@@ -459,7 +459,7 @@ namespace NGT {
       NGT::Serializer::write(os, objectSize);
       for (int i = 0; i < objectSize; i++) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-	cerr << "not implemented" << endl;
+	std::cerr << "not implemented" << std::endl;
 	assert(0);
 #else
 	objectIDs[i].serialize(os);
@@ -473,7 +473,7 @@ namespace NGT {
 	}
       } else {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-	cerr << "not implemented" << endl;
+	std::cerr << "not implemented" << std::endl;
 	assert(0);
 #else
 	assert(objectspace != 0);
@@ -481,7 +481,7 @@ namespace NGT {
 #endif
       }
     }
-    void deserialize(ifstream &is, ObjectSpace *objectspace = 0) {
+    void deserialize(std::ifstream &is, ObjectSpace *objectspace = 0) {
       Node::deserialize(is);
 
 #ifdef NGT_NODE_USE_VECTOR
@@ -492,7 +492,7 @@ namespace NGT {
       NGT::Serializer::read(is, objectSize);
       for (int i = 0; i < objectSize; i++) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-	cerr << "not implemented" << endl;
+	std::cerr << "not implemented" << std::endl;
 	assert(0);
 #else
 	getObjectIDs()[i].deserialize(is);
@@ -513,7 +513,7 @@ namespace NGT {
       }
       assert(objectspace != 0);
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-      cerr << "not implemented" << endl;
+      std::cerr << "not implemented" << std::endl;
       assert(0);
 #else
       getPivot().deserialize(is, objectspace);
@@ -521,9 +521,9 @@ namespace NGT {
     }
 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    void serializeAsText(ofstream &os, SharedMemoryAllocator &allocator, ObjectSpace *objectspace = 0) {
+    void serializeAsText(std::ofstream &os, SharedMemoryAllocator &allocator, ObjectSpace *objectspace = 0) {
 #else
-    void serializeAsText(ofstream &os, ObjectSpace *objectspace = 0) {
+    void serializeAsText(std::ofstream &os, ObjectSpace *objectspace = 0) {
 #endif
       Node::serializeAsText(os);
       os << " ";
@@ -558,9 +558,9 @@ namespace NGT {
     }
 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    void deserializeAsText(ifstream &is, SharedMemoryAllocator &allocator, ObjectSpace *objectspace = 0) {
+    void deserializeAsText(std::ifstream &is, SharedMemoryAllocator &allocator, ObjectSpace *objectspace = 0) {
 #else
-    void deserializeAsText(ifstream &is, ObjectSpace *objectspace = 0) {
+    void deserializeAsText(std::ifstream &is, ObjectSpace *objectspace = 0) {
 #endif
       Node::deserializeAsText(is);
       if (pivot == 0) {
@@ -593,22 +593,22 @@ namespace NGT {
     }
 
     void show() {
-      cout << "Show leaf node " << objectSize << ":";
+      std::cout << "Show leaf node " << objectSize << ":";
       for (int i = 0; i < objectSize; i++) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-	cerr << "not implemented" << endl;
+	std::cerr << "not implemented" << std::endl;
 	assert(0);
 #else
-	cout << getObjectIDs()[i].id << "," << getObjectIDs()[i].distance << " ";
+	std::cout << getObjectIDs()[i].id << "," << getObjectIDs()[i].distance << " ";
 #endif
       }
-      cout << endl;
+      std::cout << std::endl;
     }
 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    bool verify(size_t nobjs, vector<uint8_t> &status, SharedMemoryAllocator &allocator);
+    bool verify(size_t nobjs, std::vector<uint8_t> &status, SharedMemoryAllocator &allocator);
 #else
-    bool verify(size_t nobjs, vector<uint8_t> &status);
+    bool verify(size_t nobjs, std::vector<uint8_t> &status);
 #endif
 
 
@@ -621,7 +621,7 @@ namespace NGT {
     static const size_t LeafObjectsSizeMax		= 100;
 
 #ifdef NGT_NODE_USE_VECTOR
-    vector<Object>	objectIDs;
+    std::vector<Object>	objectIDs;
 #else
     unsigned short	objectSize;
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR

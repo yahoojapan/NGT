@@ -21,6 +21,8 @@
 
 #include	<algorithm>
 
+using namespace std;
+
 const double NGT::Node::Object::Pivot = -1.0;
 
 using namespace NGT;

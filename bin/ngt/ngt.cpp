@@ -34,6 +34,8 @@
 #define GIT_TAG	"-"
 #endif
 
+using namespace std;
+
 static void
 version(ostream &os)
 {

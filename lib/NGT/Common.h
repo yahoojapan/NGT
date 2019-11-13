@@ -41,8 +41,6 @@
 #define ADVANCED_USE_REMOVED_LIST
 #define	SHARED_REMOVED_LIST
 
-using namespace std;
-
 namespace NGT {
   typedef	unsigned int	ObjectID;
   typedef	float		Distance;
@@ -53,10 +51,10 @@ namespace NGT {
   class Exception : public std::exception {
   public:
     Exception():message("No message") {}
-    Exception(const string &file, size_t line, stringstream &m) { set(file, line, m.str()); }
-    Exception(const string &file, size_t line, const string &m) { set(file, line, m); }
-    void set(const string &file, size_t line, const string &m) { 
-      stringstream ss;
+    Exception(const std::string &file, size_t line, std::stringstream &m) { set(file, line, m.str()); }
+    Exception(const std::string &file, size_t line, const std::string &m) { set(file, line, m); }
+    void set(const std::string &file, size_t line, const std::string &m) { 
+      std::stringstream ss;
       ss << file << ":" << line << ": " << m;
       message = ss.str(); 
     }
@@ -68,12 +66,12 @@ namespace NGT {
     virtual const char *what() const throw() {
       return message.c_str();
     }
-    string &getMessage() { return message; }
+    std::string &getMessage() { return message; }
   protected:
-    string message;
+    std::string message;
   };
 
-  class Args : public map<string, string>
+  class Args : public std::map<std::string, std::string>
   {
    public:
     Args() {}
@@ -84,22 +82,22 @@ namespace NGT {
       int opt;
       while ((opt = getopt(argc, argv, option)) != -1) {
 	if ((char)opt == 'h') {
-	  string str;
+	  std::string str;
 	  str.append(1, (char)opt);
-	  insert(pair<string, string>(str, ""));
+	  insert(std::pair<std::string, std::string>(str, ""));
 	  continue;
 	}
-	string str;
+	std::string str;
 	str.append(1, (char)opt);
-	insert(pair<string, string>(str, string(optarg)));
+	insert(std::pair<std::string, std::string>(str, std::string(optarg)));
       }
       for (int i = 0; optind < argc; optind++, i++) {
-	stringstream ss;
+	std::stringstream ss;
 	ss << "#" << i;
-	insert(pair<string, string>(ss.str(), string(argv[optind])));
+	insert(std::pair<std::string, std::string>(ss.str(), std::string(argv[optind])));
       }
     }
-    string &find(const char *s) { return get(s); }
+    std::string &find(const char *s) { return get(s); }
     char getChar(const char *s, char v) {
       try {
 	return get(s)[0];
@@ -107,19 +105,19 @@ namespace NGT {
 	return v;
       }
     }
-    string getString(const char *s, const char *v) {
+    std::string getString(const char *s, const char *v) {
       try {
 	return get(s);
       } catch (...) {
 	return v;
       }
     }
-    string &get(const char *s) {
+    std::string &get(const char *s) {
       Args::iterator ai;
-      ai = map<string, string>::find(string(s));
+      ai = map<std::string, std::string>::find(std::string(s));
       if (ai == this->end()) {
-	stringstream msg;
-	msg << s << ": Not specified" << endl;
+	std::stringstream msg;
+	msg << s << ": Not specified" << std::endl;
 	NGTThrowException(msg.str());
       }
       return ai->second;
@@ -133,9 +131,9 @@ namespace NGT {
 	return v;
       }
       if (*e != 0) {
-	stringstream msg;
+	std::stringstream msg;
 	msg << "ARGS::getl: Illegal string. Option=-" << s << " Specified value=" << get(s) 
-	    << " Illegal string=" << e << endl;
+	    << " Illegal string=" << e << std::endl;
 	NGTThrowException(msg.str());
       }
       return val;
@@ -149,9 +147,9 @@ namespace NGT {
 	return v;
       }
       if (*e != 0) {
-	stringstream msg;
+	std::stringstream msg;
 	msg << "ARGS::getf: Illegal string. Option=-" << s << " Specified value=" << get(s) 
-	    << " Illegal string=" << e << endl;
+	    << " Illegal string=" << e << std::endl;
 	NGTThrowException(msg.str());
       }
       return val;
@@ -161,33 +159,33 @@ namespace NGT {
 
   class Common {
   public:
-    static void tokenize(const string &str, vector<std::string> &token, const string seps) {
-      string::size_type current = 0;
-      string::size_type next;
-      while ((next = str.find_first_of(seps, current)) != string::npos) {
+    static void tokenize(const std::string &str, std::vector<std::string> &token, const std::string seps) {
+      std::string::size_type current = 0;
+      std::string::size_type next;
+      while ((next = str.find_first_of(seps, current)) != std::string::npos) {
 	token.push_back(str.substr(current, next - current));
 	current = next + 1;
       }
-      string t = str.substr(current);
+      std::string t = str.substr(current);
       token.push_back(t);
     }
 
-    static double strtod(const string &str) {
+    static double strtod(const std::string &str) {
       char *e;
       double val = std::strtod(str.c_str(), &e);
       if (*e != 0) {
-	stringstream msg;
+	std::stringstream msg;
 	msg << "Invalid string. " << e;
 	NGTThrowException(msg);
       }
       return val;
     }
 
-    static long strtol(const string &str, int base = 10) {
+    static long strtol(const std::string &str, int base = 10) {
       char *e;
       long val = std::strtol(str.c_str(), &e, base);
       if (*e != 0) {
-	stringstream msg;
+	std::stringstream msg;
 	msg << "Invalid string. " << e;
 	NGTThrowException(msg);
       }
@@ -195,15 +193,15 @@ namespace NGT {
     }
 
 
-    static string getProcessStatus(const string &stat) {
+    static std::string getProcessStatus(const std::string &stat) {
       pid_t pid = getpid();
-      stringstream str;
+      std::stringstream str;
       str << "/proc/" << pid << "/status";
-      ifstream procStatus(str.str());
+      std::ifstream procStatus(str.str());
       if (!procStatus.fail()) {
-	string line;
+	std::string line;
 	while (getline(procStatus, line)) {
-	  vector<string> tokens;
+	  std::vector<std::string> tokens;
 	  NGT::Common::tokenize(line, tokens, ": \t");
 	  if (tokens[0] == stat) {
 	    for (size_t i = 1; i < tokens.size(); i++) {
@@ -318,7 +316,7 @@ namespace NGT {
 
     TYPE &at(size_t idx) const {
       if (idx >= vectorSize) {
-	stringstream msg;
+	std::stringstream msg;
 	msg << "CompactVector: beyond the range. " << idx << ":" << vectorSize;
 	NGTThrowException(msg);  
       }
@@ -421,7 +419,7 @@ namespace NGT {
 	  uint64_t size = vectorSize;
 	  size <<= 1;
 	  if (size > 0xffff) {
-	    cerr << "CompactVector is too big. " << size << endl;
+	    std::cerr << "CompactVector is too big. " << size << std::endl;
 	    abort();
 	  }
 	  reserve(size);
@@ -449,7 +447,7 @@ namespace NGT {
       vector = 0;
     }
 
-    CompactString &operator=(const string &v) { return *this = v.c_str(); }
+    CompactString &operator=(const std::string &v) { return *this = v.c_str(); }
 
     CompactString &operator=(const CompactString &v) { return *this = v.vector; }
 
@@ -504,46 +502,46 @@ namespace NGT {
     inline void reset(size_t i) {
       getEntry(i) &= getBitString(i);
     }
-    vector<uint64_t>	bitvec;
+    std::vector<uint64_t>	bitvec;
     uint64_t		size;
   };
 
 
-  class PropertySet : public map<string, string> {
+  class PropertySet : public std::map<std::string, std::string> {
   public:
-    void set(const string &key, const string &value) {
+    void set(const std::string &key, const std::string &value) {
       iterator it = find(key);
       if (it == end()) {
-	insert(pair<string, string>(key, value));
+	insert(std::pair<std::string, std::string>(key, value));
       } else {
 	(*it).second = value;
       }
     }
-    template <class VALUE_TYPE> void set(const string &key, VALUE_TYPE value) {
-      stringstream vstr;
+    template <class VALUE_TYPE> void set(const std::string &key, VALUE_TYPE value) {
+      std::stringstream vstr;
       vstr << value;
       iterator it = find(key);
       if (it == end()) {
-	insert(pair<string, string>(key, vstr.str()));
+	insert(std::pair<std::string, std::string>(key, vstr.str()));
       } else {
 	(*it).second = vstr.str();
       }
     }
 
-    string get(const string &key) {
+    std::string get(const std::string &key) {
       iterator it = find(key);
       if (it != end()) {
 	return it->second;
       }
       return "";
     }
-    float getf(const string &key, float defvalue) {
+    float getf(const std::string &key, float defvalue) {
       iterator it = find(key);
       if (it != end()) {
 	char *e = 0;
 	float val = strtof(it->second.c_str(), &e);
 	if (*e != 0) {
-	  cerr << "Warning: Illegal property. " << key << ":" << it->second << " (" << e << ")" << endl;
+	  std::cerr << "Warning: Illegal property. " << key << ":" << it->second << " (" << e << ")" << std::endl;
 	  return defvalue;
 	}
 	return val;
@@ -551,52 +549,52 @@ namespace NGT {
       return defvalue;
     }
     void updateAndInsert(PropertySet &prop) {
-      for (map<string, string>::iterator i = prop.begin(); i != prop.end(); ++i) {
+      for (std::map<std::string, std::string>::iterator i = prop.begin(); i != prop.end(); ++i) {
 	set((*i).first, (*i).second);
       }
     }
-    long getl(const string &key, long defvalue) {
+    long getl(const std::string &key, long defvalue) {
       iterator it = find(key);
       if (it != end()) {
 	char *e = 0;
 	float val = strtol(it->second.c_str(), &e, 10);
 	if (*e != 0) {
-	  cerr << "Warning: Illegal property. " << key << ":" << it->second << " (" << e << ")" << endl;
+	  std::cerr << "Warning: Illegal property. " << key << ":" << it->second << " (" << e << ")" << std::endl;
 	}
 	return val;
       }
       return defvalue;
     }
-    void load(const string &f) { 
-      ifstream st(f); 
+    void load(const std::string &f) { 
+      std::ifstream st(f); 
       if (!st) {
-	stringstream msg;
+	std::stringstream msg;
 	msg << "PropertySet::load: Cannot load the property file " << f << ".";
 	NGTThrowException(msg);
       }
       load(st);
     }
-    void save(const string &f) {    
-      ofstream st(f); 
+    void save(const std::string &f) {    
+      std::ofstream st(f); 
       if (!st) {
-	stringstream msg;
-	msg << "PropertySet::save: Cannot save. " << f << endl;
+	std::stringstream msg;
+	msg << "PropertySet::save: Cannot save. " << f << std::endl;
 	NGTThrowException(msg);
       }
       save(st); 
     }    
-    void save(ofstream &os) {
-      for (map<string, string>::iterator i = this->begin(); i != this->end(); i++) {
+    void save(std::ofstream &os) {
+      for (std::map<std::string, std::string>::iterator i = this->begin(); i != this->end(); i++) {
 	os << i->first << "\t" << i->second << std::endl;
       }
     }
-    void load(ifstream &is) {
-      string line;
+    void load(std::ifstream &is) {
+      std::string line;
       while (getline(is, line)) {
-	vector<string> tokens;
+	std::vector<std::string> tokens;
 	NGT::Common::tokenize(line, tokens, "\t");
 	if (tokens.size() != 2) {
-	  cerr << "Property file is illegal. " << line << endl;
+	  std::cerr << "Property file is illegal. " << line << std::endl;
 	  continue;
 	}
 	set(tokens[0], tokens[1]);
@@ -605,19 +603,19 @@ namespace NGT {
   };
 
   namespace Serializer {
-    static inline void read(istream &is, uint8_t *v, size_t s) {
+    static inline void read(std::istream &is, uint8_t *v, size_t s) {
       is.read((char*)v, s);
     }
 
-    static inline void write(ostream &os, const uint8_t *v, size_t s) {
+    static inline void write(std::ostream &os, const uint8_t *v, size_t s) {
       os.write((const char*)v, s);
     }
 
-    template <typename TYPE> void write(ostream &os, const TYPE v) {
+    template <typename TYPE> void write(std::ostream &os, const TYPE v) {
       os.write((const char*)&v, sizeof(TYPE));
     }
 
-    template <typename TYPE> void writeAsText(ostream &os, const TYPE v) {
+    template <typename TYPE> void writeAsText(std::ostream &os, const TYPE v) {
       if (typeid(TYPE) == typeid(unsigned char)) {
 	os << (int)v;
       } else {
@@ -625,16 +623,16 @@ namespace NGT {
       }
     }
 
-    template <typename TYPE> void read(istream &is, TYPE &v) {
+    template <typename TYPE> void read(std::istream &is, TYPE &v) {
       is.read((char*)&v, sizeof(TYPE));
     }
 
-    template <typename TYPE> void readAsText(istream &is, TYPE &v) {
+    template <typename TYPE> void readAsText(std::istream &is, TYPE &v) {
       if (typeid(TYPE) == typeid(unsigned char)) {
 	unsigned int tmp;
 	is >> tmp;
 	if (tmp > 255) {
-	  cerr << "Error! Invalid. " << tmp << endl;
+	  std::cerr << "Error! Invalid. " << tmp << std::endl;
 	}
 	v = (TYPE)tmp;
       } else {
@@ -642,7 +640,7 @@ namespace NGT {
       }
     }
 
-    template <typename TYPE> void write(ostream &os, const vector<TYPE> &v) { 
+    template <typename TYPE> void write(std::ostream &os, const std::vector<TYPE> &v) { 
       unsigned int s = v.size();
       write(os, s);
       for (unsigned int i = 0; i < s; i++) {
@@ -650,7 +648,7 @@ namespace NGT {
       }
     }
 
-    template <typename TYPE> void writeAsText(ostream &os, const vector<TYPE> &v) { 
+    template <typename TYPE> void writeAsText(std::ostream &os, const std::vector<TYPE> &v) { 
       unsigned int s = v.size();
       os << s << " ";
       for (unsigned int i = 0; i < s; i++) {
@@ -659,7 +657,7 @@ namespace NGT {
       }
     }
 
-    template <typename TYPE> void write(ostream &os, const CompactVector<TYPE> &v) { 
+    template <typename TYPE> void write(std::ostream &os, const CompactVector<TYPE> &v) { 
       unsigned int s = v.size();
       write(os, s);
       for (unsigned int i = 0; i < s; i++) {
@@ -667,7 +665,7 @@ namespace NGT {
       }
     }
 
-    template <typename TYPE> void writeAsText(ostream &os, const CompactVector<TYPE> &v) { 
+    template <typename TYPE> void writeAsText(std::ostream &os, const CompactVector<TYPE> &v) { 
       unsigned int s = v.size();
       for (unsigned int i = 0; i < s; i++) {
 	writeAsText(os, v[i]);
@@ -675,7 +673,7 @@ namespace NGT {
       }
     }
 
-    template <typename TYPE> void writeAsText(ostream &os, TYPE *v, size_t s) { 
+    template <typename TYPE> void writeAsText(std::ostream &os, TYPE *v, size_t s) { 
       os << s << " ";
       for (unsigned int i = 0; i < s; i++) {
 	writeAsText(os, v[i]);
@@ -683,7 +681,7 @@ namespace NGT {
       }
     }
 
-    template <typename TYPE> void read(istream &is, vector<TYPE> &v) { 
+    template <typename TYPE> void read(std::istream &is, std::vector<TYPE> &v) { 
       v.clear();
       unsigned int s;
       read(is, s);
@@ -695,7 +693,7 @@ namespace NGT {
       }
     }
 
-    template <typename TYPE> void readAsText(istream &is, vector<TYPE> &v) { 
+    template <typename TYPE> void readAsText(std::istream &is, std::vector<TYPE> &v) { 
       v.clear();
       unsigned int s;
       is >> s;
@@ -707,7 +705,7 @@ namespace NGT {
     }
 
 
-    template <typename TYPE> void read(istream &is, CompactVector<TYPE> &v) { 
+    template <typename TYPE> void read(std::istream &is, CompactVector<TYPE> &v) { 
       v.clear();
       unsigned int s;
       read(is, s);
@@ -719,7 +717,7 @@ namespace NGT {
       }
     }
 
-    template <typename TYPE> void readAsText(istream &is, CompactVector<TYPE> &v) { 
+    template <typename TYPE> void readAsText(std::istream &is, CompactVector<TYPE> &v) { 
       v.clear();
       unsigned int s;
       is >> s;
@@ -730,11 +728,11 @@ namespace NGT {
       }
     }
 
-    template <typename TYPE> void readAsText(istream &is,  TYPE *v, size_t s) { 
+    template <typename TYPE> void readAsText(std::istream &is,  TYPE *v, size_t s) { 
       unsigned int size;
       is >> size;
       if (s != size) {
-	cerr << "readAsText: something wrong. " << size << ":" << s << endl;
+	std::cerr << "readAsText: something wrong. " << size << ":" << s << std::endl;
 	return;
       }
       for (unsigned int i = 0; i < s; i++) {
@@ -799,7 +797,7 @@ namespace NGT {
 
     TYPE &at(size_t idx, SharedMemoryAllocator &allocator) {
       if (idx >= vectorSize) {
-	stringstream msg;
+	std::stringstream msg;
 	msg << "Vector: beyond the range. " << idx << ":" << vectorSize;
 	NGTThrowException(msg);  
       }
@@ -891,7 +889,7 @@ namespace NGT {
       vectorSize = s;
     }
 
-    void serializeAsText(ostream &os, ObjectSpace *objectspace = 0) { 
+    void serializeAsText(std::ostream &os, ObjectSpace *objectspace = 0) { 
       unsigned int s = size();
       os << s << " ";
       for (unsigned int i = 0; i < s; i++) {
@@ -899,7 +897,7 @@ namespace NGT {
 	os << " ";
       }
     }
-    void deserializeAsText(istream &is, ObjectSpace *objectspace = 0) { 
+    void deserializeAsText(std::istream &is, ObjectSpace *objectspace = 0) { 
       clear();
       size_t s;
       Serializer::readAsText(is, s);
@@ -925,7 +923,7 @@ namespace NGT {
 	    size <<= 1;
 	  } while (size <= idx);
 	  if (size > 0xffffffff) {
-	    cerr << "Vector is too big. " << size << endl;
+	    std::cerr << "Vector is too big. " << size << std::endl;
 	    abort();
 	  }
 	  reserve(size, allocator);
@@ -952,7 +950,7 @@ namespace NGT {
     PersistentRepository():array(0) {}
     ~PersistentRepository() { close(); }
 
-    void open(const string &mapfile, size_t sharedMemorySize) {
+    void open(const std::string &mapfile, size_t sharedMemorySize) {
       assert(array == 0);
       SharedMemoryAllocator &allocator = getAllocator();
 #ifdef ADVANCED_USE_REMOVED_LIST
@@ -1005,9 +1003,9 @@ namespace NGT {
 	return;
       }
       Vector<size_t>::iterator rmi
-	= std::lower_bound(removedList->begin(allocator), removedList->end(allocator), id, greater<size_t>());
+	= std::lower_bound(removedList->begin(allocator), removedList->end(allocator), id, std::greater<size_t>());
       if ((rmi != removedList->end(allocator)) && ((*rmi) == id)) {
-	cerr << "removedListPush: already existed! continue... ID=" << id << endl;
+	std::cerr << "removedListPush: already existed! continue... ID=" << id << std::endl;
 	return;
       }
       removedList->insert(rmi, id, allocator);
@@ -1081,14 +1079,14 @@ namespace NGT {
 
     inline TYPE *get(size_t idx) {
       if (isEmpty(idx)) {
-	stringstream msg;
+	std::stringstream msg;
 	msg << "get: Not in-memory or invalid offset of node. " << idx << ":" << array->size();
 	NGTThrowException(msg.str());
       }
       return (*this)[idx];
     }
 
-    void serialize(ofstream &os, ObjectSpace *objectspace = 0) {
+    void serialize(std::ofstream &os, ObjectSpace *objectspace = 0) {
       NGT::Serializer::write(os, array->size());    
       for (size_t idx = 0; idx < array->size(); idx++) {
 	if ((*this)[idx] == 0) {
@@ -1106,7 +1104,7 @@ namespace NGT {
       }
     }
 
-    void deserialize(ifstream &is, ObjectSpace *objectspace = 0) {
+    void deserialize(std::ifstream &is, ObjectSpace *objectspace = 0) {
       if (!is.is_open()) {
 	NGTThrowException("NGT::Common: Not open the specified stream yet.");
       }
@@ -1152,14 +1150,14 @@ namespace NGT {
       }
     }
 
-    void serializeAsText(ofstream &os, ObjectSpace *objectspace = 0) {
+    void serializeAsText(std::ofstream &os, ObjectSpace *objectspace = 0) {
       os.setf(std::ios_base::fmtflags(0), std::ios_base::floatfield);
       os << std::setprecision(8);
 
-      os << array->size() << endl;
+      os << array->size() << std::endl;
       for (size_t idx = 0; idx < array->size(); idx++) {
 	if ((*this)[idx] == 0) {
-	  os << idx << " - " << endl;
+	  os << idx << " - " << std::endl;
 	} else {
 	  os << idx << " + ";
 	  if (objectspace == 0) {
@@ -1167,14 +1165,14 @@ namespace NGT {
 	  } else {
 	    (*this)[idx]->serializeAsText(os, allocator, objectspace);
 	  }
-	  os << endl;
+	  os << std::endl;
 	}
       }
-      os << fixed;
+      os << std::fixed;
     }
 
 
-    void deserializeAsText(ifstream &is, ObjectSpace *objectspace = 0) {
+    void deserializeAsText(std::ifstream &is, ObjectSpace *objectspace = 0) {
       if (!is.is_open()) {
 	NGTThrowException("NGT::Common: Not open the specified stream yet.");
       }
@@ -1186,7 +1184,7 @@ namespace NGT {
 	size_t idx;
 	NGT::Serializer::readAsText(is, idx);
 	if (i != idx) {
-	  cerr << "PersistentRepository: Error. index of a specified import file is invalid. " << idx << ":" << i << endl;
+	  std::cerr << "PersistentRepository: Error. index of a specified import file is invalid. " << idx << ":" << i << std::endl;
 	}
 	char type;
 	NGT::Serializer::readAsText(is, type);
@@ -1274,17 +1272,17 @@ namespace NGT {
 
 
   template <class TYPE>
-    class Repository : public vector<TYPE*> {
+    class Repository : public std::vector<TYPE*> {
   public:
 
     static TYPE *allocate() { return new TYPE; }
 
     size_t push(TYPE *n) {
-      if (vector<TYPE*>::size() == 0) {
-	vector<TYPE*>::push_back(0);
+      if (std::vector<TYPE*>::size() == 0) {
+	std::vector<TYPE*>::push_back(0);
       }
-      vector<TYPE*>::push_back(n);
-      return vector<TYPE*>::size() - 1;
+      std::vector<TYPE*>::push_back(n);
+      return std::vector<TYPE*>::size() - 1;
     }
 
     size_t insert(TYPE *n) {
@@ -1300,7 +1298,7 @@ namespace NGT {
     }
 
     bool isEmpty(size_t idx) {
-      if (idx < vector<TYPE*>::size()) {
+      if (idx < std::vector<TYPE*>::size()) {
 	return (*this)[idx] == 0;
       } else {
 	return true;
@@ -1308,8 +1306,8 @@ namespace NGT {
     }
 
     void put(size_t idx, TYPE *n) {
-      if (vector<TYPE*>::size() <= idx) {
-	vector<TYPE*>::resize(idx + 1, 0);
+      if (std::vector<TYPE*>::size() <= idx) {
+	std::vector<TYPE*>::resize(idx + 1, 0);
       }
       if ((*this)[idx] != 0) {
 	NGTThrowException("put: Not empty");  
@@ -1336,7 +1334,7 @@ namespace NGT {
 
     inline TYPE *get(size_t idx) {
       if (isEmpty(idx)) {
-	stringstream msg;
+	std::stringstream msg;
 	msg << "get: Not in-memory or invalid offset of node. idx=" << idx << " size=" << this->size();
 	NGTThrowException(msg.str());
       }
@@ -1345,12 +1343,12 @@ namespace NGT {
 
     inline TYPE *getWithoutCheck(size_t idx) { return (*this)[idx]; }
 
-    void serialize(ofstream &os, ObjectSpace *objectspace = 0) {
+    void serialize(std::ofstream &os, ObjectSpace *objectspace = 0) {
       if (!os.is_open()) {
 	NGTThrowException("NGT::Common: Not open the specified stream yet.");
       }
-      NGT::Serializer::write(os, vector<TYPE*>::size());    
-      for (size_t idx = 0; idx < vector<TYPE*>::size(); idx++) {
+      NGT::Serializer::write(os, std::vector<TYPE*>::size());    
+      for (size_t idx = 0; idx < std::vector<TYPE*>::size(); idx++) {
 	if ((*this)[idx] == 0) {
 	  NGT::Serializer::write(os, '-');
 	} else {
@@ -1364,21 +1362,21 @@ namespace NGT {
       }
     }
 
-    void deserialize(ifstream &is, ObjectSpace *objectspace = 0) {
+    void deserialize(std::ifstream &is, ObjectSpace *objectspace = 0) {
       if (!is.is_open()) {
 	NGTThrowException("NGT::Common: Not open the specified stream yet.");
       }
       deleteAll();
       size_t s;
       NGT::Serializer::read(is, s);
-      vector<TYPE*>::reserve(s);
+      std::vector<TYPE*>::reserve(s);
       for (size_t i = 0; i < s; i++) {
 	char type;
 	NGT::Serializer::read(is, type);
 	switch(type) {
 	case '-':
 	  {
-	    vector<TYPE*>::push_back(0);
+	    std::vector<TYPE*>::push_back(0);
 #ifdef ADVANCED_USE_REMOVED_LIST
 	    if (i != 0) {
 	      removedList.push(i);
@@ -1391,11 +1389,11 @@ namespace NGT {
 	    if (objectspace == 0) {
 	      TYPE *v = new TYPE;
 	      v->deserialize(is);
-	      vector<TYPE*>::push_back(v);
+	      std::vector<TYPE*>::push_back(v);
 	    } else {
 	      TYPE *v = new TYPE(objectspace);
 	      v->deserialize(is, objectspace);
-	      vector<TYPE*>::push_back(v);
+	      std::vector<TYPE*>::push_back(v);
 	    }
 	  }
 	  break;
@@ -1408,7 +1406,7 @@ namespace NGT {
       }
     }
 
-    void serializeAsText(ofstream &os, ObjectSpace *objectspace = 0) {
+    void serializeAsText(std::ofstream &os, ObjectSpace *objectspace = 0) {
       if (!os.is_open()) {
 	NGTThrowException("NGT::Common: Not open the specified stream yet.");
       }
@@ -1416,10 +1414,10 @@ namespace NGT {
       os.setf(std::ios_base::fmtflags(0), std::ios_base::floatfield);
       os << std::setprecision(8);
 
-      os << vector<TYPE*>::size() << endl;
-      for (size_t idx = 0; idx < vector<TYPE*>::size(); idx++) {
+      os << std::vector<TYPE*>::size() << std::endl;
+      for (size_t idx = 0; idx < std::vector<TYPE*>::size(); idx++) {
 	if ((*this)[idx] == 0) {
-	  os << idx << " - " << endl;
+	  os << idx << " - " << std::endl;
 	} else {
 	  os << idx << " + ";
 	  if (objectspace == 0) {
@@ -1427,32 +1425,32 @@ namespace NGT {
 	  } else {
 	    (*this)[idx]->serializeAsText(os, objectspace);
 	  }
-	  os << endl;
+	  os << std::endl;
 	}
       }
-      os << fixed;
+      os << std::fixed;
     }
 
-    void deserializeAsText(ifstream &is, ObjectSpace *objectspace = 0) {
+    void deserializeAsText(std::ifstream &is, ObjectSpace *objectspace = 0) {
       if (!is.is_open()) {
 	NGTThrowException("NGT::Common: Not open the specified stream yet.");
       }
       deleteAll();
       size_t s;
       NGT::Serializer::readAsText(is, s);
-      vector<TYPE*>::reserve(s);
+      std::vector<TYPE*>::reserve(s);
       for (size_t i = 0; i < s; i++) {
 	size_t idx;
 	NGT::Serializer::readAsText(is, idx);
 	if (i != idx) {
-	  cerr << "Repository: Error. index of a specified import file is invalid. " << idx << ":" << i << endl;
+	  std::cerr << "Repository: Error. index of a specified import file is invalid. " << idx << ":" << i << std::endl;
 	}
 	char type;
 	NGT::Serializer::readAsText(is, type);
 	switch(type) {
 	case '-':
 	  {
-	    vector<TYPE*>::push_back(0);
+	    std::vector<TYPE*>::push_back(0);
 #ifdef ADVANCED_USE_REMOVED_LIST
 	    if (i != 0) {
 	      removedList.push(i);
@@ -1465,11 +1463,11 @@ namespace NGT {
 	    if (objectspace == 0) {
 	      TYPE *v = new TYPE;
 	      v->deserializeAsText(is);
-	      vector<TYPE*>::push_back(v);
+	      std::vector<TYPE*>::push_back(v);
 	    } else {
 	      TYPE *v = new TYPE(objectspace);
 	      v->deserializeAsText(is, objectspace);
-	      vector<TYPE*>::push_back(v);
+	      std::vector<TYPE*>::push_back(v);
 	    }
 	  }
 	  break;
@@ -1500,9 +1498,9 @@ namespace NGT {
     }
 
 #ifdef ADVANCED_USE_REMOVED_LIST
-    size_t count() { return vector<TYPE*>::size() == 0 ? 0 : vector<TYPE*>::size() - removedList.size() - 1; }
+    size_t count() { return std::vector<TYPE*>::size() == 0 ? 0 : std::vector<TYPE*>::size() - removedList.size() - 1; }
   protected:
-    priority_queue<size_t, vector<size_t>, greater<size_t> >	removedList;
+    std::priority_queue<size_t, std::vector<size_t>, std::greater<size_t> >	removedList;
 #endif
   };
 
@@ -1529,30 +1527,30 @@ namespace NGT {
         return distance > o.distance;
       }
     }
-    void serialize(ofstream &os) {
+    void serialize(std::ofstream &os) {
       NGT::Serializer::write(os, id);
       NGT::Serializer::write(os, distance);
     }
-    void deserialize(ifstream &is) {
+    void deserialize(std::ifstream &is) {
       NGT::Serializer::read(is, id);
       NGT::Serializer::read(is, distance);
     }
 
-    void serializeAsText(ofstream &os) {
+    void serializeAsText(std::ofstream &os) {
       os.unsetf(std::ios_base::floatfield);
-      os << setprecision(8) << id << " " << distance;
+      os << std::setprecision(8) << id << " " << distance;
     }
 
-    void deserializeAsText(ifstream &is) {
+    void deserializeAsText(std::ifstream &is) {
       is >> id;
       is >> distance;
     }
 
-    friend ostream &operator<<(ostream& os, const ObjectDistance &o) {
+    friend std::ostream &operator<<(std::ostream& os, const ObjectDistance &o) {
       os << o.id << " " << o.distance;
       return os;
     }
-    friend istream &operator>>(istream& is, ObjectDistance &o) {
+    friend std::istream &operator>>(std::istream& is, ObjectDistance &o) {
       is >> o.id;
       is >> o.distance;
       return is;
@@ -1574,13 +1572,16 @@ namespace NGT {
     ObjectID		id;
   };
 
-  typedef priority_queue<ObjectDistance, vector<ObjectDistance>, less<ObjectDistance> > ResultPriorityQueue;
+  typedef std::priority_queue<ObjectDistance, std::vector<ObjectDistance>, std::less<ObjectDistance> > ResultPriorityQueue;
 
   class SearchContainer : public NGT::Container {
   public:
     SearchContainer(Object &f, ObjectID i): Container(f, i) { initialize(); }
     SearchContainer(Object &f): Container(f, 0) { initialize(); }
     SearchContainer(SearchContainer &sc): Container(sc) { *this = sc; }
+    SearchContainer(SearchContainer &sc, Object &f): Container(f, sc.id) { *this = sc; }
+    SearchContainer(): Container(*reinterpret_cast<Object *>(0), 0) { initialize(); }
+
     SearchContainer &operator=(SearchContainer &sc) {
       size = sc.size;
       radius = sc.radius;
@@ -1632,6 +1633,46 @@ namespace NGT {
     ObjectDistances	*result;
   };
 
+  class SearchQuery : public NGT::SearchContainer {
+  public:
+    template <typename QTYPE> SearchQuery(std::vector<QTYPE> &q):query(0) { setQuery(q); }
+    template <typename QTYPE> SearchQuery(SearchContainer &sc, std::vector<QTYPE> &q): SearchContainer(sc), query(0) { setQuery(q); }
+    ~SearchQuery() { deleteQuery(); }
+
+    template <typename QTYPE> void setQuery(std::vector<QTYPE> &q) {
+      if (query != 0) {
+	deleteQuery();
+      }
+      query = new std::vector<QTYPE>(q);
+      queryType = &typeid(QTYPE);
+      if (*queryType != typeid(float) && *queryType != typeid(double) && *queryType != typeid(uint8_t)) {
+	query = 0;
+	queryType = 0;
+	std::stringstream msg;
+	msg << "NGT::SearchQuery: Invalid query type!";
+	NGTThrowException(msg);
+      }
+    }
+    void	*getQuery() { return query; }
+    const std::type_info &getQueryType() { return *queryType; }
+  private:
+    void deleteQuery() {
+      if (query == 0) {
+	return;
+      }
+      if (*queryType == typeid(float)) {
+	delete static_cast<std::vector<float>*>(query);
+      } else if (*queryType == typeid(double)) {
+	delete static_cast<std::vector<double>*>(query);
+      } else if (*queryType == typeid(uint8_t)) {
+	delete static_cast<std::vector<uint8_t>*>(query);
+      }
+      query = 0;
+      queryType = 0;
+    }
+    void			*query;
+    const std::type_info	*queryType;
+  };
 
   class InsertContainer : public Container {
   public:
@@ -1667,8 +1708,8 @@ namespace NGT {
       ntime += sec * 1000000000L + nsec;
     }
 
-    friend ostream &operator<<(ostream &os, Timer &t) {
-      os << setprecision(6) << t.time << " (sec)";
+    friend std::ostream &operator<<(std::ostream &os, Timer &t) {
+      os << std::setprecision(6) << t.time << " (sec)";
       return os;
     }
 

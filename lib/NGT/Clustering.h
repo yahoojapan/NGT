@@ -18,6 +18,8 @@
 
 #include "NGT/Index.h"
 
+using namespace std;
+
 #if defined(NGT_AVX_DISABLED) 
 #define NGT_CLUSTER_NO_AVX
 #else

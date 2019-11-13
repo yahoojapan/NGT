@@ -18,6 +18,7 @@
 
 #include	"Thread.h"
 
+using namespace std;
 using namespace NGT;
 
 namespace NGT {

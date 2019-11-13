@@ -20,6 +20,7 @@
 #include	"Index.h"
 
 
+using namespace std;
 using namespace NGT;
 
 void 
@@ -615,6 +616,8 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 	  }
 	}
 	assert(minj != -1);
+	bool insertionA = false;
+	bool insertionB = false;
 	{
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
 	  ObjectDistance obj = node.at(minj, repository.allocator);
@@ -627,11 +630,13 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 	  GraphNode::iterator ei = std::lower_bound(n.begin(repository.allocator), n.end(repository.allocator), obj);
 	  if ((ei == n.end(repository.allocator)) || ((*ei).id != obj.id)) {
 	    n.insert(ei, obj, repository.allocator);
+	    insertionA = true;
 	  }
 #else
 	  GraphNode::iterator ei = std::lower_bound(n.begin(), n.end(), obj);
-	  if ((ei == n.end()) || ((*ei).id != obj.id)) {
-	    n.insert(ei, obj);
+          if ((ei == n.end()) || ((*ei).id != obj.id)) {
+            n.insert(ei, obj);
+	    insertionA = true;
 	  }
 #endif
 	}
@@ -647,12 +652,25 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 	  GraphNode::iterator ei = std::lower_bound(n.begin(repository.allocator), n.end(repository.allocator), obj);
 	  if ((ei == n.end(repository.allocator)) || ((*ei).id != obj.id)) {
 	    n.insert(ei, obj, repository.allocator);
+	    insertionB = true;
+	  }
 #else
 	  GraphNode::iterator ei = std::lower_bound(n.begin(), n.end(), obj);
-	  if ((ei == n.end()) || ((*ei).id != obj.id)) {
-	    n.insert(ei, obj);
-#endif
+          if ((ei == n.end()) || ((*ei).id != obj.id)) {
+            n.insert(ei, obj);
+	    insertionB = true;
 	  }
+#endif
+	}
+	if (insertionA != insertionB) {
+	  stringstream msg;
+	  msg << "Graph::removeEdgeReliably: Lost conectivity! Isn't this ANNG? ID=" << id;
+#ifdef NGT_FORCED_REMOVE
+	  msg << " anyway continue...";
+	  cerr << msg.str() << endl;
+#else
+	  NGTThrowException(msg.str());
+#endif
 	}
 	if ((i + 1 < node.size()) && (i + 1 != (unsigned int)minj)) {
 	  ObjectDistance tmpr;

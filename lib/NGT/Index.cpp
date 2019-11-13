@@ -22,6 +22,7 @@
 #include	"NGT/GraphReconstructor.h"
 #include	"NGT/Version.h"
 
+using namespace std;
 using namespace NGT;
 
 
@@ -1014,7 +1015,7 @@ findPathAmongIdenticalObjects(GraphAndTreeIndex &graph, size_t srcid, size_t dst
 }
 
 bool 
-GraphAndTreeIndex::verify(vector<uint8_t> &status, bool info) {
+GraphAndTreeIndex::verify(vector<uint8_t> &status, bool info, char mode) {
   bool valid = GraphIndex::verify(status, info);
   if (!valid) {
     cerr << "The graph or object is invalid!" << endl;
@@ -1091,7 +1092,7 @@ GraphAndTreeIndex::verify(vector<uint8_t> &status, bool info) {
 	    }
 	  }
 	}
-	if (!registeredIdenticalObject) {
+	if (!registeredIdenticalObject && mode != 's') {
 	  if (info) {
 	    cerr << "info: not found by using more accurate search." << endl;
 	  }
@@ -1163,9 +1164,14 @@ GraphAndTreeIndex::verify(vector<uint8_t> &status, bool info) {
 	    }
 	  }
 	} else {
-	  cerr << "Warning: not found the valid same object even by using linear search." << endl;
-	  cerr << "Error! ID=" << id << ":" << static_cast<int>(status[id]) << endl;
-	  valid = false;
+	  if (mode == 's') {
+	    cerr << "Warning: not found the valid same object, but not try to use linear search." << endl;
+	    cerr << "Error! ID=" << id << ":" << static_cast<int>(status[id]) << endl;
+	  } else {
+	    cerr << "Warning: not found the valid same object even by using linear search." << endl;
+	    cerr << "Error! ID=" << id << ":" << static_cast<int>(status[id]) << endl;
+	    valid = false;
+	  }
 	}
       } else if (status[id] == 0x01) {
 	  if (info) {

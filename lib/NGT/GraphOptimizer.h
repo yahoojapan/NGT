@@ -41,14 +41,14 @@ namespace NGT {
       numOfOutgoingEdges = 10;
       numOfIncomingEdges= 120;
       numOfQueries = 100;
-      baseAccuracyRange = pair<float, float>(0.30, 0.50);
-      rateAccuracyRange = pair<float, float>(0.80, 0.90);
+      baseAccuracyRange = std::pair<float, float>(0.30, 0.50);
+      rateAccuracyRange = std::pair<float, float>(0.80, 0.90);
       gtEpsilon = 0.1;
       mergin = 0.2;
       logDisabled = false;
     }
 
-    void adjustSearchCoefficients(const string indexPath){
+    void adjustSearchCoefficients(const std::string indexPath){
       NGT::Index		index(indexPath);
       NGT::GraphIndex	&graph = static_cast<NGT::GraphIndex&>(index.getIndex());
       NGT::Optimizer	optimizer(index);
@@ -63,7 +63,7 @@ namespace NGT {
 	prop.dynamicEdgeSizeBase = coefficients.first;
 	prop.dynamicEdgeSizeRate = coefficients.second;
       } catch(NGT::Exception &err) {
-	stringstream msg;
+	std::stringstream msg;
 	msg << "Optimizer::adjustSearchCoefficients: Cannot adjust the search coefficients. " << err.what();
 	NGTThrowException(msg);      
       }
@@ -71,8 +71,8 @@ namespace NGT {
     }
 
     void execute(
-		 const string inIndexPath,
-		 const string outIndexPath
+		 const std::string inIndexPath,
+		 const std::string outIndexPath
 		 ){
       if ((numOfOutgoingEdges < 0 && numOfIncomingEdges >= 0) ||
 	  (numOfOutgoingEdges >= 0 && numOfIncomingEdges < 0)) {
@@ -80,11 +80,11 @@ namespace NGT {
       }
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
       if (access(outIndexPath.c_str(), 0) == 0) {
-	stringstream msg;
+	std::stringstream msg;
 	msg << "Optimizer::execute: The specified index exists. " << outIndexPath;
 	NGTThrowException(msg);
       }
-      const string com = "cp -r " + inIndexPath + " " + outIndexPath;
+      const std::string com = "cp -r " + inIndexPath + " " + outIndexPath;
       system(com.c_str());
       NGT::Index	outIndex(outIndexPath);
 #else
@@ -93,11 +93,11 @@ namespace NGT {
       NGT::GraphIndex	&outGraph = static_cast<NGT::GraphIndex&>(outIndex.getIndex());
       NGT::Timer timer;
       timer.start();
-      vector<NGT::ObjectDistances> graph;
+      std::vector<NGT::ObjectDistances> graph;
       NGT::StdOstreamRedirector redirector(logDisabled);
       redirector.begin();
       try {
-	cerr << "Optimizer::execute: Extract the graph data." << endl;
+	std::cerr << "Optimizer::execute: Extract the graph data." << std::endl;
 	// extract only edges from the index to reduce the memory usage.
 	NGT::GraphReconstructor::extractGraph(graph, outIndex);
 	if (numOfOutgoingEdges >= 0) {
@@ -105,12 +105,12 @@ namespace NGT {
 	  NGT::GraphReconstructor::reconstructGraph(graph, outIndex, numOfOutgoingEdges, numOfIncomingEdges);
 	}
 	timer.stop();
-	cerr << "Optimizer::execute: Graph reconstruction time=" << timer.time << " (sec) " << endl;
+	std::cerr << "Optimizer::execute: Graph reconstruction time=" << timer.time << " (sec) " << std::endl;
 	timer.reset();
 	timer.start();
 	NGT::GraphReconstructor::adjustPathsEffectively(outIndex);
 	timer.stop();
-	cerr << "Optimizer::execute: Path adjustment time=" << timer.time << " (sec) " << endl;
+	std::cerr << "Optimizer::execute: Path adjustment time=" << timer.time << " (sec) " << std::endl;
       } catch (NGT::Exception &err) {
 	redirector.end();
 	throw(err);
@@ -128,7 +128,7 @@ namespace NGT {
 	prop.dynamicEdgeSizeBase = coefficients.first;
 	prop.dynamicEdgeSizeRate = coefficients.second;
       } catch(NGT::Exception &err) {
-	stringstream msg;
+	std::stringstream msg;
 	msg << "Optimizer::execute: Cannot adjust the search coefficients. " << err.what();
 	NGTThrowException(msg);      
       }
@@ -171,8 +171,8 @@ namespace NGT {
 
     size_t numOfOutgoingEdges;
     size_t numOfIncomingEdges;
-    pair<float, float> baseAccuracyRange;
-    pair<float, float> rateAccuracyRange;
+    std::pair<float, float> baseAccuracyRange;
+    std::pair<float, float> rateAccuracyRange;
     size_t numOfQueries;
     double gtEpsilon;
     double mergin;

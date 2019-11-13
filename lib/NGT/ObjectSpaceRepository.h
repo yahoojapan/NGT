@@ -198,14 +198,14 @@ namespace NGT {
 #endif
     };
 
-    ObjectSpaceRepository(size_t d, const type_info &ot, DistanceType t) : ObjectSpace(d), ObjectRepository(d, ot) {
+    ObjectSpaceRepository(size_t d, const std::type_info &ot, DistanceType t) : ObjectSpace(d), ObjectRepository(d, ot) {
      size_t objectSize = 0;
      if (ot == typeid(uint8_t)) {
        objectSize = sizeof(uint8_t);
      } else if (ot == typeid(float)) {
        objectSize = sizeof(float);
      } else {
-       stringstream msg;
+       std::stringstream msg;
        msg << "ObjectSpace::constructor: Not supported type. " << ot.name();
        NGTThrowException(msg);
      }
@@ -214,10 +214,10 @@ namespace NGT {
    }
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-    void open(const string &f, size_t sharedMemorySize) { ObjectRepository::open(f, sharedMemorySize); }
+    void open(const std::string &f, size_t sharedMemorySize) { ObjectRepository::open(f, sharedMemorySize); }
     void copy(PersistentObject &objecta, PersistentObject &objectb) { objecta = objectb; }
 
-    void show(ostream &os, PersistentObject &object) {
+    void show(std::ostream &os, PersistentObject &object) {
       const std::type_info &t = getObjectType();
       if (t == typeid(uint8_t)) {
 	unsigned char *optr = static_cast<unsigned char*>(&object.at(0,allocator));
@@ -318,19 +318,19 @@ namespace NGT {
 	break;
 #endif
       default:
-	cerr << "Distance type is not specified" << endl;
+	std::cerr << "Distance type is not specified" << std::endl;
 	assert(distanceType != DistanceTypeNone);
 	abort();
       }
     }
 
 
-    void serialize(const string &ofile) { ObjectRepository::serialize(ofile, this); }
-    void deserialize(const string &ifile) { ObjectRepository::deserialize(ifile, this); }
-    void serializeAsText(const string &ofile) { ObjectRepository::serializeAsText(ofile, this); }
-    void deserializeAsText(const string &ifile) { ObjectRepository::deserializeAsText(ifile, this); }
-    void readText(istream &is, size_t dataSize) { ObjectRepository::readText(is, dataSize); }
-    void appendText(istream &is, size_t dataSize) { ObjectRepository::appendText(is, dataSize); }
+    void serialize(const std::string &ofile) { ObjectRepository::serialize(ofile, this); }
+    void deserialize(const std::string &ifile) { ObjectRepository::deserialize(ifile, this); }
+    void serializeAsText(const std::string &ofile) { ObjectRepository::serializeAsText(ofile, this); }
+    void deserializeAsText(const std::string &ifile) { ObjectRepository::deserializeAsText(ifile, this); }
+    void readText(std::istream &is, size_t dataSize) { ObjectRepository::readText(is, dataSize); }
+    void appendText(std::istream &is, size_t dataSize) { ObjectRepository::appendText(is, dataSize); }
 
     void append(const float *data, size_t dataSize) { ObjectRepository::append(data, dataSize); }
     void append(const double *data, size_t dataSize) { ObjectRepository::append(data, dataSize); }
@@ -385,7 +385,7 @@ namespace NGT {
 
     void *getObject(size_t idx) {
       if (isEmpty(idx)) {
-	stringstream msg;
+	std::stringstream msg;
 	msg << "NGT::ObjectSpaceRepository: The specified ID is out of the range. The object ID should be greater than zero. " << idx << ":" << ObjectRepository::size() << ".";
 	NGTThrowException(msg);
       }
@@ -397,7 +397,7 @@ namespace NGT {
 #endif
     }
 
-    void getObject(size_t idx, vector<float> &v) {
+    void getObject(size_t idx, std::vector<float> &v) {
       OBJECT_TYPE *obj = static_cast<OBJECT_TYPE*>(getObject(idx));
       size_t dim = getDimension();
       v.resize(dim);
@@ -406,7 +406,7 @@ namespace NGT {
       }
     }
 
-    void getObjects(const vector<size_t> &idxs, vector<vector<float>> &vs) {
+    void getObjects(const std::vector<size_t> &idxs, std::vector<std::vector<float>> &vs) {
       vs.resize(idxs.size());
       auto v = vs.begin();
       for (auto idx = idxs.begin(); idx != idxs.end(); idx++, v++) {
@@ -428,28 +428,28 @@ namespace NGT {
     Object *allocateObject() { return ObjectRepository::allocateObject(); }
     void deleteObject(Object *po) { ObjectRepository::deleteObject(po); }
 
-    Object *allocateNormalizedObject(const string &textLine, const string &sep) {
+    Object *allocateNormalizedObject(const std::string &textLine, const std::string &sep) {
       Object *allocatedObject = ObjectRepository::allocateObject(textLine, sep);
       if (normalization) {
 	normalize(*allocatedObject);
       }
       return allocatedObject;
     }
-    Object *allocateNormalizedObject(const vector<double> &obj) {
+    Object *allocateNormalizedObject(const std::vector<double> &obj) {
       Object *allocatedObject = ObjectRepository::allocateObject(obj);
       if (normalization) {
 	normalize(*allocatedObject);
       }
       return allocatedObject;
     }
-    Object *allocateNormalizedObject(const vector<float> &obj) {
+    Object *allocateNormalizedObject(const std::vector<float> &obj) {
       Object *allocatedObject = ObjectRepository::allocateObject(obj);
       if (normalization) {
 	normalize(*allocatedObject);
       }
       return allocatedObject;
     }
-    Object *allocateNormalizedObject(const vector<uint8_t> &obj) {
+    Object *allocateNormalizedObject(const std::vector<uint8_t> &obj) {
       Object *allocatedObject = ObjectRepository::allocateObject(obj);
       if (normalization) {
 	normalize(*allocatedObject);
@@ -464,7 +464,7 @@ namespace NGT {
       return allocatedObject;
     }
 
-    PersistentObject *allocateNormalizedPersistentObject(const vector<double> &obj) {
+    PersistentObject *allocateNormalizedPersistentObject(const std::vector<double> &obj) {
       PersistentObject *allocatedObject = ObjectRepository::allocatePersistentObject(obj);
       if (normalization) {
 	normalize(*allocatedObject);
@@ -472,7 +472,7 @@ namespace NGT {
       return allocatedObject;
     }
 
-    PersistentObject *allocateNormalizedPersistentObject(const vector<float> &obj) {
+    PersistentObject *allocateNormalizedPersistentObject(const std::vector<float> &obj) {
       PersistentObject *allocatedObject = ObjectRepository::allocatePersistentObject(obj);
       if (normalization) {
 	normalize(*allocatedObject);
@@ -480,7 +480,7 @@ namespace NGT {
       return allocatedObject;
     }
 
-    PersistentObject *allocateNormalizedPersistentObject(const vector<uint8_t> &obj) {
+    PersistentObject *allocateNormalizedPersistentObject(const std::vector<uint8_t> &obj) {
       PersistentObject *allocatedObject = ObjectRepository::allocatePersistentObject(obj);
       if (normalization) {
 	normalize(*allocatedObject);
@@ -495,7 +495,7 @@ namespace NGT {
 
     ObjectRepository &getRepository() { return *this; };
 
-    void show(ostream &os, Object &object) {
+    void show(std::ostream &os, Object &object) {
       const std::type_info &t = getObjectType();
       if (t == typeid(uint8_t)) {
 	unsigned char *optr = static_cast<unsigned char*>(&object[0]);
@@ -528,7 +528,7 @@ namespace NGT {
     return allocator.getOffset(new(allocator) PersistentObject(allocator, &objectspace));
   }
 
-  inline void PersistentObject::serializeAsText(ostream &os, ObjectSpace *objectspace) { 
+  inline void PersistentObject::serializeAsText(std::ostream &os, ObjectSpace *objectspace) { 
     assert(objectspace != 0);
     SharedMemoryAllocator &allocator = objectspace->getRepository().getAllocator();
     const std::type_info &t = objectspace->getObjectType();
@@ -545,12 +545,12 @@ namespace NGT {
     } else if (t == typeid(uint32_t)) {
       NGT::Serializer::writeAsText(os, (uint32_t*)ref, dimension); 
     } else {
-      cerr << "ObjectT::serializeAsText: not supported data type. [" << t.name() << "]" << endl;
+      std::cerr << "ObjectT::serializeAsText: not supported data type. [" << t.name() << "]" << std::endl;
       assert(0);
     }
   }
 
-  inline void PersistentObject::deserializeAsText(ifstream &is, ObjectSpace *objectspace) {
+  inline void PersistentObject::deserializeAsText(std::ifstream &is, ObjectSpace *objectspace) {
     assert(objectspace != 0);
     SharedMemoryAllocator &allocator = objectspace->getRepository().getAllocator();
     const std::type_info &t = objectspace->getObjectType();
@@ -568,7 +568,7 @@ namespace NGT {
     } else if (t == typeid(uint32_t)) {
       NGT::Serializer::readAsText(is, (uint32_t*)ref, dimension); 
     } else {
-      cerr << "Object::deserializeAsText: not supported data type. [" << t.name() << "]" << endl;
+      std::cerr << "Object::deserializeAsText: not supported data type. [" << t.name() << "]" << std::endl;
       assert(0);
     }
   }

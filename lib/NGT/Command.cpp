@@ -19,6 +19,9 @@
 #include	"NGT/Optimizer.h"
 
 
+using namespace std;
+
+
   void 
   NGT::Command::create(Args &args)
   {

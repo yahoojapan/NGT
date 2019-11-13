@@ -84,7 +84,7 @@ namespace NGT {
 #endif
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-    void open(const string &file, size_t sharedMemorySize) {
+    void open(const std::string &file, size_t sharedMemorySize) {
       SharedMemoryAllocator &allocator = VECTOR::getAllocator();
       off_t *entryTable = (off_t*)allocator.construct(file, sharedMemorySize);
       if (entryTable == 0) {
@@ -150,29 +150,29 @@ namespace NGT {
 #endif
       return rs;
     }
-    void serialize(ofstream &os) {
+    void serialize(std::ofstream &os) {
       VECTOR::serialize(os);
       Serializer::write(os, *prevsize);
     }
-    void deserialize(ifstream &is) {
+    void deserialize(std::ifstream &is) {
       VECTOR::deserialize(is);      
       Serializer::read(is, *prevsize);
     }
     void show() {
       for (size_t i = 0; i < this->size(); i++) {
-	cout << "Show graph " << i << " ";
+	std::cout << "Show graph " << i << " ";
 	if ((*this)[i] == 0) {
-	  cout << endl;
+	  std::cout << std::endl;
 	  continue;
 	}
 	for (size_t j = 0; j < (*this)[i]->size(); j++) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-	  cout << (*this)[i]->at(j, VECTOR::getAllocator()).id << ":" << (*this)[i]->at(j, VECTOR::getAllocator()).distance << " ";
+	  std::cout << (*this)[i]->at(j, VECTOR::getAllocator()).id << ":" << (*this)[i]->at(j, VECTOR::getAllocator()).distance << " ";
 #else
-	  cout << (*this)[i]->at(j).id << ":" << (*this)[i]->at(j).distance << " ";
+	  std::cout << (*this)[i]->at(j).id << ":" << (*this)[i]->at(j).distance << " ";
 #endif
 	}
-	cout << endl;
+	std::cout << std::endl;
       }
     }
 
@@ -180,20 +180,20 @@ namespace NGT {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
     Vector<unsigned short>	*prevsize;
 #else
-    vector<unsigned short>	*prevsize;
+    std::vector<unsigned short>	*prevsize;
 #endif
     };
 
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
-    class ReadOnlyGraphNode : public vector<pair<uint32_t, PersistentObject*>> {
+    class ReadOnlyGraphNode : public std::vector<std::pair<uint32_t, PersistentObject*>> {
     public:
     };
-    class SearchGraphRepository : public vector<ReadOnlyGraphNode> {
+    class SearchGraphRepository : public std::vector<ReadOnlyGraphNode> {
     public:
       SearchGraphRepository() {}
       bool isEmpty(size_t idx) { return (*this)[idx].empty(); }
 
-      void deserialize(ifstream &is, ObjectRepository &objectRepository) {
+      void deserialize(std::ifstream &is, ObjectRepository &objectRepository) {
 	if (!is.is_open()) {
 	  NGTThrowException("NGT::SearchGraph: Not open the specified stream yet.");
 	}
@@ -215,12 +215,12 @@ namespace NGT {
 	      searchNode.reserve(node.size());
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
 	      for (auto ni = node.begin(); ni != node.end(); ni++) {
-		cerr << "not implement" << endl;
+		std::cerr << "not implement" << std::endl;
 		abort();
 	      }
 #else
 	      for (auto ni = node.begin(); ni != node.end(); ni++) {
-		searchNode.push_back(pair<uint32_t, Object*>((*ni).id, objectRepository.get((*ni).id)));
+		searchNode.push_back(std::pair<uint32_t, Object*>((*ni).id, objectRepository.get((*ni).id)));
 	      }
 #endif
 	    }
@@ -360,7 +360,7 @@ namespace NGT {
 	  case NeighborhoodGraph::GraphTypeBKNNG: p.set("GraphType", "BKNNG"); break;
 	  case NeighborhoodGraph::GraphTypeONNG: p.set("GraphType", "ONNG"); break;
 	  case NeighborhoodGraph::GraphTypeIANNG: p.set("GraphType", "IANNG"); break;
-	  default: cerr << "Graph::exportProperty: Fatal error! Invalid Graph Type." << endl; abort();
+	  default: std::cerr << "Graph::exportProperty: Fatal error! Invalid Graph Type." << std::endl; abort();
 	  }
 	  switch (seedType) {
 	  case NeighborhoodGraph::SeedTypeRandomNodes: p.set("SeedType", "RandomNodes"); break;
@@ -368,7 +368,7 @@ namespace NGT {
 	  case NeighborhoodGraph::SeedTypeFirstNode: p.set("SeedType", "FirstNode"); break;
 	  case NeighborhoodGraph::SeedTypeNone: p.set("SeedType", "None"); break;
 	  case NeighborhoodGraph::SeedTypeAllLeafNodes: p.set("SeedType", "AllLeafNodes"); break;
-	  default: cerr << "Graph::exportProperty: Fatal error! Invalid Seed Type." << endl; abort();
+	  default: std::cerr << "Graph::exportProperty: Fatal error! Invalid Seed Type." << std::endl; abort();
 	  }
 	}
 	void importProperty(NGT::PropertySet &p) {
@@ -394,7 +394,7 @@ namespace NGT {
 	    else if (it->second == "BKNNG")     graphType = NeighborhoodGraph::GraphTypeBKNNG;
 	    else if (it->second == "ONNG")      graphType = NeighborhoodGraph::GraphTypeONNG;
 	    else if (it->second == "IANNG")	graphType = NeighborhoodGraph::GraphTypeIANNG;
-	    else { cerr << "Graph::importProperty: Fatal error! Invalid Graph Type. " << it->second << endl; abort(); }
+	    else { std::cerr << "Graph::importProperty: Fatal error! Invalid Graph Type. " << it->second << std::endl; abort(); }
 	  }
 	  it = p.find("SeedType");
 	  if (it != p.end()) {
@@ -403,25 +403,25 @@ namespace NGT {
 	    else if (it->second == "FirstNode")		seedType = NeighborhoodGraph::SeedTypeFirstNode;
 	    else if (it->second == "None")		seedType = NeighborhoodGraph::SeedTypeNone;
 	    else if (it->second == "AllLeafNodes")	seedType = NeighborhoodGraph::SeedTypeAllLeafNodes;
-	    else { cerr << "Graph::importProperty: Fatal error! Invalid Seed Type. " << it->second << endl; abort(); }
+	    else { std::cerr << "Graph::importProperty: Fatal error! Invalid Seed Type. " << it->second << std::endl; abort(); }
 	  }
 	}
-	friend ostream & operator<<(ostream& os, const Property& p) {
-	  os << "truncationThreshold="		<< p.truncationThreshold << endl;
-	  os << "edgeSizeForCreation="		<< p.edgeSizeForCreation << endl;
-	  os << "edgeSizeForSearch="		<< p.edgeSizeForSearch << endl;
-	  os << "edgeSizeLimitForCreation="	<< p.edgeSizeLimitForCreation << endl;
-	  os << "insertionRadiusCoefficient="	<< p.insertionRadiusCoefficient << endl;
-	  os << "insertionRadiusCoefficient="	<< p.insertionRadiusCoefficient << endl;
-	  os << "seedSize="			<< p.seedSize << endl;
-	  os << "seedType="			<< p.seedType << endl;
-	  os << "truncationThreadPoolSize="	<< p.truncationThreadPoolSize << endl;
-	  os << "batchSizeForCreation="		<< p.batchSizeForCreation << endl;
-	  os << "graphType="			<< p.graphType << endl;
-	  os << "dynamicEdgeSizeBase="		<< p.dynamicEdgeSizeBase << endl;
-	  os << "dynamicEdgeSizeRate="		<< p.dynamicEdgeSizeRate << endl;
-	  os << "outgoingEdge="			<< p.outgoingEdge << endl;
-	  os << "incomingEdge="			<< p.incomingEdge << endl;
+	friend std::ostream & operator<<(std::ostream& os, const Property& p) {
+	  os << "truncationThreshold="		<< p.truncationThreshold << std::endl;
+	  os << "edgeSizeForCreation="		<< p.edgeSizeForCreation << std::endl;
+	  os << "edgeSizeForSearch="		<< p.edgeSizeForSearch << std::endl;
+	  os << "edgeSizeLimitForCreation="	<< p.edgeSizeLimitForCreation << std::endl;
+	  os << "insertionRadiusCoefficient="	<< p.insertionRadiusCoefficient << std::endl;
+	  os << "insertionRadiusCoefficient="	<< p.insertionRadiusCoefficient << std::endl;
+	  os << "seedSize="			<< p.seedSize << std::endl;
+	  os << "seedType="			<< p.seedType << std::endl;
+	  os << "truncationThreadPoolSize="	<< p.truncationThreadPoolSize << std::endl;
+	  os << "batchSizeForCreation="		<< p.batchSizeForCreation << std::endl;
+	  os << "graphType="			<< p.graphType << std::endl;
+	  os << "dynamicEdgeSizeBase="		<< p.dynamicEdgeSizeBase << std::endl;
+	  os << "dynamicEdgeSizeRate="		<< p.dynamicEdgeSizeRate << std::endl;
+	  os << "outgoingEdge="			<< p.outgoingEdge << std::endl;
+	  os << "incomingEdge="			<< p.incomingEdge << std::endl;
 	  return os;
 	}
 
@@ -529,7 +529,7 @@ namespace NGT {
 
       void insertANNGNode(ObjectID id, ObjectDistances &results) {
 	repository.insert(id, results);
-	queue<ObjectID> truncateQueue;
+	std::queue<ObjectID> truncateQueue;
 	for (ObjectDistances::iterator ri = results.begin(); ri != results.end(); ri++) {
 	  assert(id != (*ri).id);
 	  if (addEdge((*ri).id, id, (*ri).distance)) {
@@ -555,8 +555,8 @@ namespace NGT {
 
       void insertONNGNode(ObjectID id, ObjectDistances &results) {
 	if (property.truncationThreshold != 0) {
-	  stringstream msg;
-	  msg << "NGT::insertONNGNode: truncation should be disabled!" << endl;
+	  std::stringstream msg;
+	  msg << "NGT::insertONNGNode: truncation should be disabled!" << std::endl;
 	  NGTThrowException(msg);
 	}
 	int count = 0;
@@ -647,11 +647,11 @@ namespace NGT {
 #else
 	if (ni == node.end()) {
 #endif
-	  stringstream msg;
+	  std::stringstream msg;
 	  msg << "NGT::removeEdge: Cannot found " << edge.id;
 	  NGTThrowException(msg);
 	} else {
-	  stringstream msg;
+	  std::stringstream msg;
 	  msg << "NGT::removeEdge: Cannot found " << (*ni).id << ":" << edge.id;
 	  NGTThrowException(msg);
 	}
@@ -662,16 +662,16 @@ namespace NGT {
 	repository.erase(id);
       }
 
-      class BooleanVector : public vector<bool> {
+      class BooleanVector : public std::vector<bool> {
       public:
-        inline BooleanVector(size_t s):vector<bool>(s, false) {}
-	inline void insert(size_t i) { vector<bool>::operator[](i) = true; }
+        inline BooleanVector(size_t s):std::vector<bool>(s, false) {}
+	inline void insert(size_t i) { std::vector<bool>::operator[](i) = true; }
       };
 
 #ifdef NGT_GRAPH_VECTOR_RESULT
       typedef ObjectDistances ResultSet;
 #else
-      typedef priority_queue<ObjectDistance, vector<ObjectDistance>, less<ObjectDistance> > ResultSet;
+      typedef std::priority_queue<ObjectDistance, std::vector<ObjectDistance>, std::less<ObjectDistance> > ResultSet;
 #endif
 
 #if defined(NGT_GRAPH_CHECK_BOOLEANSET)
@@ -701,12 +701,12 @@ namespace NGT {
       };
 
 #ifdef NGT_GRAPH_UNCHECK_STACK
-      typedef stack<ObjectDistance> UncheckedSet;
+      typedef std::stack<ObjectDistance> UncheckedSet;
 #else
 #ifdef NGT_GRAPH_BETTER_FIRST_RESTORE
-      typedef priority_queue<NodeWithPosition, vector<NodeWithPosition>, greater<NodeWithPosition> > UncheckedSet;
+      typedef std::priority_queue<NodeWithPosition, std::vector<NodeWithPosition>, std::greater<NodeWithPosition> > UncheckedSet;
 #else
-      typedef priority_queue<ObjectDistance, vector<ObjectDistance>, greater<ObjectDistance> > UncheckedSet;
+      typedef std::priority_queue<ObjectDistance, std::vector<ObjectDistance>, std::greater<ObjectDistance> > UncheckedSet;
 #endif
 #endif
       void setupDistances(NGT::SearchContainer &sc, ObjectDistances &seeds);
@@ -726,7 +726,7 @@ namespace NGT {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
 	assert(0);
 #else
-	for (vector<NGT::GraphNode*>::iterator i = repository.begin(); i != repository.end(); i++) {
+	for (std::vector<NGT::GraphNode*>::iterator i = repository.begin(); i != repository.end(); i++) {
 	  if ((*i) != 0) {
 	    delete (*i);
 	  }
@@ -757,7 +757,7 @@ namespace NGT {
 	GraphNode::iterator ni = std::lower_bound(node.begin(repository.allocator), node.end(repository.allocator), obj);
 	if ((ni != node.end(repository.allocator)) && ((*ni).id == addID)) {
 	  if (identityCheck) {
-	    stringstream msg;
+	    std::stringstream msg;
 	    msg << "NGT::addEdge: already existed! " << (*ni).id << ":" << addID;
 	    NGTThrowException(msg);
 	  }
@@ -767,7 +767,7 @@ namespace NGT {
 	GraphNode::iterator ni = std::lower_bound(node.begin(), node.end(), obj);
 	if ((ni != node.end()) && ((*ni).id == addID)) {
 	  if (identityCheck) {
-	    stringstream msg;
+	    std::stringstream msg;
 	    msg << "NGT::addEdge: already existed! " << (*ni).id << ":" << addID;
 	    NGTThrowException(msg);
 	  }
@@ -816,7 +816,7 @@ namespace NGT {
 	      removeEdge(node, node[kEdge]);
 #endif
 	    } catch (Exception &exp) {
-	      stringstream msg;
+	      std::stringstream msg;
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
 	      msg << "addEdge: Cannot remove. (a) " << target << "," << addID << "," << node.at(kEdge, repository.allocator).id << "," << node.at(kEdge, repository.allocator).distance;
 #else
@@ -828,7 +828,7 @@ namespace NGT {
 	    try {
 	      removeEdge(linkedNode, linkedNodeEdge);
 	    } catch (Exception &exp) {
-	      stringstream msg;
+	      std::stringstream msg;
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
 	      msg << "addEdge: Cannot remove. (b) " << target << "," << addID << "," << node.at(kEdge, repository.allocator).id << "," << node.at(kEdge, repository.allocator).distance;
 #else
@@ -844,8 +844,8 @@ namespace NGT {
 
 
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
-      void loadSearchGraph(const string &database) {
-	ifstream isg(database + "/grp");
+      void loadSearchGraph(const std::string &database) {
+	std::ifstream isg(database + "/grp");
 	NeighborhoodGraph::searchRepository.deserialize(isg, NeighborhoodGraph::getObjectRepository());
       }
 #endif

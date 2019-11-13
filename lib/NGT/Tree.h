@@ -34,7 +34,7 @@ namespace NGT {
       MaxVariance	= 1
     };
 
-    typedef vector<Node::ID>	IDVector;
+    typedef std::vector<Node::ID>	IDVector;
 
     class Container : public NGT::Container {
     public:
@@ -108,7 +108,7 @@ namespace NGT {
     }
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-    void open(const string &f, size_t sharedMemorySize) {
+    void open(const std::string &f, size_t sharedMemorySize) {
       // If no file, then create a new file.
       leafNodes.open(f + "l", sharedMemorySize);
       internalNodes.open(f + "i", sharedMemorySize);
@@ -132,7 +132,7 @@ namespace NGT {
 
     void insertObject(InsertContainer &obj, LeafNode &leaf);
 
-    typedef stack<Node::ID> UncheckedNode;
+    typedef std::stack<Node::ID> UncheckedNode;
 
     void search(SearchContainer &so);
     void search(SearchContainer &so, InternalNode &node, UncheckedNode &uncheckedNode);
@@ -186,7 +186,7 @@ namespace NGT {
 	ln.removeObject(id, replaceId);
 #endif
       } catch(Exception &err) {
-	stringstream msg;
+	std::stringstream msg;
 	msg << "VpTree::remove: Inner error. Cannot remove object. leafNode=" << ln.id.getID() << ":" << err.what();
 	NGTThrowException(msg);
       }
@@ -224,7 +224,7 @@ namespace NGT {
         try {
   	  root = leafNodes.get(nid);
         } catch(Exception &e) {
-          stringstream msg;
+          std::stringstream msg;
           msg << "VpTree::getRootNode: Inner error. Cannot get a leaf root node. " << nid << ":" << e.what();
           NGTThrowException(msg);
         }
@@ -309,7 +309,7 @@ namespace NGT {
       return n;
     }
 
-    void getAllLeafNodeIDs(vector<Node::ID> &leafIDs) {
+    void getAllLeafNodeIDs(std::vector<Node::ID> &leafIDs) {
       leafIDs.clear();
       Node *root = getRootNode();
       if (root->id.getType() == Node::ID::Leaf) {
@@ -334,50 +334,50 @@ namespace NGT {
 	} else if (cnode->id.getType() == Node::ID::Leaf) {
 	  leafIDs.push_back(static_cast<LeafNode&>(*cnode).id);
 	} else {
-	  cerr << "Tree: Inner fatal error!: Node type error!" << endl;
+	  std::cerr << "Tree: Inner fatal error!: Node type error!" << std::endl;
 	  abort();
 	}
       }
     }
 
-    void serialize(ofstream &os) {
+    void serialize(std::ofstream &os) {
       leafNodes.serialize(os, objectSpace);
       internalNodes.serialize(os, objectSpace);
     }
 
-    void deserialize(ifstream &is) {
+    void deserialize(std::ifstream &is) {
       leafNodes.deserialize(is, objectSpace);
       internalNodes.deserialize(is, objectSpace);
     }
 
-    void serializeAsText(ofstream &os) {
+    void serializeAsText(std::ofstream &os) {
       leafNodes.serializeAsText(os, objectSpace);
       internalNodes.serializeAsText(os, objectSpace);
     }
 
-    void deserializeAsText(ifstream &is) {
+    void deserializeAsText(std::ifstream &is) {
       leafNodes.deserializeAsText(is, objectSpace);
       internalNodes.deserializeAsText(is, objectSpace);
     }
 
     void show() {
-      cout << "Show tree " << endl;
+      std::cout << "Show tree " << std::endl;
       for (size_t i = 0; i < leafNodes.size(); i++) {
 	if (leafNodes[i] != 0) {
-	  cout << i << ":";
+	  std::cout << i << ":";
 	  (*leafNodes[i]).show();
 	}
       }
       for (size_t i = 0; i < internalNodes.size(); i++) {
 	if (internalNodes[i] != 0) {
-	  cout << i << ":";
+	  std::cout << i << ":";
 	  (*internalNodes[i]).show();
 	}
       }
     }
 
-    bool verify(size_t objCount, vector<uint8_t> &status) {
-      cerr << "Started verifying internal nodes. size=" << internalNodes.size() << "..." << endl;
+    bool verify(size_t objCount, std::vector<uint8_t> &status) {
+      std::cerr << "Started verifying internal nodes. size=" << internalNodes.size() << "..." << std::endl;
       bool valid = true;
       for (size_t i = 0; i < internalNodes.size(); i++) {
 	if (internalNodes[i] != 0) {
@@ -388,7 +388,7 @@ namespace NGT {
 #endif
 	}
       }
-      cerr << "Started verifying leaf nodes. size=" << leafNodes.size() << " ..." << endl;
+      std::cerr << "Started verifying leaf nodes. size=" << leafNodes.size() << " ..." << std::endl;
       for (size_t i = 0; i < leafNodes.size(); i++) {
 	if (leafNodes[i] != 0) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
@@ -405,13 +405,13 @@ namespace NGT {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
       assert(0);
 #else
-      for (vector<NGT::LeafNode*>::iterator i = leafNodes.begin(); i != leafNodes.end(); i++) {
+      for (std::vector<NGT::LeafNode*>::iterator i = leafNodes.begin(); i != leafNodes.end(); i++) {
 	if ((*i) != 0) {
 	  delete (*i);
 	}
       }
       leafNodes.clear();
-      for (vector<NGT::InternalNode*>::iterator i = internalNodes.begin(); i != internalNodes.end(); i++) {
+      for (std::vector<NGT::InternalNode*>::iterator i = internalNodes.begin(); i != internalNodes.end(); i++) {
 	if ((*i) != 0) {
 	  delete (*i);
 	}
@@ -422,12 +422,12 @@ namespace NGT {
 
     ObjectRepository &getObjectRepository() { return objectSpace->getRepository(); }
 
-    size_t getSharedMemorySize(ostream &os, SharedMemoryAllocator::GetMemorySizeType t) {
+    size_t getSharedMemorySize(std::ostream &os, SharedMemoryAllocator::GetMemorySizeType t) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
       size_t isize = internalNodes.getAllocator().getMemorySize(t);
-      os << "internal=" << isize << endl;
+      os << "internal=" << isize << std::endl;
       size_t lsize = leafNodes.getAllocator().getMemorySize(t);
-      os << "leaf=" << lsize << endl;
+      os << "leaf=" << lsize << std::endl;
       return isize + lsize;
 #else
       return 0;
@@ -440,7 +440,7 @@ namespace NGT {
 
     SplitMode		splitMode;
 
-    string		name;
+    std::string		name;
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
     PersistentRepository<LeafNode>		leafNodes;

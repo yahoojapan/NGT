@@ -105,7 +105,7 @@ namespace NGT {
 	switch (objectType) {
 	case ObjectSpace::ObjectType::Uint8: p.set("ObjectType", "Integer-1"); break;
 	case ObjectSpace::ObjectType::Float: p.set("ObjectType", "Float-4"); break;
-	default : cerr << "Fatal error. Invalid object type. " << objectType << endl; abort();
+	default : std::cerr << "Fatal error. Invalid object type. " << objectType << std::endl; abort();
 	}
 	switch (distanceType) {
 	case DistanceType::DistanceTypeNone:			p.set("DistanceType", "None"); break;
@@ -117,23 +117,23 @@ namespace NGT {
 	case DistanceType::DistanceTypeCosine:			p.set("DistanceType", "Cosine"); break;
 	case DistanceType::DistanceTypeNormalizedAngle:		p.set("DistanceType", "NormalizedAngle"); break;
 	case DistanceType::DistanceTypeNormalizedCosine:	p.set("DistanceType", "NormalizedCosine"); break;
-	default : cerr << "Fatal error. Invalid distance type. " << distanceType << endl; abort();
+	default : std::cerr << "Fatal error. Invalid distance type. " << distanceType << std::endl; abort();
 	}
 	switch (indexType) {      
 	case IndexType::GraphAndTree:	p.set("IndexType", "GraphAndTree"); break;
 	case IndexType::Graph:		p.set("IndexType", "Graph"); break;
-	default : cerr << "Fatal error. Invalid index type. " << indexType << endl; abort();
+	default : std::cerr << "Fatal error. Invalid index type. " << indexType << std::endl; abort();
 	}
 	switch (databaseType) {
 	case DatabaseType::Memory:		p.set("DatabaseType", "Memory"); break;
 	case DatabaseType::MemoryMappedFile:	p.set("DatabaseType", "MemoryMappedFile"); break;
-	default : cerr << "Fatal error. Invalid database type. " << databaseType << endl; abort();
+	default : std::cerr << "Fatal error. Invalid database type. " << databaseType << std::endl; abort();
 	}
 	switch (objectAlignment) {
 	case ObjectAlignment::ObjectAlignmentNone:	p.set("ObjectAlignment", "None"); break;
 	case ObjectAlignment::ObjectAlignmentTrue:	p.set("ObjectAlignment", "True"); break;
 	case ObjectAlignment::ObjectAlignmentFalse:	p.set("ObjectAlignment", "False"); break;
-	default : cerr << "Fatal error. Invalid objectAlignment. " << objectAlignment << endl; abort();
+	default : std::cerr << "Fatal error. Invalid objectAlignment. " << objectAlignment << std::endl; abort();
 	}
 	p.set("PathAdjustmentInterval", pathAdjustmentInterval);
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
@@ -155,10 +155,10 @@ namespace NGT {
 	  } else if (it->second == "Integer-1") {
 	    objectType = ObjectSpace::ObjectType::Uint8;
 	  } else {
-	    cerr << "Invalid Object Type in the property. " << it->first << ":" << it->second << endl;
+	    std::cerr << "Invalid Object Type in the property. " << it->first << ":" << it->second << std::endl;
 	  }
 	} else {
-	  cerr << "Not found \"ObjectType\"" << endl;
+	  std::cerr << "Not found \"ObjectType\"" << std::endl;
 	}
 	it = p.find("DistanceType");
 	if (it != p.end()) {
@@ -181,10 +181,10 @@ namespace NGT {
 	  } else if (it->second == "NormalizedCosine") {
 	    distanceType = DistanceType::DistanceTypeNormalizedCosine;
 	  } else {
-	    cerr << "Invalid Distance Type in the property. " << it->first << ":" << it->second << endl;
+	    std::cerr << "Invalid Distance Type in the property. " << it->first << ":" << it->second << std::endl;
 	  }
 	} else {
-	  cerr << "Not found \"DistanceType\"" << endl;
+	  std::cerr << "Not found \"DistanceType\"" << std::endl;
 	}
 	it = p.find("IndexType");
 	if (it != p.end()) {
@@ -193,10 +193,10 @@ namespace NGT {
 	  } else if (it->second == "Graph") {
 	    indexType = IndexType::Graph;
 	  } else {
-	    cerr << "Invalid Index Type in the property. " << it->first << ":" << it->second << endl;
+	    std::cerr << "Invalid Index Type in the property. " << it->first << ":" << it->second << std::endl;
 	  }
 	} else {
-	  cerr << "Not found \"IndexType\"" << endl;
+	  std::cerr << "Not found \"IndexType\"" << std::endl;
 	}
 	it = p.find("DatabaseType");
 	if (it != p.end()) {
@@ -205,10 +205,10 @@ namespace NGT {
 	  } else if (it->second == "MemoryMappedFile") {
 	    databaseType = DatabaseType::MemoryMappedFile;
 	  } else {
-	    cerr << "Invalid Database Type in the property. " << it->first << ":" << it->second << endl;
+	    std::cerr << "Invalid Database Type in the property. " << it->first << ":" << it->second << std::endl;
 	  }
 	} else {
-	  cerr << "Not found \"DatabaseType\"" << endl;
+	  std::cerr << "Not found \"DatabaseType\"" << std::endl;
 	}
 	it = p.find("ObjectAlignment");
 	if (it != p.end()) {
@@ -219,10 +219,10 @@ namespace NGT {
 	  } else if (it->second == "False") {
 	    objectAlignment = ObjectAlignment::ObjectAlignmentFalse;
 	  } else {
-	    cerr << "Invalid Object Alignment in the property. " << it->first << ":" << it->second << endl;
+	    std::cerr << "Invalid Object Alignment in the property. " << it->first << ":" << it->second << std::endl;
 	  }
 	} else {
-	  cerr << "Not found \"ObjectAlignment\"" << endl;
+	  std::cerr << "Not found \"ObjectAlignment\"" << std::endl;
 	  objectAlignment = ObjectAlignment::ObjectAlignmentFalse;
 	}
 	pathAdjustmentInterval  = p.getl("PathAdjustmentInterval", pathAdjustmentInterval);
@@ -263,19 +263,19 @@ namespace NGT {
 
     Index():index(0) {}
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-    Index(NGT::Property &prop, const string &database);
+    Index(NGT::Property &prop, const std::string &database);
 #else
     Index(NGT::Property &prop);
 #endif
-    Index(const string &database, bool rdOnly = false):index(0) { open(database, rdOnly); }
-    Index(const string &database, NGT::Property &prop):index(0) { open(database, prop);  }
+    Index(const std::string &database, bool rdOnly = false):index(0) { open(database, rdOnly); }
+    Index(const std::string &database, NGT::Property &prop):index(0) { open(database, prop);  }
     virtual ~Index() { close(); }
 
-    void open(const string &database, NGT::Property &prop) {
+    void open(const std::string &database, NGT::Property &prop) {
       open(database);
       setProperty(prop);
     }
-    void open(const string &database, bool rdOnly = false);
+    void open(const std::string &database, bool rdOnly = false);
 
     void close() {
       if (index != 0) { 
@@ -290,27 +290,36 @@ namespace NGT {
       }
       saveIndex(path);
     }
-    static void mkdir(const string &dir) { 
+    static void mkdir(const std::string &dir) { 
       if (::mkdir(dir.c_str(), S_IRWXU | S_IRGRP | S_IXGRP |  S_IROTH | S_IXOTH) != 0) {
-	stringstream msg;
+	std::stringstream msg;
 	msg << "NGT::Index::mkdir: Cannot make the specified directory. " << dir;
 	NGTThrowException(msg);	
       }
     }
-    static void createGraphAndTree(const string &database, NGT::Property &prop, const string &dataFile, size_t dataSize = 0, bool redirect = false);
-    static void createGraphAndTree(const string &database, NGT::Property &prop, bool redirect = false) { createGraphAndTree(database, prop, "", redirect); }
-    static void createGraph(const string &database, NGT::Property &prop, const string &dataFile, size_t dataSize = 0, bool redirect = false);
-    template<typename T> size_t insert(vector<T> &object);
-    template<typename T> size_t append(vector<T> &object);
-    static void append(const string &database, const string &dataFile, size_t threadSize, size_t dataSize); 
-    static void append(const string &database, const float *data, size_t dataSize, size_t threadSize);
-    static void remove(const string &database, vector<ObjectID> &objects, bool force = false);
-    static void exportIndex(const string &database, const string &file);
-    static void importIndex(const string &database, const string &file);
-    virtual void load(const string &ifile, size_t dataSize) { getIndex().load(ifile, dataSize); }
-    virtual void append(const string &ifile, size_t dataSize) { getIndex().append(ifile, dataSize); }
-    virtual void append(const float *data, size_t dataSize) { getIndex().append(data, dataSize); } 
-    virtual void append(const double *data, size_t dataSize) {  
+    static void createGraphAndTree(const std::string &database, NGT::Property &prop, const std::string &dataFile, size_t dataSize = 0, bool redirect = false);
+    static void createGraphAndTree(const std::string &database, NGT::Property &prop, bool redirect = false) { createGraphAndTree(database, prop, "", redirect); }
+    static void createGraph(const std::string &database, NGT::Property &prop, const std::string &dataFile, size_t dataSize = 0, bool redirect = false);
+    template<typename T> size_t insert(std::vector<T> &object);
+    template<typename T> size_t append(std::vector<T> &object);
+    static void append(const std::string &database, const std::string &dataFile, size_t threadSize, size_t dataSize); 
+    static void append(const std::string &database, const float *data, size_t dataSize, size_t threadSize);
+    static void remove(const std::string &database, std::vector<ObjectID> &objects, bool force = false);
+    static void exportIndex(const std::string &database, const std::string &file);
+    static void importIndex(const std::string &database, const std::string &file);
+    virtual void load(const std::string &ifile, size_t dataSize) { getIndex().load(ifile, dataSize); }
+    virtual void append(const std::string &ifile, size_t dataSize) { getIndex().append(ifile, dataSize); }
+    virtual void append(const float *data, size_t dataSize) { 
+      redirector.begin();
+      try {
+	getIndex().append(data, dataSize); 
+      } catch(Exception &err) {
+	redirector.end();
+	throw err;
+      }
+      redirector.end();
+    }
+    virtual void append(const double *data, size_t dataSize) { 
       redirector.begin();
       try {
 	getIndex().append(data, dataSize); 
@@ -331,32 +340,34 @@ namespace NGT {
       }
       redirector.end();
     }
-    virtual void saveIndex(const string &ofile) { getIndex().saveIndex(ofile); }
-    virtual void loadIndex(const string &ofile) { getIndex().loadIndex(ofile); }
-    virtual Object *allocateObject(const string &textLine, const string &sep) { return getIndex().allocateObject(textLine, sep); }
-    virtual Object *allocateObject(const vector<double> &obj) { return getIndex().allocateObject(obj); }
-    virtual Object *allocateObject(const vector<float> &obj) { return getIndex().allocateObject(obj); }
-    virtual Object *allocateObject(const vector<uint8_t> &obj) { return getIndex().allocateObject(obj); }
+    virtual void saveIndex(const std::string &ofile) { getIndex().saveIndex(ofile); }
+    virtual void loadIndex(const std::string &ofile) { getIndex().loadIndex(ofile); }
+    virtual Object *allocateObject(const std::string &textLine, const std::string &sep) { return getIndex().allocateObject(textLine, sep); }
+    virtual Object *allocateObject(const std::vector<double> &obj) { return getIndex().allocateObject(obj); }
+    virtual Object *allocateObject(const std::vector<float> &obj) { return getIndex().allocateObject(obj); }
+    virtual Object *allocateObject(const std::vector<uint8_t> &obj) { return getIndex().allocateObject(obj); }
     virtual Object *allocateObject(const float *obj, size_t size) { return getIndex().allocateObject(obj, size); }
     virtual size_t getSizeOfElement() { return getIndex().getSizeOfElement(); }
     virtual void setProperty(NGT::Property &prop) { getIndex().setProperty(prop); }
     virtual void getProperty(NGT::Property &prop) { getIndex().getProperty(prop); }
     virtual void deleteObject(Object *po) { getIndex().deleteObject(po); }
     virtual void linearSearch(NGT::SearchContainer &sc) { getIndex().linearSearch(sc); }
+    virtual void linearSearch(NGT::SearchQuery &sc) { getIndex().linearSearch(sc); }
     virtual void search(NGT::SearchContainer &sc) { getIndex().search(sc); }
+    virtual void search(NGT::SearchQuery &sc) { getIndex().search(sc); }
     virtual void search(NGT::SearchContainer &sc, ObjectDistances &seeds) { getIndex().search(sc, seeds); }
     virtual void remove(ObjectID id, bool force = false) { getIndex().remove(id, force); }
-    virtual void exportIndex(const string &file) { getIndex().exportIndex(file); }
-    virtual void importIndex(const string &file) { getIndex().importIndex(file); }
-    virtual bool verify(vector<uint8_t> &status, bool info = false) { return getIndex().verify(status, info); }
+    virtual void exportIndex(const std::string &file) { getIndex().exportIndex(file); }
+    virtual void importIndex(const std::string &file) { getIndex().importIndex(file); }
+    virtual bool verify(std::vector<uint8_t> &status, bool info = false, char mode = '-') { return getIndex().verify(status, info, mode); }
     virtual ObjectSpace &getObjectSpace() { return getIndex().getObjectSpace(); }
-    virtual size_t getSharedMemorySize(ostream &os, SharedMemoryAllocator::GetMemorySizeType t = SharedMemoryAllocator::GetTotalMemorySize) {
+    virtual size_t getSharedMemorySize(std::ostream &os, SharedMemoryAllocator::GetMemorySizeType t = SharedMemoryAllocator::GetTotalMemorySize) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
       size_t osize = getObjectSpace().getRepository().getAllocator().getMemorySize(t);
 #else
       size_t osize = 0;
 #endif
-      os << "object=" << osize << endl;
+      os << "object=" << osize << std::endl;
       size_t isize = getIndex().getSharedMemorySize(os, t); 
       return osize + isize;
     }
@@ -376,34 +387,56 @@ namespace NGT {
     void enableLog() { redirector.disable(); }
     void disableLog() { redirector.enable(); }
 
-    static void destroy(const string &path) {
+    static void destroy(const std::string &path) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-      std::remove(string(path + "/grp").c_str());
-      std::remove(string(path + "/grpc").c_str());
-      std::remove(string(path + "/trei").c_str());
-      std::remove(string(path + "/treic").c_str());
-      std::remove(string(path + "/trel").c_str());
-      std::remove(string(path + "/trelc").c_str());
-      std::remove(string(path + "/objpo").c_str());
-      std::remove(string(path + "/objpoc").c_str());
+      std::remove(std::string(path + "/grp").c_str());
+      std::remove(std::string(path + "/grpc").c_str());
+      std::remove(std::string(path + "/trei").c_str());
+      std::remove(std::string(path + "/treic").c_str());
+      std::remove(std::string(path + "/trel").c_str());
+      std::remove(std::string(path + "/trelc").c_str());
+      std::remove(std::string(path + "/objpo").c_str());
+      std::remove(std::string(path + "/objpoc").c_str());
 #else
-      std::remove(string(path + "/grp").c_str());
-      std::remove(string(path + "/tre").c_str());
-      std::remove(string(path + "/obj").c_str());
+      std::remove(std::string(path + "/grp").c_str());
+      std::remove(std::string(path + "/tre").c_str());
+      std::remove(std::string(path + "/obj").c_str());
 #endif
-      std::remove(string(path + "/prf").c_str());
+      std::remove(std::string(path + "/prf").c_str());
       std::remove(path.c_str());
     }
     
-    static void version(ostream &os);
-    static string getVersion();
-    string getPath(){ return path; }
+    static void version(std::ostream &os);
+    static std::string getVersion();
+    std::string getPath(){ return path; }
+
   protected:
-    static void loadAndCreateIndex(Index &index, const string &database, const string &dataFile,
+    Object *allocateObject(void *vec, const std::type_info &objectType) {
+      if (vec == 0) {
+	std::stringstream msg;
+	msg << "NGT::Index::allocateObject: Object is not set. ";
+	NGTThrowException(msg);	
+      }
+      Object *object = 0;
+      if (objectType == typeid(float)) {
+	object = allocateObject(*static_cast<std::vector<float>*>(vec));
+      } else if (objectType == typeid(double)) {
+	object = allocateObject(*static_cast<std::vector<double>*>(vec));
+      } else if (objectType == typeid(uint8_t)) {
+	object = allocateObject(*static_cast<std::vector<uint8_t>*>(vec));
+      } else {
+	std::stringstream msg;
+	msg << "NGT::Index::allocateObject: Unavailable object type.";
+	NGTThrowException(msg);	
+      }
+      return object;
+    }
+
+    static void loadAndCreateIndex(Index &index, const std::string &database, const std::string &dataFile,
 				   size_t threadSize, size_t dataSize);
 
     Index *index;
-    string path;
+    std::string path;
     StdOstreamRedirector redirector;
   };
 
@@ -412,13 +445,13 @@ namespace NGT {
   public:
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-    GraphIndex(const string &allocator, bool rdOnly = false);
-    GraphIndex(const string &allocator, NGT::Property &prop):readOnly(false) {
+    GraphIndex(const std::string &allocator, bool rdOnly = false);
+    GraphIndex(const std::string &allocator, NGT::Property &prop):readOnly(false) {
       initialize(allocator, prop);
     }
-    void initialize(const string &allocator, NGT::Property &prop);
+    void initialize(const std::string &allocator, NGT::Property &prop);
 #else // NGT_SHARED_MEMORY_ALLOCATOR
-    GraphIndex(const string &database, bool rdOnly = false);
+    GraphIndex(const std::string &database, bool rdOnly = false);
     GraphIndex(NGT::Property &prop):readOnly(false) {
       initialize(prop);
     }
@@ -452,25 +485,25 @@ namespace NGT {
 #endif
 	delete os;
       } else {
-	cerr << "Cannot find Object Type in the property. " << property.objectType << endl;
+	std::cerr << "Cannot find Object Type in the property. " << property.objectType << std::endl;
 	return;
       }
       objectSpace = 0;
     }
 
-    virtual void load(const string &ifile, size_t dataSize = 0) {
+    virtual void load(const std::string &ifile, size_t dataSize = 0) {
       if (ifile.empty()) {
 	return;
       }
-      istream *is;
-      ifstream *ifs = 0;
+      std::istream *is;
+      std::ifstream *ifs = 0;
       if (ifile == "-") {
-	is = &cin;
+	is = &std::cin;
       } else {
-	ifs = new ifstream;
-	ifs->ifstream::open(ifile);
+	ifs = new std::ifstream;
+	ifs->std::ifstream::open(ifile);
 	if (!(*ifs)) {
-	  stringstream msg;
+	  std::stringstream msg;
 	  msg << "Index::load: Cannot open the specified file. " << ifile;
 	  NGTThrowException(msg);
 	}
@@ -489,15 +522,15 @@ namespace NGT {
       }
     }
 
-    virtual void append(const string &ifile, size_t dataSize = 0) {
-      ifstream is(ifile.c_str());
+    virtual void append(const std::string &ifile, size_t dataSize = 0) {
+      std::ifstream is(ifile.c_str());
       objectSpace->appendText(is, dataSize);
     }
 
     virtual void append(const float *data, size_t dataSize) { objectSpace->append(data, dataSize); }
     virtual void append(const double *data, size_t dataSize) { objectSpace->append(data, dataSize); }
 
-    virtual void saveIndex(const string &ofile) {
+    virtual void saveIndex(const std::string &ofile) {
 #ifndef NGT_SHARED_MEMORY_ALLOCATOR
       try {
 	mkdir(ofile);
@@ -505,12 +538,12 @@ namespace NGT {
       if (objectSpace != 0) {
 	objectSpace->serialize(ofile + "/obj");
       } else {
-	cerr << "saveIndex::Warning! ObjectSpace is null. continue saving..." << endl;
+	std::cerr << "saveIndex::Warning! ObjectSpace is null. continue saving..." << std::endl;
       }
-      string fname = ofile + "/grp";
-      ofstream osg(fname);
+      std::string fname = ofile + "/grp";
+      std::ofstream osg(fname);
       if (!osg.is_open()) {
-	stringstream msg;
+	std::stringstream msg;
 	msg << "saveIndex:: Cannot open. " << fname;
 	NGTThrowException(msg);
       }
@@ -519,7 +552,7 @@ namespace NGT {
       saveProperty(ofile);
     }
 
-    void saveProperty(const string &file) {
+    void saveProperty(const std::string &file) {
       NGT::PropertySet prop;
       assert(property.dimension != 0);
       GraphIndex::property.exportProperty(prop);
@@ -527,7 +560,7 @@ namespace NGT {
       prop.save(file + "/prf");
     }
 
-    void exportProperty(const string &file) {
+    void exportProperty(const std::string &file) {
       NGT::PropertySet prop;
       assert(property.dimension != 0);
       GraphIndex::property.exportProperty(prop);
@@ -535,28 +568,28 @@ namespace NGT {
       prop.save(file + "/prf");
     }
 
-    virtual void loadIndex(const string &ifile, bool readOnly);
+    virtual void loadIndex(const std::string &ifile, bool readOnly);
 
-    virtual void exportIndex(const string &ofile) {
+    virtual void exportIndex(const std::string &ofile) {
       try {
 	mkdir(ofile);
       } catch(...) {
-	stringstream msg;
+	std::stringstream msg;
 	msg << "exportIndex:: Cannot make the directory. " << ofile;
 	NGTThrowException(msg);
       }
       objectSpace->serializeAsText(ofile + "/obj");
-      ofstream osg(ofile + "/grp");
+      std::ofstream osg(ofile + "/grp");
       repository.serializeAsText(osg);
       exportProperty(ofile);
     }
 
-    virtual void importIndex(const string &ifile) {
+    virtual void importIndex(const std::string &ifile) {
       objectSpace->deserializeAsText(ifile + "/obj");
-      string fname = ifile + "/grp";
-      ifstream isg(fname);
+      std::string fname = ifile + "/grp";
+      std::ifstream isg(fname);
       if (!isg.is_open()) {
-	stringstream msg;
+	std::stringstream msg;
 	msg << "importIndex:: Cannot open. " << fname;
 	NGTThrowException(msg);
       }
@@ -570,12 +603,42 @@ namespace NGT {
       qresults.moveFrom(results);
     }
 
+    void linearSearch(NGT::SearchQuery &searchQuery) {
+      Object *query = Index::allocateObject(searchQuery.getQuery(), searchQuery.getQueryType());
+      try {
+        NGT::SearchContainer sc(searchQuery, *query);
+	ObjectSpace::ResultSet results;
+	objectSpace->linearSearch(sc.object, sc.radius, sc.size, results);
+	ObjectDistances &qresults = sc.getResult();
+	qresults.moveFrom(results);
+      } catch(Exception &err) {
+	deleteObject(query);
+	throw err;
+      }
+      deleteObject(query);
+    }
+
     // GraphIndex
     virtual void search(NGT::SearchContainer &sc) {
       sc.distanceComputationCount = 0;
       sc.visitCount = 0;
       ObjectDistances seeds;
       search(sc, seeds);
+    }
+
+    void search(NGT::SearchQuery &searchQuery) {
+      Object *query = Index::allocateObject(searchQuery.getQuery(), searchQuery.getQueryType());
+      try {
+        NGT::SearchContainer sc(searchQuery, *query);
+	sc.distanceComputationCount = 0;
+	sc.visitCount = 0;
+	ObjectDistances seeds;
+	search(sc, seeds);
+      } catch(Exception &err) {
+	deleteObject(query);
+	throw err;
+      }
+      deleteObject(query);
     }
 
     // get randomly nodes as seeds.
@@ -587,7 +650,7 @@ namespace NGT {
       size_t repositorySize = repo.size();
       repositorySize = repositorySize == 0 ? 0 : repositorySize - 1; // Because the head of repository is a dummy.
       seedSize = seedSize > repositorySize ? repositorySize : seedSize;
-      vector<ObjectID> deteted;
+      std::vector<ObjectID> deteted;
       while (seedSize > seeds.size()) {
 	double random = ((double)rand() + 1.0) / ((double)RAND_MAX + 2.0);
 	size_t idx = floor(repositorySize * random) + 1;
@@ -607,7 +670,7 @@ namespace NGT {
       try {
 	getObjectRepository().remove(id);
       } catch(Exception &err) {
-	cerr << "NGT::GraphIndex::remove:: cannot remove from feature. id=" << id << " " << err.what() << endl;
+	std::cerr << "NGT::GraphIndex::remove:: cannot remove from feature. id=" << id << " " << err.what() << std::endl;
 	throw err;
       }
     }
@@ -646,12 +709,12 @@ namespace NGT {
       objectSpace->linearSearch(po, radius, size, rs);
       result.moveFrom(rs, id);
       if ((size_t)NeighborhoodGraph::property.edgeSizeForCreation != result.size()) {
-	cerr << "searchForKNNGInsert::Warning! inconsistency of the sizes. ID=" << id 
-	     << " " << NeighborhoodGraph::property.edgeSizeForCreation << ":" << result.size() << endl;
+	std::cerr << "searchForKNNGInsert::Warning! inconsistency of the sizes. ID=" << id 
+	     << " " << NeighborhoodGraph::property.edgeSizeForCreation << ":" << result.size() << std::endl;
 	for (size_t i = 0; i < result.size(); i++) {
-	  cerr << result[i].id << ":" << result[i].distance << " ";
+	  std::cerr << result[i].id << ":" << result[i].distance << " ";
 	}
-	cerr << endl;
+	std::cerr << std::endl;
       }
     }
 
@@ -660,7 +723,7 @@ namespace NGT {
 			) {
       ObjectRepository &fr = objectSpace->getRepository();
       if (fr[id] == 0) {
-	cerr << "NGTIndex::insert empty " << id << endl;
+	std::cerr << "NGTIndex::insert empty " << id << std::endl;
 	return;
       }
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
@@ -689,11 +752,11 @@ namespace NGT {
       ObjectRepository &fr = objectSpace->getRepository();
       for (size_t id = 0; id < fr.size(); id++){
 	if (repo[id] == 0) {
-	  cerr << id << " empty" << endl;
+	  std::cerr << id << " empty" << std::endl;
 	  continue;
 	}
 	if ((id % 10000) == 0) {
-	  cerr << "checkGraph: Processed size=" << id << endl;
+	  std::cerr << "checkGraph: Processed size=" << id << std::endl;
 	}
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
 	Object &po = *objectSpace->allocateObject(*fr[id]);
@@ -710,7 +773,7 @@ namespace NGT {
 #endif
 
 	if (rs.size() != objects->size()) {
-	  cerr << "Cannot get the specified number of the results. " << rs.size() << ":" << objects->size() << endl;
+	  std::cerr << "Cannot get the specified number of the results. " << rs.size() << ":" << objects->size() << std::endl;
 	}
 	size_t count = 0;
 	ObjectDistances::iterator rsi = rs.begin(); 
@@ -732,20 +795,20 @@ namespace NGT {
 	  }
 	}
 	if (count != objects->size()) {
-	  cerr << "id=" << id << " identities=" << count << " " << objects->size() << " " << rs.size() << endl;
+	  std::cerr << "id=" << id << " identities=" << count << " " << objects->size() << " " << rs.size() << std::endl;
 	}
       }
     }
 
-    virtual bool verify(vector<uint8_t> &status, bool info)
+    virtual bool verify(std::vector<uint8_t> &status, bool info)
     {
       bool valid = true;
-      cerr << "Started verifying graph and objects" << endl;
+      std::cerr << "Started verifying graph and objects" << std::endl;
       GraphRepository &repo = repository;
       ObjectRepository &fr = objectSpace->getRepository();
       if (repo.size() != fr.size()) {
 	if (info) {
-	  cerr << "Warning! # of nodes is different from # of objects. " << repo.size() << ":" << fr.size() << endl;
+	  std::cerr << "Warning! # of nodes is different from # of objects. " << repo.size() << ":" << fr.size() << std::endl;
 	}
       }
       status.clear();
@@ -757,16 +820,16 @@ namespace NGT {
       for (size_t id = 1; id < fr.size(); id++) {
 	if (fr[id] == 0) {
 	  if (id < repo.size() && repo[id] != 0) {
-	    cerr << "Error! The node exists in the graph, but the object does not exist. " << id << endl;
+	    std::cerr << "Error! The node exists in the graph, but the object does not exist. " << id << std::endl;
 	    valid = false;
 	  }
 	}
 	if (fr[id] != 0 && repo[id] == 0) {
-	  cerr << "Error. No." << id << " is not registerd in the graph." << endl;
+	  std::cerr << "Error. No." << id << " is not registerd in the graph." << std::endl;
 	  valid = false;
 	}
 	if ((id % 1000000) == 0) {
-	  cerr << "  verified " << id << " entries." << endl;
+	  std::cerr << "  verified " << id << " entries." << std::endl;
 	}
 	if (fr[id] != 0) {
 	  try {
@@ -776,7 +839,7 @@ namespace NGT {
 	    Object *po = fr[id];
 #endif
 	    if (po == 0) {
-	      cerr << "Error! Cannot get the object. " << id << endl;
+	      std::cerr << "Error! Cannot get the object. " << id << std::endl;
 	      valid = false;
 	      continue;
 	    }
@@ -784,20 +847,20 @@ namespace NGT {
 	    objectSpace->deleteObject(po);
 #endif
 	  } catch (Exception &err) {
-	    cerr << "Error! Cannot get the object. " << id << " " << err.what() << endl;
+	    std::cerr << "Error! Cannot get the object. " << id << " " << err.what() << std::endl;
 	    valid = false;
 	    continue;
 	  }
 	}
 	if (id >= repo.size()) {
-	  cerr << "Error. No." << id << " is not registerd in the object repository. " << repo.size() << endl;
+	  std::cerr << "Error. No." << id << " is not registerd in the object repository. " << repo.size() << std::endl;
 	  valid = false;
 	}
 	if (id < repo.size() && repo[id] != 0) {
 	  try {
 	    GraphNode *objects = getNode(id);
 	    if (objects == 0) {
-	      cerr << "Error! Cannot get the node. " << id << endl;
+	      std::cerr << "Error! Cannot get the node. " << id << std::endl;
 	      valid = false;
 	    }
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
@@ -807,25 +870,44 @@ namespace NGT {
 	    for (GraphNode::iterator ri = objects->begin();
 		 ri != objects->end(); ++ri) {
 #endif
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	      for (GraphNode::iterator rj = objects->begin(repo.allocator) + std::distance(objects->begin(repo.allocator), ri);
+		   rj != objects->end(repo.allocator); ++rj) {
+		if ((*ri).id == (*rj).id && std::distance(objects->begin(repo.allocator), ri) != std::distance(objects->begin(repo.allocator), rj)) {
+		  std::cerr << "Error! More than two identical objects! ID=" << (*rj).id << " idx=" 
+		       << std::distance(objects->begin(repo.allocator), ri) << ":" << std::distance(objects->begin(repo.allocator), rj) 
+		       << " disntace=" << (*ri).distance << ":" << (*rj).distance << std::endl;
+#else
+	      for (GraphNode::iterator rj = objects->begin() + std::distance(objects->begin(), ri);
+		   rj != objects->end(); ++rj) {
+		if ((*ri).id == (*rj).id && std::distance(objects->begin(), ri) != std::distance(objects->begin(), rj)) {
+		  std::cerr << "Error! More than two identical objects! ID=" << (*rj).id << " idx=" 
+		       << std::distance(objects->begin(), ri) << ":" << std::distance(objects->begin(), rj) 
+		       << " disntace=" << (*ri).distance << ":" << (*rj).distance << std::endl;
+#endif
+		  valid = false;
+	        }
+	      }
+
 	      if ((*ri).id == 0 || (*ri).id >= repo.size()) {
-		cerr << "Error! Neighbor's ID of the node is out of range. ID=" << id << endl;
+		std::cerr << "Error! Neighbor's ID of the node is out of range. ID=" << id << std::endl;
 		valid = false;
 	      } else if (repo[(*ri).id] == 0) {
-		cerr << "Error! The neighbor ID of the node is invalid. ID=" << id << " Invalid ID=" << (*ri).id << endl;
+		std::cerr << "Error! The neighbor ID of the node is invalid. ID=" << id << " Invalid ID=" << (*ri).id << std::endl;
 		if (fr[(*ri).id] == 0) {
-		  cerr <<  "The neighbor doesn't exist in the object repository as well. ID=" << (*ri).id << endl;
+		  std::cerr <<  "The neighbor doesn't exist in the object repository as well. ID=" << (*ri).id << std::endl;
 		} else {
-		  cerr <<  "The neighbor exists in the object repository. ID=" << (*ri).id << endl;
+		  std::cerr <<  "The neighbor exists in the object repository. ID=" << (*ri).id << std::endl;
 		}
 		valid = false;
 	      }
 	      if ((*ri).distance < 0.0) {
-		cerr << "Error! Neighbor's distance is munus. ID=" << id << endl;
+		std::cerr << "Error! Neighbor's distance is munus. ID=" << id << std::endl;
 		valid = false;
 	      }
 	    }
 	  } catch (Exception &err) {
-	    cerr << "Error! Cannot get the node. " << id << " " << err.what() << endl;
+	    std::cerr << "Error! Cannot get the node. " << id << " " << err.what() << std::endl;
 	    valid = false;
 	  }
 	}
@@ -841,10 +923,10 @@ namespace NGT {
       size_t numberOfNodesWithoutEdges = 0;
       size_t maxNumberOfOutdegree = 0;
       size_t minNumberOfOutdegree = SIZE_MAX;
-      vector<int64_t> indegreeCount;
-      vector<size_t> outdegreeHistogram;
-      vector<size_t> indegreeHistogram;
-      vector<vector<float> > indegree;
+      std::vector<int64_t> indegreeCount;
+      std::vector<size_t> outdegreeHistogram;
+      std::vector<size_t> indegreeHistogram;
+      std::vector<std::vector<float> > indegree;
       NGT::GraphRepository &graph = outGraph.repository;
       NGT::ObjectRepository &repo = outGraph.objectSpace->getRepository();
       indegreeCount.resize(graph.size(), 0);
@@ -860,13 +942,13 @@ namespace NGT {
 	try {
 	  node = outGraph.getNode(id);
 	} catch(NGT::Exception &err) {
-	  cerr << "ngt info: Error. Cannot get the node. ID=" << id << ":" << err.what() << endl;
+	  std::cerr << "ngt info: Error. Cannot get the node. ID=" << id << ":" << err.what() << std::endl;
 	  valid = false;
 	  continue;
 	}
 	numberOfNodes++;
 	if (numberOfNodes % 1000000 == 0) {
-	  cerr << "Processed " << numberOfNodes << endl;
+	  std::cerr << "Processed " << numberOfNodes << std::endl;
 	}
 	size_t esize = node->size() > edgeSize ? edgeSize : node->size();
 	if (esize == 0) {
@@ -883,7 +965,7 @@ namespace NGT {
 	}
 	outdegreeHistogram[esize]++;
 	if (mode == 'e') {
-	  cout << id << "," << esize << ": ";
+	  std::cout << id << "," << esize << ": ";
 	}
 	for (size_t i = 0; i < esize; i++) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
@@ -892,7 +974,7 @@ namespace NGT {
 	  NGT::ObjectDistance &n = (*node)[i];
 #endif
 	  if (n.id == 0) {
-	    cerr << "ngt info: Warning. id is zero." << endl;
+	    std::cerr << "ngt info: Warning. id is zero." << std::endl;
 	    valid = false;
 	  }
 	  indegreeCount[n.id]++;
@@ -900,12 +982,12 @@ namespace NGT {
 	  numberOfOutdegree++;
 	  double d = n.distance;
 	  if (mode == 'e') {
-	    cout << n.id << ":" << d << " ";
+	    std::cout << n.id << ":" << d << " ";
 	  }
 	  distance += d;
 	}
 	if (mode == 'e') {
-	  cout << endl;
+	  std::cout << std::endl;
 	}
       }
 
@@ -933,10 +1015,10 @@ namespace NGT {
 	    } catch(NGT::Exception &err) {
 	      count++;
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-	      cerr << "Directed edge! " << id << "->" << node.at(i, graph.allocator).id << " no object. " 
-		   << node.at(i, graph.allocator).id << endl; 
+	      std::cerr << "Directed edge! " << id << "->" << node.at(i, graph.allocator).id << " no object. " 
+		   << node.at(i, graph.allocator).id << std::endl; 
 #else
-	      cerr << "Directed edge! " << id << "->" << node[i].id << " no object. " << node[i].id << endl; 
+	      std::cerr << "Directed edge! " << id << "->" << node[i].id << " no object. " << node[i].id << std::endl; 
 #endif
 	      continue;
 	    }
@@ -954,16 +1036,16 @@ namespace NGT {
 	    }
 	    if (!found) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-	      cerr << "Directed edge! " << id << "->" << node.at(i, graph.allocator).id << " no edge. " 
-		   << node.at(i, graph.allocator).id << "->" << id << endl; 
+	      std::cerr << "Directed edge! " << id << "->" << node.at(i, graph.allocator).id << " no edge. " 
+		   << node.at(i, graph.allocator).id << "->" << id << std::endl; 
 #else
-	      cerr << "Directed edge! " << id << "->" << node[i].id << " no edge. " << node[i].id << "->" << id << endl; 
+	      std::cerr << "Directed edge! " << id << "->" << node[i].id << " no edge. " << node[i].id << "->" << id << std::endl; 
 #endif
 	      count++;
 	    }
 	  }
 	}
-	cerr << "# of not undirected edges=" << count << endl;
+	std::cerr << "# of not undirected edges=" << count << std::endl;
       }
 
       // calculate outdegree distance 10
@@ -979,7 +1061,7 @@ namespace NGT {
 	try {
 	  n = outGraph.getNode(id);
 	} catch(NGT::Exception &err) {
-	  cerr << "ngt info: Warning. Cannot get the node. ID=" << id << ":" << err.what() << endl;
+	  std::cerr << "ngt info: Warning. Cannot get the node. ID=" << id << ":" << err.what() << std::endl;
 	  continue;
 	}
 	NGT::GraphNode &node = *n;
@@ -1006,7 +1088,7 @@ namespace NGT {
       long double indegreeDistance10 = 0.0;
       size_t ind10SkipCount = 0;
       for (size_t id = 1; id < indegree.size(); id++) {
-	vector<float> &node = indegree[id];
+	std::vector<float> &node = indegree[id];
 	if (node.size() < dcsize - 1) {
 	  ind10SkipCount++;
 	  continue;
@@ -1035,7 +1117,7 @@ namespace NGT {
 	try {
 	  node = outGraph.getNode(id);
 	} catch(NGT::Exception &err) {
-	  cerr << "ngt info: Warning. Cannot get the node. ID=" << id << ":" << err.what() << endl;
+	  std::cerr << "ngt info: Warning. Cannot get the node. ID=" << id << ":" << err.what() << std::endl;
 	  continue;
 	}
 	size_t esize = node->size();
@@ -1052,7 +1134,7 @@ namespace NGT {
 	}
 	if (indegreeCount[id] == 0) {
 	  numberOfNodesWithoutIndegree++;
-	  cerr << "Error! The node without incoming edges. " << id << endl;
+	  std::cerr << "Error! The node without incoming edges. " << id << std::endl;
 	  valid = false;
 	}
 	if (indegreeCount[id] > static_cast<int>(maxNumberOfIndegree)) {
@@ -1133,34 +1215,34 @@ namespace NGT {
       c5 /= (double)numberOfNodes * 0.05;
       c1 /= (double)numberOfNodes * 0.01;
 
-      cerr << "The size of object array=" << repo.size() << endl;
-      cerr << "# of removed objects=" << removedObjectCount << "/" << repo.size() << endl;
-      cerr << "# of nodes=" << numberOfNodes << endl;
-      cerr << "# of edges=" << numberOfOutdegree << endl;
-      cerr << "# of nodes without edges=" << numberOfNodesWithoutEdges << endl;
-      cerr << "Max outdegree=" << maxNumberOfOutdegree << endl;
-      cerr << "Min outdegree=" << minNumberOfOutdegree << endl;
-      cerr << "Average number of edges=" << (double)numberOfOutdegree / (double)numberOfNodes << endl;
-      cerr << "Average distance of edges=" << setprecision(10) << distance / (double)numberOfOutdegree << endl;
-      cerr << "# of nodes where indegree is 0=" << numberOfNodesWithoutIndegree << endl;
-      cerr << "Max indegree=" << maxNumberOfIndegree << endl;
-      cerr << "Min indegree=" << minNumberOfIndegree << endl;
-      cerr << "#-nodes,#-edges,#-no-indegree,avg-edges,avg-dist,max-out,min-out,v-out,max-in,min-in,v-in,med-out,"
+      std::cerr << "The size of object array=" << repo.size() << std::endl;
+      std::cerr << "# of removed objects=" << removedObjectCount << "/" << repo.size() << std::endl;
+      std::cerr << "# of nodes=" << numberOfNodes << std::endl;
+      std::cerr << "# of edges=" << numberOfOutdegree << std::endl;
+      std::cerr << "# of nodes without edges=" << numberOfNodesWithoutEdges << std::endl;
+      std::cerr << "Max outdegree=" << maxNumberOfOutdegree << std::endl;
+      std::cerr << "Min outdegree=" << minNumberOfOutdegree << std::endl;
+      std::cerr << "Average number of edges=" << (double)numberOfOutdegree / (double)numberOfNodes << std::endl;
+      std::cerr << "Average distance of edges=" << std::setprecision(10) << distance / (double)numberOfOutdegree << std::endl;
+      std::cerr << "# of nodes where indegree is 0=" << numberOfNodesWithoutIndegree << std::endl;
+      std::cerr << "Max indegree=" << maxNumberOfIndegree << std::endl;
+      std::cerr << "Min indegree=" << minNumberOfIndegree << std::endl;
+      std::cerr << "#-nodes,#-edges,#-no-indegree,avg-edges,avg-dist,max-out,min-out,v-out,max-in,min-in,v-in,med-out,"
 	"med-in,mode-out,mode-in,c95,c5,o-distance(10),o-skip,i-distance(10),i-skip:" 
 	   << numberOfNodes << ":" << numberOfOutdegree << ":" << numberOfNodesWithoutIndegree << ":" 
-	   << setprecision(10) << (double)numberOfOutdegree / (double)numberOfNodes << ":"
+	   << std::setprecision(10) << (double)numberOfOutdegree / (double)numberOfNodes << ":"
 	   << distance / (double)numberOfOutdegree << ":"
 	   << maxNumberOfOutdegree << ":" << minNumberOfOutdegree << ":" << sumOfSquareOfOutdegree / (double)numberOfOutdegree<< ":"
 	   << maxNumberOfIndegree << ":" << minNumberOfIndegree << ":" << sumOfSquareOfIndegree / (double)numberOfOutdegree << ":"
 	   << medianOutdegree << ":" << medianIndegree << ":" << modeOutdegree << ":" << modeIndegree 
 	   << ":" << c95 << ":" << c5 << ":" << c99 << ":" << c1 << ":" << distance10 << ":" << d10SkipCount << ":"
-	   << indegreeDistance10 << ":" << ind10SkipCount << endl;
+	   << indegreeDistance10 << ":" << ind10SkipCount << std::endl;
       if (mode == 'h') {
-	cerr << "#\tout\tin" << endl;
+	std::cerr << "#\tout\tin" << std::endl;
 	for (size_t i = 0; i < outdegreeHistogram.size() || i < indegreeHistogram.size(); i++) {
 	  size_t out = outdegreeHistogram.size() <= i ? 0 : outdegreeHistogram[i];
 	  size_t in = indegreeHistogram.size() <= i ? 0 : indegreeHistogram[i];
-	  cerr << i << "\t" << out << "\t" << in << endl;
+	  std::cerr << i << "\t" << out << "\t" << in << std::endl;
 	}
       }
       return valid;
@@ -1170,16 +1252,16 @@ namespace NGT {
 
     size_t getSizeOfElement() { return objectSpace->getSizeOfElement(); }
 
-    Object *allocateObject(const string &textLine, const string &sep) {
+    Object *allocateObject(const std::string &textLine, const std::string &sep) {
       return objectSpace->allocateNormalizedObject(textLine, sep);
     }
-    Object *allocateObject(const vector<double> &obj) { 
+    Object *allocateObject(const std::vector<double> &obj) { 
       return objectSpace->allocateNormalizedObject(obj);
     }
-    Object *allocateObject(const vector<float> &obj) { 
+    Object *allocateObject(const std::vector<float> &obj) { 
       return objectSpace->allocateNormalizedObject(obj);
     }
-    Object *allocateObject(const vector<uint8_t> &obj) { 
+    Object *allocateObject(const std::vector<uint8_t> &obj) { 
       return objectSpace->allocateNormalizedObject(obj);
     }
     Object *allocateObject(const float *obj, size_t size) { 
@@ -1205,13 +1287,13 @@ namespace NGT {
 
     NeighborhoodGraph::Property &getGraphProperty() { return NeighborhoodGraph::property; }
 
-    virtual size_t getSharedMemorySize(ostream &os, SharedMemoryAllocator::GetMemorySizeType t) {
+    virtual size_t getSharedMemorySize(std::ostream &os, SharedMemoryAllocator::GetMemorySizeType t) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
       size_t size = repository.getAllocator().getMemorySize(t);
 #else
       size_t size = 0;
 #endif
-      os << "graph=" << size << endl;
+      os << "graph=" << size << std::endl;
       return size;
     }
 
@@ -1271,7 +1353,7 @@ namespace NGT {
 	sc.distanceComputationCount = so.distanceComputationCount;
 	sc.visitCount = so.visitCount;
       } catch(Exception &err) {
-	cerr << err.what() << endl;
+	std::cerr << err.what() << std::endl;
 	Exception e(err);
 	throw e;
       }
@@ -1289,16 +1371,16 @@ namespace NGT {
   public:
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-    GraphAndTreeIndex(const string &allocator, bool rdOnly = false):GraphIndex(allocator, false) {
+    GraphAndTreeIndex(const std::string &allocator, bool rdOnly = false):GraphIndex(allocator, false) {
       initialize(allocator, 0);
     }
-    GraphAndTreeIndex(const string &allocator, NGT::Property &prop);
-    void initialize(const string &allocator, size_t sharedMemorySize) {
+    GraphAndTreeIndex(const std::string &allocator, NGT::Property &prop);
+    void initialize(const std::string &allocator, size_t sharedMemorySize) {
       DVPTree::objectSpace = GraphIndex::objectSpace;
       DVPTree::open(allocator + "/tre", sharedMemorySize);
     }
 #else
-    GraphAndTreeIndex(const string &database, bool rdOnly = false) : GraphIndex(database, rdOnly) {
+    GraphAndTreeIndex(const std::string &database, bool rdOnly = false) : GraphIndex(database, rdOnly) {
       GraphAndTreeIndex::loadIndex(database, rdOnly);
     }
 
@@ -1320,8 +1402,8 @@ namespace NGT {
       NGT::ObjectSpace &space = getObjectSpace();
       NGT::ObjectRepository &repo = space.getRepository();
       Object **object = repo.getPtr();
-      vector<bool> exist(repo.size(), false);
-      vector<NGT::Node::ID> leafNodeIDs;
+      std::vector<bool> exist(repo.size(), false);
+      std::vector<NGT::Node::ID> leafNodeIDs;
       DVPTree::getAllLeafNodeIDs(leafNodeIDs);
       size_t objectCount = 0;
       for (size_t i = 0; i < leafNodeIDs.size(); i++) {
@@ -1332,7 +1414,7 @@ namespace NGT {
 	  objectCount++;
 	}
       }
-      multimap<uint32_t, uint32_t> notexist; 
+      std::multimap<uint32_t, uint32_t> notexist; 
       if (objectCount != repo.size()) {
         for (size_t id = 1; id < exist.size(); id++) {
 	  if (!exist[id]) {
@@ -1343,11 +1425,11 @@ namespace NGT {
       	    try {
 	      DVPTree::search(tso);
       	    } catch (Exception &err) {
-	      stringstream msg;
+	      std::stringstream msg;
 	      msg << "GraphAndTreeIndex::getSeeds: Cannot search for tree.:" << err.what();
 	      NGTThrowException(msg);
       	    }
-	    notexist.insert(pair<uint32_t, uint32_t>(tso.nodeID.getID(), id));
+	    notexist.insert(std::pair<uint32_t, uint32_t>(tso.nodeID.getID(), id));
 	    objectCount++;
 	  }
 	}
@@ -1355,23 +1437,23 @@ namespace NGT {
       assert(objectCount == repo.size() - 1);
 
       objectCount = 1;
-      vector<pair<uint32_t, uint32_t> > order;  
+      std::vector<std::pair<uint32_t, uint32_t> > order;  
       for (size_t i = 0; i < leafNodeIDs.size(); i++) {
 	ObjectDistances objects;
 	DVPTree::getObjectIDsFromLeaf(leafNodeIDs[i], objects);
 	for (size_t j = 0; j < objects.size(); j++) {
-	  order.push_back(pair<uint32_t, uint32_t>(objects[j].id, objectCount));
+	  order.push_back(std::pair<uint32_t, uint32_t>(objects[j].id, objectCount));
 	  objectCount++;
 	}
 	auto nei = notexist.equal_range(leafNodeIDs[i].getID());
 	for (auto ii = nei.first; ii != nei.second; ++ii) {
-	  order.push_back(pair<uint32_t, uint32_t>((*ii).second, objectCount));
+	  order.push_back(std::pair<uint32_t, uint32_t>((*ii).second, objectCount));
 	  objectCount++;
 	}
       }
       assert(objectCount == repo.size());
       Object *tmp = space.allocateObject();
-      unordered_set<uint32_t> uncopiedObjects;
+      std::unordered_set<uint32_t> uncopiedObjects;
       for (size_t i = 1; i < repo.size(); i++) {
 	uncopiedObjects.insert(i);
       }
@@ -1429,18 +1511,18 @@ namespace NGT {
     }
 #endif // NGT_SHARED_MEMORY_ALLOCATOR
 
-    void load(const string &ifile) {
+    void load(const std::string &ifile) {
       GraphIndex::load(ifile);
       DVPTree::objectSpace = GraphIndex::objectSpace;
     }
 
-    void saveIndex(const string &ofile) {
+    void saveIndex(const std::string &ofile) {
       GraphIndex::saveIndex(ofile);
 #ifndef NGT_SHARED_MEMORY_ALLOCATOR
-      string fname = ofile + "/tre";
-      ofstream ost(fname);
+      std::string fname = ofile + "/tre";
+      std::ofstream ost(fname);
       if (!ost.is_open()) {
-	stringstream msg;
+	std::stringstream msg;
 	msg << "saveIndex:: Cannot open. " << fname;
 	NGTThrowException(msg);
       }
@@ -1448,9 +1530,9 @@ namespace NGT {
 #endif
     }
 
-    void loadIndex(const string &ifile, bool readOnly) {
+    void loadIndex(const std::string &ifile, bool readOnly) {
       DVPTree::objectSpace = GraphIndex::objectSpace;
-      ifstream ist(ifile + "/tre");
+      std::ifstream ist(ifile + "/tre");
       DVPTree::deserialize(ist);
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
       if (readOnly) {
@@ -1462,17 +1544,17 @@ namespace NGT {
 #endif
     }
     
-    void exportIndex(const string &ofile) {
+    void exportIndex(const std::string &ofile) {
       GraphIndex::exportIndex(ofile);
-      ofstream ost(ofile + "/tre");
+      std::ofstream ost(ofile + "/tre");
       DVPTree::serializeAsText(ost);
     }
 
-    void importIndex(const string &ifile) {
-      string fname = ifile + "/tre";
-      ifstream ist(fname);
+    void importIndex(const std::string &ifile) {
+      std::string fname = ifile + "/tre";
+      std::ifstream ist(fname);
       if (!ist.is_open()) {
-	stringstream msg;
+	std::stringstream msg;
 	msg << "importIndex:: Cannot open. " << fname;
 	NGTThrowException(msg);
       }
@@ -1499,7 +1581,7 @@ namespace NGT {
 	  try {
 	    GraphIndex::remove(id, force);
           } catch(...) {}
-	  stringstream msg;
+	  std::stringstream msg;
 	  msg << err.what() << " Even though the object could not be found, the object could be removed from the tree and graph if it existed in them.";
 	  NGTThrowException(msg);
         }
@@ -1525,8 +1607,9 @@ namespace NGT {
 	try {
 	  DVPTree::remove(id);
 	} catch(Exception &err) {
-	  cerr << "remove:: cannot remove from tree. id=" << id << " " << err.what() << endl;
-	  throw err;
+	  std::stringstream msg;
+	  msg << "remove:: cannot remove from tree. id=" << id << " " << err.what();
+	  NGTThrowException(msg);	
 	}
       } else {
 	ObjectID replaceID = id == results[0].id ? results[1].id : results[0].id;
@@ -1565,7 +1648,7 @@ namespace NGT {
     void insert(ObjectID id) {
       ObjectRepository &fr = GraphIndex::objectSpace->getRepository();
       if (fr[id] == 0) {
-	cerr << "GraphAndTreeIndex::insert empty " << id << endl;
+	std::cerr << "GraphAndTreeIndex::insert empty " << id << std::endl;
 	return;
       }
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
@@ -1587,8 +1670,8 @@ namespace NGT {
 	try {
 	  DVPTree::insert(tiobj);
 	} catch (Exception &err) {
-	  cerr << "GraphAndTreeIndex::insert: Fatal error" << endl;
-	  cerr << err.what() << endl;
+	  std::cerr << "GraphAndTreeIndex::insert: Fatal error" << std::endl;
+	  std::cerr << err.what() << std::endl;
 	  return;
 	}
       }
@@ -1599,7 +1682,7 @@ namespace NGT {
 
     void createIndex(size_t threadNumber);
 
-    void createIndex(const vector<pair<NGT::Object*, size_t> > &objects, vector<InsertionResult> &ids,
+    void createIndex(const std::vector<std::pair<NGT::Object*, size_t> > &objects, std::vector<InsertionResult> &ids,
 		     double range, size_t threadNumber);
 
     void createTreeIndex();
@@ -1615,7 +1698,7 @@ namespace NGT {
       try {
 	DVPTree::search(tso);
       } catch (Exception &err) {
-	stringstream msg;
+	std::stringstream msg;
 	msg << "GraphAndTreeIndex::getSeeds: Cannot search for tree.:" << err.what();
 	NGTThrowException(msg);
       }
@@ -1623,7 +1706,7 @@ namespace NGT {
       try {
 	DVPTree::getObjectIDsFromLeaf(tso.nodeID, seeds);
       } catch (Exception &err) {
-	stringstream msg;
+	std::stringstream msg;
 	msg << "GraphAndTreeIndex::getSeeds: Cannot get a leaf.:" << err.what();
 	NGTThrowException(msg);
       }
@@ -1659,11 +1742,27 @@ namespace NGT {
       GraphIndex::search(sc, seeds);
     }
 
-    size_t getSharedMemorySize(ostream &os, SharedMemoryAllocator::GetMemorySizeType t) {
+    void search(NGT::SearchQuery &searchQuery) {
+      Object *query = Index::allocateObject(searchQuery.getQuery(), searchQuery.getQueryType());
+      try {
+        NGT::SearchContainer sc(searchQuery, *query);
+        sc.distanceComputationCount = 0;
+        sc.visitCount = 0;
+        ObjectDistances	seeds;
+	getSeedsFromTree(sc, seeds);
+	GraphIndex::search(sc, seeds);
+      } catch(Exception &err) {
+	deleteObject(query);
+	throw err;
+      }
+      deleteObject(query);
+    }
+
+    size_t getSharedMemorySize(std::ostream &os, SharedMemoryAllocator::GetMemorySizeType t) {
       return GraphIndex::getSharedMemorySize(os, t) + DVPTree::getSharedMemorySize(os, t);
     }
 
-    bool verify(vector<uint8_t> &status, bool info);
+    bool verify(std::vector<uint8_t> &status, bool info, char mode);
 
   };
 
@@ -1681,13 +1780,13 @@ namespace NGT {
       Index::Property::set(p);
       NeighborhoodGraph::Property::set(p);
     }
-    void load(const string &file) {
+    void load(const std::string &file) {
       NGT::PropertySet prop;
       prop.load(file + "/prf");
       Index::Property::importProperty(prop);
       NeighborhoodGraph::Property::importProperty(prop);
     }
-    void importProperty(const string &file) {
+    void importProperty(const std::string &file) {
       NGT::PropertySet prop;
       prop.load(file + "/prf");
       Index::Property::importProperty(prop);
@@ -1699,7 +1798,7 @@ namespace NGT {
 
 
 template<typename T>
-size_t NGT::Index::append(vector<T> &object) 
+size_t NGT::Index::append(std::vector<T> &object) 
 {
   if (getObjectSpace().getRepository().size() == 0) {
     getObjectSpace().getRepository().initialize();
@@ -1712,7 +1811,7 @@ size_t NGT::Index::append(vector<T> &object)
 }
 
 template<typename T>
-size_t NGT::Index::insert(vector<T> &object) 
+size_t NGT::Index::insert(std::vector<T> &object) 
 {
   if (getObjectSpace().getRepository().size() == 0) {
     getObjectSpace().getRepository().initialize();

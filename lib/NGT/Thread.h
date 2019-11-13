@@ -26,14 +26,13 @@
 #include    <iostream>
 #include    <deque>
 
-using namespace	std;
 namespace NGT {
 void * evaluate_responce(void *);
 
 class ThreadTerminationException : public Exception {
  public:
-  ThreadTerminationException(const string &file, size_t line, stringstream &m) { set(file, line, m.str()); }
-  ThreadTerminationException(const string &file, size_t line, const string &m) { set(file, line, m); }
+  ThreadTerminationException(const std::string &file, size_t line, std::stringstream &m) { set(file, line, m.str()); }
+  ThreadTerminationException(const std::string &file, size_t line, const std::string &m) { set(file, line, m); }
 };
 
 class ThreadInfo;
@@ -86,7 +85,7 @@ class Thread
 template <class JOB, class SHARED_DATA, class THREAD>
 class ThreadPool {
   public:
-    class JobQueue : public deque<JOB> {
+  class JobQueue : public std::deque<JOB> {
       public:
         JobQueue() {
           threadMutex = Thread::constructThreadMutex();
@@ -95,9 +94,9 @@ class ThreadPool {
         ~JobQueue() {
           Thread::destructThreadMutex(threadMutex);
         }
-        bool isDeficient() { return deque<JOB>::size() <= requestSize; }
-        bool isEmpty() { return deque<JOB>::size() == 0; }
-        bool isFull() { return deque<JOB>::size() >= maxSize; }
+        bool isDeficient() { return std::deque<JOB>::size() <= requestSize; }
+        bool isEmpty() { return std::deque<JOB>::size() == 0; }
+        bool isFull() { return std::deque<JOB>::size() >= maxSize; }
         void setRequestSize(int s) { requestSize = s; }
         void setMaxSize(int s) { maxSize = s; }
         void lock() { Thread::lock(*threadMutex); }
@@ -127,13 +126,13 @@ class ThreadPool {
             }
             JobQueue::wait();
           }
-          d = deque<JOB>::front();
-          deque<JOB>::pop_front();
+          d = std::deque<JOB>::front();
+          std::deque<JOB>::pop_front();
           JobQueue::unlock();
           return;
         }
 
-        void popFront(deque<JOB> &d, size_t s) {
+        void popFront(std::deque<JOB> &d, size_t s) {
           JobQueue::lock();
           while (JobQueue::isEmpty()) {
             if (isTerminate) {
@@ -143,8 +142,8 @@ class ThreadPool {
             JobQueue::wait();
           }
           for (size_t i = 0; i < s; i++) {
-            d.push_back(deque<JOB>::front());
-            deque<JOB>::pop_front();
+            d.push_back(std::deque<JOB>::front());
+            std::deque<JOB>::pop_front();
             if (JobQueue::isEmpty()) {
               break;
             }
@@ -160,7 +159,7 @@ class ThreadPool {
             pushedSize = 0;
           }
           pushedSize++;
-          deque<JOB>::push_back(data);
+          std::deque<JOB>::push_back(data);
           JobQueue::unlock();
           JobQueue::signal();
         }
@@ -195,7 +194,7 @@ class ThreadPool {
 
         void pushBack(JOB &data) {
           JobQueue::lock();
-          deque<JOB>::push_back(data);
+          std::deque<JOB>::push_back(data);
           if (!JobQueue::isFull()) {
             JobQueue::unlock();
             return;
