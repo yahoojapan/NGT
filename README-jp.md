@@ -11,7 +11,7 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 ニュース
 -------
 
-- 11/04/2019 [NGT チュートリアル](https://github.com/yahoojapan/NGT/wiki) をリリースしました。
+- 2019/11/04 [NGT チュートリアル](https://github.com/yahoojapan/NGT/wiki) をリリースしました。
 - 2019/06/26 Jaccard距離が利用可能になりました。(v1.7.6)
 - 2019/06/10 PyPI NGT パッケージ v1.7.5 が利用可能になりました。
 - 2019/01/17 Python NGTはPYPIからpipでインストールが可能になりました。(v1.5.1)
@@ -80,7 +80,7 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 - [Ruby](https://github.com/ankane/ngt) (Thanks Andrew!)
 - [Go](https://github.com/yahoojapan/gongt)
 - C
-- C++([sample code](bin/search/search.cpp))
+- C++([sample code](samples))
 
 Documents
 ---------

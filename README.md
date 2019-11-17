@@ -79,7 +79,7 @@ Supported Programming Languages
 - [Ruby](https://github.com/ankane/ngt) (Thanks Andrew!)
 - [Go](https://github.com/yahoojapan/gongt)
 - C
-- C++([sample code](bin/search/search.cpp))
+- C++([sample code](samples))
 
 Documents
 ---------

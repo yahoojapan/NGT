@@ -1,0 +1,8 @@
+if( ${UNIX} )
+	include_directories("${PROJECT_SOURCE_DIR}/lib" "${PROJECT_BINARY_DIR}/lib/")
+	link_directories("${PROJECT_BINARY_DIR}/lib/NGT")
+	add_subdirectory("${PROJECT_SOURCE_DIR}/samples/hamming-uint8")
+	add_subdirectory("${PROJECT_SOURCE_DIR}/samples/l2-uint8")
+	add_subdirectory("${PROJECT_SOURCE_DIR}/samples/l2-uint8-range-search")
+	add_subdirectory("${PROJECT_SOURCE_DIR}/samples/cosine-float")
+endif()

@@ -65,4 +65,5 @@ if(${UNIX})
 
 	add_subdirectory("${PROJECT_SOURCE_DIR}/lib")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/bin")
+	add_subdirectory("${PROJECT_SOURCE_DIR}/samples")
 endif( ${UNIX} )

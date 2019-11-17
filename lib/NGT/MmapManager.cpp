@@ -364,8 +364,13 @@ namespace MemoryManager{
 
   std::string getErrorStr(int32_t err_num){
     char err_msg[256];
+#ifdef _GNU_SOURCE
+    char *msg = strerror_r(err_num, err_msg, 256);
+    return std::string(msg);
+#else
     strerror_r(err_num, err_msg, 256);
     return std::string(err_msg);
+#endif
   }
 
   size_t MmapManager::getTotalSize() const
