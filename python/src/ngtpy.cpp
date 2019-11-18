@@ -26,7 +26,7 @@ namespace py = pybind11;
 class Index : public NGT::Index {
 public:
   Index(
-   const string path, 			// ngt index path.
+   const std::string path, 			// ngt index path.
    bool readOnly,			// read only or not.
    bool zeroBasedNumbering,		// object ID numbering.
    bool logDisabled			// stderr log is disabled.
@@ -43,12 +43,12 @@ public:
   }
 
   static void create(
-   const string path,
+   const std::string path,
    size_t dimension,
    int edgeSizeForCreation = 10,
    int edgeSizeForSearch = 40,
-   const string distanceType = "L2",
-   const string objectType = "Float"
+   const std::string distanceType = "L2",
+   const std::string objectType = "Float"
   ) {
     NGT::Property prop;
     prop.dimension = dimension;
@@ -143,7 +143,7 @@ public:
     try {
       ngtquery = NGT::Index::allocateObject(static_cast<float*>(qinfo.ptr), qinfo.size);
     } catch (NGT::Exception &e) {
-      std::cerr << e.what() << endl;
+      std::cerr << e.what() << std::endl;
       if (!withDistance) {
 	return py::array_t<int>();
       } else {
@@ -211,7 +211,7 @@ public:
     try {
       ngtquery = NGT::Index::allocateObject(static_cast<float*>(qinfo.ptr), qinfo.size);
     } catch (NGT::Exception &e) {
-      std::cerr << e.what() << endl;
+      std::cerr << e.what() << std::endl;
       if (!withDistance) {
 	return py::array_t<int>();
       } else {
@@ -267,11 +267,11 @@ public:
     NGT::Index::remove(id);
   }
 
-  vector<float> getObject(size_t id) {
+  std::vector<float> getObject(size_t id) {
     id = zeroNumbering ? id + 1 : id;
     NGT::Property prop;
     NGT::Index::getProperty(prop);
-    vector<float> object;
+    std::vector<float> object;
     object.reserve(prop.dimension);
     switch (prop.objectType) {
     case NGT::ObjectSpace::ObjectType::Uint8:
