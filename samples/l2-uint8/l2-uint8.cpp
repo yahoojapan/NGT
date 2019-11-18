@@ -13,7 +13,7 @@ main(int argc, char **argv)
   try {
     NGT::Property	property;
     property.dimension		= 128;
-    property.objectType		= NGT::ObjectSpace::ObjectType::Float;
+    property.objectType		= NGT::ObjectSpace::ObjectType::Uint8;
     property.distanceType	= NGT::Index::Property::DistanceType::DistanceTypeL2;
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
     NGT::Index	index(property, indexFile);
@@ -25,7 +25,7 @@ main(int argc, char **argv)
     while (getline(is, line)) {
       vector<string>	tokens;
       NGT::Common::tokenize(line, tokens, " \t");      // split an object string into values by separators.
-      vector<float>	obj;
+      vector<uint8_t>	obj;
       for (vector<string>::iterator ti = tokens.begin(); ti != tokens.end(); ++ti) {
 	obj.push_back(NGT::Common::strtol(*ti));
       }
@@ -50,7 +50,7 @@ main(int argc, char **argv)
     ifstream		is(queryFile);
     string		line;
     while (getline(is, line)) {
-      vector<float>	query;
+      vector<uint8_t>	query;
       {
 	vector<string>	tokens;
 	NGT::Common::tokenize(line, tokens, " \t");
@@ -60,7 +60,7 @@ main(int argc, char **argv)
 	query.resize(property.dimension);
 	cout << "Query : ";
 	for (size_t i = 0; i < 5; i++) {
-	  cout << query[i] << " ";
+	  cout << static_cast<int>(query[i]) << " ";
 	}
 	cout << "...";
       }
@@ -76,9 +76,9 @@ main(int argc, char **argv)
       for (size_t i = 0; i < objects.size(); i++) {
 	cout << i + 1 << "\t" << objects[i].id << "\t" << objects[i].distance << "\t: ";
 	NGT::ObjectSpace &objectSpace = index.getObjectSpace();
-	float *object = static_cast<float*>(objectSpace.getObject(objects[i].id));
+	uint8_t *object = static_cast<uint8_t*>(objectSpace.getObject(objects[i].id));
 	for (size_t idx = 0; idx < 5; idx++) {
-	  cout << object[idx] << " ";
+	  cout << static_cast<int>(object[idx]) << " ";
 	}
 	cout << "..." << endl;
       }
