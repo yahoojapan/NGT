@@ -9,7 +9,7 @@ Class Index
 ## Member Functions
 
 ### \_\_init\_\_
-Open the specified index and creates the index object for the index.
+Open the specified index and create the index object for the index.
 
       __init__(self: ngtpy.Index, path: str, read_only: bool=False, zero_based_numbering: bool=True, log_disabled: bool=False)
 

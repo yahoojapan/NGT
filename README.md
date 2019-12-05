@@ -144,3 +144,7 @@ Publications
 
 Copyright &copy; 2015-2019 Yahoo Japan Corporation All Rights Reserved.
 
+Contact Person
+--------------
+[masajiro](https://github.com/masajiro)
+

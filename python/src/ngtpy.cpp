@@ -126,8 +126,9 @@ public:
       std::cerr << std::endl;
     }
     std::vector<double> v(ptr, ptr + info.shape[0]);
-    return NGT::Index::insert(v);
+    int id = NGT::Index::insert(v);
     numOfDistanceComputations = 0;
+    return zeroNumbering ? id - 1 : id;
   }
 
   py::object search(

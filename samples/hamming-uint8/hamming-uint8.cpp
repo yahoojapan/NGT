@@ -24,11 +24,12 @@ main(int argc, char **argv)
     ifstream	is(objectFile);
     string	line;
     while (getline(is, line)) {
-      vector<string>	tokens;
-      NGT::Common::tokenize(line, tokens, " \t");      // split an object string into values by separators.
       vector<uint8_t>	obj;
-      for (vector<string>::iterator ti = tokens.begin(); ti != tokens.end(); ++ti) {
-	obj.push_back(NGT::Common::strtol(*ti));
+      stringstream	linestream(line);
+      while (!linestream.eof()) {
+	int value;
+	linestream >> value;
+	obj.push_back(value);
       }
       obj.resize(property.dimension);  // cut off additional data in the file.
       index.append(obj);
@@ -53,10 +54,11 @@ main(int argc, char **argv)
     while (getline(is, line)) {
       vector<uint8_t>	query;
       {
-	vector<string>	tokens;
-	NGT::Common::tokenize(line, tokens, " \t");
-	for (vector<string>::iterator ti = tokens.begin(); ti != tokens.end(); ++ti) {
-	  query.push_back(NGT::Common::strtol(*ti));
+	stringstream	linestream(line);
+	while (!linestream.eof()) {
+	  int value;
+	  linestream >> value;
+	  query.push_back(value);
 	}
 	query.resize(property.dimension);
 	cout << "Query : ";
