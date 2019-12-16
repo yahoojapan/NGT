@@ -6,7 +6,7 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
 [トップ](/README-jp.md) / [インストール](/README-jp.md#インストール) / [コマンド](/bin/ngt/README-jp.md) / [ライセンス](/README-jp.md#ライセンス) / [関連文献](/README-jp.md#関連文献) / [About Us](http://research-lab.yahoo.co.jp/) / [English](/README.md)
 
-大量（数百万から数千万データ）の高次元ベクトルデータ（数十～数千次元）に対して高速な近似近傍検索を可能とするコマンド及びライブラリを提供します。
+大量（数百万から数千万）の高次元ベクトルデータ（数十～数千次元）に対して高速な近似近傍検索を可能とするコマンド及びライブラリを提供します。
 
 ニュース
 -------
@@ -17,6 +17,22 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 - 2019/01/17 Python NGTはPYPIからpipでインストールが可能になりました。(v1.5.1)
 - 2018/12/14 [NGTQ](bin/ngtq/README-jp.md) (NGT with Quantization) が利用可能になりました。(v1.5.0)
 - 2018/08/08 [ONNG](README-jp.md#onng)が利用可能になりました。(v1.4.0)
+
+特徴
+----
+- OS：Linux、macOS
+- データの追加削除が可能
+- [共有メモリ（マップドメモリ）](README-jp.md#共有メモリの利用)のオプションによるNGTではメモリサイズを超えるデータが利用可能
+- データ型：1バイト整数、4バイト単精度浮動小数点
+- 距離関数：L1、L2、コサイン類似度、角度、ハミング、ジャッカード
+- 対応言語：[Python](/python/README-jp.md)、[Ruby](https://github.com/ankane/ngt)、[Go](https://github.com/yahoojapan/gongt)、C、C++
+- 分散サーバ：[ngtd](https://github.com/yahoojapan/ngtd), [vald](https://github.com/vdaas/vald)
+- 量子化版NGT（[NGTQ](bin/ngtq/README-jp.md)）は10億ものデータの検索が可能
+
+ドキュメント
+-----------
+
+- [NGT チュートリアル](https://github.com/yahoojapan/NGT/wiki)
 
 インストール
 -----------
@@ -82,11 +98,6 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 - C
 - C++([sample code](samples))
 
-Documents
----------
-
-- [NGT チュートリアル](https://github.com/yahoojapan/NGT/wiki)
-
 ベンチマーク結果
 ---------------
 
@@ -123,6 +134,10 @@ Documents
 
 なお、GitHub (https://github.com/yahoojapan/NGT) へのご提供の場合のみ、個別の同意書面なしに、上記貢献者ライセンスに同意して頂いたと見なしますので、ご注意ください。
 
+お問い合わせ
+------------
+
+[masajiro](https://github.com/masajiro)
 
 関連文献
 --------

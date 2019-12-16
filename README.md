@@ -17,6 +17,22 @@ News
 - 12/14/2018 [NGTQ](bin/ngtq/README.md) (NGT with Quantization) is now available. (v1.5.0)
 - 08/08/2018 [ONNG](README.md#onng) is now available. (v1.4.0)
 
+Key Features
+------------
+- Supported operating systems: Linux and macOS
+- Object additional registration and removal are available.
+- Objects beyond the memory size can be handled using [the shared memory (memory mapped file) option](README.md#shared-memory-use).
+- Supported distance functions: L1, L2, Cosine similarity, Angular, Hamming, and Jaccard
+- Data Types: 4 byte floating point number and 1 byte unsigned integer
+- Supported languages: [Python](/python/README.md), [Ruby](https://github.com/ankane/ngt), [Go](https://github.com/yahoojapan/gongt), C, and C++
+- Distributed servers: [ngtd](https://github.com/yahoojapan/ngtd) and [vald](https://github.com/vdaas/vald)
+- [NGTQ](bin/ngtq/README.md) can handle billions of objects.
+
+Documents
+---------
+
+- [NGT tutorial](https://github.com/yahoojapan/NGT/wiki)
+
 Installation
 ------------
 
@@ -81,11 +97,6 @@ Supported Programming Languages
 - C
 - C++([sample code](samples))
 
-Documents
----------
-
-- [NGT tutorial](https://github.com/yahoojapan/NGT/wiki)
-
 Benchmark Results
 -----------------
 The followings are the results of [ann benchmarks](https://github.com/erikbern/ann-benchmarks) on an AWS c5.4xlarge instance for NGT v1.7.5.
@@ -126,6 +137,10 @@ This project requires contributors to accept the terms in the [Contributor Licen
 
 Please note that contributors to the NGT repository on GitHub (https://github.com/yahoojapan/NGT) shall be deemed to have accepted the CLA without individual written agreements.
 
+Contact Person
+--------------
+[masajiro](https://github.com/masajiro)
+
 Publications
 ------------
 ##### [ONNG](bin/ngt/README.md#onng)
@@ -143,8 +158,4 @@ Publications
 - Iwasaki, M.: Proximity search in metric spaces using approximate k nearest neighbor graph (in Japanese). IPSJ Trans. on Database 3(1) (2010) 18-28. ([pdf](https://s.yimg.jp/i/docs/research_lab/articles/miwasaki-ipsj-tod-2010.pdf))
 
 Copyright &copy; 2015-2019 Yahoo Japan Corporation All Rights Reserved.
-
-Contact Person
---------------
-[masajiro](https://github.com/masajiro)
 
