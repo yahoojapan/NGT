@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2019 Yahoo Japan Corporation
+// Copyright (C) 2015-2020 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -181,8 +181,9 @@ namespace NGT {
       Float		= 2
     };
 
+
     typedef std::priority_queue<ObjectDistance, std::vector<ObjectDistance>, std::less<ObjectDistance> > ResultSet;
-    ObjectSpace(size_t d):dimension(d), paddedDimension(((d - 1) / 4 + 1) * 4), distanceType(DistanceTypeNone), comparator(0), normalization(false) {}
+    ObjectSpace(size_t d):dimension(d), distanceType(DistanceTypeNone), comparator(0), normalization(false) {}
     virtual ~ObjectSpace() { if (comparator != 0) { delete comparator; } }
     
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
@@ -239,8 +240,7 @@ namespace NGT {
     virtual void getObjects(const std::vector<size_t> &idxs, std::vector<std::vector<float>> &vs) = 0;
 
     size_t getDimension() { return dimension; }
-
-    size_t getPaddedDimension() { return paddedDimension; }
+    size_t getPaddedDimension() { return ((dimension - 1) / 16 + 1) * 16; }
 
     template <typename T>
     void normalize(T *data, size_t dim) {
@@ -267,13 +267,22 @@ namespace NGT {
       }
       return prefetchOffset;
     }
+    uint32_t getPrefetchSize() { return prefetchSize; }
+    uint32_t setPrefetchSize(size_t size) {
+      if (size == 0) {
+	prefetchSize = getByteSizeOfObject();
+      } else {
+	prefetchSize = size;
+      }
+      return prefetchSize;
+    }
   protected:
     const size_t	dimension;
-    const size_t	paddedDimension;
     DistanceType	distanceType;
     Comparator		*comparator;
     bool		normalization;
     uint32_t		prefetchOffset;
+    uint32_t		prefetchSize;
   };
 
   class BaseObject {
@@ -371,7 +380,7 @@ namespace NGT {
 
     void construct(size_t s) {
       assert(vector == 0);
-      size_t allocsize = ((s - 1) / 16 + 1) * 16;	
+      size_t allocsize = ((s - 1) / 64 + 1) * 64;	
       vector = static_cast<uint8_t*>(MemoryCache::alignedAlloc(allocsize));
       memset(vector, 0, allocsize);
     }

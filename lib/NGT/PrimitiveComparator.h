@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2019 Yahoo Japan Corporation
+// Copyright (C) 2015-2020 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,19 +18,7 @@
 
 #include	"NGT/defines.h"
 
-#if defined(NGT_AVX_DISABLED) 
-#define NGT_COMPARATOR_NO_AVX
-#else
-#if defined(__AVX512F__) && defined(__AVX512DQ__)
-#define NGT_COMPARATOR_AVX512
-#elif defined(__AVX2__)
-#define NGT_COMPARATOR_AVX2
-#else
-#define NGT_COMPARATOR_NO_AVX
-#endif
-#endif
-
-#if defined(NGT_COMPARATOR_NO_AVX)
+#if defined(NGT_NO_AVX)
 #warning "*** SIMD is *NOT* available! ***"
 #else
 #include	<immintrin.h>
@@ -41,7 +29,7 @@ namespace NGT {
   class MemoryCache {
   public:
     inline static void prefetch(unsigned char *ptr, const size_t byteSizeOfObject) {
-#if !defined(NGT_COMPARATOR_NO_AVX)
+#if !defined(NGT_NO_AVX)
       switch((byteSizeOfObject - 1) >> 6) {
       default:
       case 28: _mm_prefetch(ptr, _MM_HINT_T0); ptr += 64;
@@ -78,15 +66,18 @@ namespace NGT {
 #endif
     }
     inline static void *alignedAlloc(const size_t allocSize) {
-#ifdef NGT_COMPARATOR_NO_AVX
+#ifdef NGT_NO_AVX
       return new uint8_t[allocSize];
 #else
-#if defined(NGT_COMPARATOR_AVX512)
+#if defined(NGT_AVX512)
       size_t alignment = 64;
       uint64_t mask = 0xFFFFFFFFFFFFFFC0;
-#elif defined(NGT_COMPARATOR_AVX2)
+#elif defined(NGT_AVX2)
       size_t alignment = 32;
       uint64_t mask = 0xFFFFFFFFFFFFFFE0;
+#else
+      size_t alignment = 16;
+      uint64_t mask = 0xFFFFFFFFFFFFFFF0;
 #endif
       uint8_t *p = new uint8_t[allocSize + alignment];
       uint8_t *ptr = p + alignment;
@@ -97,7 +88,7 @@ namespace NGT {
 #endif
     }
     inline static void alignedFree(void *ptr) {
-#ifdef NGT_COMPARATOR_NO_AVX
+#ifdef NGT_NO_AVX
       delete[] static_cast<uint8_t*>(ptr);
 #else
       uint8_t *p = static_cast<uint8_t*>(ptr);
@@ -117,7 +108,7 @@ namespace NGT {
     static double absolute(double v) { return fabs(v); }
     static int absolute(int v) { return abs(v); }
 
-#if defined(NGT_COMPARATOR_NO_AVX)
+#if defined(NGT_NO_AVX)
     template <typename OBJECT_TYPE, typename COMPARE_TYPE> 
     inline static double compareL2(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       const OBJECT_TYPE *last = a + size;
@@ -150,60 +141,57 @@ namespace NGT {
 
 #else
     inline static double compareL2(const float *a, const float *b, size_t size) {
-#if defined(NGT_COMPARATOR_AVX512)
-      __m512 sum = _mm512_setzero_ps();
       const float *last = a + size;
-      const float *lastgroup = last - 31;
-      __m512 v;
-      while (a < lastgroup) {
-	v = _mm512_sub_ps(_mm512_loadu_ps(a), _mm512_loadu_ps(b));
-	sum = _mm512_add_ps(sum, _mm512_mul_ps(v, v));
-	a += 16;
-	b += 16;
-	v = _mm512_sub_ps(_mm512_loadu_ps(a), _mm512_loadu_ps(b));
-	sum = _mm512_add_ps(sum, _mm512_mul_ps(v, v));
-	a += 16;
-	b += 16;
-      }
-
-      __m256 tmp = _mm256_add_ps(_mm512_extractf32x8_ps(sum, 0), _mm512_extractf32x8_ps(sum, 1));
-      __m128 sum2 = _mm_add_ps(_mm256_extractf128_ps(tmp, 0), _mm256_extractf128_ps(tmp, 1));
-#else
-      __m256 sum = _mm256_setzero_ps();
-      const float *last = a + size;
-      const float *lastgroup = last - 31;
-      __m256 v;
-      while (a < lastgroup) {
-	v = _mm256_sub_ps(_mm256_loadu_ps(a), _mm256_loadu_ps(b));
-	sum = _mm256_add_ps(sum, _mm256_mul_ps(v, v));
-	a += 8;
-	b += 8;
-	v = _mm256_sub_ps(_mm256_loadu_ps(a), _mm256_loadu_ps(b));
-	sum = _mm256_add_ps(sum, _mm256_mul_ps(v, v));
-	a += 8;
-	b += 8;
-	v = _mm256_sub_ps(_mm256_loadu_ps(a), _mm256_loadu_ps(b));
-	sum = _mm256_add_ps(sum, _mm256_mul_ps(v, v));
-	a += 8;
-	b += 8;
-	v = _mm256_sub_ps(_mm256_loadu_ps(a), _mm256_loadu_ps(b));
-	sum = _mm256_add_ps(sum, _mm256_mul_ps(v, v));
-	a += 8;
-	b += 8;
-      }
-      __m128 sum2 = _mm_add_ps(_mm256_extractf128_ps(sum, 0), _mm256_extractf128_ps(sum, 1));
-#endif
-
-      __m128 v2;
+#if defined(NGT_AVX512)
+      __m512 sum512 = _mm512_setzero_ps();
       while (a < last) {
-	v2 = _mm_sub_ps(_mm_loadu_ps(a), _mm_loadu_ps(b));
-	sum2 = _mm_add_ps(sum2, _mm_mul_ps(v2, v2));
+	__m512 v = _mm512_sub_ps(_mm512_loadu_ps(a), _mm512_loadu_ps(b));
+	sum512 = _mm512_add_ps(sum512, _mm512_mul_ps(v, v));
+	a += 16;
+	b += 16;
+      }
+
+      __m256 sum256 = _mm256_add_ps(_mm512_extractf32x8_ps(sum512, 0), _mm512_extractf32x8_ps(sum512, 1));
+      __m128 sum128 = _mm_add_ps(_mm256_extractf128_ps(sum256, 0), _mm256_extractf128_ps(sum256, 1));
+#elif defined(NGT_AVX2)
+      __m256 sum256 = _mm256_setzero_ps();
+      __m256 v;
+      while (a < last) {
+	v = _mm256_sub_ps(_mm256_loadu_ps(a), _mm256_loadu_ps(b));
+	sum256 = _mm256_add_ps(sum256, _mm256_mul_ps(v, v));
+	a += 8;
+	b += 8;
+	v = _mm256_sub_ps(_mm256_loadu_ps(a), _mm256_loadu_ps(b));
+	sum256 = _mm256_add_ps(sum256, _mm256_mul_ps(v, v));
+	a += 8;
+	b += 8;
+      }
+      __m128 sum128 = _mm_add_ps(_mm256_extractf128_ps(sum256, 0), _mm256_extractf128_ps(sum256, 1));
+#else
+      __m128 sum128 = _mm_setzero_ps();
+      __m128 v;
+      while (a < last) {
+	v = _mm_sub_ps(_mm_loadu_ps(a), _mm_loadu_ps(b));
+	sum128 = _mm_add_ps(sum128, _mm_mul_ps(v, v));
+        a += 4;
+        b += 4;
+	v = _mm_sub_ps(_mm_loadu_ps(a), _mm_loadu_ps(b));
+	sum128 = _mm_add_ps(sum128, _mm_mul_ps(v, v));
+        a += 4;
+        b += 4;
+	v = _mm_sub_ps(_mm_loadu_ps(a), _mm_loadu_ps(b));
+	sum128 = _mm_add_ps(sum128, _mm_mul_ps(v, v));
+        a += 4;
+        b += 4;
+	v = _mm_sub_ps(_mm_loadu_ps(a), _mm_loadu_ps(b));
+	sum128 = _mm_add_ps(sum128, _mm_mul_ps(v, v));
         a += 4;
         b += 4;
       }
+#endif
 
       __attribute__((aligned(32))) float f[4];
-      _mm_store_ps(f, sum2);
+      _mm_store_ps(f, sum128);
 
       double s = f[0] + f[1] + f[2] + f[3];
       return sqrt(s);
@@ -234,7 +222,7 @@ namespace NGT {
       return sqrt(s);
     }
 #endif
-#if defined(NGT_COMPARATOR_NO_AVX)
+#if defined(NGT_NO_AVX)
     template <typename OBJECT_TYPE, typename COMPARE_TYPE> 
     static double compareL1(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       const OBJECT_TYPE *last = a + size;
@@ -313,7 +301,7 @@ namespace NGT {
     }
 #endif
 
-#if defined(NGT_COMPARATOR_NO_AVX) || !defined(__POPCNT__)    
+#if defined(NGT_NO_AVX) || !defined(__POPCNT__)    
     inline static double popCount(uint32_t x) {
       x = (x & 0x55555555) + (x >> 1 & 0x55555555);
       x = (x & 0x33333333) + (x >> 2 & 0x33333333);
@@ -353,7 +341,7 @@ namespace NGT {
     }
 #endif
 
-#if defined(NGT_COMPARATOR_NO_AVX) || !defined(__POPCNT__)    
+#if defined(NGT_NO_AVX) || !defined(__POPCNT__)    
     template <typename OBJECT_TYPE>
       inline static double compareJaccardDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       const uint32_t *last = reinterpret_cast<const uint32_t*>(a + size);
@@ -391,7 +379,7 @@ namespace NGT {
     }
 #endif
 
-#if defined(NGT_COMPARATOR_NO_AVX)
+#if defined(NGT_NO_AVX)
    template <typename OBJECT_TYPE> 
     inline static double compareDotProduct(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       double sum = 0.0;
@@ -418,48 +406,35 @@ namespace NGT {
     }
 #else
     inline static double compareDotProduct(const float *a, const float *b, size_t size) {
-#if defined(NGT_COMPARATOR_AVX512)
-      __m512 sum = _mm512_setzero_ps();
       const float *last = a + size;
-      const float *lastgroup = last - 31;
-      while (a < lastgroup) {
-	sum = _mm512_add_ps(sum, _mm512_mul_ps(_mm512_loadu_ps(a), _mm512_loadu_ps(b)));
-	a += 16;
-	b += 16;
-	sum = _mm512_add_ps(sum, _mm512_mul_ps(_mm512_loadu_ps(a), _mm512_loadu_ps(b)));
+#if defined(NGT_AVX512)
+      __m512 sum512 = _mm512_setzero_ps();
+      while (a < last) {
+	sum512 = _mm512_add_ps(sum512, _mm512_mul_ps(_mm512_loadu_ps(a), _mm512_loadu_ps(b)));
 	a += 16;
 	b += 16;
       }
 
-      __m256 tmp = _mm256_add_ps(_mm512_extractf32x8_ps(sum, 0), _mm512_extractf32x8_ps(sum, 1));
-      __m128 sum2 = _mm_add_ps(_mm256_extractf128_ps(tmp, 0), _mm256_extractf128_ps(tmp, 1));
-#else
-      __m256 sum = _mm256_setzero_ps();
-      const float *last = a + size;
-      const float *lastgroup = last - 31;
-      while (a < lastgroup) {
-	sum = _mm256_add_ps(sum, _mm256_mul_ps(_mm256_loadu_ps(a), _mm256_loadu_ps(b)));
-	a += 8;
-	b += 8;
-	sum = _mm256_add_ps(sum, _mm256_mul_ps(_mm256_loadu_ps(a), _mm256_loadu_ps(b)));
-	a += 8;
-	b += 8;
-	sum = _mm256_add_ps(sum, _mm256_mul_ps(_mm256_loadu_ps(a), _mm256_loadu_ps(b)));
-	a += 8;
-	b += 8;
-	sum = _mm256_add_ps(sum, _mm256_mul_ps(_mm256_loadu_ps(a), _mm256_loadu_ps(b)));
+      __m256 sum256 = _mm256_add_ps(_mm512_extractf32x8_ps(sum512, 0), _mm512_extractf32x8_ps(sum512, 1));
+      __m128 sum128 = _mm_add_ps(_mm256_extractf128_ps(sum256, 0), _mm256_extractf128_ps(sum256, 1));
+#elif defined(NGT_AVX2)
+      __m256 sum256 = _mm256_setzero_ps();
+      while (a < last) {
+	sum256 = _mm256_add_ps(sum256, _mm256_mul_ps(_mm256_loadu_ps(a), _mm256_loadu_ps(b)));
 	a += 8;
 	b += 8;
       }
-      __m128 sum2 = _mm_add_ps(_mm256_extractf128_ps(sum, 0), _mm256_extractf128_ps(sum, 1));
-#endif
+      __m128 sum128 = _mm_add_ps(_mm256_extractf128_ps(sum256, 0), _mm256_extractf128_ps(sum256, 1));
+#else
+      __m128 sum128 = _mm_setzero_ps();
       while (a < last) {
-	sum2 = _mm_add_ps(sum2, _mm_mul_ps(_mm_loadu_ps(a), _mm_loadu_ps(b)));
+	sum128 = _mm_add_ps(sum128, _mm_mul_ps(_mm_loadu_ps(a), _mm_loadu_ps(b)));
 	a += 4;
 	b += 4;
       }
+#endif
       __attribute__((aligned(32))) float f[4];
-      _mm_store_ps(f, sum2);
+      _mm_store_ps(f, sum128);
 
       double s = f[0] + f[1] + f[2] + f[3];
       return s;
@@ -475,38 +450,67 @@ namespace NGT {
 
     inline static double compareCosine(const float *a, const float *b, size_t size) {
 
+      const float *last = a + size;
+#if defined(NGT_AVX512)
+      __m512 normA = _mm512_setzero_ps();
+      __m512 normB = _mm512_setzero_ps();
+      __m512 sum = _mm512_setzero_ps();
+      while (a < last) {
+	__m512 am = _mm512_loadu_ps(a);
+	__m512 bm = _mm512_loadu_ps(b);
+	normA = _mm512_add_ps(normA, _mm512_mul_ps(am, am));
+	normB = _mm512_add_ps(normB, _mm512_mul_ps(bm, bm));
+	sum = _mm512_add_ps(sum, _mm512_mul_ps(am, bm));
+	a += 16;
+	b += 16;
+      }
+      __m256 am256 = _mm256_add_ps(_mm512_extractf32x8_ps(normA, 0), _mm512_extractf32x8_ps(normA, 1));
+      __m256 bm256 = _mm256_add_ps(_mm512_extractf32x8_ps(normB, 0), _mm512_extractf32x8_ps(normB, 1));
+      __m256 s256 = _mm256_add_ps(_mm512_extractf32x8_ps(sum, 0), _mm512_extractf32x8_ps(sum, 1));
+      __m128 am128 = _mm_add_ps(_mm256_extractf128_ps(am256, 0), _mm256_extractf128_ps(am256, 1));
+      __m128 bm128 = _mm_add_ps(_mm256_extractf128_ps(bm256, 0), _mm256_extractf128_ps(bm256, 1));
+      __m128 s128 = _mm_add_ps(_mm256_extractf128_ps(s256, 0), _mm256_extractf128_ps(s256, 1));
+#elif defined(NGT_AVX2)
       __m256 normA = _mm256_setzero_ps();
       __m256 normB = _mm256_setzero_ps();
       __m256 sum = _mm256_setzero_ps();
-      const float *last = a + size;
-      const float *lastgroup = last - 7;
-      while (a < lastgroup) {
-	__m256 am = _mm256_loadu_ps(a);
-	__m256 bm = _mm256_loadu_ps(b);
+      __m256 am, bm;
+      while (a < last) {
+	am = _mm256_loadu_ps(a);
+	bm = _mm256_loadu_ps(b);
 	normA = _mm256_add_ps(normA, _mm256_mul_ps(am, am));
 	normB = _mm256_add_ps(normB, _mm256_mul_ps(bm, bm));
 	sum = _mm256_add_ps(sum, _mm256_mul_ps(am, bm));
 	a += 8;
 	b += 8;
       }
-
-      __attribute__((aligned(32))) float f[8];
-
-      _mm256_store_ps(f, normA);
-      double na = f[0] + f[1] + f[2] + f[3] + f[4] + f[5] + f[6] + f[7];
-      _mm256_store_ps(f, normB);
-      double nb = f[0] + f[1] + f[2] + f[3] + f[4] + f[5] + f[6] + f[7];
-      _mm256_store_ps(f, sum);
-      double s = f[0] + f[1] + f[2] + f[3] + f[4] + f[5] + f[6] + f[7];
+      __m128 am128 = _mm_add_ps(_mm256_extractf128_ps(normA, 0), _mm256_extractf128_ps(normA, 1));
+      __m128 bm128 = _mm_add_ps(_mm256_extractf128_ps(normB, 0), _mm256_extractf128_ps(normB, 1));
+      __m128 s128 = _mm_add_ps(_mm256_extractf128_ps(sum, 0), _mm256_extractf128_ps(sum, 1));
+#else
+      __m128 am128 = _mm_setzero_ps();
+      __m128 bm128 = _mm_setzero_ps();
+      __m128 s128 = _mm_setzero_ps();
+      __m128 am, bm;
       while (a < last) {
-	double av = *a;
-	double bv = *b;
-	na += av * av;
-	nb += bv * bv;
-	s += av * bv;
-	a++;
-	b++;
+	am = _mm_loadu_ps(a);
+	bm = _mm_loadu_ps(b);
+	am128 = _mm_add_ps(am128, _mm_mul_ps(am, am));
+	bm128 = _mm_add_ps(bm128, _mm_mul_ps(bm, bm));
+	s128 = _mm_add_ps(s128, _mm_mul_ps(am, bm));
+	a += 4;
+	b += 4;
       }
+
+#endif
+
+      __attribute__((aligned(32))) float f[4];
+      _mm_store_ps(f, am128);
+      double na = f[0] + f[1] + f[2] + f[3];
+      _mm_store_ps(f, bm128);
+      double nb = f[0] + f[1] + f[2] + f[3];
+      _mm_store_ps(f, s128);
+      double s = f[0] + f[1] + f[2] + f[3];
 
       double cosine = s / sqrt(na * nb);
       return cosine;
@@ -526,7 +530,7 @@ namespace NGT {
 
       return cosine;
     }
-#endif    // #if defined(NGT_COMPARATOR_NO_AVX)
+#endif    // #if defined(NGT_NO_AVX)
 
     template <typename OBJECT_TYPE> 
     inline static double compareAngleDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
@@ -594,7 +598,7 @@ namespace NGT {
     class L2Float {
     public:
       inline static double compare(const void *a, const void *b, size_t size) {
-#if defined(NGT_COMPARATOR_NO_AVX)
+#if defined(NGT_NO_AVX)
 	return PrimitiveComparator::compareL2<float, double>((const float*)a, (const float*)b, size);
 #else
 	return PrimitiveComparator::compareL2((const float*)a, (const float*)b, size);

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2019 Yahoo Japan Corporation
+// Copyright (C) 2015-2020 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -488,6 +488,7 @@ namespace NGT {
   public:
     BooleanSet(size_t s) {
       size = (s >> 6) + 1; // 2^6=64
+      size = ((size >> 2) << 2) + 4; 
       bitvec.resize(size);
     }
     inline uint64_t getBitString(size_t i) { return (uint64_t)1 << (i & (64 - 1)); }
@@ -500,7 +501,7 @@ namespace NGT {
     }
     inline void insert(size_t i) { set(i); }
     inline void reset(size_t i) {
-      getEntry(i) &= getBitString(i);
+      getEntry(i) &= ~getBitString(i);
     }
     std::vector<uint64_t>	bitvec;
     uint64_t		size;

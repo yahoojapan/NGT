@@ -119,7 +119,7 @@ The followings are the results of [ann benchmarks](https://github.com/erikbern/a
 License
 -------
 
-Copyright (C) 2015-2019 Yahoo Japan Corporation
+Copyright (C) 2015-2020 Yahoo Japan Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this software except in compliance with the License. You may obtain a copy of the License at
 

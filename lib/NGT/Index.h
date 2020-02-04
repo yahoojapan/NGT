@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2019 Yahoo Japan Corporation
+// Copyright (C) 2015-2020 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -81,6 +81,7 @@ namespace NGT {
 	databaseType	= DatabaseType::Memory;
 #endif
 	prefetchOffset	= 0;
+	prefetchSize	= 0;
       }
       void clear() {
 	dimension 	= -1;
@@ -97,6 +98,7 @@ namespace NGT {
       	objectSharedMemorySize	= -1;
 #endif
 	prefetchOffset	= -1;
+	prefetchSize	= -1;
       }
 
       void exportProperty(NGT::PropertySet &p) {
@@ -142,6 +144,7 @@ namespace NGT {
 	p.set("ObjectSharedMemorySize", objectSharedMemorySize);
 #endif
 	p.set("PrefetchOffset", prefetchOffset);
+	p.set("PrefetchSize", prefetchSize);
       }
 
       void importProperty(NGT::PropertySet &p) {
@@ -232,6 +235,11 @@ namespace NGT {
 	objectSharedMemorySize = p.getl("ObjectSharedMemorySize", objectSharedMemorySize);
 #endif
 	prefetchOffset = p.getl("PrefetchOffset", prefetchOffset);
+	prefetchSize = p.getl("PrefetchSize", prefetchSize);
+	it = p.find("SearchType");
+	if (it != p.end()) {
+	  searchType = it->second;
+	}
       }
 
       void set(NGT::Property &prop);
@@ -250,6 +258,8 @@ namespace NGT {
       int		objectSharedMemorySize;
 #endif
       int		prefetchOffset;
+      int		prefetchSize;
+      std::string	searchType;	// test
     };
 
     class InsertionResult {

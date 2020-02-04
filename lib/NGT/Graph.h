@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2019 Yahoo Japan Corporation
+// Copyright (C) 2015-2020 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,9 +24,7 @@
 
 
 
-#ifdef NGT_GRAPH_CHECK_HASH_BASED_BOOLEAN_SET
 #include	"NGT/HashBasedBooleanSet.h"
-#endif
 
 #ifndef NGT_GRAPH_CHECK_VECTOR
 #include	<unordered_set>
@@ -185,9 +183,25 @@ namespace NGT {
     };
 
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
-    class ReadOnlyGraphNode : public std::vector<std::pair<uint32_t, PersistentObject*>> {
+    class ReadOnlyGraphNode : public std::vector<std::pair<uint64_t, PersistentObject*>> {
     public:
+      ReadOnlyGraphNode():reservedSize(0), usedSize(0) {}
+      void reserve(size_t s) {
+	reservedSize = ((s & 7) == 0) ? s : (s & 0xFFFFFFFFFFFFFFF8) + 8;
+	resize(reservedSize);
+	for (size_t i = (reservedSize & 0xFFFFFFFFFFFFFFF8); i < reservedSize; i++) {
+	  (*this)[i].first = 0;
+	}
+      }
+      void push_back(std::pair<uint32_t, PersistentObject*> node) {
+	(*this)[usedSize] = node;
+	usedSize++;
+      }
+      size_t size() { return usedSize; }
+      size_t reservedSize;
+      size_t usedSize;
     };
+
     class SearchGraphRepository : public std::vector<ReadOnlyGraphNode> {
     public:
       SearchGraphRepository() {}
@@ -235,7 +249,8 @@ namespace NGT {
       }
 
     };
-#endif
+
+#endif // NGT_GRAPH_READ_ONLY_GRAPH
 
     class NeighborhoodGraph {
     public:
@@ -260,8 +275,9 @@ namespace NGT {
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
       class Search {
       public:
-	static void (*getMethod(NGT::ObjectSpace::DistanceType dtype, NGT::ObjectSpace::ObjectType otype))(NGT::NeighborhoodGraph&, NGT::SearchContainer&, NGT::ObjectDistances&)  {
-	  switch (otype) {
+	static void (*getMethod(NGT::ObjectSpace::DistanceType dtype, NGT::ObjectSpace::ObjectType otype, size_t size))(NGT::NeighborhoodGraph&, NGT::SearchContainer&, NGT::ObjectDistances&)  {
+	  if (size < 5000000) {
+	    switch (otype) {
 	    default:
 	    case NGT::ObjectSpace::Float:	    
 	      switch (dtype) {
@@ -282,9 +298,35 @@ namespace NGT {
 	      case NGT::ObjectSpace::DistanceTypeL1 : 	   return l1Uint8;
 	      default : 				   return l2Uint8;
 	      }
-	    break;
+	      break;
+	    }
+	    return l1Uint8;
+	  } else {
+	    switch (otype) {
+	    default:
+	    case NGT::ObjectSpace::Float:	    
+	      switch (dtype) {
+	      case NGT::ObjectSpace::DistanceTypeNormalizedCosine : return normalizedCosineSimilarityFloatForLargeDataset;
+	      case NGT::ObjectSpace::DistanceTypeCosine : 	    return cosineSimilarityFloatForLargeDataset;
+	      case NGT::ObjectSpace::DistanceTypeNormalizedAngle :  return normalizedAngleFloatForLargeDataset;
+	      case NGT::ObjectSpace::DistanceTypeAngle : 	    return angleFloatForLargeDataset;
+	      case NGT::ObjectSpace::DistanceTypeL2 : 		    return l2FloatForLargeDataset;
+	      case NGT::ObjectSpace::DistanceTypeL1 : 		    return l1FloatForLargeDataset;
+	      default:						    return l2FloatForLargeDataset;
+	      }
+	      break;
+	    case NGT::ObjectSpace::Uint8:
+	      switch (dtype) {
+	      case NGT::ObjectSpace::DistanceTypeHamming : return hammingUint8ForLargeDataset;
+	      case NGT::ObjectSpace::DistanceTypeJaccard : return jaccardUint8ForLargeDataset;
+	      case NGT::ObjectSpace::DistanceTypeL2 : 	   return l2Uint8ForLargeDataset;
+	      case NGT::ObjectSpace::DistanceTypeL1 : 	   return l1Uint8ForLargeDataset;
+	      default : 				   return l2Uint8ForLargeDataset;
+	      }
+	      break;
+	    }
+	    return l1Uint8ForLargeDataset;
 	  }
-	  return l1Uint8;
 	}
 	static void l1Uint8(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void l2Uint8(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
@@ -296,6 +338,18 @@ namespace NGT {
 	static void angleFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void normalizedCosineSimilarityFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void normalizedAngleFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+
+	static void l1Uint8ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void l2Uint8ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void l1FloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void l2FloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void hammingUint8ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void jaccardUint8ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void cosineSimilarityFloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void angleFloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void normalizedCosineSimilarityFloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void normalizedAngleFloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+
       };
 #endif
 
@@ -608,7 +662,7 @@ namespace NGT {
       void search(NGT::SearchContainer &sc, ObjectDistances &seeds);
 
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
-      template <typename COMPARATOR> void searchReadOnlyGraph(NGT::SearchContainer &sc, ObjectDistances &seeds);
+      template <typename COMPARATOR, typename CHECK_LIST> void searchReadOnlyGraph(NGT::SearchContainer &sc, ObjectDistances &seeds);
 #endif
 
       void removeEdge(ObjectID fid, ObjectID rmid) {
@@ -687,6 +741,8 @@ namespace NGT {
       };
 #endif
 
+      typedef HashBasedBooleanSet DistanceCheckedSetForLargeDataset;
+
       class NodeWithPosition : public ObjectDistance {
        public:
         NodeWithPosition(uint32_t p = 0):position(p){}
@@ -714,6 +770,11 @@ namespace NGT {
 
       void setupSeeds(SearchContainer &sc, ObjectDistances &seeds, ResultSet &results, 
 		      UncheckedSet &unchecked, DistanceCheckedSet &distanceChecked);
+
+#if !defined(NGT_GRAPH_CHECK_HASH_BASED_BOOLEAN_SET)
+      void setupSeeds(SearchContainer &sc, ObjectDistances &seeds, ResultSet &results, 
+		      UncheckedSet &unchecked, DistanceCheckedSetForLargeDataset &distanceChecked);
+#endif
 
 
       int getEdgeSize() {return property.edgeSizeForCreation;}

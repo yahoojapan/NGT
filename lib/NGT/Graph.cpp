@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2019 Yahoo Japan Corporation
+// Copyright (C) 2015-2020 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 #include	"Graph.h"
 #include	"Thread.h"
 #include	"Index.h"
+
 
 
 using namespace std;
@@ -70,62 +71,127 @@ NeighborhoodGraph::Property::get(NGT::Property &prop) {
 void 
 NeighborhoodGraph::Search::normalizedCosineSimilarityFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
 {
-  graph.searchReadOnlyGraph<PrimitiveComparator::NormalizedCosineSimilarityFloat>(sc, seeds);
+  graph.searchReadOnlyGraph<PrimitiveComparator::NormalizedCosineSimilarityFloat, DistanceCheckedSet>(sc, seeds);
 }
 
 void 
 NeighborhoodGraph::Search::cosineSimilarityFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
 {
-  graph.searchReadOnlyGraph<PrimitiveComparator::CosineSimilarityFloat>(sc, seeds);
+  graph.searchReadOnlyGraph<PrimitiveComparator::CosineSimilarityFloat, DistanceCheckedSet>(sc, seeds);
 }
 
 void 
 NeighborhoodGraph::Search::normalizedAngleFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
 {
-  graph.searchReadOnlyGraph<PrimitiveComparator::NormalizedAngleFloat>(sc, seeds);
+  graph.searchReadOnlyGraph<PrimitiveComparator::NormalizedAngleFloat, DistanceCheckedSet>(sc, seeds);
 }
 
 void 
 NeighborhoodGraph::Search::angleFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
 {
-  graph.searchReadOnlyGraph<PrimitiveComparator::AngleFloat>(sc, seeds);
+  graph.searchReadOnlyGraph<PrimitiveComparator::AngleFloat, DistanceCheckedSet>(sc, seeds);
 }
 
 void 
 NeighborhoodGraph::Search::l1Float(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
 {
-  graph.searchReadOnlyGraph<PrimitiveComparator::L1Float>(sc, seeds);
+  graph.searchReadOnlyGraph<PrimitiveComparator::L1Float, DistanceCheckedSet>(sc, seeds);
 }
 
 void 
 NeighborhoodGraph::Search::l2Float(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
 {
-  graph.searchReadOnlyGraph<PrimitiveComparator::L2Float>(sc, seeds);
+  graph.searchReadOnlyGraph<PrimitiveComparator::L2Float, DistanceCheckedSet>(sc, seeds);
 }
 
 void 
 NeighborhoodGraph::Search::l1Uint8(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
 {
-  graph.searchReadOnlyGraph<PrimitiveComparator::L1Uint8>(sc, seeds);
+  graph.searchReadOnlyGraph<PrimitiveComparator::L1Uint8, DistanceCheckedSet>(sc, seeds);
 }
 
 void 
 NeighborhoodGraph::Search::l2Uint8(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
 {
-  graph.searchReadOnlyGraph<PrimitiveComparator::L2Uint8>(sc, seeds);
+  graph.searchReadOnlyGraph<PrimitiveComparator::L2Uint8, DistanceCheckedSet>(sc, seeds);
 }
 
 void 
 NeighborhoodGraph::Search::hammingUint8(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
 {
-  graph.searchReadOnlyGraph<PrimitiveComparator::HammingUint8>(sc, seeds);
+  graph.searchReadOnlyGraph<PrimitiveComparator::HammingUint8, DistanceCheckedSet>(sc, seeds);
 }
 
 void 
 NeighborhoodGraph::Search::jaccardUint8(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
 {
-  graph.searchReadOnlyGraph<PrimitiveComparator::JaccardUint8>(sc, seeds);
+  graph.searchReadOnlyGraph<PrimitiveComparator::JaccardUint8, DistanceCheckedSet>(sc, seeds);
 }
+
+////
+
+void 
+NeighborhoodGraph::Search::normalizedCosineSimilarityFloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::NormalizedCosineSimilarityFloat, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::cosineSimilarityFloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::CosineSimilarityFloat, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::normalizedAngleFloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::NormalizedAngleFloat, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::angleFloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::AngleFloat, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::l1FloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::L1Float, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::l2FloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::L2Float, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::l1Uint8ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::L1Uint8, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::l2Uint8ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::L2Uint8, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::hammingUint8ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::HammingUint8, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::jaccardUint8ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::JaccardUint8, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+
+
+
 #endif
 
 void 
@@ -133,21 +199,21 @@ NeighborhoodGraph::setupDistances(NGT::SearchContainer &sc, ObjectDistances &see
 {
   ObjectRepository &objectRepository = getObjectRepository();
   NGT::ObjectSpace::Comparator &comparator = objectSpace->getComparator();
-  size_t byteSizeOfObject = objectSpace->getByteSizeOfObject();
   ObjectDistances tmp;
   tmp.reserve(seeds.size());
   size_t seedSize = seeds.size();
 #ifndef NGT_PREFETCH_DISABLED
+  const size_t prefetchSize = objectSpace->getPrefetchSize();
   const size_t prefetchOffset = objectSpace->getPrefetchOffset();
 #if !defined(NGT_SHARED_MEMORY_ALLOCATOR)
   PersistentObject **objects = objectRepository.getPtr();
 #endif
-  size_t prefetchSize = prefetchOffset < seedSize ? prefetchOffset : seedSize;
-  for (size_t i = 0; i < prefetchSize; i++) {
+  size_t poft = prefetchOffset < seedSize ? prefetchOffset : seedSize;
+  for (size_t i = 0; i < poft; i++) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    MemoryCache::prefetch(reinterpret_cast<unsigned char *>(objectRepository.get(seeds[i].id)), byteSizeOfObject);
+    MemoryCache::prefetch(reinterpret_cast<unsigned char *>(objectRepository.get(seeds[i].id)), prefetchSize);
 #else
-    MemoryCache::prefetch(reinterpret_cast<unsigned char *>(objects[seeds[i].id]), byteSizeOfObject);
+    MemoryCache::prefetch(reinterpret_cast<unsigned char *>(objects[seeds[i].id]), prefetchSize);
 #endif
   }
 #endif
@@ -155,9 +221,9 @@ NeighborhoodGraph::setupDistances(NGT::SearchContainer &sc, ObjectDistances &see
 #ifndef NGT_PREFETCH_DISABLED
     if (i + prefetchOffset < seedSize) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-      MemoryCache::prefetch(reinterpret_cast<unsigned char*>(objectRepository.get(seeds[i + prefetchOffset].id)), byteSizeOfObject);
+      MemoryCache::prefetch(reinterpret_cast<unsigned char*>(objectRepository.get(seeds[i + prefetchOffset].id)), prefetchSize);
 #else
-      MemoryCache::prefetch(reinterpret_cast<unsigned char*>(objects[seeds[i + prefetchOffset].id]), byteSizeOfObject);
+      MemoryCache::prefetch(reinterpret_cast<unsigned char*>(objects[seeds[i + prefetchOffset].id]), prefetchSize);
 #endif
     }
 #endif
@@ -182,20 +248,20 @@ void
 NeighborhoodGraph::setupDistances(NGT::SearchContainer &sc, ObjectDistances &seeds, double (&comparator)(const void*, const void*, size_t))
 {
   ObjectRepository &objectRepository = getObjectRepository();
-  size_t byteSizeOfObject = objectSpace->getByteSizeOfObject();
   const size_t dimension = objectSpace->getPaddedDimension();
   size_t seedSize = seeds.size();
 #ifndef NGT_PREFETCH_DISABLED
+  const size_t prefetchSize = objectSpace->getPrefetchSize();
   const size_t prefetchOffset = objectSpace->getPrefetchOffset();
 #if !defined(NGT_SHARED_MEMORY_ALLOCATOR)
   PersistentObject **objects = objectRepository.getPtr();
 #endif
-  size_t prefetchSize = prefetchOffset < seedSize ? prefetchOffset : seedSize;
-  for (size_t i = 0; i < prefetchSize; i++) {
+  size_t poft = prefetchOffset < seedSize ? prefetchOffset : seedSize;
+  for (size_t i = 0; i < poft; i++) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    MemoryCache::prefetch(reinterpret_cast<unsigned char *>(objectRepository.get(seeds[i].id)), byteSizeOfObject);
+    MemoryCache::prefetch(reinterpret_cast<unsigned char *>(objectRepository.get(seeds[i].id)), prefetchSize);
 #else
-    MemoryCache::prefetch(reinterpret_cast<unsigned char *>(objects[seeds[i].id]), byteSizeOfObject);
+    MemoryCache::prefetch(reinterpret_cast<unsigned char *>(objects[seeds[i].id]), prefetchSize);
 #endif
   }
 #endif
@@ -203,9 +269,9 @@ NeighborhoodGraph::setupDistances(NGT::SearchContainer &sc, ObjectDistances &see
 #ifndef NGT_PREFETCH_DISABLED
     if (i + prefetchOffset < seedSize) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-      MemoryCache::prefetch(reinterpret_cast<unsigned char*>(objectRepository.get(seeds[i + prefetchOffset].id)), byteSizeOfObject);
+      MemoryCache::prefetch(reinterpret_cast<unsigned char*>(objectRepository.get(seeds[i + prefetchOffset].id)), prefetchSize);
 #else
-      MemoryCache::prefetch(reinterpret_cast<unsigned char*>(objects[seeds[i + prefetchOffset].id]), byteSizeOfObject);
+      MemoryCache::prefetch(reinterpret_cast<unsigned char*>(objects[seeds[i + prefetchOffset].id]), prefetchSize);
 #endif
     }
 #endif
@@ -254,8 +320,36 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
   }
 }
 
+#if !defined(NGT_GRAPH_CHECK_HASH_BASED_BOOLEAN_SET)
+void 
+NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, ResultSet &results, 
+			      UncheckedSet &unchecked, DistanceCheckedSetForLargeDataset &distanceChecked)
+{
+  std::sort(seeds.begin(), seeds.end());
+
+  for (ObjectDistances::iterator ri = seeds.begin(); ri != seeds.end(); ri++) {
+    if ((results.size() < (unsigned int)sc.size) && ((*ri).distance <= sc.radius)) {
+      results.push((*ri));
+    } else {
+      break;
+    }
+  }
+
+  if (results.size() >= sc.size) {
+    sc.radius = results.top().distance;
+  }
+
+  for (ObjectDistances::iterator ri = seeds.begin(); ri != seeds.end(); ri++) {
+    distanceChecked.insert((*ri).id);
+    //distanceChecked[(*ri).id] = 1;
+    unchecked.push(*ri);
+  }
+}
+#endif
+
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
-  template <typename COMPARATOR>
+
+  template <typename COMPARATOR, typename CHECK_LIST>
   void
     NeighborhoodGraph::searchReadOnlyGraph(NGT::SearchContainer &sc, ObjectDistances &seeds)
   {
@@ -268,7 +362,8 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 
     UncheckedSet unchecked;
 
-    DistanceCheckedSet distanceChecked(searchRepository.size());
+    //DistanceCheckedSet distanceChecked(searchRepository.size());
+    CHECK_LIST distanceChecked(searchRepository.size());
 
     ResultSet results;
 
@@ -277,14 +372,14 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 
     Distance explorationRadius = sc.explorationCoefficient * sc.radius;
     const size_t dimension = objectSpace->getPaddedDimension();
-    const size_t byteSizeOfObject = objectSpace->getByteSizeOfObject();
     ReadOnlyGraphNode *nodes = &searchRepository.front();
     ReadOnlyGraphNode *neighbors = 0;
     ObjectDistance result;
     ObjectDistance target;
+    const size_t prefetchSize = objectSpace->getPrefetchSize();
     const size_t prefetchOffset = objectSpace->getPrefetchOffset();
-    pair<uint32_t, PersistentObject*> *neighborptr;
-    pair<uint32_t, PersistentObject*> *neighborendptr;
+    pair<uint64_t, PersistentObject*> *neighborptr;
+    pair<uint64_t, PersistentObject*> *neighborendptr;
     while (!unchecked.empty()) {
       target = unchecked.top();
       unchecked.pop();
@@ -296,7 +391,7 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
       size_t neighborSize = neighbors->size() < edgeSize ? neighbors->size() : edgeSize;
       neighborendptr = neighborptr + neighborSize;
 
-      pair<uint32_t, PersistentObject*>* nsPtrs[neighborSize];
+      pair<uint64_t, PersistentObject*>* nsPtrs[neighborSize];
       size_t nsPtrsSize = 0;
 
       for (; neighborptr < neighborendptr; ++neighborptr) {
@@ -304,7 +399,7 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
          nsPtrs[nsPtrsSize] = neighborptr;
          if (nsPtrsSize < prefetchOffset) {
            unsigned char *ptr = reinterpret_cast<unsigned char*>((*(neighborptr)).second);
-           MemoryCache::prefetch(ptr, byteSizeOfObject);
+           MemoryCache::prefetch(ptr, prefetchSize);
          }
          nsPtrsSize++;
        }
@@ -313,7 +408,7 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 	neighborptr = nsPtrs[idx]; 
 	if (idx + prefetchOffset < nsPtrsSize) {
 	  unsigned char *ptr = reinterpret_cast<unsigned char*>((*(nsPtrs[idx + prefetchOffset])).second);
-	  MemoryCache::prefetch(ptr, byteSizeOfObject);
+	  MemoryCache::prefetch(ptr, prefetchSize);
 	}
 #ifdef NGT_VISIT_COUNT
 	sc.visitCount++;
@@ -384,7 +479,7 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
     Distance explorationRadius = sc.explorationCoefficient * sc.radius;
     NGT::ObjectSpace::Comparator &comparator = objectSpace->getComparator();
     ObjectRepository &objectRepository = getObjectRepository();
-    const size_t byteSizeOfObject = objectSpace->getByteSizeOfObject();
+    const size_t prefetchSize = objectSpace->getPrefetchSize();
     ObjectDistance result;
 #ifdef NGT_GRAPH_BETTER_FIRST_RESTORE
     NodeWithPosition target;
@@ -432,11 +527,11 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 #ifdef NGT_GRAPH_BETTER_FIRST_RESTORE
       neighborendptr -= position;
 #endif
-      size_t prefetchSize = prefetchOffset < neighborSize ? prefetchOffset : neighborSize;
-      for (size_t i = 0; i < prefetchSize; i++) {
+      size_t poft = prefetchOffset < neighborSize ? prefetchOffset : neighborSize;
+      for (size_t i = 0; i < poft; i++) {
 	if (!distanceChecked[(*(neighborptr + i)).id]) {
 	  unsigned char *ptr = reinterpret_cast<unsigned char*>(objectRepository.get((*(neighborptr + i)).id));
-	  MemoryCache::prefetch(ptr, byteSizeOfObject);
+	  MemoryCache::prefetch(ptr, prefetchSize);
 	}
       }
 #ifdef NGT_GRAPH_BETTER_FIRST_RESTORE
@@ -446,7 +541,7 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 #endif
 	if ((neighborptr + prefetchOffset < neighborendptr) && !distanceChecked[(*(neighborptr + prefetchOffset)).id]) {
 	  unsigned char *ptr = reinterpret_cast<unsigned char*>(objectRepository.get((*(neighborptr + prefetchOffset)).id));
-	  MemoryCache::prefetch(ptr, byteSizeOfObject);
+	  MemoryCache::prefetch(ptr, prefetchSize);
 	}
 	sc.visitCount++;
 	ObjectDistance &neighbor = *neighborptr;

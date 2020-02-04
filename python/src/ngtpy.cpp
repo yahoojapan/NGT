@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2018-2019 Yahoo Japan Corporation
+// Copyright (C) 2018-2020 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -370,7 +370,7 @@ PYBIND11_MODULE(ngtpy, m) {
 	   py::arg("high_accuracy_from") = -1.0,
 	   py::arg("high_accuracy_to") = -1.0,
 	   py::arg("gt_epsilon") = DBL_MIN,
-	   py::arg("merge") = -1.0,
+	   py::arg("margin") = -1.0,
 	   py::arg("log_disabled") = false)
       .def("execute", &NGT::GraphOptimizer::execute, 
 	   py::arg("in_index_path"),
@@ -386,6 +386,6 @@ PYBIND11_MODULE(ngtpy, m) {
 	   py::arg("high_accuracy_from") = -1.0,
 	   py::arg("high_accuracy_to") = -1.0,
 	   py::arg("gt_epsilon") = DBL_MIN,
-	   py::arg("merge") = -1.0);
+	   py::arg("margin") = -1.0);
 }
 

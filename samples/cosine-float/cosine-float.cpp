@@ -66,7 +66,6 @@ main(int argc, char **argv)
 	}
 	cout << "...";
       }
-
       NGT::SearchQuery		sc(query);
       NGT::ObjectDistances	objects;
       sc.setResults(&objects);

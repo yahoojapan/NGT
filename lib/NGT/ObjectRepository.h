@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2019 Yahoo Japan Corporation
+// Copyright (C) 2015-2020 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -180,7 +180,7 @@ namespace NGT {
     }
 
     Object *allocateObject() {
-      return (Object*) new Object(byteSize);
+      return (Object*) new Object(paddedByteSize);
     }
 
     // This method is called during search to generate query.
@@ -221,7 +221,7 @@ namespace NGT {
 
     template <typename T>
       Object *allocateObject(T *o, size_t size = 0) {
-      Object *po = new Object(byteSize);
+      Object *po = new Object(paddedByteSize);
       if (size != 0 && dimension != size) {
 	std::cerr << "ObjectSpace::allocateObject: Fatal error! dimension is invalid. The indexed objects=" 
 	     << dimension << " The specified object=" << size << std::endl;
@@ -262,7 +262,7 @@ namespace NGT {
 	std::cerr << "ObjectSpace::allocate: Fatal error: unsupported type!" << std::endl;
 	abort();
       }
-      PersistentObject *po = new (objectAllocator) PersistentObject(objectAllocator, byteSize);
+      PersistentObject *po = new (objectAllocator) PersistentObject(objectAllocator, paddedByteSize);
       void *dsto = &(*po).at(0, allocator);
       void *srco = &o[0];
       memcpy(dsto, srco, cpsize);
@@ -272,7 +272,7 @@ namespace NGT {
     template <typename T>
       PersistentObject *allocatePersistentObject(T *o, size_t size = 0) {
       SharedMemoryAllocator &objectAllocator = getAllocator();
-      PersistentObject *po = new (objectAllocator) PersistentObject(objectAllocator, byteSize);
+      PersistentObject *po = new (objectAllocator) PersistentObject(objectAllocator, paddedByteSize);
       if (size != 0 && dimension != size) {
 	std::cerr << "ObjectSpace::allocateObject: Fatal error! dimension is invalid. The indexed objects=" 
 	     << dimension << " The specified object=" << size << std::endl;
@@ -347,6 +347,9 @@ namespace NGT {
     void setLength(size_t l) {
       byteSize = l;
     }
+    void setPaddedLength(size_t l) {
+      paddedByteSize = l;
+    }
 
     size_t getByteSize() { return byteSize; }
     size_t insert(PersistentObject *obj) { return Parent::insert(obj); }
@@ -354,6 +357,7 @@ namespace NGT {
     const std::type_info &type;
    protected:
     size_t byteSize;		// the length of all of elements.
+    size_t paddedByteSize;
   };
 
 } // namespace NGT

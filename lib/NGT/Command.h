@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2019 Yahoo Japan Corporation
+// Copyright (C) 2015-2020 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,7 +24,19 @@ class Command {
 public:
   class SearchParameter {
   public:
-    SearchParameter() {}
+    SearchParameter() {
+      openMode   = 'r';
+      query      = "";
+      querySize  = 0;
+      indexType  = 't';
+      size       = 20;
+      edgeSize   = -1;
+      outputMode = "-";
+      radius     = FLT_MAX;
+      step	 = 0;
+      trial      = 1;
+      beginOfEpsilon = endOfEpsilon = stepOfEpsilon = 0.1;
+    }
     SearchParameter(Args &args) { parse(args); }
     void parse(Args &args) {
       openMode = args.getChar("m", 'r');
@@ -37,9 +49,9 @@ public:
       indexType	= args.getChar("i", 't');
       size	= args.getl("n", 20);
       // edgeSize
-      // -1 : using the size which was specified at the index creation.
+      // -1(default) : using the size which was specified at the index creation.
       //  0 : no limitation for the edge size.
-      // e(-2) : automatically set it according to epsilon.
+      // -2('e') : automatically set it according to epsilon.
       if (args.getChar("E", '-') == 'e') {
 	edgeSize	= -2;
       } else {
@@ -95,7 +107,7 @@ public:
   void importIndex(Args &args);
   void prune(Args &args);
   void reconstructGraph(Args &args);
-
+  void optimizeSearchParameters(Args &args);
 
   void info(Args &args);
   void setDebugLevel(int level) { debugLevel = level; }

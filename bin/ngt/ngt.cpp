@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2019 Yahoo Japan Corporation
+// Copyright (C) 2015-2020 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ version(ostream &os)
 
 void help() {
   cerr << "Usage : ngt command index [data]" << endl;
-  cerr << "           command : create search remove append export import prune reconstruct-graph" << endl;
+  cerr << "           command : create search remove append export import prune reconstruct-graph optimize-search-parameters" << endl;
   cerr << "Version : " << NGT::Index::getVersion() << endl;
   if (NGT::Index::getVersion() != NGT::Version::getVersion()) {
     version(cerr);
@@ -92,13 +92,14 @@ main(int argc, char **argv)
       ngt.reconstructGraph(args);
     } else if (command == "eval") {
       NGT::Optimizer::evaluate(args);
+    } else if (command == "optimize-search-parameters") {
+      ngt.optimizeSearchParameters(args);
 #ifndef NGT_SHARED_MEMORY_ALLOCATOR
     } else if (command == "extract-query") {
       NGT::Optimizer::extractQueries(args);
     } else if (command == "adjust-edge-size") {
       NGT::Optimizer::adjustSearchEdgeSize(args);
 #endif
-
     } else if (command == "info") {
       if (NGT::Index::getVersion() != NGT::Version::getVersion()) {
 	version(cerr);

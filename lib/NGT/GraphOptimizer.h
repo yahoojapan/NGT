@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2019 Yahoo Japan Corporation
+// Copyright (C) 2015-2020 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ namespace NGT {
       baseAccuracyRange = std::pair<float, float>(0.30, 0.50);
       rateAccuracyRange = std::pair<float, float>(0.80, 0.90);
       gtEpsilon = 0.1;
-      mergin = 0.2;
+      margin = 0.2;
       logDisabled = false;
     }
 
@@ -58,7 +58,7 @@ namespace NGT {
 	optimizer.enableLog();
       }
       try {
-	auto coefficients = optimizer.adjustSearchEdgeSize(baseAccuracyRange, rateAccuracyRange, numOfQueries, gtEpsilon, mergin);
+	auto coefficients = optimizer.adjustSearchEdgeSize(baseAccuracyRange, rateAccuracyRange, numOfQueries, gtEpsilon, margin);
 	NGT::NeighborhoodGraph::Property &prop = graph.getGraphProperty();
 	prop.dynamicEdgeSizeBase = coefficients.first;
 	prop.dynamicEdgeSizeRate = coefficients.second;
@@ -70,6 +70,106 @@ namespace NGT {
       graph.saveIndex(indexPath);
     }
 
+    static double measureSearchTime(NGT::Index &index, size_t start) {
+      NGT::ObjectSpace &objectSpace = index.getObjectSpace();
+      NGT::ObjectRepository &objectRepository = objectSpace.getRepository();
+      size_t nQueries = 200;
+      nQueries = objectRepository.size() - 1 < nQueries ? objectRepository.size() - 1 : nQueries;
+
+      size_t step = objectRepository.size() / nQueries;
+      assert(step != 0);
+      std::vector<size_t> ids;
+      for (size_t startID = start; startID < step; startID++) {
+	for (size_t id = startID; id < objectRepository.size(); id += step) {
+	  if (!objectRepository.isEmpty(id)) {
+	    ids.push_back(id);
+	  }
+	}
+	if (ids.size() >= nQueries) {
+	  ids.resize(nQueries);
+	  break;
+	}
+      }
+      if (nQueries > ids.size()) {
+	std::cerr << "# of Queries is not enough." << std::endl;
+	return DBL_MAX;
+      }
+
+      NGT::Timer timer;
+      timer.reset();
+      for (auto id = ids.begin(); id != ids.end(); id++) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	NGT::Object *obj = objectSpace.allocateObject(*objectRepository.get(*id));
+	NGT::SearchContainer searchContainer(*obj);
+#else
+	NGT::SearchContainer searchContainer(*objectRepository.get(*id));
+#endif
+	NGT::ObjectDistances objects;
+	searchContainer.setResults(&objects);
+	searchContainer.setSize(10);
+	searchContainer.setEpsilon(0.1);
+	timer.restart();
+	index.search(searchContainer);
+	timer.stop();
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	objectSpace.deleteObject(obj);
+#endif
+      }
+      return timer.time * 1000.0;
+    }
+
+    static std::pair<size_t, size_t> adjustPrefetchParameters(NGT::Index &index) {
+      size_t prefetchOffset = 0;
+      size_t prefetchSize = 0;
+      std::vector<std::pair<size_t, size_t>> mins;
+      NGT::ObjectSpace &objectSpace = index.getObjectSpace();
+      int maxSize = objectSpace.getByteSizeOfObject() * 1.5;
+      maxSize = maxSize < 64 * 28 ? maxSize : 64 * 28; 
+      for (int trial = 0; trial < 10; trial++) {
+	double prevTime = DBL_MAX;
+	size_t minps = 0;
+	size_t minpo = 0;
+	for (size_t po = 1; po <= 6; po++) {
+	  int step = 256;
+	  std::map<size_t, double> times;
+	  int mps = 64;
+	  double pTime = DBL_MAX;
+	  double time;
+	  for (step = 256; step != 32; step /= 2) {
+	    for (int ps = mps - step < 64 ? 64 : mps - step; ps <= maxSize; ps += step) {
+	      if (times.count(ps) == 0) {
+		objectSpace.setPrefetchOffset(po);
+		objectSpace.setPrefetchSize(ps);
+		time = measureSearchTime(index, trial + 1);
+		times[ps] = time;
+	      } else {
+		time = times[ps];
+	      }
+	      if (pTime < time) {
+		break;
+	      }
+	      pTime = time;
+	      mps = ps;
+	    }
+	  }
+	  if (prevTime < pTime) {
+	    break;
+	  }
+	  prevTime = pTime;
+	  minps = mps;
+	  minpo = po;
+	}
+	if (std::find(mins.begin(), mins.end(), std::make_pair(minpo, minps)) != mins.end()) {
+	  prefetchOffset = minpo;
+	  prefetchSize = minps;
+	  mins.push_back(std::make_pair(minpo, minps));
+	  break;
+	}
+	mins.push_back(std::make_pair(minpo, minps));
+      }
+      return std::make_pair(prefetchOffset, prefetchSize);
+    }
+
     void execute(
 		 const std::string inIndexPath,
 		 const std::string outIndexPath
@@ -78,61 +178,80 @@ namespace NGT {
 	  (numOfOutgoingEdges >= 0 && numOfIncomingEdges < 0)) {
 	NGTThrowException("Optimizer::execute: Specified any of the number of edges is invalid.");
       }
+      {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-      if (access(outIndexPath.c_str(), 0) == 0) {
-	std::stringstream msg;
-	msg << "Optimizer::execute: The specified index exists. " << outIndexPath;
-	NGTThrowException(msg);
-      }
-      const std::string com = "cp -r " + inIndexPath + " " + outIndexPath;
-      system(com.c_str());
-      NGT::Index	outIndex(outIndexPath);
-#else
-      NGT::Index	outIndex(inIndexPath);
-#endif
-      NGT::GraphIndex	&outGraph = static_cast<NGT::GraphIndex&>(outIndex.getIndex());
-      NGT::Timer timer;
-      timer.start();
-      std::vector<NGT::ObjectDistances> graph;
-      NGT::StdOstreamRedirector redirector(logDisabled);
-      redirector.begin();
-      try {
-	std::cerr << "Optimizer::execute: Extract the graph data." << std::endl;
-	// extract only edges from the index to reduce the memory usage.
-	NGT::GraphReconstructor::extractGraph(graph, outIndex);
-	if (numOfOutgoingEdges >= 0) {
-	  NGT::GraphReconstructor::convertToANNG(graph);
-	  NGT::GraphReconstructor::reconstructGraph(graph, outIndex, numOfOutgoingEdges, numOfIncomingEdges);
+	if (access(outIndexPath.c_str(), 0) == 0) {
+	  std::stringstream msg;
+	  msg << "Optimizer::execute: The specified index exists. " << outIndexPath;
+	  NGTThrowException(msg);
 	}
-	timer.stop();
-	std::cerr << "Optimizer::execute: Graph reconstruction time=" << timer.time << " (sec) " << std::endl;
-	timer.reset();
+	const std::string com = "cp -r " + inIndexPath + " " + outIndexPath;
+	system(com.c_str());
+	NGT::Index	outIndex(outIndexPath);
+#else
+	NGT::Index	outIndex(inIndexPath);
+#endif
+	NGT::GraphIndex	&outGraph = static_cast<NGT::GraphIndex&>(outIndex.getIndex());
+	NGT::Timer timer;
 	timer.start();
-	NGT::GraphReconstructor::adjustPathsEffectively(outIndex);
-	timer.stop();
-	std::cerr << "Optimizer::execute: Path adjustment time=" << timer.time << " (sec) " << std::endl;
-      } catch (NGT::Exception &err) {
+	std::vector<NGT::ObjectDistances> graph;
+	NGT::StdOstreamRedirector redirector(logDisabled);
+	redirector.begin();
+	try {
+	  std::cerr << "Optimizer::execute: Extract the graph data." << std::endl;
+	  // extract only edges from the index to reduce the memory usage.
+	  NGT::GraphReconstructor::extractGraph(graph, outIndex);
+	  if (numOfOutgoingEdges >= 0) {
+	    NGT::GraphReconstructor::convertToANNG(graph);
+	    NGT::GraphReconstructor::reconstructGraph(graph, outIndex, numOfOutgoingEdges, numOfIncomingEdges);
+	  }
+	  timer.stop();
+	  std::cerr << "Optimizer::execute: Graph reconstruction time=" << timer.time << " (sec) " << std::endl;
+	  timer.reset();
+	  timer.start();
+	  NGT::GraphReconstructor::adjustPathsEffectively(outIndex);
+	  timer.stop();
+	  std::cerr << "Optimizer::execute: Path adjustment time=" << timer.time << " (sec) " << std::endl;
+	} catch (NGT::Exception &err) {
+	  redirector.end();
+	  throw(err);
+	}
 	redirector.end();
-	throw(err);
+	NGT::Optimizer optimizer(outIndex);
+	if (logDisabled) {
+	  optimizer.disableLog();
+	} else {
+	  optimizer.enableLog();
+	}
+	try {
+	  auto coefficients = optimizer.adjustSearchEdgeSize(baseAccuracyRange, rateAccuracyRange, numOfQueries, gtEpsilon, margin);
+	  NGT::NeighborhoodGraph::Property &prop = outGraph.getGraphProperty();
+	  prop.dynamicEdgeSizeBase = coefficients.first;
+	  prop.dynamicEdgeSizeRate = coefficients.second;
+	} catch(NGT::Exception &err) {
+	  std::stringstream msg;
+	  msg << "Optimizer::execute: Cannot adjust the search coefficients. " << err.what();
+	  NGTThrowException(msg);      
+	}
+
+	outGraph.saveIndex(outIndexPath);
       }
-      redirector.end();
-      NGT::Optimizer optimizer(outIndex);
-      if (logDisabled) {
-	optimizer.disableLog();
-      } else {
-	optimizer.enableLog();
-      }
+
       try {
-	auto coefficients = optimizer.adjustSearchEdgeSize(baseAccuracyRange, rateAccuracyRange, numOfQueries, gtEpsilon, mergin);
-	NGT::NeighborhoodGraph::Property &prop = outGraph.getGraphProperty();
-	prop.dynamicEdgeSizeBase = coefficients.first;
-	prop.dynamicEdgeSizeRate = coefficients.second;
+	NGT::Index	outIndex(outIndexPath, true);
+	auto prefetch = adjustPrefetchParameters(outIndex);
+	NGT::Property prop;
+	outIndex.getProperty(prop);
+	prop.prefetchOffset = prefetch.first;
+	prop.prefetchSize = prefetch.second;
+	outIndex.setProperty(prop);
+	static_cast<NGT::GraphIndex&>(outIndex.getIndex()).saveProperty(outIndexPath);
       } catch(NGT::Exception &err) {
 	std::stringstream msg;
-	msg << "Optimizer::execute: Cannot adjust the search coefficients. " << err.what();
-	NGTThrowException(msg);      
+	msg << "Optimizer::execute: Cannot adjust prefetch parameters. " << err.what();
+	NGTThrowException(msg);
       }
-      outGraph.saveIndex(outIndexPath);
+
     }
 
     void set(int outgoing, int incoming, int nofqs, 
@@ -165,7 +284,7 @@ namespace NGT {
 	gtEpsilon = qte;
       }
       if (m > 0.0) {
-	mergin = m;
+	margin = m;
       }
     }
 
@@ -175,7 +294,7 @@ namespace NGT {
     std::pair<float, float> rateAccuracyRange;
     size_t numOfQueries;
     double gtEpsilon;
-    double mergin;
+    double margin;
     bool logDisabled;
   };
 

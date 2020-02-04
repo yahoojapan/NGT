@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2019 Yahoo Japan Corporation
+// Copyright (C) 2015-2020 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -313,9 +313,7 @@ NGT::GraphIndex::constructObjectSpace(NGT::Property &prop) {
     NGTThrowException(msg);	
   }
   prop.prefetchOffset = objectSpace->setPrefetchOffset(prop.prefetchOffset);
-#ifdef NGT_GRAPH_READ_ONLY_GRAPH
-  searchUnupdatableGraph = NeighborhoodGraph::Search::getMethod(prop.distanceType, prop.objectType);
-#endif
+  prop.prefetchSize = objectSpace->setPrefetchSize(prop.prefetchSize);
 }
 
 void 
@@ -334,6 +332,7 @@ NGT::Index::Property::set(NGT::Property &prop) {
   if (prop.objectSharedMemorySize != -1) objectSharedMemorySize = prop.objectSharedMemorySize;
 #endif
   if (prop.prefetchOffset != -1) prefetchOffset = prop.prefetchOffset;
+  if (prop.prefetchSize != -1) prefetchSize = prop.prefetchSize;
 }
 
 void 
@@ -351,6 +350,7 @@ NGT::Index::Property::get(NGT::Property &prop) {
   prop.objectSharedMemorySize = objectSharedMemorySize;
 #endif
   prop.prefetchOffset = prefetchOffset;
+  prop.prefetchSize = prefetchSize;
 }
 
 class CreateIndexJob {
@@ -529,6 +529,10 @@ NGT::GraphIndex::GraphIndex(const string &allocator, bool rdonly):readOnly(rdonl
     NGTThrowException("GraphIndex: Cannot open. Not memory mapped file type.");
   }
   initialize(allocator, prop);
+#ifdef NGT_GRAPH_READ_ONLY_GRAPH
+  searchUnupdatableGraph = NeighborhoodGraph::Search::getMethod(prop.distanceType, prop.objectType,
+								objectSpace->getRepository().size());
+#endif
 }
 
 NGT::GraphAndTreeIndex::GraphAndTreeIndex(const string &allocator, NGT::Property &prop):GraphIndex(allocator, prop) {
@@ -552,6 +556,16 @@ NGT::GraphIndex::GraphIndex(const string &database, bool rdOnly):readOnly(rdOnly
   assert(prop.dimension != 0);
   initialize(prop);
   loadIndex(database, readOnly);
+#ifdef NGT_GRAPH_READ_ONLY_GRAPH
+  if (prop.searchType == "Large") {
+    searchUnupdatableGraph = NeighborhoodGraph::Search::getMethod(prop.distanceType, prop.objectType, 10000000);
+  } else if (prop.searchType == "Small") {
+    searchUnupdatableGraph = NeighborhoodGraph::Search::getMethod(prop.distanceType, prop.objectType, 0);
+  } else {
+    searchUnupdatableGraph = NeighborhoodGraph::Search::getMethod(prop.distanceType, prop.objectType,
+                                                                  objectSpace->getRepository().size());
+  }
+#endif
 }
 #endif
 
@@ -1051,6 +1065,9 @@ GraphAndTreeIndex::verify(vector<uint8_t> &status, bool info, char mode) {
 	try {
 	  GraphIndex::search(sc, seeds);
 	} catch(Exception &err) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	  GraphIndex::objectSpace->deleteObject(po);
+#endif
 	  cerr << "Fatal Error!: Cannot search! " << err.what() << endl;
 	  objects.clear();
 	}
@@ -1116,6 +1133,9 @@ GraphAndTreeIndex::verify(vector<uint8_t> &status, bool info, char mode) {
 	    }
 	  }
 	}
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	GraphIndex::objectSpace->deleteObject(po);
+#endif
 	if (registeredIdenticalObject) {
 	  if (info) {
 	    cerr << "Info ID=" << id << ":" << static_cast<int>(status[id]) << endl;

@@ -121,6 +121,8 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 ライセンス
 ----------
 
+Copyright (C) 2015-2020 Yahoo Japan Corporation
+
 ヤフー株式会社はApacheライセンスバージョン2.0の下で本ソフトウェアを公開致します。以下のサイトよりライセンスの内容をご確認頂けます。
 
    http://www.apache.org/licenses/LICENSE-2.0
@@ -155,5 +157,4 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 ##### [ANNG](bin/ngt/README-jp.md#anng)
 - Iwasaki, M.: Proximity search in metric spaces using approximate k nearest neighbor graph (in Japanese). IPSJ Trans. on Database 3(1) (2010) 18-28. ([pdf](https://s.yimg.jp/i/docs/research_lab/articles/miwasaki-ipsj-tod-2010.pdf))
 
-Copyright &copy; 2015-2019 Yahoo Japan Corporation All Rights Reserved.
 

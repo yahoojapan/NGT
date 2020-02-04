@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2019 Yahoo Japan Corporation
+// Copyright (C) 2015-2020 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -210,6 +210,7 @@ namespace NGT {
        NGTThrowException(msg);
      }
      setLength(objectSize * d);
+     setPaddedLength(objectSize * ObjectSpace::getPaddedDimension());
      setDistanceType(t);
    }
 
@@ -349,7 +350,7 @@ namespace NGT {
 
     void remove(size_t id) { ObjectRepository::remove(id); }
 
-    void linearSearch(Object &query, double radius, size_t size,  ObjectSpace::ResultSet &results) {
+    void linearSearch(Object &query, double radius, size_t size, ObjectSpace::ResultSet &results) {
       if (!results.empty()) {
 	NGTThrowException("lenearSearch: results is not empty");
       }
