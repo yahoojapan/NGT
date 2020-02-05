@@ -70,7 +70,7 @@ namespace NGT {
       graph.saveIndex(indexPath);
     }
 
-    static double measureSearchTime(NGT::Index &index, size_t start) {
+    static double measureQueryTime(NGT::Index &index, size_t start) {
       NGT::ObjectSpace &objectSpace = index.getObjectSpace();
       NGT::ObjectRepository &objectRepository = objectSpace.getRepository();
       size_t nQueries = 200;
@@ -118,46 +118,69 @@ namespace NGT {
       return timer.time * 1000.0;
     }
 
+    static std::pair<size_t, double> searchMinimumQueryTime(NGT::Index &index, size_t prefetchOffset, 
+							    int maxPrefetchSize, size_t seedID) {
+      NGT::ObjectSpace &objectSpace = index.getObjectSpace();
+      int step = 256;
+      int minimumPrefetchSize = 64;
+      double prevTime = DBL_MAX;
+      double time;
+      for (step = 256; step != 32; step /= 2) {
+	for (int prefetchSize = minimumPrefetchSize - step < 64 ? 64 : minimumPrefetchSize - step; prefetchSize <= maxPrefetchSize; prefetchSize += step) {
+	  objectSpace.setPrefetchOffset(prefetchOffset);
+	  objectSpace.setPrefetchSize(prefetchSize);
+	  time = measureQueryTime(index, seedID);
+	  if (prevTime < time) {
+	    break;
+	  }
+	  prevTime = time;
+	  minimumPrefetchSize = prefetchSize;
+	}
+      }
+      return std::make_pair(minimumPrefetchSize, prevTime);
+    }
+
+
     static std::pair<size_t, size_t> adjustPrefetchParameters(NGT::Index &index) {
+
+      bool gridSearch = false;
+      {
+	double time = measureQueryTime(index, 1);
+	if (time < 500.0) {
+	  gridSearch = true;
+	}
+      }
+
       size_t prefetchOffset = 0;
       size_t prefetchSize = 0;
       std::vector<std::pair<size_t, size_t>> mins;
       NGT::ObjectSpace &objectSpace = index.getObjectSpace();
-      int maxSize = objectSpace.getByteSizeOfObject() * 1.5;
+      int maxSize = objectSpace.getByteSizeOfObject() * 4;
       maxSize = maxSize < 64 * 28 ? maxSize : 64 * 28; 
       for (int trial = 0; trial < 10; trial++) {
-	double prevTime = DBL_MAX;
 	size_t minps = 0;
 	size_t minpo = 0;
-	for (size_t po = 1; po <= 6; po++) {
-	  int step = 256;
-	  std::map<size_t, double> times;
-	  int mps = 64;
-	  double pTime = DBL_MAX;
-	  double time;
-	  for (step = 256; step != 32; step /= 2) {
-	    for (int ps = mps - step < 64 ? 64 : mps - step; ps <= maxSize; ps += step) {
-	      if (times.count(ps) == 0) {
-		objectSpace.setPrefetchOffset(po);
-		objectSpace.setPrefetchSize(ps);
-		time = measureSearchTime(index, trial + 1);
-		times[ps] = time;
-	      } else {
-		time = times[ps];
-	      }
-	      if (pTime < time) {
-		break;
-	      }
-	      pTime = time;
-	      mps = ps;
+	if (gridSearch) {
+	  double minTime = DBL_MAX;
+	  for (size_t po = 1; po <= 10; po++) {
+	    auto min = searchMinimumQueryTime(index, po, maxSize, trial + 1);
+	    if (minTime > min.second) {
+	      minTime = min.second;
+	      minps = min.first;
+	      minpo = po;
 	    }
 	  }
-	  if (prevTime < pTime) {
-	    break;
+	} else {
+	  double prevTime = DBL_MAX;
+	  for (size_t po = 1; po <= 10; po++) {
+	    auto min = searchMinimumQueryTime(index, po, maxSize, trial + 1);
+	    if (prevTime < min.second) {
+	      break;
+	    }
+	    prevTime = min.second;
+	    minps = min.first;
+	    minpo = po;
 	  }
-	  prevTime = pTime;
-	  minps = mps;
-	  minpo = po;
 	}
 	if (std::find(mins.begin(), mins.end(), std::make_pair(minpo, minps)) != mins.end()) {
 	  prefetchOffset = minpo;
