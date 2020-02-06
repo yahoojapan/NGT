@@ -800,14 +800,15 @@ using namespace std;
       cerr << "Optimizer::execute: Cannot adjust prefetch parameters. " << err.what();
     }
 
-
   }
 
   void
   NGT::Command::optimizeSearchParameters(Args &args)
   {
-    const string usage = "Usage: ngt optimize-prefetch index";
+    const string usage = "Usage: ngt optimize-search-parameters [-m optimization-target(e|p)] index";
     
+    char mode = args.getChar("m", '-');
+
     string indexPath;
     try {
       indexPath = args.get("#1");
@@ -817,39 +818,41 @@ using namespace std;
       return;
     }
 
-    try {
-      pair<float, float> baseAccuracyRange(0.30, 0.50);
-      pair<float, float> rateAccuracyRange(0.80, 0.90);
-      size_t querySize = 100;
-      double gtEpsilon = 0.1;
-      double mergin = 0.2;
+    if (mode == 'e' || mode == '-') {
+      try {
+	pair<float, float> baseAccuracyRange(0.30, 0.50);
+	pair<float, float> rateAccuracyRange(0.80, 0.90);
+	size_t querySize = 100;
+	double gtEpsilon = 0.1;
+	double mergin = 0.2;
 
-      NGT::Index	index(indexPath);
-      NGT::Optimizer	optimizer(index);
-      NGT::GraphIndex	&graph = (NGT::GraphIndex&)index.getIndex();
-      auto param = optimizer.adjustSearchEdgeSize(baseAccuracyRange, rateAccuracyRange, querySize, gtEpsilon, mergin);
-      NeighborhoodGraph::Property &prop = graph.getGraphProperty();
-      prop.dynamicEdgeSizeBase = param.first;
-      prop.dynamicEdgeSizeRate = param.second;
-    } catch (NGT::Exception &err) {
-      cerr << "ngt: Error " << err.what() << endl;
-      cerr << usage << endl;
+	NGT::Index	index(indexPath);
+	NGT::Optimizer	optimizer(index);
+	NGT::GraphIndex	&graph = (NGT::GraphIndex&)index.getIndex();
+	auto param = optimizer.adjustSearchEdgeSize(baseAccuracyRange, rateAccuracyRange, querySize, gtEpsilon, mergin);
+	NeighborhoodGraph::Property &prop = graph.getGraphProperty();
+	prop.dynamicEdgeSizeBase = param.first;
+	prop.dynamicEdgeSizeRate = param.second;
+      } catch (NGT::Exception &err) {
+	cerr << "ngt: Error " << err.what() << endl;
+	cerr << usage << endl;
+      }
+
+    } else if (mode == 'p' || mode == '-') {
+      try {
+	NGT::Index	index(indexPath, true);
+	auto prefetch = NGT::GraphOptimizer::adjustPrefetchParameters(index);
+	NGT::Property prop;
+	index.getProperty(prop);
+	prop.prefetchOffset = prefetch.first;
+	prop.prefetchSize = prefetch.second;
+	index.setProperty(prop);
+	static_cast<NGT::GraphIndex&>(index.getIndex()).saveProperty(indexPath);
+      } catch (NGT::Exception &err) {
+	cerr << "ngt: Error " << err.what() << endl;
+	cerr << usage << endl;
+      }
     }
-
-    try {
-      NGT::Index	index(indexPath, true);
-      auto prefetch = NGT::GraphOptimizer::adjustPrefetchParameters(index);
-      NGT::Property prop;
-      index.getProperty(prop);
-      prop.prefetchOffset = prefetch.first;
-      prop.prefetchSize = prefetch.second;
-      index.setProperty(prop);
-      static_cast<NGT::GraphIndex&>(index.getIndex()).saveProperty(indexPath);
-    } catch (NGT::Exception &err) {
-      cerr << "ngt: Error " << err.what() << endl;
-      cerr << usage << endl;
-    }
-
   }
 
 

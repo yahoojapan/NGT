@@ -122,24 +122,28 @@ namespace NGT {
 							    int maxPrefetchSize, size_t seedID) {
       NGT::ObjectSpace &objectSpace = index.getObjectSpace();
       int step = 256;
-      int minimumPrefetchSize = 64;
-      double prevTime = DBL_MAX;
-      double time;
+      int prevPrefetchSize = 64;
+      size_t minPrefetchSize = 0;
+      double minTime = DBL_MAX;
       for (step = 256; step != 32; step /= 2) {
-	for (int prefetchSize = minimumPrefetchSize - step < 64 ? 64 : minimumPrefetchSize - step; prefetchSize <= maxPrefetchSize; prefetchSize += step) {
-	  objectSpace.setPrefetchOffset(prefetchOffset);
-	  objectSpace.setPrefetchSize(prefetchSize);
-	  time = measureQueryTime(index, seedID);
-	  if (prevTime < time) {
-	    break;
-	  }
-	  prevTime = time;
-	  minimumPrefetchSize = prefetchSize;
-	}
+        double prevTime = DBL_MAX;
+        for (int prefetchSize = prevPrefetchSize - step < 64 ? 64 : prevPrefetchSize - step; prefetchSize <= maxPrefetchSize; prefetchSize += step) {
+          objectSpace.setPrefetchOffset(prefetchOffset);
+          objectSpace.setPrefetchSize(prefetchSize);
+          double time = measureQueryTime(index, seedID);
+          if (prevTime < time) {
+            break;
+          }
+          prevTime = time;
+          prevPrefetchSize = prefetchSize;
+        }
+        if (minTime > prevTime) {
+          minTime = prevTime;
+          minPrefetchSize = prevPrefetchSize;
+        }
       }
-      return std::make_pair(minimumPrefetchSize, prevTime);
+      return std::make_pair(minPrefetchSize, minTime);
     }
-
 
     static std::pair<size_t, size_t> adjustPrefetchParameters(NGT::Index &index) {
 
