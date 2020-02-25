@@ -108,6 +108,7 @@ public:
   void prune(Args &args);
   void reconstructGraph(Args &args);
   void optimizeSearchParameters(Args &args);
+  void refineANNG(Args &args);
 
   void info(Args &args);
   void setDebugLevel(int level) { debugLevel = level; }

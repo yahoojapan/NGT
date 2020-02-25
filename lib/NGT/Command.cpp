@@ -855,6 +855,90 @@ using namespace std;
     }
   }
 
+  void
+  NGT::Command::refineANNG(Args &args)
+  {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+    std::cerr << "refineANNG. Not implemented." << std::endl;
+    abort();
+#else
+    const string usage = "Usage: ngt refine-anng anng-index";
+
+    string inIndexPath;
+    try {
+      inIndexPath = args.get("#1");
+    } catch (...) {
+      cerr << "Input index is not specified" << endl;
+      cerr << usage << endl;
+      return;
+    }
+
+    string outIndexPath;
+    try {
+      outIndexPath = args.get("#2");
+    } catch (...) {
+      cerr << "Output index is not specified" << endl;
+      cerr << usage << endl;
+      return;
+    }
+
+    NGT::Index	index(inIndexPath);
+    auto prop = static_cast<GraphIndex&>(index.getIndex()).getGraphProperty();
+    NGT::ObjectRepository &objectRepository = index.getObjectSpace().getRepository();
+    NGT::GraphIndex &graphIndex = static_cast<GraphIndex&>(index.getIndex());
+    size_t nOfObjects = objectRepository.size();
+    size_t batchSize = 10000;
+    for (size_t bid = 1; bid < nOfObjects; bid += batchSize) {
+      NGT::ObjectDistances results[batchSize];
+      // search
+#pragma omp parallel for
+      for (size_t idx = 0; idx < batchSize; idx++) {
+	size_t id = bid + idx;
+	if (objectRepository.isEmpty(id)) {
+	  continue;
+	}
+	NGT::SearchContainer searchContainer(*objectRepository.get(id));
+	searchContainer.setResults(&results[idx]);
+	searchContainer.setSize(prop.edgeSizeForCreation);
+	searchContainer.setEpsilon(0.1); // epsilon should be adjusted.
+	searchContainer.setEdgeSize(0);	// use all of the existing edges to obtain high accuracy.
+	index.search(searchContainer);
+      }
+      // outgoing edges
+#pragma omp parallel for
+      for (size_t idx = 0; idx < batchSize; idx++) {
+	size_t id = bid + idx;
+	NGT::GraphNode &node = *graphIndex.getNode(id);
+	for (auto i = results[idx].begin(); i != results[idx].end(); ++i) {
+	  node.push_back(*i);
+	}
+	std::sort(node.begin(), node.end());
+	ObjectID prev = 0;
+	for (GraphNode::iterator ni = node.begin(); ni != node.end();) {
+	  if (prev == (*ni).id) {
+	    ni = node.erase(ni);
+	    continue;
+	  }
+	  prev = (*ni).id;
+	  ni++;
+	}
+      }
+      // incomming edges
+      for (size_t idx = 0; idx < batchSize; idx++) {
+	size_t id = bid + idx;
+	if (id % 10000 == 0) {
+	  std::cerr << "# of processed objects=" << id << std::endl;
+	}
+	for (auto i = results[idx].begin(); i != results[idx].end(); ++i) {
+	  NGT::GraphNode &node = *graphIndex.getNode((*i).id);
+	  graphIndex.addEdge(node, id, (*i).distance, false);
+	}
+      }
+    }
+
+    index.saveIndex(outIndexPath);
+#endif
+  }
 
 
 
