@@ -40,6 +40,12 @@ Installation
 
 - [Releases](https://github.com/yahoojapan/NGT/releases)
 
+### Pre-Built
+
+#### On macOS
+
+      $ brew install ngt
+
 ### Build
 
 #### On Linux
@@ -47,9 +53,9 @@ Installation
       $ unzip NGT-x.x.x.zip
       $ cd NGT-x.x.x
       $ mkdir build
-      $ cd build 
+      $ cd build
       $ cmake ..
-      $ make 
+      $ make
       $ make install
       $ ldconfig /usr/local/lib
 
@@ -58,14 +64,14 @@ Installation
       $ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
       $ brew install cmake
       $ brew install gcc@9
-      $ export CXX=/usr/local/bin/g++
-      $ export CC=/usr/local/bin/gcc
+      $ export CXX=/usr/local/bin/g++-9
+      $ export CC=/usr/local/bin/gcc-9
       $ unzip NGT-x.x.x.zip
       $ cd NGT-x.x.x
       $ mkdir build
-      $ cd build 
+      $ cd build
       $ cmake ..
-      $ make 
+      $ make
       $ make install
 
 #### Shared memory use
