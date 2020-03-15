@@ -41,7 +41,7 @@ class APIError(Exception):
 
 class Index(object):
     '''
-    NGT: Neighborhood Graph and Tree for Indexing High-dimensional Data  
+    NGT: Neighborhood Graph and Tree for Indexing High-dimensional Data
       NGT provides the functionality of searching for approximate nearest neighbors in high-dimensional data.
 
     Example:
@@ -83,7 +83,6 @@ class Index(object):
             return "ObjectDistances({},{})".format(
                 self.id,
                 self.distance)
-
 
     __ngt = cdll.LoadLibrary(ctypes.util.find_library("ngt"))
 
@@ -365,7 +364,7 @@ class Index(object):
 
     def insert_object(self, object):
         '''
-        insert the specified object into the index.  
+        insert the specified object into the index.
         must call build_index after call this method.
 
             object : Inserted object.
@@ -392,7 +391,7 @@ class Index(object):
     def insert_blob(self, objects, num_threads=8):
         '''
         insert the specified objects into the index and build the index.
-        Although this is the same as the fucntion insert(), both implementations are different. 
+        Although this is the same as the fucntion insert(), both implementations are different.
 
             objects : Inserted objects.
             num_threads : Number of threads in building index.
