@@ -84,6 +84,11 @@ NGT::Index::Index(NGT::Property &prop) {
 }
 #endif
 
+float 
+NGT::Index::getEpsilonFromExpectedAccuracy(double accuracy) { 
+   return static_cast<NGT::GraphIndex&>(getIndex()).getEpsilonFromExpectedAccuracy(accuracy);
+ }
+
 void 
 NGT::Index::open(const string &database, bool rdOnly) {
   NGT::Property prop;
@@ -312,8 +317,6 @@ NGT::GraphIndex::constructObjectSpace(NGT::Property &prop) {
     msg << "Invalid Object Type in the property. " << prop.objectType;
     NGTThrowException(msg);	
   }
-  prop.prefetchOffset = objectSpace->setPrefetchOffset(prop.prefetchOffset);
-  prop.prefetchSize = objectSpace->setPrefetchSize(prop.prefetchSize);
 }
 
 void 
@@ -333,6 +336,7 @@ NGT::Index::Property::set(NGT::Property &prop) {
 #endif
   if (prop.prefetchOffset != -1) prefetchOffset = prop.prefetchOffset;
   if (prop.prefetchSize != -1) prefetchSize = prop.prefetchSize;
+  if (prop.accuracyTable != "") accuracyTable = prop.accuracyTable;
 }
 
 void 
@@ -351,6 +355,7 @@ NGT::Index::Property::get(NGT::Property &prop) {
 #endif
   prop.prefetchOffset = prefetchOffset;
   prop.prefetchSize = prefetchSize;
+  prop.accuracyTable = accuracyTable;
 }
 
 class CreateIndexJob {
@@ -591,7 +596,7 @@ GraphIndex::createIndex()
   }
 }
 
-size_t
+static size_t
 searchMultipleQueryForCreation(GraphIndex &neighborhoodGraph, 
 				 NGT::ObjectID &id, 
 				 CreateIndexJob &job, 
@@ -626,7 +631,7 @@ searchMultipleQueryForCreation(GraphIndex &neighborhoodGraph,
   return cnt;
 }
 
-void
+static void
 insertMultipleSearchResults(GraphIndex &neighborhoodGraph, 
 			    CreateIndexThreadPool::OutputJobQueue &output, 
 			    size_t dataSize)
@@ -745,6 +750,12 @@ GraphIndex::createIndex(size_t threadPoolSize)
     threads.terminate();
   }
 
+}
+
+void GraphIndex::setupPrefetch(NGT::Property &prop) {
+  assert(GraphIndex::objectSpace != 0);
+  prop.prefetchOffset = GraphIndex::objectSpace->setPrefetchOffset(prop.prefetchOffset);
+  prop.prefetchSize = GraphIndex::objectSpace->setPrefetchSize(prop.prefetchSize);
 }
 
 void 

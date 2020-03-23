@@ -997,16 +997,14 @@ namespace NGT {
     }
 
 
-    void outputObject(std::ostream &os, size_t id1, size_t id2, NGT::Property &prop) {
+    void outputObject(std::ostream &os, std::vector<float> &v, NGT::Property &prop) {
       switch (prop.objectType) {
       case NGT::ObjectSpace::ObjectType::Uint8:
 	{
-	  auto *obj1 = static_cast<uint8_t*>(index.getObjectSpace().getObject(id1));
-	  auto *obj2 = static_cast<uint8_t*>(index.getObjectSpace().getObject(id2));
-	  for (int i = 0; i < prop.dimension; i++) {
-	    int d = (*obj1++ + *obj2++) / 2;
+	  for (auto i = v.begin(); i != v.end(); ++i) {
+	    int d = *i;
 	    os << d;
-	    if (i + 1 != prop.dimension) {
+	    if (i + 1 != v.end()) {
 	      os << "\t";
 	    }
 	  }
@@ -1016,11 +1014,9 @@ namespace NGT {
       default:
       case NGT::ObjectSpace::ObjectType::Float:
 	{
-	  auto *obj1 = static_cast<float*>(index.getObjectSpace().getObject(id1));
-	  auto *obj2 = static_cast<float*>(index.getObjectSpace().getObject(id2));
-	  for (int i = 0; i < prop.dimension; i++) {
-	    os << (*obj1++ + *obj2++) / 2.0F;
-	    if (i + 1 != prop.dimension) {
+	  for (auto i = v.begin(); i != v.end(); ++i) {
+	    os << *i;
+	    if (i + 1 != v.end()) {
 	      os << "\t";
 	    }
 	  }
@@ -1030,8 +1026,61 @@ namespace NGT {
       }
     }
 
-    void
-      extractQueries(size_t nqueries, std::ostream &os, bool similarObject = false) {
+    void outputObjects(std::vector<std::vector<float>> &vs, std::ostream &os) {
+      NGT::Property prop;
+      index.getProperty(prop);
+
+      for (auto i = vs.begin(); i != vs.end(); ++i) {
+	outputObject(os, *i, prop);
+      }
+    }
+
+    std::vector<float> meanObject(size_t id1, size_t id2, NGT::Property &prop) {
+      std::vector<float> v;
+      switch (prop.objectType) {
+      case NGT::ObjectSpace::ObjectType::Uint8:
+	{
+	  auto *obj1 = static_cast<uint8_t*>(index.getObjectSpace().getObject(id1));
+	  auto *obj2 = static_cast<uint8_t*>(index.getObjectSpace().getObject(id2));
+	  for (int i = 0; i < prop.dimension; i++) {
+	    int d = (*obj1++ + *obj2++) / 2;
+	    v.push_back(d);
+	  }
+	}
+	break;
+      default:
+      case NGT::ObjectSpace::ObjectType::Float:
+	{
+	  auto *obj1 = static_cast<float*>(index.getObjectSpace().getObject(id1));
+	  auto *obj2 = static_cast<float*>(index.getObjectSpace().getObject(id2));
+	  for (int i = 0; i < prop.dimension; i++) {
+	    float d = (*obj1++ + *obj2++) / 2.0F;
+	    v.push_back(d);
+	  }
+	}
+	break;
+      }
+      return v;
+    }
+
+    void extractQueries(std::vector<std::vector<float>> &queries, std::ostream &os) {
+      NGT::Property prop;
+      index.getProperty(prop);
+
+      for (auto i = queries.begin(); i != queries.end(); ++i) {
+	outputObject(os, *i, prop);
+      }
+    }
+
+    void extractQueries(size_t nqueries, std::ostream &os, bool similarObject = false) {
+
+      std::vector<std::vector<float>> queries;
+      extractQueries(nqueries, queries, similarObject);
+
+      extractQueries(queries, os);
+    }
+
+    void extractQueries(size_t nqueries, std::vector<std::vector<float>> &queries, bool similarObject = false) {
 
       NGT::Property prop;
       index.getProperty(prop);
@@ -1075,7 +1124,7 @@ namespace NGT {
 	      break;
 	    }
 	  }
-	  outputObject(os, id1 + oft, id2, prop);
+	  queries.push_back(meanObject(id1 + oft, id2, prop));
 	} else {
 	  size_t id2 = id1 + oft + 1;
 	  while (index.getObjectSpace().getRepository().isEmpty(id2)) {
@@ -1086,7 +1135,7 @@ namespace NGT {
 	      NGTThrowException(msg);
 	    }
 	  }
-	  outputObject(os, id1 + oft, id2, prop);
+	  queries.push_back(meanObject(id1 + oft, id2, prop));
 	}
       }
       assert(count == nqueries);
@@ -1112,6 +1161,7 @@ namespace NGT {
       NGT::Index	index(indexName);
       NGT::Optimizer	optimizer(index);
       optimizer.extractQueries(nqueries, std::cout);
+
     }
 
     static void createGroundTruth(NGT::Index &index, double epsilon, Command::SearchParameter &searchParameter, std::stringstream &queries, std::stringstream &gtStream){
@@ -1304,11 +1354,156 @@ namespace NGT {
 
     }
 
+    static std::vector<std::pair<float, double>> 
+      generateAccuracyTable(NGT::Index &index, size_t nOfResults = 50, size_t querySize = 100) {
+
+      NGT::Property prop;
+      index.getProperty(prop);
+      if (prop.edgeSizeForSearch != 0 && prop.edgeSizeForSearch != -2) {
+	std::stringstream msg;
+	msg << "Optimizer::generateAccuracyTable: edgeSizeForSearch is invalid to call generateAccuracyTable, because accuracy 1.0 cannot be achieved with the setting.";
+	NGTThrowException(msg);
+      }
+
+      NGT::Optimizer optimizer(index, nOfResults);
+
+      // explore the max epsilon value.
+      std::vector<std::vector<float>> queries;
+
+      float maxEpsilon = 0.0;
+      {
+	optimizer.extractQueries(querySize, queries);
+	std::vector<NGT::Object *> queryObjects;
+	for (auto i = queries.begin(); i != queries.end(); ++i) {
+	  queryObjects.push_back(index.allocateObject(*i));
+	}
+
+	int identityCount = 0;
+	std::vector<NGT::Distance> lastDistances(querySize);
+	double time = 0.0;
+	double step = 0.02;
+	for (float e = 0.0; e < 10.0; e += step) {
+	  size_t idx;
+	  bool identity = true;
+	  NGT::Timer timer;
+	  for (idx = 0; idx < queryObjects.size(); idx++) {
+	    NGT::SearchContainer sc(*queryObjects[idx]);
+	    NGT::ObjectDistances results;
+	    sc.setResults(&results);
+	    sc.setSize(nOfResults);
+	    sc.setEpsilon(e);
+	    timer.restart();
+	    index.search(sc);
+	    timer.stop();
+	    NGT::Distance d = results.back().distance;
+	    if (d != lastDistances[idx]) {
+	      identity = false;
+	    }
+	    lastDistances[idx] = d;
+	  }
+	  if (e == 0.0) {
+	    time = timer.time;
+	  }
+	  if (timer.time > time * 40.0) { 
+	    maxEpsilon = e;
+	    break;
+	  }
+	  if (identity) {
+	    identityCount++;
+	    step *= 1.2;
+	    if (identityCount > 5) { 
+	      maxEpsilon = e;
+	      break;
+	    }
+	  } else {
+	    identityCount = 0;
+	  }
+	}      
+
+	for (auto i = queryObjects.begin(); i != queryObjects.end(); ++i) {
+	  index.deleteObject(*i);
+	}
+
+      }
+
+      std::stringstream queryStream;
+      std::stringstream gtStream;
+
+      {
+	// generate (pseudo) ground truth data
+	NGT::Command::SearchParameter searchParameter;
+	searchParameter.outputMode = 'e';
+	searchParameter.edgeSize = 0;	// get the best accuracy by using all edges
+	//searchParameter.indexType = 's'; // linear search
+	optimizer.extractQueries(queries, queryStream);
+	NGT::Optimizer::createGroundTruth(index, maxEpsilon, searchParameter, queryStream, gtStream);
+      }
+
+      std::map<float, double> map;
+      {
+	float interval = 0.05;
+	float prev = 0.0;
+	std::vector<NGT::Optimizer::MeasuredValue> acc;
+	float epsilon = -0.6;
+	double accuracy;
+	do {
+	  auto pair = map.find(epsilon);
+	  if (pair == map.end()) {
+	    NGT::Command::SearchParameter searchParameter;
+	    searchParameter.outputMode = 'e';
+	    searchParameter.beginOfEpsilon = searchParameter.endOfEpsilon = epsilon;
+	    queryStream.clear();
+	    queryStream.seekg(0, std::ios_base::beg);
+	    NGT::Optimizer::search(index, queryStream, gtStream, searchParameter, acc);
+	    if (acc.size() == 0) {
+	      NGTThrowException("Fatal error! Cannot get any accuracy value.");
+	    }
+	    accuracy = acc[0].meanAccuracy;
+	    map.insert(std::make_pair(epsilon, accuracy));
+	  } else {
+	    accuracy = (*pair).second;
+	  }
+	  if (prev != 0.0) {
+	    if (accuracy - prev < 0.02) {
+	      interval *= 2.0;
+	    } else if (accuracy - prev > 0.05 && interval > 0.0001) {
+	      
+	      epsilon -= interval;
+	      interval /= 2.0;
+	      accuracy = prev;
+	    }
+	  }
+	  prev = accuracy;
+	  epsilon += interval;
+	  if (accuracy > 0.98 && epsilon > maxEpsilon) {
+	    break;
+	  }
+	} while (accuracy < 1.0);
+      }
+
+      std::vector<std::pair<float, double>> epsilonAccuracyMap;
+      std::pair<float, double> prev(0.0, -1.0);
+      for (auto i = map.begin(); i != map.end(); ++i) {
+	if (fabs((*i).first - prev.first) <= FLT_EPSILON) {
+	  continue;
+	}
+	if ((*i).second - prev.second < DBL_EPSILON) {
+	  continue;
+	}
+	epsilonAccuracyMap.push_back(*i);
+	if ((*i).second >= 1.0) {
+	  break;
+	}
+	prev = *i;
+      }
+
+      return epsilonAccuracyMap;
+    }
+
     NGT::Index &index;
     size_t nOfResults;
     StdOstreamRedirector redirector;
   };
-
 }; // NGT
 
 

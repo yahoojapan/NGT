@@ -99,6 +99,7 @@ namespace NGT {
 #endif
 	prefetchOffset	= -1;
 	prefetchSize	= -1;
+	accuracyTable	= "";
       }
 
       void exportProperty(NGT::PropertySet &p) {
@@ -145,6 +146,7 @@ namespace NGT {
 #endif
 	p.set("PrefetchOffset", prefetchOffset);
 	p.set("PrefetchSize", prefetchSize);
+	p.set("AccuracyTable", accuracyTable);
       }
 
       void importProperty(NGT::PropertySet &p) {
@@ -236,6 +238,10 @@ namespace NGT {
 #endif
 	prefetchOffset = p.getl("PrefetchOffset", prefetchOffset);
 	prefetchSize = p.getl("PrefetchSize", prefetchSize);
+	it = p.find("AccuracyTable");
+	if (it != p.end()) {
+	  accuracyTable = it->second;
+	}
 	it = p.find("SearchType");
 	if (it != p.end()) {
 	  searchType = it->second;
@@ -259,6 +265,7 @@ namespace NGT {
 #endif
       int		prefetchOffset;
       int		prefetchSize;
+      std::string	accuracyTable;
       std::string	searchType;	// test
     };
 
@@ -269,6 +276,75 @@ namespace NGT {
       size_t	id;
       bool	identical;
       Distance	distance; // the distance between the centroid and the inserted object.
+    };
+
+    class AccuracyTable  {
+    public:
+      AccuracyTable() {};
+      AccuracyTable(std::vector<std::pair<float, double>> &t) { set(t); }
+      AccuracyTable(std::string str) { set(str); }
+      void set(std::vector<std::pair<float, double>> &t) { table = t; }
+      void set(std::string str) {
+	std::vector<std::string> tokens;
+	Common::tokenize(str, tokens, ",");
+	if (tokens.size() < 2) {
+	  return;
+	}
+	for (auto i = tokens.begin(); i != tokens.end(); ++i) {
+	  std::vector<std::string> ts;
+	  Common::tokenize(*i, ts, ":");
+	  if (ts.size() != 2) {
+	    std::stringstream msg;
+	    msg << "AccuracyTable: Invalid accuracy table string " << *i << ":" << str;
+	    NGTThrowException(msg);
+	  }
+	  table.push_back(std::make_pair(Common::strtod(ts[0]), Common::strtod(ts[1])));
+	}
+      }
+
+      float getEpsilon(double accuracy) {
+	if (table.size() <= 2) {
+	  std::stringstream msg;
+	  msg << "AccuracyTable: The accuracy table is not set yet. The table size=" << table.size();
+	  NGTThrowException(msg);
+	}
+	if (accuracy > 1.0) {
+	  accuracy = 1.0;
+	}
+	std::pair<float, double> lower, upper;
+	{
+	  auto i = table.begin();
+	  for (; i != table.end(); ++i) {
+	    if ((*i).second >= accuracy) {
+	      break;
+	    }
+	  }
+	  if (table.end() == i) {
+	    i -= 2;
+	  } else if (table.begin() != i) {
+	    i--;
+	  }
+	  lower = *i++;
+	  upper = *i;
+	}
+	float e = lower.first +  (upper.first - lower.first) * (accuracy - lower.second) / (upper.second - lower.second);
+	if (e < -0.9) {
+	  e = -0.9;
+	}
+	return e;
+      }
+
+      std::string getString() {
+	std::stringstream str;
+	for (auto i = table.begin(); i != table.end(); ++i) {
+	  str << (*i).first << ":" << (*i).second;
+	  if (i + 1 != table.end()) {
+	    str << ",";
+	  }
+	}
+	return str.str();
+      }
+      std::vector<std::pair<float, double>> table;
     };
 
     Index():index(0) {}
@@ -381,6 +457,7 @@ namespace NGT {
       size_t isize = getIndex().getSharedMemorySize(os, t); 
       return osize + isize;
     }
+    float getEpsilonFromExpectedAccuracy(double accuracy);
     void searchUsingOnlyGraph(NGT::SearchContainer &sc) { 
       sc.distanceComputationCount = 0;
       sc.visitCount = 0;
@@ -1284,10 +1361,14 @@ namespace NGT {
 
     ObjectSpace &getObjectSpace() { return *objectSpace; }
 
+    void setupPrefetch(NGT::Property &prop);
+
     void setProperty(NGT::Property &prop) {
+      setupPrefetch(prop);
       GraphIndex::property.set(prop);
       NeighborhoodGraph::property.set(prop);
       assert(property.dimension != 0);
+      accuracyTable.set(property.accuracyTable);
     }
 
     void getProperty(NGT::Property &prop) {
@@ -1306,6 +1387,8 @@ namespace NGT {
       os << "graph=" << size << std::endl;
       return size;
     }
+
+    float getEpsilonFromExpectedAccuracy(double accuracy) { return accuracyTable.getEpsilon(accuracy); }
 
     protected:
 
@@ -1348,6 +1431,10 @@ namespace NGT {
 	}
 #endif
       }
+      if (sc.expectedAccuracy > 0.0) {
+	sc.setEpsilon(getEpsilonFromExpectedAccuracy(sc.expectedAccuracy));
+      }
+
       NGT::SearchContainer so(sc);
       try {
 	if (readOnly) {
@@ -1375,6 +1462,8 @@ namespace NGT {
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
     void (*searchUnupdatableGraph)(NGT::NeighborhoodGraph&, NGT::SearchContainer&, NGT::ObjectDistances&);
 #endif
+
+    Index::AccuracyTable		accuracyTable;
   };
 
   class GraphAndTreeIndex : public GraphIndex, public DVPTree {

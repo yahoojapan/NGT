@@ -523,6 +523,12 @@ class GraphReconstructor {
 	 << ":" << normalizeEdgeTimer.time << std::endl;
     std::cerr << "original edge size=" << originalEdgeSize << std::endl;
     std::cerr << "reverse edge size=" << reverseEdgeSize << std::endl;
+
+    NGT::Property prop;
+    outIndex.getProperty(prop);
+    prop.graphType = NGT::NeighborhoodGraph::GraphTypeONNG;
+    outIndex.setProperty(prop);
+    
   }
 
 
@@ -682,6 +688,89 @@ class GraphReconstructor {
   }
 
 
+  static void refineANNG(NGT::Index &index, float epsilon = 0.1, float accuracy = 0.0, int edgeSize = INT_MIN, size_t batchSize = 10000) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+    NGTThrowException("GraphReconstructor::refineANNG: Not implemented for the shared memory option.");
+#else
+    auto prop = static_cast<GraphIndex&>(index.getIndex()).getGraphProperty();
+    NGT::ObjectRepository &objectRepository = index.getObjectSpace().getRepository();
+    NGT::GraphIndex &graphIndex = static_cast<GraphIndex&>(index.getIndex());
+    size_t nOfObjects = objectRepository.size();
+    bool error = false;
+    std::string errorMessage;
+    for (size_t bid = 1; bid < nOfObjects; bid += batchSize) {
+      NGT::ObjectDistances results[batchSize];
+      // search
+#pragma omp parallel for
+      for (size_t idx = 0; idx < batchSize; idx++) {
+	size_t id = bid + idx;
+	if (objectRepository.isEmpty(id)) {
+	  continue;
+	}
+	NGT::SearchContainer searchContainer(*objectRepository.get(id));
+	searchContainer.setResults(&results[idx]);
+	searchContainer.setSize(prop.edgeSizeForCreation);
+	if (accuracy > 0.0) {
+          searchContainer.setExpectedAccuracy(accuracy);
+        } else {
+	  searchContainer.setEpsilon(epsilon); // epsilon should be adjusted.
+        }
+	if (edgeSize != INT_MIN) {
+          searchContainer.setEdgeSize(edgeSize);	// use all of the existing edges to obtain high accuracy.
+        }
+	if (!error) {
+          try {
+            index.search(searchContainer);
+          } catch (NGT::Exception &err) {
+#pragma omp critical
+            {
+      	      error = true;
+	      errorMessage = err.what();
+            }
+          }
+        }
+      }
+      if (error) {
+        std::stringstream msg;
+	msg << "GraphReconstructor::refineANNG: " << errorMessage;
+        NGTThrowException(msg);
+      }
+      // outgoing edges
+#pragma omp parallel for
+      for (size_t idx = 0; idx < batchSize; idx++) {
+	size_t id = bid + idx;
+	if (objectRepository.isEmpty(id)) {
+	  continue;
+	}
+	NGT::GraphNode &node = *graphIndex.getNode(id);
+	for (auto i = results[idx].begin(); i != results[idx].end(); ++i) {
+	  node.push_back(*i);
+	}
+	std::sort(node.begin(), node.end());
+	ObjectID prev = 0;
+	for (GraphNode::iterator ni = node.begin(); ni != node.end();) {
+	  if (prev == (*ni).id) {
+	    ni = node.erase(ni);
+	    continue;
+	  }
+	  prev = (*ni).id;
+	  ni++;
+	}
+      }
+      // incomming edges
+      for (size_t idx = 0; idx < batchSize; idx++) {
+	size_t id = bid + idx;
+	if (id % 10000 == 0) {
+	  std::cerr << "# of processed objects=" << id << std::endl;
+	}
+	for (auto i = results[idx].begin(); i != results[idx].end(); ++i) {
+	  NGT::GraphNode &node = *graphIndex.getNode((*i).id);
+	  graphIndex.addEdge(node, id, (*i).distance, false);
+	}
+      }
+    }
+#endif // defined(NGT_SHARED_MEMORY_ALLOCATOR)
+    }
 };
 
 }; // NGT

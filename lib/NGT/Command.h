@@ -36,6 +36,7 @@ public:
       step	 = 0;
       trial      = 1;
       beginOfEpsilon = endOfEpsilon = stepOfEpsilon = 0.1;
+      accuracy	 = 0.0;
     }
     SearchParameter(Args &args) { parse(args); }
     void parse(Args &args) {
@@ -71,6 +72,7 @@ public:
 	step = 0;
 	if (tokens.size() >= 4) { step = NGT::Common::strtol(tokens[3]); }
       }
+      accuracy		= args.getf("a", 0.0);
     }
     char	openMode;
     std::string	query;
@@ -83,6 +85,7 @@ public:
     float	beginOfEpsilon;
     float	endOfEpsilon;
     float	stepOfEpsilon;
+    float	accuracy;
     size_t	step;
     size_t	trial;
   };

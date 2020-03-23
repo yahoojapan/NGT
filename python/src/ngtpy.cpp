@@ -134,8 +134,9 @@ public:
   py::object search(
    py::object query,
    size_t size = 0, 			// the number of resultant objects
-   float epsilon = 0.1, 		// search parameter epsilon. the adequate range is from 0.0 to 0.15. minus value is acceptable.
+   float epsilon = 0.1, 		// search parameter epsilon. the adequate range is from 0.0 to 0.15. negative value is acceptable.
    int edgeSize = -1,			// the number of used edges for each node during the exploration of the graph.
+   float expectedAccuracy = -1.0,	// expected accuracy. if this is specified, epsilon that is calculated from this is used for search instead of the specified epsilon.
    bool withDistance = true
   ) {
     py::array_t<float> qobject(query);
@@ -158,7 +159,11 @@ public:
       sc.setSize(size);				// the number of resulting objects.
     }
     sc.setRadius(searchRadius);			// the radius of search.
-    sc.setEpsilon(epsilon);			// set exploration coefficient.
+    if (expectedAccuracy > 0.0) {
+      sc.setExpectedAccuracy(expectedAccuracy);
+    } else {
+      sc.setEpsilon(epsilon);			// set exploration coefficient.
+    }
     sc.setEdgeSize(edgeSize);			// if maxEdge is minus, the specified value in advance is used.
 
     NGT::Index::search(sc);
@@ -335,6 +340,7 @@ PYBIND11_MODULE(ngtpy, m) {
            py::arg("size") = 0, 
            py::arg("epsilon") = 0.1, 
            py::arg("edge_size") = -1,
+           py::arg("expected_accuracy") = -1.0, 
            py::arg("with_distance") = true)
       .def("linear_search", &::Index::linearSearch, 
            py::arg("query"), 
@@ -360,11 +366,13 @@ PYBIND11_MODULE(ngtpy, m) {
            py::arg("num_of_search_objects") = 0,
 	   py::arg("search_radius") = -1.0);
 
+
     py::class_<NGT::GraphOptimizer>(m, "Optimizer")
-      .def(py::init<int, int, int, float, float, float, float, double, double, bool>(),
+      .def(py::init<int, int, int, int, float, float, float, float, double, double, bool>(),
 	   py::arg("num_of_outgoings") = -1,
 	   py::arg("num_of_incomings") = -1,
 	   py::arg("num_of_queries") = -1,
+	   py::arg("num_of_objects") = -1,
 	   py::arg("low_accuracy_from") = -1.0,
 	   py::arg("low_accuracy_to") = -1.0,
 	   py::arg("high_accuracy_from") = -1.0,
@@ -377,10 +385,12 @@ PYBIND11_MODULE(ngtpy, m) {
 	   py::arg("out_index_path"))
       .def("adjust_search_coefficients", &NGT::GraphOptimizer::adjustSearchCoefficients, 
 	   py::arg("index_path"))
-      .def("set", &NGT::GraphOptimizer::set, 
+      .def("set", (void (NGT::GraphOptimizer::*)(int, int, int, int, float, float, float, float,
+						 double, double)) &NGT::GraphOptimizer::set,
 	   py::arg("num_of_outgoings") = -1,
 	   py::arg("num_of_incomings") = -1,
 	   py::arg("num_of_queries") = -1,
+	   py::arg("num_of_objects") = -1,
 	   py::arg("low_accuracy_from") = -1.0,
 	   py::arg("low_accuracy_to") = -1.0,
 	   py::arg("high_accuracy_from") = -1.0,
@@ -388,4 +398,3 @@ PYBIND11_MODULE(ngtpy, m) {
 	   py::arg("gt_epsilon") = DBL_MIN,
 	   py::arg("margin") = -1.0);
 }
-

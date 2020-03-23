@@ -37,6 +37,15 @@ typedef struct {
   float distance;
 } NGTObjectDistance;
 
+typedef struct {
+  float		*query;
+  size_t	size;		// # of returned objects
+  float		epsilon;
+  float		accuracy;	// expected accuracy
+  float		radius;
+  size_t	edge_size;	// # of edges to explore for each node
+} NGTQuery;
+
 NGTIndex ngt_open_index(const char *, NGTError);
 
 NGTIndex ngt_create_graph_and_tree(const char *, NGTProperty, NGTError);
@@ -88,7 +97,9 @@ NGTObjectDistances ngt_create_empty_results(NGTError);
 bool ngt_search_index(NGTIndex, double*, int32_t, size_t, float, float, NGTObjectDistances, NGTError);
 
 bool ngt_search_index_as_float(NGTIndex, float*, int32_t, size_t, float, float, NGTObjectDistances, NGTError);
-  
+
+bool ngt_search_index_with_query(NGTIndex, NGTQuery, NGTObjectDistances, NGTError);
+
 int32_t ngt_get_size(NGTObjectDistances, NGTError); // deprecated
   
 uint32_t ngt_get_result_size(NGTObjectDistances, NGTError); 
@@ -146,9 +157,23 @@ bool ngt_optimizer_execute(NGTOptimizer, const char *, const char *, NGTError);
 bool ngt_optimizer_set(NGTOptimizer optimizer, int outgoing, int incoming, int nofqs, 
 		       float baseAccuracyFrom, float baseAccuracyTo,
 		       float rateAccuracyFrom, float rateAccuracyTo,
-		       double qte, double m, NGTError error);
+		       double gte, double m, NGTError error);
+
+bool ngt_optimizer_set_minimum(NGTOptimizer optimizer, int outgoing, int incoming, 
+			       int nofqs, int nofrs, NGTError error);
+
+bool ngt_optimizer_set_extension(NGTOptimizer optimizer,
+				 float baseAccuracyFrom, float baseAccuracyTo,
+				 float rateAccuracyFrom, float rateAccuracyTo,
+				 double gte, double m, NGTError error);
 
 void ngt_destroy_optimizer(NGTOptimizer);
+
+// refine the specified index by searching each node.
+// epsilon, exepectedAccuracy and edgeSize are the same as the prameters for search
+// batchSize is the degree of parallelizm.
+bool ngt_refine_anng(NGTIndex index, float epsilon, float expectedAccuracy, 
+		     int edgeSize, size_t batchSize, NGTError error);
 
 #ifdef __cplusplus
 }

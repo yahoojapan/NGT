@@ -258,7 +258,11 @@ using namespace std;
 	sc.setResults(&objects);
 	sc.setSize(searchParameter.size);
 	sc.setRadius(searchParameter.radius);
-	sc.setEpsilon(epsilon);
+	if (searchParameter.accuracy > 0.0) {
+	  sc.setExpectedAccuracy(searchParameter.accuracy);
+	} else {
+	  sc.setEpsilon(epsilon);
+	}
  	sc.setEdgeSize(searchParameter.edgeSize);
 	NGT::Timer timer;
 	try {
@@ -664,7 +668,7 @@ using namespace std;
   void
   NGT::Command::reconstructGraph(Args &args)
   {
-    const string usage = "Usage: ngt reconstruct-graph [-m mode] [-P path-adjustment-mode] -o #-of-outgoing-edges -i #-of-incoming(reversed)-edges index(input) index(output)\n"
+    const string usage = "Usage: ngt reconstruct-graph [-m mode] [-P path-adjustment-mode] -o #-of-outgoing-edges -i #-of-incoming(reversed)-edges [-q #-of-queries] [-n #-of-results] index(input) index(output)\n"
       "\t-m mode\n"
       "\t\ts: Edge adjustment. (default)\n"
       "\t\tS: Edge adjustment and path adjustment.\n"
@@ -692,12 +696,20 @@ using namespace std;
       return;
     }
 
+    char mode = args.getChar("m", 'S');
+    char pamode = args.getChar("P", 'a');
+    char indexType = args.getChar("I", 'a');
+    size_t nOfQueries = args.getl("q", 100);		// # of query objects
+    size_t nOfResults = args.getl("n", 20);		// # of resultant objects
+    double gtEpsilon = args.getf("e", 0.1);
+    double mergin = args.getf("M", 0.2);
+
     // the number (rank) of original edges
-    int originalEdgeSize	= args.getl("o", -1);
+    int numOfOutgoingEdges	= args.getl("o", -1);
     // the number (rank) of reverse edges
-    int reverseEdgeSize		= args.getl("i", -1);
-    if ((originalEdgeSize < 0 && reverseEdgeSize >= 0) ||
-	(originalEdgeSize >= 0 && reverseEdgeSize < 0)) {
+    int numOfIncomingEdges		= args.getl("i", -1);
+    if ((numOfOutgoingEdges < 0 && numOfIncomingEdges >= 0) ||
+	(numOfOutgoingEdges >= 0 && numOfIncomingEdges < 0)) {
       cerr << "ngt::reconstructGraph: specified both of the edges(-i -o) or neither of them." << endl;
       cerr << usage << endl;
       return;
@@ -723,25 +735,21 @@ using namespace std;
       vector<NGT::ObjectDistances> graph;
       GraphReconstructor::extractGraph(graph, outIndex);
 
-      char mode = args.getChar("m", 'S');
-      char pamode = args.getChar("P", 'a');
-      char indexType = args.getChar("I", 'a');
-
-      if (originalEdgeSize >= 0) {
+      if (numOfOutgoingEdges >= 0) {
 	switch (mode) {
 	case 's': // SA
 	case 'S': // SA and path adjustment
 	  if (indexType != 'a') {
 	    NGT::GraphReconstructor::convertToANNG(graph);
 	  }
-	  NGT::GraphReconstructor::reconstructGraph(graph, outIndex, originalEdgeSize, reverseEdgeSize);
+	  NGT::GraphReconstructor::reconstructGraph(graph, outIndex, numOfOutgoingEdges, numOfIncomingEdges);
 	  break;
 	case 'c': // SAC
 	case 'C': // SAC and path adjustment
 	  if (indexType != 'a') {
 	    NGT::GraphReconstructor::convertToANNG(graph);
 	  }
-	  NGT::GraphReconstructor::reconstructGraphWithConstraint(graph, outIndex, originalEdgeSize, reverseEdgeSize);
+	  NGT::GraphReconstructor::reconstructGraphWithConstraint(graph, outIndex, numOfOutgoingEdges, numOfIncomingEdges);
 	  break;
 	case 'P':
 	  break;
@@ -767,18 +775,16 @@ using namespace std;
 
       pair<float, float> baseAccuracyRange(0.30, 0.50);
       pair<float, float> rateAccuracyRange(0.80, 0.90);
-      size_t querySize = 100;
-      double gtEpsilon = 0.1;
-      double mergin = 0.2;
 
       NGT::Optimizer	optimizer(outIndex);
       NGT::GraphIndex	&outGraph = (NGT::GraphIndex&)outIndex.getIndex();
       try {
-	auto param = optimizer.adjustSearchEdgeSize(baseAccuracyRange, rateAccuracyRange, querySize, gtEpsilon, mergin);
+	auto coefficients = optimizer.adjustSearchEdgeSize(baseAccuracyRange, rateAccuracyRange, nOfQueries, gtEpsilon, mergin);
 	NeighborhoodGraph::Property &prop = outGraph.getGraphProperty();
-	prop.dynamicEdgeSizeBase = param.first;
-	prop.dynamicEdgeSizeRate = param.second;
-	cerr << "Reconstruct Graph: adjust the base search edge size. " << param.first << ":" << param.second << endl;
+	prop.dynamicEdgeSizeBase = coefficients.first;
+	prop.dynamicEdgeSizeRate = coefficients.second;
+	prop.edgeSizeForSearch = -2;
+	cerr << "Reconstruct Graph: adjust the base search edge size. " << coefficients.first << ":" << coefficients.second << endl;
       } catch(NGT::Exception &err) {
 	cerr << "Warning: Cannot adjust the base edge size. " << err.what() << endl;
       }
@@ -794,18 +800,27 @@ using namespace std;
       prop.prefetchOffset = prefetch.first;
       prop.prefetchSize = prefetch.second;
       outIndex.setProperty(prop);
+
+      std::vector<pair<float, double>> table = NGT::Optimizer::generateAccuracyTable(outIndex, nOfResults, nOfQueries);
+      NGT::Index::AccuracyTable accuracyTable(table);
+      prop.accuracyTable = accuracyTable.getString();
+      outIndex.setProperty(prop);
+
       static_cast<NGT::GraphIndex&>(outIndex.getIndex()).saveProperty(outIndexPath);
     } catch(NGT::Exception &err) {
       std::stringstream msg;
       cerr << "Optimizer::execute: Cannot adjust prefetch parameters. " << err.what();
     }
-
   }
 
   void
   NGT::Command::optimizeSearchParameters(Args &args)
   {
-    const string usage = "Usage: ngt optimize-search-parameters [-m optimization-target(e|p)] index";
+    const string usage = "Usage: ngt optimize-search-parameters [-m optimization-target(e|p|a)] [-q #-of-queries] [-n #-of-results] index\n"
+      "\t-m mode\n"
+      "\t\te: optimize the number of edges for search.\n"
+      "\t\tp: optimize paths in a graph.\n"
+      "\t\ta: generate an accuracy table to spcify an expected accuracy instead of an epsilon for search.\n";
     
     char mode = args.getChar("m", '-');
 
@@ -818,40 +833,48 @@ using namespace std;
       return;
     }
 
-    if (mode == 'e' || mode == '-') {
-      try {
+    size_t nOfQueries = args.getl("q", 100);		// # of query objects
+    size_t nOfResults = args.getl("n", 20);		// # of resultant objects
+
+    try {
+      if (mode == 'e' || mode == '-') {
 	pair<float, float> baseAccuracyRange(0.30, 0.50);
 	pair<float, float> rateAccuracyRange(0.80, 0.90);
-	size_t querySize = 100;
 	double gtEpsilon = 0.1;
 	double mergin = 0.2;
 
 	NGT::Index	index(indexPath);
 	NGT::Optimizer	optimizer(index);
-	NGT::GraphIndex	&graph = (NGT::GraphIndex&)index.getIndex();
-	auto param = optimizer.adjustSearchEdgeSize(baseAccuracyRange, rateAccuracyRange, querySize, gtEpsilon, mergin);
-	NeighborhoodGraph::Property &prop = graph.getGraphProperty();
-	prop.dynamicEdgeSizeBase = param.first;
-	prop.dynamicEdgeSizeRate = param.second;
-      } catch (NGT::Exception &err) {
-	cerr << "ngt: Error " << err.what() << endl;
-	cerr << usage << endl;
-      }
-
-    } else if (mode == 'p' || mode == '-') {
-      try {
-	NGT::Index	index(indexPath, true);
-	auto prefetch = NGT::GraphOptimizer::adjustPrefetchParameters(index);
+	auto param = optimizer.adjustSearchEdgeSize(baseAccuracyRange, rateAccuracyRange, nOfQueries, gtEpsilon, mergin);
 	NGT::Property prop;
 	index.getProperty(prop);
-	prop.prefetchOffset = prefetch.first;
-	prop.prefetchSize = prefetch.second;
+	prop.dynamicEdgeSizeBase = param.first;
+	prop.dynamicEdgeSizeRate = param.second;
+	prop.edgeSizeForSearch = -2;
 	index.setProperty(prop);
 	static_cast<NGT::GraphIndex&>(index.getIndex()).saveProperty(indexPath);
-      } catch (NGT::Exception &err) {
-	cerr << "ngt: Error " << err.what() << endl;
-	cerr << usage << endl;
       }
+      if (mode == 'p' || mode == 'a' || mode == '-') {
+	NGT::Index	index(indexPath, true);
+	NGT::Property prop;
+	index.getProperty(prop);
+	if (mode == 'p' || mode == '-') {
+	  auto prefetch = NGT::GraphOptimizer::adjustPrefetchParameters(index);
+	  prop.prefetchOffset = prefetch.first;
+	  prop.prefetchSize = prefetch.second;
+	  index.setProperty(prop);
+	}
+	if (mode == 'a' || mode == '-') {
+	  std::vector<pair<float, double>> table = NGT::Optimizer::generateAccuracyTable(index, nOfResults, nOfQueries);
+	  NGT::Index::AccuracyTable accuracyTable(table);
+	  prop.accuracyTable = accuracyTable.getString();
+	  index.setProperty(prop);
+	}
+	static_cast<NGT::GraphIndex&>(index.getIndex()).saveProperty(indexPath);
+      }
+    } catch (NGT::Exception &err) {
+      cerr << "ngt: Error " << err.what() << endl;
+      cerr << usage << endl;
     }
   }
 
@@ -862,7 +885,7 @@ using namespace std;
     std::cerr << "refineANNG. Not implemented." << std::endl;
     abort();
 #else
-    const string usage = "Usage: ngt refine-anng anng-index";
+    const string usage = "Usage: ngt refine-anng anng-index refined-anng-index";
 
     string inIndexPath;
     try {
@@ -883,59 +906,18 @@ using namespace std;
     }
 
     NGT::Index	index(inIndexPath);
-    auto prop = static_cast<GraphIndex&>(index.getIndex()).getGraphProperty();
-    NGT::ObjectRepository &objectRepository = index.getObjectSpace().getRepository();
-    NGT::GraphIndex &graphIndex = static_cast<GraphIndex&>(index.getIndex());
-    size_t nOfObjects = objectRepository.size();
-    size_t batchSize = 10000;
-    for (size_t bid = 1; bid < nOfObjects; bid += batchSize) {
-      NGT::ObjectDistances results[batchSize];
-      // search
-#pragma omp parallel for
-      for (size_t idx = 0; idx < batchSize; idx++) {
-	size_t id = bid + idx;
-	if (objectRepository.isEmpty(id)) {
-	  continue;
-	}
-	NGT::SearchContainer searchContainer(*objectRepository.get(id));
-	searchContainer.setResults(&results[idx]);
-	searchContainer.setSize(prop.edgeSizeForCreation);
-	searchContainer.setEpsilon(0.1); // epsilon should be adjusted.
-	searchContainer.setEdgeSize(0);	// use all of the existing edges to obtain high accuracy.
-	index.search(searchContainer);
-      }
-      // outgoing edges
-#pragma omp parallel for
-      for (size_t idx = 0; idx < batchSize; idx++) {
-	size_t id = bid + idx;
-	NGT::GraphNode &node = *graphIndex.getNode(id);
-	for (auto i = results[idx].begin(); i != results[idx].end(); ++i) {
-	  node.push_back(*i);
-	}
-	std::sort(node.begin(), node.end());
-	ObjectID prev = 0;
-	for (GraphNode::iterator ni = node.begin(); ni != node.end();) {
-	  if (prev == (*ni).id) {
-	    ni = node.erase(ni);
-	    continue;
-	  }
-	  prev = (*ni).id;
-	  ni++;
-	}
-      }
-      // incomming edges
-      for (size_t idx = 0; idx < batchSize; idx++) {
-	size_t id = bid + idx;
-	if (id % 10000 == 0) {
-	  std::cerr << "# of processed objects=" << id << std::endl;
-	}
-	for (auto i = results[idx].begin(); i != results[idx].end(); ++i) {
-	  NGT::GraphNode &node = *graphIndex.getNode((*i).id);
-	  graphIndex.addEdge(node, id, (*i).distance, false);
-	}
-      }
-    }
 
+    float  epsilon		= args.getf("e", 0.1);
+    float  expectedAccuracy	= args.getf("a", 0.0);
+    int    edgeSize		= args.getf("E", INT_MIN);
+    size_t batchSize		= args.getl("b", 10000);
+
+    try {
+      GraphReconstructor::refineANNG(index, epsilon, expectedAccuracy, edgeSize, batchSize);
+    } catch (NGT::Exception &err) {
+      std::cerr << "Error!! Cannot refine the index. " << err.what() << std::endl;
+      return;
+    }
     index.saveIndex(outIndexPath);
 #endif
   }

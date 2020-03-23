@@ -25,22 +25,43 @@ namespace NGT {
       logDisabled = unlog;
     }
 
+    GraphOptimizer(int outgoing, int incoming, int nofqs, int nofrs,
+		   float baseAccuracyFrom, float baseAccuracyTo,
+		   float rateAccuracyFrom, float rateAccuracyTo,
+		   double gte, double m,
+		   bool unlog		// stderr log is disabled.
+		   ) {
+      init();
+      set(outgoing, incoming, nofqs, nofrs, baseAccuracyFrom, baseAccuracyTo,
+	  rateAccuracyFrom, rateAccuracyTo, gte, m);
+      logDisabled = unlog;
+    }
+#if 0
     GraphOptimizer(int outgoing, int incoming, int nofqs, 
 		   float baseAccuracyFrom, float baseAccuracyTo,
 		   float rateAccuracyFrom, float rateAccuracyTo,
-		   double qte, double m,
+		   double gte, double m,
 		   bool unlog		// stderr log is disabled.
 		   ) {
       init();
       set(outgoing, incoming, nofqs, baseAccuracyFrom, baseAccuracyTo,
-	  rateAccuracyFrom, rateAccuracyTo, qte, m);
+	  rateAccuracyFrom, rateAccuracyTo, gte, m);
       logDisabled = unlog;
     }
 
+    GraphOptimizer(int outgoing, int incoming, int nofqs, int nofrs,
+		   bool unlog		// stderr log is disabled.
+		   ) {
+      init();
+      set(outgoing, incoming, nofqs, nofrs);
+      logDisabled = unlog;
+    }
+#endif
     void init() {
       numOfOutgoingEdges = 10;
       numOfIncomingEdges= 120;
       numOfQueries = 100;
+      numOfResults = 20;
       baseAccuracyRange = std::pair<float, float>(0.30, 0.50);
       rateAccuracyRange = std::pair<float, float>(0.80, 0.90);
       gtEpsilon = 0.1;
@@ -62,6 +83,7 @@ namespace NGT {
 	NGT::NeighborhoodGraph::Property &prop = graph.getGraphProperty();
 	prop.dynamicEdgeSizeBase = coefficients.first;
 	prop.dynamicEdgeSizeRate = coefficients.second;
+	prop.edgeSizeForSearch = -2;
       } catch(NGT::Exception &err) {
 	std::stringstream msg;
 	msg << "Optimizer::adjustSearchCoefficients: Cannot adjust the search coefficients. " << err.what();
@@ -218,12 +240,12 @@ namespace NGT {
 #else
 	NGT::Index	outIndex(inIndexPath);
 #endif
-	NGT::GraphIndex	&outGraph = static_cast<NGT::GraphIndex&>(outIndex.getIndex());
 	NGT::Timer timer;
 	timer.start();
 	std::vector<NGT::ObjectDistances> graph;
 	NGT::StdOstreamRedirector redirector(logDisabled);
 	redirector.begin();
+
 	try {
 	  std::cerr << "Optimizer::execute: Extract the graph data." << std::endl;
 	  // extract only edges from the index to reduce the memory usage.
@@ -250,11 +272,13 @@ namespace NGT {
 	} else {
 	  optimizer.enableLog();
 	}
+	NGT::GraphIndex	&outGraph = static_cast<NGT::GraphIndex&>(outIndex.getIndex());
 	try {
 	  auto coefficients = optimizer.adjustSearchEdgeSize(baseAccuracyRange, rateAccuracyRange, numOfQueries, gtEpsilon, margin);
 	  NGT::NeighborhoodGraph::Property &prop = outGraph.getGraphProperty();
 	  prop.dynamicEdgeSizeBase = coefficients.first;
 	  prop.dynamicEdgeSizeRate = coefficients.second;
+	  prop.edgeSizeForSearch = -2;
 	} catch(NGT::Exception &err) {
 	  std::stringstream msg;
 	  msg << "Optimizer::execute: Cannot adjust the search coefficients. " << err.what();
@@ -272,6 +296,12 @@ namespace NGT {
 	prop.prefetchOffset = prefetch.first;
 	prop.prefetchSize = prefetch.second;
 	outIndex.setProperty(prop);
+
+	std::vector<std::pair<float, double>> table = NGT::Optimizer::generateAccuracyTable(outIndex, numOfResults, numOfQueries);
+	NGT::Index::AccuracyTable accuracyTable(table);
+	prop.accuracyTable = accuracyTable.getString();
+	outIndex.setProperty(prop);
+
 	static_cast<NGT::GraphIndex&>(outIndex.getIndex()).saveProperty(outIndexPath);
       } catch(NGT::Exception &err) {
 	std::stringstream msg;
@@ -281,10 +311,59 @@ namespace NGT {
 
     }
 
+    void set(int outgoing, int incoming, int nofqs, int nofrs,
+	     float baseAccuracyFrom, float baseAccuracyTo,
+	     float rateAccuracyFrom, float rateAccuracyTo,
+	     double gte, double m
+	     ) {
+      set(outgoing, incoming, nofqs, nofrs);
+      setExtension(baseAccuracyFrom, baseAccuracyTo, rateAccuracyFrom, rateAccuracyTo, gte, m);
+    }
+
+    void set(int outgoing, int incoming, int nofqs, int nofrs) {
+      if (outgoing >= 0) {
+	numOfOutgoingEdges = outgoing;
+      }
+      if (incoming >= 0) {
+	numOfIncomingEdges = incoming;
+      }
+      if (nofqs > 0) {
+	numOfQueries = nofqs;
+      }
+      if (nofrs > 0) {
+	numOfResults = nofrs;
+      }
+    }
+
+    void setExtension(float baseAccuracyFrom, float baseAccuracyTo,
+		       float rateAccuracyFrom, float rateAccuracyTo,
+		       double gte, double m
+		       ) {
+      if (baseAccuracyFrom > 0.0) {
+	baseAccuracyRange.first = baseAccuracyFrom;
+      }
+      if (baseAccuracyTo > 0.0) {
+	baseAccuracyRange.second = baseAccuracyTo;
+      }
+      if (rateAccuracyFrom > 0.0) {
+	rateAccuracyRange.first = rateAccuracyFrom;
+      }
+      if (rateAccuracyTo > 0.0) {
+	rateAccuracyRange.second = rateAccuracyTo;
+      }
+      if (gte >= -1.0) {
+	gtEpsilon = gte;
+      }
+      if (m > 0.0) {
+	margin = m;
+      }
+    }
+
+    // obsolete because of a lack of a parameter
     void set(int outgoing, int incoming, int nofqs, 
 	     float baseAccuracyFrom, float baseAccuracyTo,
 	     float rateAccuracyFrom, float rateAccuracyTo,
-	     double qte, double m
+	     double gte, double m
 	     ) {
       if (outgoing >= 0) {
 	numOfOutgoingEdges = outgoing;
@@ -307,8 +386,8 @@ namespace NGT {
       if (rateAccuracyTo > 0.0) {
 	rateAccuracyRange.second = rateAccuracyTo;
       }
-      if (qte >= -1.0) {
-	gtEpsilon = qte;
+      if (gte >= -1.0) {
+	gtEpsilon = gte;
       }
       if (m > 0.0) {
 	margin = m;
@@ -320,6 +399,7 @@ namespace NGT {
     std::pair<float, float> baseAccuracyRange;
     std::pair<float, float> rateAccuracyRange;
     size_t numOfQueries;
+    size_t numOfResults;
     double gtEpsilon;
     double margin;
     bool logDisabled;

@@ -1592,6 +1592,7 @@ namespace NGT {
       edgeSize = sc.edgeSize;
       workingResult = sc.workingResult;
       useAllNodesInLeaf = sc.useAllNodesInLeaf;  
+      expectedAccuracy = sc.expectedAccuracy;
       visitCount = sc.visitCount;
       return *this;
     }
@@ -1603,12 +1604,14 @@ namespace NGT {
       result = 0;
       edgeSize = -1;	// dynamically prune the edges during search. -1 means following the index property. 0 means using all edges.
       useAllNodesInLeaf = false;
+      expectedAccuracy = -1.0;
     }
     void setSize(size_t s) { size = s; };
     void setResults(ObjectDistances *r) { result = r; }
     void setRadius(Distance r) { radius = r; }
     void setEpsilon(float e) { explorationCoefficient = e + 1.0; }
     void setEdgeSize(int e) { edgeSize = e; }
+    void setExpectedAccuracy(float a) { expectedAccuracy = a; }
 
     inline bool resultIsAvailable() { return result != 0; }
     ObjectDistances &getResult() {
@@ -1629,6 +1632,7 @@ namespace NGT {
     ResultPriorityQueue	workingResult;
     bool		useAllNodesInLeaf;
     size_t		visitCount;
+    float		expectedAccuracy;
 
   private:
     ObjectDistances	*result;

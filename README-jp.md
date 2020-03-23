@@ -41,6 +41,12 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
 - [Releases](https://github.com/yahoojapan/NGT/releases)
 
+### ビルド済み
+
+#### macOS
+
+      $ brew install ngt
+
 ### ビルド
 
 #### Linux
@@ -48,9 +54,9 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
       $ unzip NGT-x.x.x.zip
       $ cd NGT-x.x.x
       $ mkdir build
-      $ cd build 
+      $ cd build
       $ cmake ..
-      $ make 
+      $ make
       $ make install
       $ ldconfig /usr/local/lib
 
@@ -59,14 +65,14 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
       $ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
       $ brew install cmake
       $ brew install gcc@9
-      $ export CXX=/usr/local/bin/g++
-      $ export CC=/usr/local/bin/gcc
+      $ export CXX=/usr/local/bin/g++-9
+      $ export CC=/usr/local/bin/gcc-9
       $ unzip NGT-x.x.x.zip
       $ cd NGT-x.x.x
       $ mkdir build
-      $ cd build 
+      $ cd build
       $ cmake ..
-      $ make 
+      $ make
       $ make install
 
 #### 共有メモリの利用

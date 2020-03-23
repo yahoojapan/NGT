@@ -324,15 +324,18 @@ NGTObjectDistances ngt_create_empty_results(NGTError error) {
   }
 }
 
-static bool ngt_search_index_(NGT::Index* pindex, NGT::Object *ngtquery, size_t size, float epsilon, float radius, NGTObjectDistances results) {
+static bool ngt_search_index_(NGT::Index* pindex, NGT::Object *ngtquery, size_t size, float epsilon, float radius, NGTObjectDistances results, int edge_size = INT_MIN) {
   // set search prameters.
   NGT::SearchContainer sc(*ngtquery);      // search parametera container.
   
   sc.setResults(static_cast<NGT::ObjectDistances*>(results));          // set the result set.
-  sc.setSize(size);             // the number of resultant objects.
-  sc.setRadius(radius);         // search radius.
-  sc.setEpsilon(epsilon);           // set exploration coefficient.
-  
+  sc.setSize(size);                        // the number of resultant objects.
+  sc.setRadius(radius);                    // search radius.
+  sc.setEpsilon(epsilon);                  // set exploration coefficient.
+  if (edge_size != INT_MIN) {
+    sc.setEdgeSize(edge_size);// set # of edges for each node
+  }
+
   pindex->search(sc);
   
   // delete the query object.
@@ -394,6 +397,39 @@ bool ngt_search_index_as_float(NGTIndex index, float *query, int32_t query_dim, 
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
     operate_error_string_(ss, error);      
+    if(ngtquery != NULL){
+      pindex->deleteObject(ngtquery);
+    }
+    return false;
+  }
+  return true;
+}
+
+bool ngt_search_index_with_query(NGTIndex index,  NGTQuery query, NGTObjectDistances results, NGTError error) {
+  if(index == NULL || query.query == NULL || results == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " query = " << query.query << " results = " << results;
+    operate_error_string_(ss, error);
+    return false;
+  }
+  
+  NGT::Index* pindex = static_cast<NGT::Index*>(index);   
+  int32_t dim = pindex->getObjectSpace().getDimension();
+
+  NGT::Object *ngtquery = NULL;
+
+  if(query.radius < 0.0){
+    query.radius = FLT_MAX;
+  }
+
+  try{
+    std::vector<float> vquery(&query.query[0], &query.query[dim]);
+    ngtquery = pindex->allocateObject(vquery);
+    ngt_search_index_(pindex, ngtquery, query.size, query.epsilon, query.radius, results, query.edge_size);
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
     if(ngtquery != NULL){
       pindex->deleteObject(ngtquery);
     }
@@ -768,10 +804,11 @@ bool ngt_optimizer_execute(NGTOptimizer optimizer, const char *inIndex, const ch
   return true;
 }
 
+// obsolute because of a lack of a parameter
 bool ngt_optimizer_set(NGTOptimizer optimizer, int outgoing, int incoming, int nofqs, 
 		       float baseAccuracyFrom, float baseAccuracyTo,
 		       float rateAccuracyFrom, float rateAccuracyTo,
-		       double qte, double m, NGTError error) {
+		       double gte, double m, NGTError error) {
   if(optimizer == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: optimizer = " << optimizer;
@@ -780,7 +817,48 @@ bool ngt_optimizer_set(NGTOptimizer optimizer, int outgoing, int incoming, int n
   }
   try{
     (static_cast<NGT::GraphOptimizer*>(optimizer))->set(outgoing, incoming, nofqs, baseAccuracyFrom, baseAccuracyTo,
-							rateAccuracyFrom, rateAccuracyTo, qte, m);
+    							rateAccuracyFrom, rateAccuracyTo, gte, m);
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);                  
+    return false;
+  }
+  return true;
+}
+
+bool ngt_optimizer_set_minimum(NGTOptimizer optimizer, int outgoing, int incoming,
+			       int nofqs, int nofrs, NGTError error) {
+  if(optimizer == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: optimizer = " << optimizer;
+    operate_error_string_(ss, error);      
+    return false;
+  }
+  try{
+    (static_cast<NGT::GraphOptimizer*>(optimizer))->set(outgoing, incoming, nofqs, nofrs);
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);                  
+    return false;
+  }
+  return true;
+}
+
+bool ngt_optimizer_set_extension(NGTOptimizer optimizer,
+				 float baseAccuracyFrom, float baseAccuracyTo,
+				 float rateAccuracyFrom, float rateAccuracyTo,
+				 double gte, double m, NGTError error) {
+  if(optimizer == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: optimizer = " << optimizer;
+    operate_error_string_(ss, error);      
+    return false;
+  }
+  try{
+    (static_cast<NGT::GraphOptimizer*>(optimizer))->setExtension(baseAccuracyFrom, baseAccuracyTo,
+								  rateAccuracyFrom, rateAccuracyTo, gte, m);
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
@@ -796,3 +874,16 @@ void ngt_destroy_optimizer(NGTOptimizer optimizer)
     delete(static_cast<NGT::GraphOptimizer*>(optimizer));
 }
 
+bool ngt_refine_anng(NGTIndex index, float epsilon, float accuracy, int edgeSize, size_t batchSize, NGTError error)
+{
+    NGT::Index* pindex = static_cast<NGT::Index*>(index);    
+    try {
+      NGT::GraphReconstructor::refineANNG(*pindex, epsilon, accuracy, edgeSize, batchSize);
+    } catch(std::exception &err) {
+      std::stringstream ss;
+      ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+      operate_error_string_(ss, error);      
+      return false;
+    }
+    return true;
+}
