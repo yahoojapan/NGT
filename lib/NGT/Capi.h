@@ -171,7 +171,7 @@ void ngt_destroy_optimizer(NGTOptimizer);
 
 // refine the specified index by searching each node.
 // epsilon, exepectedAccuracy and edgeSize are the same as the prameters for search
-// batchSize is the degree of parallelizm.
+// batchSize is the degree of parallelism.
 bool ngt_refine_anng(NGTIndex index, float epsilon, float expectedAccuracy, 
 		     int edgeSize, size_t batchSize, NGTError error);
 
