@@ -111,6 +111,7 @@ public:
   void prune(Args &args);
   void reconstructGraph(Args &args);
   void optimizeSearchParameters(Args &args);
+  void optimizeNumberOfEdgesForANNG(Args &args);
   void refineANNG(Args &args);
 
   void info(Args &args);

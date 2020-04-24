@@ -874,11 +874,11 @@ void ngt_destroy_optimizer(NGTOptimizer optimizer)
     delete(static_cast<NGT::GraphOptimizer*>(optimizer));
 }
 
-bool ngt_refine_anng(NGTIndex index, float epsilon, float accuracy, int edgeSize, size_t batchSize, NGTError error)
+bool ngt_refine_anng(NGTIndex index, float epsilon, float accuracy, int noOfEdges, int exploreEdgeSize, size_t batchSize, NGTError error)
 {
     NGT::Index* pindex = static_cast<NGT::Index*>(index);    
     try {
-      NGT::GraphReconstructor::refineANNG(*pindex, epsilon, accuracy, edgeSize, batchSize);
+      NGT::GraphReconstructor::refineANNG(*pindex, epsilon, accuracy, noOfEdges, exploreEdgeSize, batchSize);
     } catch(std::exception &err) {
       std::stringstream ss;
       ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();

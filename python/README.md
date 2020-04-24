@@ -55,7 +55,7 @@ ngtpy(pybind11) can reduce the processing times than ngt(ctypes). It is more eff
       print(object)
 ```
 
-See also [sample.py](sample/sample.py).
+See also [sample.py](https://github.com/yahoojapan/NGT/blob/master/python/sample/sample.py).
 
 ### ngt (ctypes)
 

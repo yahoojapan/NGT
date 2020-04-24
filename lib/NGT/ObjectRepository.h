@@ -109,12 +109,12 @@ namespace NGT {
       if (dimension == 0) {
 	NGTThrowException("ObjectSpace::readText: Dimension is not specified.");
       }
-      size_t prevDataSize = size();
-      if (prevDataSize == 0) {
+      if (size() == 0) {
 	// First entry should be always a dummy entry.
 	// If it is empty, the dummy entry should be inserted.
 	push_back((PersistentObject*)0);
       }
+      size_t prevDataSize = size();
       if (dataSize > 0) {
 	reserve(size() + dataSize);
       }

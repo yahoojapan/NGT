@@ -41,10 +41,6 @@ NeighborhoodGraph::Property::set(NGT::Property &prop) {
   if (prop.outgoingEdge != -1)                  outgoingEdge = prop.outgoingEdge;
   if (prop.incomingEdge != -1)                  incomingEdge = prop.incomingEdge;
   if (prop.graphType != GraphTypeNone)		graphType = prop.graphType;
-
-  if (graphType == GraphTypeONNG) {
-    edgeSizeForCreation = outgoingEdge > incomingEdge ? outgoingEdge : incomingEdge;
-  }
 }
 
 void 
@@ -362,7 +358,6 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 
     UncheckedSet unchecked;
 
-    //DistanceCheckedSet distanceChecked(searchRepository.size());
     CHECK_LIST distanceChecked(searchRepository.size());
 
     ResultSet results;

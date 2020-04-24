@@ -20,6 +20,26 @@
 namespace NGT {
   class GraphOptimizer {
   public:
+    class ANNGEdgeOptimizationParameter {
+    public:
+      ANNGEdgeOptimizationParameter() {
+	noOfQueries = 200;
+	noOfResults = 50;
+	noOfThreads = 16;
+	targetAccuracy = 0.9;	// when epsilon is 0.0 and all of the edges are used
+	targetNoOfObjects = 0;
+	noOfSampleObjects = 100000;
+	maxOfNoOfEdges = 100;
+      }
+      size_t noOfQueries;
+      size_t noOfResults;
+      size_t noOfThreads;
+      float targetAccuracy;
+      size_t targetNoOfObjects;
+      size_t noOfSampleObjects;
+      size_t maxOfNoOfEdges;
+    };
+
     GraphOptimizer(bool unlog = false) {
       init();
       logDisabled = unlog;
@@ -36,27 +56,7 @@ namespace NGT {
 	  rateAccuracyFrom, rateAccuracyTo, gte, m);
       logDisabled = unlog;
     }
-#if 0
-    GraphOptimizer(int outgoing, int incoming, int nofqs, 
-		   float baseAccuracyFrom, float baseAccuracyTo,
-		   float rateAccuracyFrom, float rateAccuracyTo,
-		   double gte, double m,
-		   bool unlog		// stderr log is disabled.
-		   ) {
-      init();
-      set(outgoing, incoming, nofqs, baseAccuracyFrom, baseAccuracyTo,
-	  rateAccuracyFrom, rateAccuracyTo, gte, m);
-      logDisabled = unlog;
-    }
 
-    GraphOptimizer(int outgoing, int incoming, int nofqs, int nofrs,
-		   bool unlog		// stderr log is disabled.
-		   ) {
-      init();
-      set(outgoing, incoming, nofqs, nofrs);
-      logDisabled = unlog;
-    }
-#endif
     void init() {
       numOfOutgoingEdges = 10;
       numOfIncomingEdges= 120;
@@ -67,6 +67,7 @@ namespace NGT {
       gtEpsilon = 0.1;
       margin = 0.2;
       logDisabled = false;
+      shortcutReduction = true;
     }
 
     void adjustSearchCoefficients(const std::string indexPath){
@@ -223,50 +224,68 @@ namespace NGT {
 		 const std::string inIndexPath,
 		 const std::string outIndexPath
 		 ){
-      if ((numOfOutgoingEdges < 0 && numOfIncomingEdges >= 0) ||
-	  (numOfOutgoingEdges >= 0 && numOfIncomingEdges < 0)) {
-	NGTThrowException("Optimizer::execute: Specified any of the number of edges is invalid.");
+      if (access(outIndexPath.c_str(), 0) == 0) {
+	std::stringstream msg;
+	msg << "Optimizer::execute: The specified index exists. " << outIndexPath;
+	NGTThrowException(msg);
       }
+
+      const std::string com = "cp -r " + inIndexPath + " " + outIndexPath;
+      int stat = system(com.c_str());
+      if (stat != 0) {
+	std::stringstream msg;
+	msg << "Optimizer::execute: Cannot create the specified index. " << outIndexPath;
+	NGTThrowException(msg);
+      }
+
       {
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-	if (access(outIndexPath.c_str(), 0) == 0) {
-	  std::stringstream msg;
-	  msg << "Optimizer::execute: The specified index exists. " << outIndexPath;
-	  NGTThrowException(msg);
-	}
-	const std::string com = "cp -r " + inIndexPath + " " + outIndexPath;
-	system(com.c_str());
-	NGT::Index	outIndex(outIndexPath);
-#else
-	NGT::Index	outIndex(inIndexPath);
-#endif
-	NGT::Timer timer;
-	timer.start();
-	std::vector<NGT::ObjectDistances> graph;
 	NGT::StdOstreamRedirector redirector(logDisabled);
 	redirector.begin();
+	NGT::GraphIndex graphIndex(outIndexPath, false);
 
-	try {
-	  std::cerr << "Optimizer::execute: Extract the graph data." << std::endl;
-	  // extract only edges from the index to reduce the memory usage.
-	  NGT::GraphReconstructor::extractGraph(graph, outIndex);
-	  if (numOfOutgoingEdges >= 0) {
-	    NGT::GraphReconstructor::convertToANNG(graph);
-	    NGT::GraphReconstructor::reconstructGraph(graph, outIndex, numOfOutgoingEdges, numOfIncomingEdges);
-	  }
-	  timer.stop();
-	  std::cerr << "Optimizer::execute: Graph reconstruction time=" << timer.time << " (sec) " << std::endl;
-	  timer.reset();
+	if (numOfOutgoingEdges > 0 || numOfIncomingEdges > 0) {
+	  NGT::Timer timer;
 	  timer.start();
-	  NGT::GraphReconstructor::adjustPathsEffectively(outIndex);
-	  timer.stop();
-	  std::cerr << "Optimizer::execute: Path adjustment time=" << timer.time << " (sec) " << std::endl;
-	} catch (NGT::Exception &err) {
-	  redirector.end();
-	  throw(err);
+	  std::vector<NGT::ObjectDistances> graph;
+	  try {
+	    std::cerr << "Optimizer::execute: Extract the graph data." << std::endl;
+	    // extract only edges from the index to reduce the memory usage.
+	    NGT::GraphReconstructor::extractGraph(graph, graphIndex);
+	    NeighborhoodGraph::Property &prop = graphIndex.getGraphProperty();
+	    if (prop.graphType != NGT::NeighborhoodGraph::GraphTypeANNG) {
+	      NGT::GraphReconstructor::convertToANNG(graph);
+	    }
+	    NGT::GraphReconstructor::reconstructGraph(graph, graphIndex, numOfOutgoingEdges, numOfIncomingEdges);
+	    timer.stop();
+	    std::cerr << "Optimizer::execute: Graph reconstruction time=" << timer.time << " (sec) " << std::endl;
+	    graphIndex.saveGraph(outIndexPath);
+	    prop.graphType = NGT::NeighborhoodGraph::GraphTypeONNG;
+	    graphIndex.saveProperty(outIndexPath);
+	  } catch (NGT::Exception &err) {
+	    redirector.end();
+	    throw(err);
+	  }
+	}
+
+	if (shortcutReduction) {
+	  try {
+	    NGT::Timer timer;
+	    timer.start();
+	    NGT::GraphReconstructor::adjustPathsEffectively(graphIndex);
+	    timer.stop();
+	    std::cerr << "Optimizer::execute: Path adjustment time=" << timer.time << " (sec) " << std::endl;
+	    graphIndex.saveGraph(outIndexPath);
+	  } catch (NGT::Exception &err) {
+	    redirector.end();
+	    throw(err);
+	  }
 	}
 	redirector.end();
-	NGT::Optimizer optimizer(outIndex);
+      }
+
+      {
+	NGT::Index	outIndex(outIndexPath);
+	NGT::Optimizer	optimizer(outIndex);
 	if (logDisabled) {
 	  optimizer.disableLog();
 	} else {
@@ -279,13 +298,13 @@ namespace NGT {
 	  prop.dynamicEdgeSizeBase = coefficients.first;
 	  prop.dynamicEdgeSizeRate = coefficients.second;
 	  prop.edgeSizeForSearch = -2;
+	  outGraph.saveIndex(outIndexPath);
 	} catch(NGT::Exception &err) {
 	  std::stringstream msg;
 	  msg << "Optimizer::execute: Cannot adjust the search coefficients. " << err.what();
 	  NGTThrowException(msg);      
 	}
 
-	outGraph.saveIndex(outIndexPath);
       }
 
       try {
@@ -309,6 +328,161 @@ namespace NGT {
 	NGTThrowException(msg);
       }
 
+    }
+
+    static std::tuple<size_t, double, double>	// optimized # of edges, accuracy, accuracy gain per edge
+      optimizeNumberOfEdgesForANNG(NGT::Optimizer &optimizer, std::vector<std::vector<float>> &queries,
+				       size_t nOfResults, float targetAccuracy, size_t maxNoOfEdges) {
+
+      NGT::Index &index = optimizer.index;
+      std::stringstream queryStream;
+      std::stringstream gtStream;
+      float maxEpsilon = 0.0;
+
+      optimizer.generatePseudoGroundTruth(queries, maxEpsilon, queryStream, gtStream);
+
+      size_t nOfEdges = 0;
+      double accuracy = 0.0;
+      size_t prevEdge = 0;
+      double prevAccuracy = 0.0;
+      double gain = 0.0;
+      {
+	std::vector<NGT::ObjectDistances> graph;
+	NGT::GraphReconstructor::extractGraph(graph, static_cast<NGT::GraphIndex&>(index.getIndex()));
+	float epsilon = 0.0;  
+	for (size_t edgeSize = 5; edgeSize <= maxNoOfEdges; edgeSize += (edgeSize >= 10 ? 10 : 5) ) {
+	  NGT::GraphReconstructor::reconstructANNGFromANNG(graph, index, edgeSize);
+	  NGT::Command::SearchParameter searchParameter;
+	  searchParameter.size = nOfResults;
+	  searchParameter.outputMode = 'e';
+	  searchParameter.edgeSize = 0;
+	  searchParameter.beginOfEpsilon = searchParameter.endOfEpsilon = epsilon;
+	  queryStream.clear();
+	  queryStream.seekg(0, std::ios_base::beg);
+	  std::vector<NGT::Optimizer::MeasuredValue> acc;
+	  NGT::Optimizer::search(index, queryStream, gtStream, searchParameter, acc);
+	  if (acc.size() == 0) {
+	    NGTThrowException("Fatal error! Cannot get any accuracy value.");
+	  }
+	  accuracy = acc[0].meanAccuracy;
+	  nOfEdges = edgeSize;
+	  if (prevEdge != 0) {
+	    gain = (accuracy - prevAccuracy) / (edgeSize - prevEdge);
+	  }
+	  if (accuracy >= targetAccuracy) {
+	    break;
+	  }
+	  prevEdge = edgeSize;
+	  prevAccuracy = accuracy;
+	}
+      }
+      return std::make_tuple(nOfEdges, accuracy, gain);
+    }
+
+    static std::pair<size_t, float>
+      optimizeNumberOfEdgesForANNG(NGT::Index &index, ANNGEdgeOptimizationParameter &parameter)
+    {
+      if (parameter.targetNoOfObjects == 0) {
+	parameter.targetNoOfObjects = index.getObjectRepositorySize();
+      }
+
+      NGT::Optimizer optimizer(index, parameter.noOfResults);
+
+      NGT::ObjectRepository &objectRepository = index.getObjectSpace().getRepository();
+      NGT::GraphIndex &graphIndex = static_cast<NGT::GraphIndex&>(index.getIndex());
+      NGT::GraphAndTreeIndex &treeIndex = static_cast<NGT::GraphAndTreeIndex&>(index.getIndex());
+      NGT::GraphRepository &graphRepository = graphIndex.NeighborhoodGraph::repository;
+      //float targetAccuracy = parameter.targetAccuracy + FLT_EPSILON;
+
+      std::vector<std::vector<float>> queries;
+      optimizer.extractAndRemoveRandomQueries(parameter.noOfQueries, queries);
+      {
+	graphRepository.deleteAll();
+	treeIndex.DVPTree::deleteAll();
+	treeIndex.DVPTree::insertNode(treeIndex.DVPTree::leafNodes.allocate());
+      }
+
+      NGT::NeighborhoodGraph::Property &prop = graphIndex.getGraphProperty();
+      prop.edgeSizeForCreation = parameter.maxOfNoOfEdges;
+      std::vector<std::pair<size_t, std::tuple<size_t, double, double>>> transition;
+      size_t targetNo = 12500;
+      for (;targetNo <= objectRepository.size() && targetNo <= parameter.noOfSampleObjects; 
+	   targetNo *= 2) {
+	ObjectID id = 0;
+	size_t noOfObjects = 0;
+	for (id = 1; id < objectRepository.size(); ++id) {
+	  if (!objectRepository.isEmpty(id)) {
+	    noOfObjects++;
+	  }
+	  if (noOfObjects >= targetNo) {
+	    break;
+	  }
+	}
+	id++;
+	index.createIndex(parameter.noOfThreads, id);
+	auto edge = NGT::GraphOptimizer::optimizeNumberOfEdgesForANNG(optimizer, queries, parameter.noOfResults, parameter.targetAccuracy, parameter.maxOfNoOfEdges);
+	transition.push_back(make_pair(noOfObjects, edge));
+      }
+      if (transition.size() < 2) {
+      	std::stringstream msg;
+	msg << "Optimizer::optimizeNumberOfEdgesForANNG: Cannot optimize the number of edges. Too small object set. # of objects=" << objectRepository.size() << " target No.=" << targetNo;
+	NGTThrowException(msg);
+      }
+      double edgeRate = 0.0;
+      double accuracyRate = 0.0;
+      for (auto i = transition.begin(); i != transition.end() - 1; ++i) {
+	edgeRate += std::get<0>((*(i + 1)).second) - std::get<0>((*i).second);
+	accuracyRate += std::get<1>((*(i + 1)).second) - std::get<1>((*i).second);
+      }
+      edgeRate /= (transition.size() - 1);
+      accuracyRate /= (transition.size() - 1);
+      size_t estimatedEdge = std::get<0>(transition[0].second) +
+	edgeRate * (log2(parameter.targetNoOfObjects) - log2(transition[0].first));
+      float estimatedAccuracy = std::get<1>(transition[0].second) +
+	accuracyRate * (log2(parameter.targetNoOfObjects) - log2(transition[0].first));
+      if (estimatedAccuracy < parameter.targetAccuracy) {
+	estimatedEdge += (parameter.targetAccuracy - estimatedAccuracy) / std::get<2>(transition.back().second);
+	estimatedAccuracy = parameter.targetAccuracy;
+      }
+
+      if (estimatedEdge == 0) {
+      	std::stringstream msg;
+	msg << "Optimizer::optimizeNumberOfEdgesForANNG: Cannot optimize the number of edges. " 
+	    << estimatedEdge << ":" << estimatedAccuracy << " # of objects=" << objectRepository.size();
+	NGTThrowException(msg);
+      }
+
+      return std::make_pair(estimatedEdge, estimatedAccuracy);
+    }
+
+    std::pair<size_t, float>
+      optimizeNumberOfEdgesForANNG(std::string &indexPath, GraphOptimizer::ANNGEdgeOptimizationParameter &parameter) {
+
+      NGT::StdOstreamRedirector redirector(logDisabled);
+      redirector.begin();
+
+      try {
+	NGT::Index	index(indexPath, false);
+
+	auto optimizedEdge = NGT::GraphOptimizer::optimizeNumberOfEdgesForANNG(index, parameter);
+    
+    
+	NGT::GraphIndex	&graph = static_cast<NGT::GraphIndex&>(index.getIndex());
+	size_t noOfEdges = (optimizedEdge.first + 10) / 5 * 5;
+	if (noOfEdges > parameter.maxOfNoOfEdges) {
+	  noOfEdges = parameter.maxOfNoOfEdges;
+	}
+
+	NGT::NeighborhoodGraph::Property &prop = graph.getGraphProperty();
+	prop.edgeSizeForCreation = noOfEdges;
+	static_cast<NGT::GraphIndex&>(index.getIndex()).saveProperty(indexPath);
+
+	redirector.end();
+	return optimizedEdge;
+      } catch (NGT::Exception &err) {
+	redirector.end();
+	throw(err);
+      }
     }
 
     void set(int outgoing, int incoming, int nofqs, int nofrs,
@@ -403,6 +577,7 @@ namespace NGT {
     double gtEpsilon;
     double margin;
     bool logDisabled;
+    bool shortcutReduction;
   };
 
 }; // NGT

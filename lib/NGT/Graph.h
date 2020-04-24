@@ -649,7 +649,8 @@ namespace NGT {
 	size_t edgeSize = INT_MAX;
 	if (sc.edgeSize < 0) {
 	  if (sc.edgeSize == -2) {
-	    edgeSize = property.dynamicEdgeSizeBase + pow(10, (sc.explorationCoefficient - 1.0) * static_cast<float>(property.dynamicEdgeSizeRate));
+	    double add = pow(10, (sc.explorationCoefficient - 1.0) * static_cast<float>(property.dynamicEdgeSizeRate));
+	    edgeSize = add >= static_cast<double>(INT_MAX) ? INT_MAX : property.dynamicEdgeSizeBase + add;
 	  } else {
 	    edgeSize = property.edgeSizeForSearch == 0 ? INT_MAX : property.edgeSizeForSearch;
 	  }

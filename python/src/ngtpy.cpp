@@ -16,6 +16,7 @@
 
 #include	"NGT/Index.h"
 #include	"NGT/GraphOptimizer.h"
+#include	"NGT/version_defs.h"
 
 #include	<pybind11/pybind11.h>
 #include	<pybind11/stl.h>
@@ -321,6 +322,8 @@ public:
 PYBIND11_MODULE(ngtpy, m) {
     m.doc() = "ngt python";
 
+    m.attr("__version__") = NGT_VERSION;
+
     m.def("create", &::Index::create, 
           py::arg("path"), 
           py::arg("dimension"), 
@@ -349,20 +352,21 @@ PYBIND11_MODULE(ngtpy, m) {
       .def("get_num_of_distance_computations", &::Index::getNumOfDistanceComputations)
       .def("save", &NGT::Index::save)
       .def("close", &NGT::Index::close)
-      .def("remove", &::Index::remove, 
+      .def("remove", &::Index::remove,
            py::arg("object_id"))
-      .def("build_index", &NGT::Index::createIndex, 
-           py::arg("num_threads") = 8)
-      .def("get_object", &::Index::getObject, 
+      .def("build_index", &NGT::Index::createIndex,
+           py::arg("num_threads") = 8,
+           py::arg("target_size_of_graph") = 0)
+      .def("get_object", &::Index::getObject,
            py::arg("object_id"))
-      .def("batch_insert", &::Index::batchInsert, 
+      .def("batch_insert", &::Index::batchInsert,
            py::arg("objects"),
-           py::arg("num_threads") = 8, 
+           py::arg("num_threads") = 8,
            py::arg("debug") = false)
-      .def("insert", &::Index::insert, 
+      .def("insert", &::Index::insert,
            py::arg("object"),
            py::arg("debug") = false)
-      .def("set", &::Index::set, 
+      .def("set", &::Index::set,
            py::arg("num_of_search_objects") = 0,
 	   py::arg("search_radius") = -1.0);
 

@@ -169,11 +169,12 @@ bool ngt_optimizer_set_extension(NGTOptimizer optimizer,
 
 void ngt_destroy_optimizer(NGTOptimizer);
 
-// refine the specified index by searching each node.
-// epsilon, exepectedAccuracy and edgeSize are the same as the prameters for search
-// batchSize is the degree of parallelism.
+// refine: the specified index by searching each node.
+// epsilon, exepectedAccuracy and edgeSize: the same as the prameters for search. but if edgeSize is INT_MIN, default is used.
+// noOfEdges: if this is not 0, kNNG with k = noOfEdges is build 
+// batchSize: batch size for parallelism.
 bool ngt_refine_anng(NGTIndex index, float epsilon, float expectedAccuracy, 
-		     int edgeSize, size_t batchSize, NGTError error);
+		     int noOfEdges, int edgeSize, size_t batchSize, NGTError error);
 
 #ifdef __cplusplus
 }

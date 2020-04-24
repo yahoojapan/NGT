@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include "Command.h"
+#include	"Command.h"
 
 
 #define NGT_LOG_BASED_OPTIMIZATION
@@ -1035,6 +1035,32 @@ namespace NGT {
       }
     }
 
+    std::vector<float> extractObject(size_t id, NGT::Property &prop) {
+      std::vector<float> v;
+      switch (prop.objectType) {
+      case NGT::ObjectSpace::ObjectType::Uint8:
+	{
+	  auto *obj = static_cast<uint8_t*>(index.getObjectSpace().getObject(id));
+	  for (int i = 0; i < prop.dimension; i++) {
+	    int d = *obj++;
+	    v.push_back(d);
+	  }
+	}
+	break;
+      default:
+      case NGT::ObjectSpace::ObjectType::Float:
+	{
+	  auto *obj = static_cast<float*>(index.getObjectSpace().getObject(id));
+	  for (int i = 0; i < prop.dimension; i++) {
+	    float d = *obj++;
+	    v.push_back(d);
+	  }
+	}
+	break;
+      }
+      return v;
+    }
+
     std::vector<float> meanObject(size_t id1, size_t id2, NGT::Property &prop) {
       std::vector<float> v;
       switch (prop.objectType) {
@@ -1080,6 +1106,32 @@ namespace NGT {
       extractQueries(queries, os);
     }
 
+    void extractAndRemoveRandomQueries(size_t nqueries, std::vector<std::vector<float>> &queries) {
+      NGT::Property prop;
+      index.getProperty(prop);
+      size_t repositorySize = index.getObjectRepositorySize();
+      NGT::ObjectRepository &objectRepository = index.getObjectSpace().getRepository();
+      
+      queries.clear();
+
+      size_t emptyCount = 0;
+      while (nqueries > queries.size()) {
+	double random = ((double)rand() + 1.0) / ((double)RAND_MAX + 2.0);
+	size_t idx = floor(repositorySize * random) + 1;
+	if (objectRepository.isEmpty(idx)) {
+	  emptyCount++;
+	  if (emptyCount >= 1000) {
+	    std::stringstream msg;
+	    msg << "Too small amount of objects. " << repositorySize << ":" << nqueries;
+	    NGTThrowException(msg);
+	  }
+	  continue;
+	}
+	queries.push_back(extractObject(idx, prop));
+	objectRepository.erase(idx);
+      }
+    }
+
     void extractQueries(size_t nqueries, std::vector<std::vector<float>> &queries, bool similarObject = false) {
 
       NGT::Property prop;
@@ -1094,7 +1146,7 @@ namespace NGT {
 	  oft++;
 	  if (id1 + oft >= osize) {
 	    std::stringstream msg;
-	    msg << "Too many empty entries to extract.";
+	    msg << "Too many empty entries to extract. Object repository size=" << osize << " " << id1 << ":" << oft;
 	    NGTThrowException(msg);
 	  }
 	}
@@ -1354,32 +1406,25 @@ namespace NGT {
 
     }
 
-    static std::vector<std::pair<float, double>> 
-      generateAccuracyTable(NGT::Index &index, size_t nOfResults = 50, size_t querySize = 100) {
-
-      NGT::Property prop;
-      index.getProperty(prop);
-      if (prop.edgeSizeForSearch != 0 && prop.edgeSizeForSearch != -2) {
-	std::stringstream msg;
-	msg << "Optimizer::generateAccuracyTable: edgeSizeForSearch is invalid to call generateAccuracyTable, because accuracy 1.0 cannot be achieved with the setting.";
-	NGTThrowException(msg);
-      }
-
-      NGT::Optimizer optimizer(index, nOfResults);
-
-      // explore the max epsilon value.
+    void generatePseudoGroundTruth(size_t nOfQueries, float &maxEpsilon, std::stringstream &queryStream, std::stringstream &gtStream)
+    {
       std::vector<std::vector<float>> queries;
+      extractQueries(nOfQueries, queries);
+      generatePseudoGroundTruth(queries, maxEpsilon, queryStream, gtStream);
+    }
 
-      float maxEpsilon = 0.0;
+    void generatePseudoGroundTruth(std::vector<std::vector<float>> &queries, float &maxEpsilon, std::stringstream &queryStream, std::stringstream &gtStream)
+    {
+      size_t nOfQueries = queries.size();
+      maxEpsilon = 0.0;
       {
-	optimizer.extractQueries(querySize, queries);
 	std::vector<NGT::Object *> queryObjects;
 	for (auto i = queries.begin(); i != queries.end(); ++i) {
 	  queryObjects.push_back(index.allocateObject(*i));
 	}
 
 	int identityCount = 0;
-	std::vector<NGT::Distance> lastDistances(querySize);
+	std::vector<NGT::Distance> lastDistances(nOfQueries);
 	double time = 0.0;
 	double step = 0.02;
 	for (float e = 0.0; e < 10.0; e += step) {
@@ -1426,18 +1471,36 @@ namespace NGT {
 
       }
 
-      std::stringstream queryStream;
-      std::stringstream gtStream;
-
       {
 	// generate (pseudo) ground truth data
 	NGT::Command::SearchParameter searchParameter;
+	searchParameter.size = nOfResults;
 	searchParameter.outputMode = 'e';
 	searchParameter.edgeSize = 0;	// get the best accuracy by using all edges
 	//searchParameter.indexType = 's'; // linear search
-	optimizer.extractQueries(queries, queryStream);
+	extractQueries(queries, queryStream);
 	NGT::Optimizer::createGroundTruth(index, maxEpsilon, searchParameter, queryStream, gtStream);
       }
+    }
+
+    static std::vector<std::pair<float, double>> 
+      generateAccuracyTable(NGT::Index &index, size_t nOfResults = 50, size_t querySize = 100) {
+
+      NGT::Property prop;
+      index.getProperty(prop);
+      if (prop.edgeSizeForSearch != 0 && prop.edgeSizeForSearch != -2) {
+	std::stringstream msg;
+	msg << "Optimizer::generateAccuracyTable: edgeSizeForSearch is invalid to call generateAccuracyTable, because accuracy 1.0 cannot be achieved with the setting. edgeSizeForSearch=" << prop.edgeSizeForSearch << ".";
+	NGTThrowException(msg);
+      }
+
+      NGT::Optimizer optimizer(index, nOfResults);
+
+      float maxEpsilon = 0.0;
+      std::stringstream queryStream;
+      std::stringstream gtStream;
+
+      optimizer.generatePseudoGroundTruth(querySize, maxEpsilon, queryStream, gtStream);
 
       std::map<float, double> map;
       {

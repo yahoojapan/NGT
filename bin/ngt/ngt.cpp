@@ -96,6 +96,8 @@ main(int argc, char **argv)
       ngt.optimizeSearchParameters(args);
     } else if (command == "refine-anng") {
       ngt.refineANNG(args);
+    } else if (command == "optimize-#-of-edges") {
+      ngt.optimizeNumberOfEdgesForANNG(args);
 #ifndef NGT_SHARED_MEMORY_ALLOCATOR
     } else if (command == "extract-query") {
       NGT::Optimizer::extractQueries(args);

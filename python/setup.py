@@ -2,11 +2,13 @@
 import os
 import sys
 import json
+import shutil
 import glob
 import setuptools
 
 static_library_option = '--static-library'
 included_library_option = '--included-library'
+version_file = 'VERSION'
 
 static_library = False
 if static_library_option in sys.argv:
@@ -29,11 +31,11 @@ if sys.version_info.major >= 3:
         # for pip >= 10.0
         from pip._internal import locations
 
-version = '1.8.0'
+if os.path.isfile('../' + version_file):
+    shutil.copyfile('../' + version_file, version_file)
 
-if static_library or included_library:
-    with open('../VERSION', 'r') as fh:
-        version = fh.read()
+with open(version_file, 'r') as fh:
+    version = fh.read().rstrip('\n')
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 

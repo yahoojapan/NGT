@@ -185,7 +185,7 @@ using namespace std;
   NGT::Command::append(Args &args)
   {
     const string usage = "Usage: ngt append [-p #-of-thread] [-d dimension] [-n data-size] "
-      "index(output) data.tsv(input)";
+      "index(output) [data.tsv(input)]";
     string database;
     try {
       database = args.get("#1");
@@ -198,9 +198,7 @@ using namespace std;
     try {
       data = args.get("#2");
     } catch (...) {
-      cerr << "ngt: Error: Data is not specified." << endl;
-      cerr << usage << endl;
-      return;
+      cerr << "ngt: Warning: No specified object file. Just build an index for the existing objects." << endl;
     }
 
     int threadSize = args.getl("p", 50);
@@ -708,91 +706,118 @@ using namespace std;
     int numOfOutgoingEdges	= args.getl("o", -1);
     // the number (rank) of reverse edges
     int numOfIncomingEdges		= args.getl("i", -1);
-    if ((numOfOutgoingEdges < 0 && numOfIncomingEdges >= 0) ||
-	(numOfOutgoingEdges >= 0 && numOfIncomingEdges < 0)) {
-      cerr << "ngt::reconstructGraph: specified both of the edges(-i -o) or neither of them." << endl;
+
+    if (access(outIndexPath.c_str(), 0) == 0) {
+      cerr << "ngt:reconstructGraph: the specified index exists. " << outIndexPath << endl;
+      cerr << usage << endl;
+      return;
+    }
+
+    const string com = "cp -r " + inIndexPath + " " + outIndexPath;
+    int stat = system(com.c_str());
+    if (stat != 0) {
+      std::cerr << "ngt::reconstructGraph: Cannot create the specified index." << std::endl;
       cerr << usage << endl;
       return;
     }
 
     {
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-      if (access(outIndexPath.c_str(), 0) == 0) {
-	cerr << "ngt:reconstructGraph: the specified index exists. " << outIndexPath << endl;
-	cerr << usage << endl;
-	return;
-      }
-      const string com = "cp -r " + inIndexPath + " " + outIndexPath;
-      system(com.c_str());
-      NGT::Index	outIndex(outIndexPath);
-#else
-      NGT::Index	outIndex(inIndexPath);
-#endif
-      cerr << "ngt::reconstructGraph: Extract the graph data." << endl;
-      // extract only edges from the index to reduce the memory usage.
-      Timer timer;
-      timer.start();
-      vector<NGT::ObjectDistances> graph;
-      GraphReconstructor::extractGraph(graph, outIndex);
+      NGT::GraphIndex graphIndex(outIndexPath, false);
 
-      if (numOfOutgoingEdges >= 0) {
-	switch (mode) {
-	case 's': // SA
-	case 'S': // SA and path adjustment
-	  if (indexType != 'a') {
-	    NGT::GraphReconstructor::convertToANNG(graph);
+      if (numOfOutgoingEdges > 0 || numOfIncomingEdges > 0) {
+	Timer timer;
+	timer.start();
+	vector<NGT::ObjectDistances> graph;
+	try {
+	  // extract only edges from the index to reduce the memory usage.
+	  cerr << "ngt::reconstructGraph: Extract the graph data." << endl;
+	  GraphReconstructor::extractGraph(graph, graphIndex);
+	  switch (mode) {
+	  case 's': // SA
+	  case 'S': // SA and path adjustment
+	    if (indexType != 'a') {
+	      NGT::GraphReconstructor::convertToANNG(graph);
+	    }
+	    NGT::GraphReconstructor::reconstructGraph(graph, graphIndex, numOfOutgoingEdges, numOfIncomingEdges);
+	    break;
+	  case 'c': // SAC
+	  case 'C': // SAC and path adjustment
+	    if (indexType != 'a') {
+	      NGT::GraphReconstructor::convertToANNG(graph);
+	    }
+	    NGT::GraphReconstructor::reconstructGraphWithConstraint(graph, graphIndex, numOfOutgoingEdges, numOfIncomingEdges);
+	    break;
+	  case 'P':
+	    break;
+	  default:
+	    cerr << "ngt::reconstructGraph: Invalid mode. " << mode << endl;
+	    cerr << usage << endl;
+	    return;
 	  }
-	  NGT::GraphReconstructor::reconstructGraph(graph, outIndex, numOfOutgoingEdges, numOfIncomingEdges);
-	  break;
-	case 'c': // SAC
-	case 'C': // SAC and path adjustment
-	  if (indexType != 'a') {
-	    NGT::GraphReconstructor::convertToANNG(graph);
+	  timer.stop();
+	  cerr << "ngt::reconstructGraph: ONNG reconstruction time=" << timer.time << " (sec) " << endl;
+	  graphIndex.saveGraph(outIndexPath);
+	  NeighborhoodGraph::Property &prop = graphIndex.getGraphProperty();
+	  prop.graphType = NGT::NeighborhoodGraph::GraphTypeONNG;
+	  graphIndex.saveProperty(outIndexPath);
+	} catch(NGT::Exception &err) {
+	  std::stringstream msg;
+	  cerr << "ngt::reconstructGraph: Cannot reconstruct ONNG. " << err.what();
+	  cerr << usage << endl;
+	  return;
+	}
+      } 
+      if (mode == 'S' || mode == 'C'|| mode == 'P') {
+	Timer timer;
+	timer.start();
+	try {
+	  if (pamode == 'a') {
+	    GraphReconstructor::adjustPathsEffectively(graphIndex);
+	  } else {
+	    GraphReconstructor::adjustPaths(graphIndex);
 	  }
-	  NGT::GraphReconstructor::reconstructGraphWithConstraint(graph, outIndex, numOfOutgoingEdges, numOfIncomingEdges);
-	  break;
-	case 'P':
-	  break;
-	default:
-	  cerr << "ngt::reconstructGraph: Invalid mode. " << mode << endl;
+	  timer.stop();
+	  cerr << "ngt::reconstructGraph: Shortcut edge removal time=" << timer.time << " (sec) " << endl;
+	  graphIndex.saveGraph(outIndexPath);
+	} catch(NGT::Exception &err) {
+	  std::stringstream msg;
+	  cerr << "ngt::reconstructGraph:: Cannot remove shortcut edges. " << err.what();
+	  cerr << usage << endl;
 	  return;
 	}
       }
-      timer.stop();
-      cerr << "ngt::Graph reconstruction time=" << timer.time << " (sec) " << endl;
+    }
 
-      if (mode == 'S' || mode == 'C'|| mode == 'P') {
-	timer.reset();
-	timer.start();
-	if (pamode == 'a') {
-	  GraphReconstructor::adjustPathsEffectively(outIndex);
-	} else {
-	  GraphReconstructor::adjustPaths(outIndex);
-	}
-	timer.stop();
-	cerr << "ngt::Path adjustment time=" << timer.time << " (sec) " << endl;
-      }
-
+    {
       pair<float, float> baseAccuracyRange(0.30, 0.50);
       pair<float, float> rateAccuracyRange(0.80, 0.90);
 
+      NGT::Index	outIndex(outIndexPath);
       NGT::Optimizer	optimizer(outIndex);
-      NGT::GraphIndex	&outGraph = (NGT::GraphIndex&)outIndex.getIndex();
+      NGT::GraphIndex	&outGraph = static_cast<NGT::GraphIndex&>(outIndex.getIndex());
       try {
+	Timer timer;
+	timer.start();
 	auto coefficients = optimizer.adjustSearchEdgeSize(baseAccuracyRange, rateAccuracyRange, nOfQueries, gtEpsilon, mergin);
 	NeighborhoodGraph::Property &prop = outGraph.getGraphProperty();
 	prop.dynamicEdgeSizeBase = coefficients.first;
 	prop.dynamicEdgeSizeRate = coefficients.second;
 	prop.edgeSizeForSearch = -2;
-	cerr << "Reconstruct Graph: adjust the base search edge size. " << coefficients.first << ":" << coefficients.second << endl;
+	outGraph.saveProperty(outIndexPath);
+	timer.stop();
+	cerr << "ngt::reconstructGraph: Search parameter adjustment time=" << timer.time << " (sec) " << endl;
+	cerr << "ngt::reconstructGraph: Adjusted search parameters. " << coefficients.first << ":" << coefficients.second << endl;
       } catch(NGT::Exception &err) {
-	cerr << "Warning: Cannot adjust the base edge size. " << err.what() << endl;
+	std::stringstream msg;
+	cerr << "ngt::reconstructGraph: Cannot adjust search parameters. " << err.what();
+	cerr << usage << endl;
+	return;
       }
-
-      outGraph.saveIndex(outIndexPath);
     }
 
     try {
+      Timer timer;
+      timer.start();
       NGT::Index	outIndex(outIndexPath, true);
       auto prefetch = NGT::GraphOptimizer::adjustPrefetchParameters(outIndex);
       NGT::Property prop;
@@ -805,11 +830,14 @@ using namespace std;
       NGT::Index::AccuracyTable accuracyTable(table);
       prop.accuracyTable = accuracyTable.getString();
       outIndex.setProperty(prop);
-
       static_cast<NGT::GraphIndex&>(outIndex.getIndex()).saveProperty(outIndexPath);
+      timer.stop();
+      cerr << "ngt::reconstructGraph: Prefetch parameter adjustment time=" << timer.time << " (sec) " << endl;
     } catch(NGT::Exception &err) {
       std::stringstream msg;
-      cerr << "Optimizer::execute: Cannot adjust prefetch parameters. " << err.what();
+      cerr << "ngt::reconstructGraph: Cannot adjust prefetch parameters. " << err.what();
+      cerr << usage << endl;
+      return;
     }
   }
 
@@ -909,11 +937,12 @@ using namespace std;
 
     float  epsilon		= args.getf("e", 0.1);
     float  expectedAccuracy	= args.getf("a", 0.0);
-    int    edgeSize		= args.getf("E", INT_MIN);
+    int    noOfEdges		= args.getl("k", 0);	// to reconstruct kNNG
+    int    exploreEdgeSize	= args.getf("E", INT_MIN);
     size_t batchSize		= args.getl("b", 10000);
 
     try {
-      GraphReconstructor::refineANNG(index, epsilon, expectedAccuracy, edgeSize, batchSize);
+      GraphReconstructor::refineANNG(index, epsilon, expectedAccuracy, noOfEdges, exploreEdgeSize, batchSize);
     } catch (NGT::Exception &err) {
       std::cerr << "Error!! Cannot refine the index. " << err.what() << std::endl;
       return;
@@ -923,6 +952,37 @@ using namespace std;
   }
 
 
+  void
+  NGT::Command::optimizeNumberOfEdgesForANNG(Args &args)
+  {
+    const string usage = "Usage: ngt optimize-#-of-edges [-q #-of-queries] [-k #-of-retrieved-objects] "
+      "[-p #-of-threads] [-a target-accuracy] [-o target-#-of-objects] [-s #-of-sampe-objects] "
+      "[-e maximum-#-of-edges] anng-index";
+
+    string indexPath;
+    try {
+      indexPath = args.get("#1");
+    } catch (...) {
+      cerr << "Index is not specified" << endl;
+      cerr << usage << endl;
+      return;
+    }
+
+    GraphOptimizer::ANNGEdgeOptimizationParameter parameter;
+
+    parameter.noOfQueries	= args.getl("q", 200);
+    parameter.noOfResults	= args.getl("k", 50);
+    parameter.noOfThreads	= args.getl("p", 16);
+    parameter.targetAccuracy	= args.getf("a", 0.9);
+    parameter.targetNoOfObjects	= args.getl("o", 0);	// zero will replaced # of the repository size.
+    parameter.noOfSampleObjects	= args.getl("s", 100000);
+    parameter.maxOfNoOfEdges	= args.getl("e", 100);
+
+    NGT::GraphOptimizer graphOptimizer(false); // false=log
+    auto optimizedEdge = graphOptimizer.optimizeNumberOfEdgesForANNG(indexPath, parameter);
+    std::cout << "The optimized # of edges=" << optimizedEdge.first << "(" << optimizedEdge.second << ")" << std::endl;
+
+  }
 
 
 
