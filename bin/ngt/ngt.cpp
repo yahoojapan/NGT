@@ -45,7 +45,7 @@ version(ostream &os)
 
 void help() {
   cerr << "Usage : ngt command index [data]" << endl;
-  cerr << "           command : create search remove append export import prune reconstruct-graph optimize-search-parameters" << endl;
+  cerr << "           command : info create search remove append export import prune reconstruct-graph optimize-search-parameters optimize-#-of-edges repair" << endl;
   cerr << "Version : " << NGT::Index::getVersion() << endl;
   if (NGT::Index::getVersion() != NGT::Version::getVersion()) {
     version(cerr);
@@ -96,6 +96,8 @@ main(int argc, char **argv)
       ngt.optimizeSearchParameters(args);
     } else if (command == "refine-anng") {
       ngt.refineANNG(args);
+    } else if (command == "repair") {
+      ngt.repair(args);
     } else if (command == "optimize-#-of-edges") {
       ngt.optimizeNumberOfEdgesForANNG(args);
 #ifndef NGT_SHARED_MEMORY_ALLOCATOR

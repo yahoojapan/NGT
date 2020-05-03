@@ -256,7 +256,7 @@ LeafNode::removeObject(size_t id, size_t replaceId) {
       NGTThrowException("LeafNode::removeObject: Internal error!. the pivot is illegal.");
     }
     stringstream msg;
-    msg << "VpTree::Leaf::remove: Cannot find the specified object. ID=" << id << "," << replaceId << " idx=" << idx << " If the same objects were inserted into the index, ignore this message.";
+    msg << "VpTree::Leaf::remove: Warning. Cannot find the specified object. ID=" << id << "," << replaceId << " idx=" << idx << " If the same objects were inserted into the index, ignore this message.";
     NGTThrowException(msg.str());
   }
 

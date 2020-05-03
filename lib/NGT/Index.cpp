@@ -703,7 +703,7 @@ GraphIndex::createIndex(size_t threadPoolSize, size_t sizeOfRepository)
   if (threadPoolSize <= 1) {
     createIndex();
   } else {
-    Timer		timer;
+    Timer	timer;
     size_t	timerInterval = 100000;
     size_t	timerCount = timerInterval;
     size_t	count = 0;
@@ -904,7 +904,7 @@ NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode, siz
 	}
       }
     }
-    std::cerr << "# of not undirected edges=" << count << std::endl;
+    std::cerr << "The number of directed edges=" << count << std::endl;
   }
 
   // calculate outdegree distance 10

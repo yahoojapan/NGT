@@ -46,6 +46,17 @@ typedef struct {
   size_t	edge_size;	// # of edges to explore for each node
 } NGTQuery;
 
+typedef struct {
+  size_t	no_of_queries;
+  size_t	no_of_results;
+  size_t	no_of_threads;
+  float		target_accuracy;
+  size_t	target_no_of_objects;
+  size_t	no_of_sample_objects;
+  size_t	max_of_no_of_edges;
+  bool		log;
+} NGTAnngEdgeOptimizationParameter;
+
 NGTIndex ngt_open_index(const char *, NGTError);
 
 NGTIndex ngt_create_graph_and_tree(const char *, NGTProperty, NGTError);
@@ -175,6 +186,21 @@ void ngt_destroy_optimizer(NGTOptimizer);
 // batchSize: batch size for parallelism.
 bool ngt_refine_anng(NGTIndex index, float epsilon, float expectedAccuracy, 
 		     int noOfEdges, int edgeSize, size_t batchSize, NGTError error);
+
+// get edges of the node that is specified with id.
+bool ngt_get_edges(NGTIndex index, ObjectID id, NGTObjectDistances edges, NGTError error);
+
+// get the size of the specified object repository.
+// Since the size includes empty objects, the size is not the number of objects.
+// The size is mostly the largest ID of the objects - 1;
+uint32_t ngt_get_object_repository_size(NGTIndex index, NGTError error);
+
+// return parameters for ngt_optimize_number_of_edges. You can customize them before calling ngt_optimize_number_of_edges.
+NGTAnngEdgeOptimizationParameter ngt_get_anng_edge_optimization_parameter();
+
+// optimize the number of initial edges for ANNG that is specified with indexPath.
+// The parameter should be a struct which is returned by nt_get_optimization_parameter.
+bool ngt_optimize_number_of_edges(const char *indexPath, NGTAnngEdgeOptimizationParameter parameter, NGTError error);
 
 #ifdef __cplusplus
 }

@@ -36,7 +36,7 @@
 #define		NGT_FORCED_REMOVE		// When errors occur due to the index inconsistency, ignore them.
 
 #define		NGT_COMPACT_VECTOR
-#define		NGT_GRAPH_READ_ONLY_GRAPH		
+#define		NGT_GRAPH_READ_ONLY_GRAPH
 
 #ifdef	NGT_LARGE_DATASET
  #define	NGT_GRAPH_CHECK_HASH_BASED_BOOLEAN_SET

@@ -1370,7 +1370,7 @@ namespace NGT {
       GraphIndex::objectSpace->deleteObject(obj);
 #endif
       if (results.size() == 0) {
-	NGTThrowException("No found the specified id");
+	NGTThrowException("Not found the specified id");
       }
       if (results.size() == 1) {
 	try {

@@ -201,13 +201,27 @@ class GraphReconstructor {
     timer.start();
     std::vector<NGT::GraphNode> tmpGraph;
     for (size_t id = 1; id < outGraph.repository.size(); id++) {
-      NGT::GraphNode &node = *outGraph.getNode(id);
-      tmpGraph.push_back(node);
+      try {
+	NGT::GraphNode &node = *outGraph.getNode(id);
+	tmpGraph.push_back(node);
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-      node.clear(outGraph.repository.allocator);
+	node.clear(outGraph.repository.allocator);
 #else
-      node.clear();
+	node.clear();
 #endif
+      } catch(NGT::Exception &err) {
+	std::cerr << "GraphReconstructor: Warning. Cannot get the node. ID=" << id << ":" << err.what() << std::endl;
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	tmpGraph.push_back(NGT::GraphNode(outGraph.repository.allocator));
+#else
+	tmpGraph.push_back(NGT::GraphNode());
+#endif
+      }
+    }
+    if (outGraph.repository.size() != tmpGraph.size() + 1) {
+      std::stringstream msg;
+      msg << "GraphReconstructor: Fatal inner error. " << outGraph.repository.size() << ":" << tmpGraph.size();
+      NGTThrowException(msg);
     }
     timer.stop();
     std::cerr << "GraphReconstructor::adjustPaths: graph preparing time=" << timer << std::endl;
@@ -359,12 +373,14 @@ class GraphReconstructor {
       }
     }
     for (size_t id = 1; id < outGraph.repository.size(); id++) {
-      NGT::GraphNode &node = *outGraph.getNode(id);
+      try {
+	NGT::GraphNode &node = *outGraph.getNode(id);
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-      std::sort(node.begin(outGraph.repository.allocator), node.end(outGraph.repository.allocator));
+	std::sort(node.begin(outGraph.repository.allocator), node.end(outGraph.repository.allocator));
 #else
-      std::sort(node.begin(), node.end());
+	std::sort(node.begin(), node.end());
 #endif
+      } catch(...) {}
     }
   }
 
@@ -396,7 +412,7 @@ class GraphReconstructor {
 	  continue;
 	}
 	prev = (*it).id;
-	  it++;
+	it++;
       }
       NGT::GraphNode tmp = node;
       node.swap(tmp);
@@ -429,8 +445,7 @@ class GraphReconstructor {
 	} else {
 	  NGT::ObjectDistances n = graph[id - 1];
 	  if (n.size() < originalEdgeSize) {
-	    std::cerr << "node size is too few." << std::endl;
-	    std::cerr << n.size() << ":" << originalEdgeSize << std::endl;
+	    std::cerr << "GraphReconstructor: Warning. The edges are too few. " << n.size() << ":" << originalEdgeSize << " for " << id << std::endl;
 	    continue;
 	  }
 	  n.resize(originalEdgeSize);
@@ -512,8 +527,9 @@ class GraphReconstructor {
 	NGT::GraphNode tmp = n;
 	n.swap(tmp);
 #endif
-      } catch (...) {
-	std::cerr << "Graph::construct: error. something wrong. ID=" << id << std::endl;
+      } catch(NGT::Exception &err) {
+	std::cerr << "GraphReconstructor: Warning. Cannot get the node. ID=" << id << ":" << err.what() << std::endl;
+	continue;
       }
     }
     normalizeEdgeTimer.stop();
@@ -634,8 +650,9 @@ class GraphReconstructor {
 	}
 	NGT::GraphNode tmp = n;
 	n.swap(tmp);
-      } catch (...) {
-	std::cerr << "Graph::construct: error. something wrong. ID=" << id << std::endl;
+      } catch(NGT::Exception &err) {
+	std::cerr << "GraphReconstructor: Warning. Cannot get the node. ID=" << id << ":" << err.what() << std::endl;
+	continue;
       }
     }
     normalizeEdgeTimer.stop();
@@ -822,7 +839,9 @@ class GraphReconstructor {
 	}
 	NGT::GraphNode &node = *graphIndex.getNode(id);
 	for (auto i = results[idx].begin(); i != results[idx].end(); ++i) {
-	  node.push_back(*i);
+	  if ((*i).id != id) {
+	    node.push_back(*i);
+	  }
 	}
 	std::sort(node.begin(), node.end());
 	// dedupe
@@ -846,8 +865,10 @@ class GraphReconstructor {
 	  std::cerr << "# of processed objects=" << id << std::endl;
 	}
 	for (auto i = results[idx].begin(); i != results[idx].end(); ++i) {
-	  NGT::GraphNode &node = *graphIndex.getNode((*i).id);
-	  graphIndex.addEdge(node, id, (*i).distance, false);
+	  if ((*i).id != id) {
+	    NGT::GraphNode &node = *graphIndex.getNode((*i).id);
+	    graphIndex.addEdge(node, id, (*i).distance, false);
+	  }
 	}
       }
     }

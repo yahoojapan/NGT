@@ -181,6 +181,17 @@ namespace NGT {
       return val;
     }
 
+    static float strtof(const std::string &str) {
+      char *e;
+      double val = std::strtof(str.c_str(), &e);
+      if (*e != 0) {
+	std::stringstream msg;
+	msg << "Invalid string. " << e;
+	NGTThrowException(msg);
+      }
+      return val;
+    }
+
     static long strtol(const std::string &str, int base = 10) {
       char *e;
       long val = std::strtol(str.c_str(), &e, base);

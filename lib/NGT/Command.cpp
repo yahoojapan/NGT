@@ -695,150 +695,32 @@ using namespace std;
     }
 
     char mode = args.getChar("m", 'S');
-    char pamode = args.getChar("P", 'a');
-    char indexType = args.getChar("I", 'a');
     size_t nOfQueries = args.getl("q", 100);		// # of query objects
     size_t nOfResults = args.getl("n", 20);		// # of resultant objects
     double gtEpsilon = args.getf("e", 0.1);
-    double mergin = args.getf("M", 0.2);
+    double margin = args.getf("M", 0.2);
+    char smode = args.getChar("s", '-');
 
     // the number (rank) of original edges
     int numOfOutgoingEdges	= args.getl("o", -1);
     // the number (rank) of reverse edges
     int numOfIncomingEdges		= args.getl("i", -1);
 
-    if (access(outIndexPath.c_str(), 0) == 0) {
-      cerr << "ngt:reconstructGraph: the specified index exists. " << outIndexPath << endl;
-      cerr << usage << endl;
-      return;
+    NGT::GraphOptimizer graphOptimizer(false);
+
+    if (mode == 'P') {
+      numOfOutgoingEdges = 0;
+      numOfIncomingEdges = 0;
+      std::cerr << "ngt::reconstructGraph: Warning. \'-m P\' and not zero for # of in/out edges are specified at the same time." << std::endl;
     }
+    graphOptimizer.shortcutReduction = (mode == 'S' || mode == 'C' || mode == 'P') ? true : false;
+    graphOptimizer.searchParameterOptimization = (smode == '-' || smode == 's') ? true : false;
+    graphOptimizer.prefetchParameterOptimization = (smode == '-' || smode == 'p') ? true : false;
+    graphOptimizer.margin = margin;
+    graphOptimizer.gtEpsilon = gtEpsilon;
 
-    const string com = "cp -r " + inIndexPath + " " + outIndexPath;
-    int stat = system(com.c_str());
-    if (stat != 0) {
-      std::cerr << "ngt::reconstructGraph: Cannot create the specified index." << std::endl;
-      cerr << usage << endl;
-      return;
-    }
-
-    {
-      NGT::GraphIndex graphIndex(outIndexPath, false);
-
-      if (numOfOutgoingEdges > 0 || numOfIncomingEdges > 0) {
-	Timer timer;
-	timer.start();
-	vector<NGT::ObjectDistances> graph;
-	try {
-	  // extract only edges from the index to reduce the memory usage.
-	  cerr << "ngt::reconstructGraph: Extract the graph data." << endl;
-	  GraphReconstructor::extractGraph(graph, graphIndex);
-	  switch (mode) {
-	  case 's': // SA
-	  case 'S': // SA and path adjustment
-	    if (indexType != 'a') {
-	      NGT::GraphReconstructor::convertToANNG(graph);
-	    }
-	    NGT::GraphReconstructor::reconstructGraph(graph, graphIndex, numOfOutgoingEdges, numOfIncomingEdges);
-	    break;
-	  case 'c': // SAC
-	  case 'C': // SAC and path adjustment
-	    if (indexType != 'a') {
-	      NGT::GraphReconstructor::convertToANNG(graph);
-	    }
-	    NGT::GraphReconstructor::reconstructGraphWithConstraint(graph, graphIndex, numOfOutgoingEdges, numOfIncomingEdges);
-	    break;
-	  case 'P':
-	    break;
-	  default:
-	    cerr << "ngt::reconstructGraph: Invalid mode. " << mode << endl;
-	    cerr << usage << endl;
-	    return;
-	  }
-	  timer.stop();
-	  cerr << "ngt::reconstructGraph: ONNG reconstruction time=" << timer.time << " (sec) " << endl;
-	  graphIndex.saveGraph(outIndexPath);
-	  NeighborhoodGraph::Property &prop = graphIndex.getGraphProperty();
-	  prop.graphType = NGT::NeighborhoodGraph::GraphTypeONNG;
-	  graphIndex.saveProperty(outIndexPath);
-	} catch(NGT::Exception &err) {
-	  std::stringstream msg;
-	  cerr << "ngt::reconstructGraph: Cannot reconstruct ONNG. " << err.what();
-	  cerr << usage << endl;
-	  return;
-	}
-      } 
-      if (mode == 'S' || mode == 'C'|| mode == 'P') {
-	Timer timer;
-	timer.start();
-	try {
-	  if (pamode == 'a') {
-	    GraphReconstructor::adjustPathsEffectively(graphIndex);
-	  } else {
-	    GraphReconstructor::adjustPaths(graphIndex);
-	  }
-	  timer.stop();
-	  cerr << "ngt::reconstructGraph: Shortcut edge removal time=" << timer.time << " (sec) " << endl;
-	  graphIndex.saveGraph(outIndexPath);
-	} catch(NGT::Exception &err) {
-	  std::stringstream msg;
-	  cerr << "ngt::reconstructGraph:: Cannot remove shortcut edges. " << err.what();
-	  cerr << usage << endl;
-	  return;
-	}
-      }
-    }
-
-    {
-      pair<float, float> baseAccuracyRange(0.30, 0.50);
-      pair<float, float> rateAccuracyRange(0.80, 0.90);
-
-      NGT::Index	outIndex(outIndexPath);
-      NGT::Optimizer	optimizer(outIndex);
-      NGT::GraphIndex	&outGraph = static_cast<NGT::GraphIndex&>(outIndex.getIndex());
-      try {
-	Timer timer;
-	timer.start();
-	auto coefficients = optimizer.adjustSearchEdgeSize(baseAccuracyRange, rateAccuracyRange, nOfQueries, gtEpsilon, mergin);
-	NeighborhoodGraph::Property &prop = outGraph.getGraphProperty();
-	prop.dynamicEdgeSizeBase = coefficients.first;
-	prop.dynamicEdgeSizeRate = coefficients.second;
-	prop.edgeSizeForSearch = -2;
-	outGraph.saveProperty(outIndexPath);
-	timer.stop();
-	cerr << "ngt::reconstructGraph: Search parameter adjustment time=" << timer.time << " (sec) " << endl;
-	cerr << "ngt::reconstructGraph: Adjusted search parameters. " << coefficients.first << ":" << coefficients.second << endl;
-      } catch(NGT::Exception &err) {
-	std::stringstream msg;
-	cerr << "ngt::reconstructGraph: Cannot adjust search parameters. " << err.what();
-	cerr << usage << endl;
-	return;
-      }
-    }
-
-    try {
-      Timer timer;
-      timer.start();
-      NGT::Index	outIndex(outIndexPath, true);
-      auto prefetch = NGT::GraphOptimizer::adjustPrefetchParameters(outIndex);
-      NGT::Property prop;
-      outIndex.getProperty(prop);
-      prop.prefetchOffset = prefetch.first;
-      prop.prefetchSize = prefetch.second;
-      outIndex.setProperty(prop);
-
-      std::vector<pair<float, double>> table = NGT::Optimizer::generateAccuracyTable(outIndex, nOfResults, nOfQueries);
-      NGT::Index::AccuracyTable accuracyTable(table);
-      prop.accuracyTable = accuracyTable.getString();
-      outIndex.setProperty(prop);
-      static_cast<NGT::GraphIndex&>(outIndex.getIndex()).saveProperty(outIndexPath);
-      timer.stop();
-      cerr << "ngt::reconstructGraph: Prefetch parameter adjustment time=" << timer.time << " (sec) " << endl;
-    } catch(NGT::Exception &err) {
-      std::stringstream msg;
-      cerr << "ngt::reconstructGraph: Cannot adjust prefetch parameters. " << err.what();
-      cerr << usage << endl;
-      return;
-    }
+    graphOptimizer.set(numOfOutgoingEdges, numOfIncomingEdges, nOfQueries, nOfResults);
+    graphOptimizer.execute(inIndexPath, outIndexPath);
   }
 
   void
@@ -913,7 +795,7 @@ using namespace std;
     std::cerr << "refineANNG. Not implemented." << std::endl;
     abort();
 #else
-    const string usage = "Usage: ngt refine-anng anng-index refined-anng-index";
+    const string usage = "Usage: ngt refine-anng [-e epsilon] [-a expected-accuracy] anng-index refined-anng-index";
 
     string inIndexPath;
     try {
@@ -949,6 +831,178 @@ using namespace std;
     }
     index.saveIndex(outIndexPath);
 #endif
+  }
+
+  void
+  NGT::Command::repair(Args &args)
+  {
+    const string usage = "Usage: ng[ [-m c|r|R] repair index \n"
+      "\t-m mode\n"
+      "\t\tc: Check. (default)\n"
+      "\t\tr: Repair and save it as [index].repair.\n"
+      "\t\tR: Repair and overwrite into the specified index.\n";
+
+    string indexPath;
+    try {
+      indexPath = args.get("#1");
+    } catch (...) {
+      cerr << "Index is not specified" << endl;
+      cerr << usage << endl;
+      return;
+    }
+    
+    char mode = args.getChar("m", 'c');
+
+    bool repair = false;
+    if (mode == 'r' || mode == 'R') {
+      repair = true;
+    }
+    string path = indexPath;
+    if (mode == 'r') {
+      path = indexPath + ".repair";
+      const string com = "cp -r " + indexPath + " " + path;
+      int stat = system(com.c_str());
+      if (stat != 0) {
+	std::cerr << "ngt::repair: Cannot create the specified index. " << path << std::endl;
+	cerr << usage << endl;
+	return;
+      }
+    }
+
+    NGT::Index	index(path);
+
+    NGT::ObjectRepository &objectRepository = index.getObjectSpace().getRepository();
+    NGT::GraphIndex &graphIndex = static_cast<GraphIndex&>(index.getIndex());
+    NGT::GraphAndTreeIndex &graphAndTreeIndex = static_cast<GraphAndTreeIndex&>(index.getIndex());
+    size_t objSize = objectRepository.size();
+    std::cerr << "aggregate removed objects from the repository." << std::endl;
+    std::set<ObjectID> removedIDs;
+    for (ObjectID id = 1; id < objSize; id++) {
+      if (objectRepository.isEmpty(id)) {
+	removedIDs.insert(id);
+      }
+    }
+
+    std::cerr << "aggregate objects from the tree." << std::endl;
+    std::set<ObjectID> ids;
+    graphAndTreeIndex.DVPTree::getAllObjectIDs(ids);
+    size_t idsSize = ids.size() == 0 ? 0 : (*ids.rbegin()) + 1;
+    if (objSize < idsSize) {
+      std::cerr << "The sizes of the repository and tree are inconsistent. " << objSize << ":" << idsSize << std::endl;
+    }
+    size_t invalidTreeObjectCount = 0;
+    size_t uninsertedTreeObjectCount = 0;
+    std::cerr << "remove invalid objects from the tree." << std::endl;
+    size_t size = objSize > idsSize ? objSize : idsSize;
+    for (size_t id = 1; id < size; id++) {    
+      if (ids.find(id) != ids.end()) {
+	if (removedIDs.find(id) != removedIDs.end() || id >= objSize) {
+	  if (repair) {
+	    graphAndTreeIndex.DVPTree::removeNaively(id);
+	    std::cerr << "Found the removed object in the tree. Removed it from the tree. " << id << std::endl;
+	  } else {
+	    std::cerr << "Found the removed object in the tree. " << id << std::endl;
+	  }
+	  invalidTreeObjectCount++;
+	}
+      } else {
+	if (removedIDs.find(id) == removedIDs.end() && id < objSize) {
+          std::cerr << "Not found an object in the tree. However, it might be a duplicated object. " << id << std::endl;
+	  uninsertedTreeObjectCount++;
+	  try {
+	    graphIndex.repository.remove(id);
+	  } catch(...) {}
+	}
+      }
+    }
+
+    if (objSize != graphIndex.repository.size()) {
+      std::cerr << "The sizes of the repository and graph are inconsistent. " << objSize << ":" << graphIndex.repository.size() << std::endl;
+    }
+    size_t invalidGraphObjectCount = 0;
+    size_t uninsertedGraphObjectCount = 0;
+    size = objSize > graphIndex.repository.size() ? objSize : graphIndex.repository.size();
+    std::cerr << "remove invalid objects from the graph." << std::endl;
+    for (size_t id = 1; id < size; id++) {
+      try {
+	graphIndex.getNode(id);
+	if (removedIDs.find(id) != removedIDs.end() || id >= objSize) {
+	  if (repair) {
+	    graphAndTreeIndex.DVPTree::removeNaively(id);
+	    try {
+	      graphIndex.repository.remove(id);
+	    } catch(...) {}
+	    std::cerr << "Found the removed object in the graph. Removed it from the graph. " << id << std::endl;
+	  } else {
+	    std::cerr << "Found the removed object in the graph. " << id << std::endl;
+	  }
+	  invalidGraphObjectCount++;
+	}
+      } catch (...) {
+        if (removedIDs.find(id) == removedIDs.end() && id < objSize) {
+          std::cerr << "Not found an object in the graph. It should be inserted into the graph. " << id << std::endl;
+	  uninsertedGraphObjectCount++;
+	  try {
+	    graphAndTreeIndex.DVPTree::removeNaively(id);
+	  } catch(...) {}
+	}
+      }
+    }
+
+    size_t invalidEdgeCount = 0;
+//#pragma omp parallel for
+    for (size_t id = 1; id < graphIndex.repository.size(); id++) {
+      try {
+        NGT::GraphNode &node = *graphIndex.getNode(id);
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	for (auto n = node.begin(graphIndex.repository.allocator); n != node.end(graphIndex.repository.allocator);) {
+#else
+	for (auto n = node.begin(); n != node.end();) {
+#endif
+	  if (removedIDs.find((*n).id) != removedIDs.end() || (*n).id >= objSize) {
+
+	    std::cerr << "Not found the destination object of the edge. " << id << ":" << (*n).id << std::endl;
+	    invalidEdgeCount++;
+            if (repair) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	      n = node.erase(n, graphIndex.repository.allocator);
+#else
+	      n = node.erase(n);
+#endif
+	      continue;
+	    }
+	  }
+	  ++n;
+	}
+      } catch(...) {}
+    }
+
+    if (repair) {
+      if (objSize < graphIndex.repository.size()) {
+	graphIndex.repository.resize(objSize);
+      }
+    }
+
+    std::cerr << "The number of invalid tree objects=" << invalidTreeObjectCount << std::endl;
+    std::cerr << "The number of invalid graph objects=" << invalidGraphObjectCount << std::endl;
+    std::cerr << "The number of uninserted tree objects (Can be ignored)=" << uninsertedTreeObjectCount << std::endl;
+    std::cerr << "The number of uninserted graph objects=" << uninsertedGraphObjectCount << std::endl;
+    std::cerr << "The number of invalid edges=" << invalidEdgeCount << std::endl;
+
+    if (repair) {
+      try {
+	if (uninsertedGraphObjectCount > 0) {
+	  std::cerr << "Building index." << std::endl;
+	  index.createIndex(16);
+	}
+	std::cerr << "Saving index." << std::endl;
+	index.saveIndex(path);
+      } catch (NGT::Exception &err) {
+	cerr << "ngt: Error " << err.what() << endl;
+	cerr << usage << endl;
+	return;
+      }
+    }
   }
 
 

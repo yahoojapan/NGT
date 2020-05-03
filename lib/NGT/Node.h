@@ -423,9 +423,6 @@ namespace NGT {
 #endif
     }
 
-    void show(Container &q);
-    int check(Container &q, unsigned short *idTable);
-
     static int
       selectPivotByMaxDistance(Container &iobj, Node::Objects &fs);
 

@@ -754,9 +754,9 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 	}
 	if (insertionA != insertionB) {
 	  stringstream msg;
-	  msg << "Graph::removeEdgeReliably: Lost conectivity! Isn't this ANNG? ID=" << id;
+	  msg << "Graph::removeEdgeReliably:Warning. Lost conectivity! Isn't this ANNG? ID=" << id << ".";
 #ifdef NGT_FORCED_REMOVE
-	  msg << " anyway continue...";
+	  msg << " Anyway continue...";
 	  cerr << msg.str() << endl;
 #else
 	  NGTThrowException(msg.str());

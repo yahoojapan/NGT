@@ -887,3 +887,87 @@ bool ngt_refine_anng(NGTIndex index, float epsilon, float accuracy, int noOfEdge
     }
     return true;
 }
+
+bool ngt_get_edges(NGTIndex index, ObjectID id, NGTObjectDistances edges, NGTError error) 
+{
+  if(index == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index;
+    operate_error_string_(ss, error);        
+    return false;
+  }
+
+  NGT::Index*		pindex = static_cast<NGT::Index*>(index);
+  NGT::GraphIndex	&graph = static_cast<NGT::GraphIndex&>(pindex->getIndex());
+
+  try {
+    NGT::ObjectDistances &objects = *static_cast<NGT::ObjectDistances*>(edges);
+    objects = *graph.getNode(id);
+  }catch(std::exception &err){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    return false;
+  }
+
+  return true;
+}
+
+uint32_t ngt_get_object_repository_size(NGTIndex index, NGTError error)
+{
+  if(index == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index;
+    operate_error_string_(ss, error);        
+    return false;
+  }
+  NGT::Index&		pindex = *static_cast<NGT::Index*>(index);
+  return pindex.getObjectRepositorySize();
+}
+
+NGTAnngEdgeOptimizationParameter ngt_get_anng_edge_optimization_parameter()
+{
+  NGT::GraphOptimizer::ANNGEdgeOptimizationParameter gp;
+  NGTAnngEdgeOptimizationParameter parameter;  
+
+  parameter.no_of_queries		= gp.noOfQueries;
+  parameter.no_of_results		= gp.noOfResults;
+  parameter.no_of_threads		= gp.noOfThreads;
+  parameter.target_accuracy		= gp.targetAccuracy;
+  parameter.target_no_of_objects	= gp.targetNoOfObjects;
+  parameter.no_of_sample_objects	= gp.noOfSampleObjects;
+  parameter.max_of_no_of_edges		= gp.maxOfNoOfEdges;
+  parameter.log = false;
+
+  return parameter;
+}
+
+bool ngt_optimize_number_of_edges(const char *indexPath, NGTAnngEdgeOptimizationParameter parameter, NGTError error)
+{
+  
+  NGT::GraphOptimizer::ANNGEdgeOptimizationParameter p;
+
+  p.noOfQueries	= parameter.no_of_queries;
+  p.noOfResults	= parameter.no_of_results;
+  p.noOfThreads	= parameter.no_of_threads;
+  p.targetAccuracy	= parameter.target_accuracy;
+  p.targetNoOfObjects	= parameter.target_no_of_objects;
+  p.noOfSampleObjects	= parameter.no_of_sample_objects;
+  p.maxOfNoOfEdges	= parameter.max_of_no_of_edges;
+
+  try {
+    NGT::GraphOptimizer graphOptimizer(!parameter.log); // false=log
+    std::string path(indexPath);
+    auto edge = graphOptimizer.optimizeNumberOfEdgesForANNG(path, p);
+    if (parameter.log) {
+      std::cerr << "the optimized number of edges is" << edge.first << "(" << edge.second << ")" << std::endl;
+    }
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);                  
+    return false;
+  }
+  return true;
+
+}

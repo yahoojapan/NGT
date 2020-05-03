@@ -23,6 +23,7 @@
 #include	<string>
 #include	<vector>
 #include	<stack>
+#include	<set>
 
 namespace NGT {
 
@@ -432,6 +433,22 @@ namespace NGT {
 #else
       return 0;
 #endif
+    }
+
+    void getAllObjectIDs(std::set<ObjectID> &ids) {
+      for (size_t i = 0; i < leafNodes.size(); i++) {
+	if (leafNodes[i] != 0) {
+	  LeafNode &ln = *leafNodes[i];
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	  auto objs = ln.getObjectIDs(leafNodes.allocator);
+#else
+	  auto objs = ln.getObjectIDs();
+#endif
+	  for (size_t idx = 0; idx < ln.objectSize; ++idx) {
+	    ids.insert(objs[idx].id);
+	  }
+	}
+      }
     }
 
   public:
