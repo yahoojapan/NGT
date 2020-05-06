@@ -276,6 +276,9 @@ namespace NGT {
       case DistanceTypeHamming:
 	comparator = new ObjectSpaceRepository::ComparatorHammingDistance(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
 	break;
+      case DistanceTypeJaccard:
+	comparator = new ObjectSpaceRepository::ComparatorJaccardDistance(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
+	break;
       case DistanceTypeAngle:
 	comparator = new ObjectSpaceRepository::ComparatorAngleDistance(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
 	break;
