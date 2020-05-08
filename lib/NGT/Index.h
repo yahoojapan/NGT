@@ -751,7 +751,9 @@ namespace NGT {
     }
 
     void remove(const ObjectID id, bool force) {
-      removeEdgesReliably(id);
+      if (!NeighborhoodGraph::repository.isEmpty(id)) {
+	removeEdgesReliably(id);
+      }
       try {
 	getObjectRepository().remove(id);
       } catch(Exception &err) {
@@ -1355,6 +1357,18 @@ namespace NGT {
 	  NGTThrowException(msg);
         }
 	throw err;
+      }
+      if (NeighborhoodGraph::repository.isEmpty(id)) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	GraphIndex::objectSpace->deleteObject(obj);
+#endif
+	if (force) {
+	  try {
+	    DVPTree::removeNaively(id);
+	  } catch(...) {}
+	}
+	GraphIndex::remove(id, force);
+	return;
       }
       NGT::SearchContainer so(*obj);
       ObjectDistances results;

@@ -449,8 +449,9 @@ namespace NGT {
     void construct(size_t s, SharedMemoryAllocator &allocator) {
       assert(array == 0);
       assert(s != 0);
-      size_t allocsize = ((s - 1) / 16 + 1) * 16;
+      size_t allocsize = ((s - 1) / 64 + 1) * 64;	
       array = allocator.getOffset(new(allocator) uint8_t[allocsize]);
+      memset(getPointer(0, allocator), 0, allocsize);
     }
     off_t array;
   };

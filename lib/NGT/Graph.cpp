@@ -302,9 +302,9 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
     }
   }
 
-    if (results.size() >= sc.size) {
-      sc.radius = results.top().distance;
-    }
+  if (results.size() >= sc.size) {
+    sc.radius = results.top().distance;
+  }
 
   for (ObjectDistances::iterator ri = seeds.begin(); ri != seeds.end(); ri++) {
 #if !defined(NGT_GRAPH_CHECK_VECTOR) || defined(NGT_GRAPH_CHECK_BOOLEANSET)

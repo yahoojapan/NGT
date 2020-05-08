@@ -184,7 +184,7 @@ namespace NGT {
     }
 
     // This method is called during search to generate query.
-    // Therefor the object is no persistent.
+    // Therefore the object is not persistent.
     Object *allocateObject(const std::string &textLine, const std::string &sep) {
       std::vector<double> object;
       extractObjectFromText(textLine, sep, object);

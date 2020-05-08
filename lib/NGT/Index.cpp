@@ -1074,18 +1074,26 @@ NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode, siz
   c5 /= (double)numberOfNodes * 0.05;
   c1 /= (double)numberOfNodes * 0.01;
 
-  std::cerr << "The size of the object repository (not the number of the objects):\t" << repo.size() << std::endl;
-  std::cerr << "The number of the removed objects:\t" << removedObjectCount << "/" << repo.size() << std::endl;
+  std::cerr << "The size of the object repository (not the number of the objects):\t" << repo.size() - 1 << std::endl;
+  std::cerr << "The number of the removed objects:\t" << removedObjectCount << "/" << repo.size() - 1 << std::endl;
   std::cerr << "The number of the nodes:\t" << numberOfNodes << std::endl;
   std::cerr << "The number of the edges:\t" << numberOfOutdegree << std::endl;
+  std::cerr << "The mean of the edge lengths:\t" << std::setprecision(10) << distance / (double)numberOfOutdegree << std::endl;
+  std::cerr << "The mean of the number of the edges per node:\t" << (double)numberOfOutdegree / (double)numberOfNodes << std::endl;
   std::cerr << "The number of the nodes without edges:\t" << numberOfNodesWithoutEdges << std::endl;
   std::cerr << "The maximum of the outdegrees:\t" << maxNumberOfOutdegree << std::endl;
-  std::cerr << "The minimum of the outdegrees:\t" << minNumberOfOutdegree << std::endl;
-  std::cerr << "The mean of the number of the edges:\t" << (double)numberOfOutdegree / (double)numberOfNodes << std::endl;
-  std::cerr << "The mean of the edge lengths:\t" << std::setprecision(10) << distance / (double)numberOfOutdegree << std::endl;
+  if (minNumberOfOutdegree == SIZE_MAX) {
+    std::cerr << "The minimum of the outdegrees:\t-NA-" << std::endl;
+  } else {
+    std::cerr << "The minimum of the outdegrees:\t" << minNumberOfOutdegree << std::endl;
+  }
   std::cerr << "The number of the nodes where indegree is 0:\t" << numberOfNodesWithoutIndegree << std::endl;
   std::cerr << "The maximum of the indegrees:\t" << maxNumberOfIndegree << std::endl;
-  std::cerr << "The minimum of the indegrees:\t" << minNumberOfIndegree << std::endl;
+  if (minNumberOfIndegree == INT64_MAX) {
+    std::cerr << "The minimum of the indegrees:\t-NA-" << std::endl;
+  } else {
+    std::cerr << "The minimum of the indegrees:\t" << minNumberOfIndegree << std::endl;
+  }
   std::cerr << "#-nodes,#-edges,#-no-indegree,avg-edges,avg-dist,max-out,min-out,v-out,max-in,min-in,v-in,med-out,"
     "med-in,mode-out,mode-in,c95,c5,o-distance(10),o-skip,i-distance(10),i-skip:" 
 	    << numberOfNodes << ":" << numberOfOutdegree << ":" << numberOfNodesWithoutIndegree << ":" 

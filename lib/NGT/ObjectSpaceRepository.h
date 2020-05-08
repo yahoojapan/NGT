@@ -339,8 +339,6 @@ namespace NGT {
     void append(const float *data, size_t dataSize) { ObjectRepository::append(data, dataSize); }
     void append(const double *data, size_t dataSize) { ObjectRepository::append(data, dataSize); }
 
-    
-
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
     PersistentObject *allocatePersistentObject(Object &obj) {
