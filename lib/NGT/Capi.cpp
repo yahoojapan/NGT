@@ -868,6 +868,21 @@ bool ngt_optimizer_set_extension(NGTOptimizer optimizer,
   return true;
 }
 
+bool ngt_optimizer_set_processing_modes(NGTOptimizer optimizer, bool searchParameter, 
+					bool prefetchParameter, bool accuracyTable, NGTError error)
+{
+  if(optimizer == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: optimizer = " << optimizer;
+    operate_error_string_(ss, error);      
+    return false;
+  }
+
+  (static_cast<NGT::GraphOptimizer*>(optimizer))->setProcessingModes(searchParameter, prefetchParameter,
+								     accuracyTable);
+  return true;
+}
+
 void ngt_destroy_optimizer(NGTOptimizer optimizer)
 {
     if(optimizer == NULL) return;  
@@ -878,7 +893,7 @@ bool ngt_refine_anng(NGTIndex index, float epsilon, float accuracy, int noOfEdge
 {
     NGT::Index* pindex = static_cast<NGT::Index*>(index);    
     try {
-      NGT::GraphReconstructor::refineANNG(*pindex, epsilon, accuracy, noOfEdges, exploreEdgeSize, batchSize);
+      NGT::GraphReconstructor::refineANNG(*pindex, true, epsilon, accuracy, noOfEdges, exploreEdgeSize, batchSize);
     } catch(std::exception &err) {
       std::stringstream ss;
       ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
@@ -936,7 +951,7 @@ NGTAnngEdgeOptimizationParameter ngt_get_anng_edge_optimization_parameter()
   parameter.target_accuracy		= gp.targetAccuracy;
   parameter.target_no_of_objects	= gp.targetNoOfObjects;
   parameter.no_of_sample_objects	= gp.noOfSampleObjects;
-  parameter.max_of_no_of_edges		= gp.maxOfNoOfEdges;
+  parameter.max_of_no_of_edges		= gp.maxNoOfEdges;
   parameter.log = false;
 
   return parameter;
@@ -953,7 +968,7 @@ bool ngt_optimize_number_of_edges(const char *indexPath, NGTAnngEdgeOptimization
   p.targetAccuracy	= parameter.target_accuracy;
   p.targetNoOfObjects	= parameter.target_no_of_objects;
   p.noOfSampleObjects	= parameter.no_of_sample_objects;
-  p.maxOfNoOfEdges	= parameter.max_of_no_of_edges;
+  p.maxNoOfEdges	= parameter.max_of_no_of_edges;
 
   try {
     NGT::GraphOptimizer graphOptimizer(!parameter.log); // false=log

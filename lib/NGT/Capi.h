@@ -178,6 +178,9 @@ bool ngt_optimizer_set_extension(NGTOptimizer optimizer,
 				 float rateAccuracyFrom, float rateAccuracyTo,
 				 double gte, double m, NGTError error);
 
+bool ngt_optimizer_set_processing_modes(NGTOptimizer optimizer, bool searchParameter, 
+					bool prefetchParameter, bool accuracyTable, NGTError error);
+
 void ngt_destroy_optimizer(NGTOptimizer);
 
 // refine: the specified index by searching each node.

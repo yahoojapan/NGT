@@ -32,7 +32,7 @@ namespace NGT {
 	targetAccuracy = 0.9;	// when epsilon is 0.0 and all of the edges are used
 	targetNoOfObjects = 0;
 	noOfSampleObjects = 100000;
-	maxOfNoOfEdges = 100;
+	maxNoOfEdges = 100;
       }
       size_t noOfQueries;
       size_t noOfResults;
@@ -40,7 +40,7 @@ namespace NGT {
       float targetAccuracy;
       size_t targetNoOfObjects;
       size_t noOfSampleObjects;
-      size_t maxOfNoOfEdges;
+      size_t maxNoOfEdges;
     };
 
     GraphOptimizer(bool unlog = false) {
@@ -73,6 +73,7 @@ namespace NGT {
       shortcutReduction = true;
       searchParameterOptimization = true;
       prefetchParameterOptimization = true;
+      accuracyTableGeneration = true;
     }
 
     void adjustSearchCoefficients(const std::string indexPath){
@@ -288,22 +289,29 @@ namespace NGT {
 	redirector.end();
       }
 
+      optimizeSearchParameters(outIndexPath);
+
+    }
+
+    void optimizeSearchParameters(const std::string outIndexPath)
+    {
+
       if (searchParameterOptimization) {
 	NGT::Index	outIndex(outIndexPath);
+	NGT::GraphIndex	&outGraph = static_cast<NGT::GraphIndex&>(outIndex.getIndex());
 	NGT::Optimizer	optimizer(outIndex);
 	if (logDisabled) {
 	  optimizer.disableLog();
 	} else {
 	  optimizer.enableLog();
 	}
-	NGT::GraphIndex	&outGraph = static_cast<NGT::GraphIndex&>(outIndex.getIndex());
 	try {
 	  auto coefficients = optimizer.adjustSearchEdgeSize(baseAccuracyRange, rateAccuracyRange, numOfQueries, gtEpsilon, margin);
 	  NGT::NeighborhoodGraph::Property &prop = outGraph.getGraphProperty();
 	  prop.dynamicEdgeSizeBase = coefficients.first;
 	  prop.dynamicEdgeSizeRate = coefficients.second;
 	  prop.edgeSizeForSearch = -2;
-	  outGraph.saveIndex(outIndexPath);
+	  outGraph.saveProperty(outIndexPath);
 	} catch(NGT::Exception &err) {
 	  std::stringstream msg;
 	  msg << "Optimizer::execute: Cannot adjust the search coefficients. " << err.what();
@@ -311,27 +319,52 @@ namespace NGT {
 	}
       }
 
-      if (prefetchParameterOptimization) {
+      if (searchParameterOptimization || prefetchParameterOptimization || accuracyTableGeneration) {
+	NGT::StdOstreamRedirector redirector(logDisabled);
+	redirector.begin();
+	NGT::Index	outIndex(outIndexPath, true);	
+	NGT::GraphIndex	&outGraph = static_cast<NGT::GraphIndex&>(outIndex.getIndex());
+	if (prefetchParameterOptimization) {
+	  try {
+	    auto prefetch = adjustPrefetchParameters(outIndex);
+	    NGT::Property prop;
+	    outIndex.getProperty(prop);
+	    prop.prefetchOffset = prefetch.first;
+	    prop.prefetchSize = prefetch.second;
+	    outIndex.setProperty(prop);
+	    outGraph.saveProperty(outIndexPath);
+	  } catch(NGT::Exception &err) {
+	    redirector.end();
+	    std::stringstream msg;
+	    msg << "Optimizer::execute: Cannot adjust prefetch parameters. " << err.what();
+	    NGTThrowException(msg);
+	  }
+	}
+	if (accuracyTableGeneration) {
+	  try {
+	    auto table = NGT::Optimizer::generateAccuracyTable(outIndex, numOfResults, numOfQueries);
+	    NGT::Index::AccuracyTable accuracyTable(table);
+	    NGT::Property prop;
+	    outIndex.getProperty(prop);
+	    prop.accuracyTable = accuracyTable.getString();
+	    outIndex.setProperty(prop);
+	  } catch(NGT::Exception &err) {
+	    redirector.end();
+	    std::stringstream msg;
+	    msg << "Optimizer::execute: Cannot generate an accuracy table. " << err.what();
+	    NGTThrowException(msg);
+	  }
+	}
 	try {
-	  NGT::Index	outIndex(outIndexPath, true);
-	  auto prefetch = adjustPrefetchParameters(outIndex);
-	  NGT::Property prop;
-	  outIndex.getProperty(prop);
-	  prop.prefetchOffset = prefetch.first;
-	  prop.prefetchSize = prefetch.second;
-	  outIndex.setProperty(prop);
-
-	  std::vector<std::pair<float, double>> table = NGT::Optimizer::generateAccuracyTable(outIndex, numOfResults, numOfQueries);
-	  NGT::Index::AccuracyTable accuracyTable(table);
-	  prop.accuracyTable = accuracyTable.getString();
-	  outIndex.setProperty(prop);
-
-	  static_cast<NGT::GraphIndex&>(outIndex.getIndex()).saveProperty(outIndexPath);
+	  outGraph.saveProperty(outIndexPath);
+	  redirector.end();
 	} catch(NGT::Exception &err) {
+	  redirector.end();
 	  std::stringstream msg;
-	  msg << "Optimizer::execute: Cannot adjust prefetch parameters. " << err.what();
+	  msg << "Optimizer::execute: Cannot save the index. " << outIndexPath << err.what();
 	  NGTThrowException(msg);
 	}
+
       }
     }
 
@@ -408,7 +441,7 @@ namespace NGT {
       }
 
       NGT::NeighborhoodGraph::Property &prop = graphIndex.getGraphProperty();
-      prop.edgeSizeForCreation = parameter.maxOfNoOfEdges;
+      prop.edgeSizeForCreation = parameter.maxNoOfEdges;
       std::vector<std::pair<size_t, std::tuple<size_t, double, double>>> transition;
       size_t targetNo = 12500;
       for (;targetNo <= objectRepository.size() && targetNo <= parameter.noOfSampleObjects; 
@@ -425,7 +458,7 @@ namespace NGT {
 	}
 	id++;
 	index.createIndex(parameter.noOfThreads, id);
-	auto edge = NGT::GraphOptimizer::optimizeNumberOfEdgesForANNG(optimizer, queries, parameter.noOfResults, parameter.targetAccuracy, parameter.maxOfNoOfEdges);
+	auto edge = NGT::GraphOptimizer::optimizeNumberOfEdgesForANNG(optimizer, queries, parameter.noOfResults, parameter.targetAccuracy, parameter.maxNoOfEdges);
 	transition.push_back(make_pair(noOfObjects, edge));
       }
       if (transition.size() < 2) {
@@ -461,7 +494,7 @@ namespace NGT {
     }
 
     std::pair<size_t, float>
-      optimizeNumberOfEdgesForANNG(std::string &indexPath, GraphOptimizer::ANNGEdgeOptimizationParameter &parameter) {
+      optimizeNumberOfEdgesForANNG(const std::string indexPath, GraphOptimizer::ANNGEdgeOptimizationParameter &parameter) {
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
       NGTThrowException("Not implemented for NGT with the shared memory option.");
@@ -478,8 +511,8 @@ namespace NGT {
     
 	NGT::GraphIndex	&graph = static_cast<NGT::GraphIndex&>(index.getIndex());
 	size_t noOfEdges = (optimizedEdge.first + 10) / 5 * 5;
-	if (noOfEdges > parameter.maxOfNoOfEdges) {
-	  noOfEdges = parameter.maxOfNoOfEdges;
+	if (noOfEdges > parameter.maxNoOfEdges) {
+	  noOfEdges = parameter.maxNoOfEdges;
 	}
 
 	NGT::NeighborhoodGraph::Property &prop = graph.getGraphProperty();
@@ -577,6 +610,14 @@ namespace NGT {
       }
     }
 
+    void setProcessingModes(bool shortcut = true, bool searchParameter = true, bool prefetchParameter = true, 
+			    bool accuracyTable = true) {
+      shortcutReduction = shortcut;
+      searchParameterOptimization = searchParameter;
+      prefetchParameterOptimization = prefetchParameter;
+      accuracyTableGeneration = accuracyTable;
+    }
+
     size_t numOfOutgoingEdges;
     size_t numOfIncomingEdges;
     std::pair<float, float> baseAccuracyRange;
@@ -589,6 +630,7 @@ namespace NGT {
     bool shortcutReduction;
     bool searchParameterOptimization;
     bool prefetchParameterOptimization;
+    bool accuracyTableGeneration;
   };
 
 }; // NGT

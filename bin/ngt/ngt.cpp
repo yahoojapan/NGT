@@ -44,7 +44,7 @@ version(ostream &os)
 }
 
 void help() {
-  cerr << "Usage : ngt command index [data]" << endl;
+  cerr << "Usage : ngt command [options] index [data]" << endl;
   cerr << "           command : info create search remove append export import prune reconstruct-graph optimize-search-parameters optimize-#-of-edges repair" << endl;
   cerr << "Version : " << NGT::Index::getVersion() << endl;
   if (NGT::Index::getVersion() != NGT::Version::getVersion()) {
@@ -114,6 +114,7 @@ main(int argc, char **argv)
       ngt.info(args);
     } else {
       cerr << "ngt: Error: Illegal command. " << command << endl;
+      help();
     }
   } catch(NGT::Exception &err) {
     cerr << "ngt: Error: " << err.what() << endl;

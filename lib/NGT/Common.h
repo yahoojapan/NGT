@@ -20,6 +20,7 @@
 #include	<vector>
 #include	<queue>
 #include	<map>
+#include	<set>
 #include	<iostream>
 #include	<sstream>
 #include	<fstream>
@@ -75,27 +76,74 @@ namespace NGT {
   {
    public:
     Args() {}
-    Args(int argc, char **argv):
-    option("a:b:c:d:e:f:g:hi:j:k:l:m:n:o:p:q:r:s:t:u:v:w:x:y:z:"
-	   "A:B:C:D:E:F:G:H:I:J:K:L:M:N:O:P:Q:R:S:T:U:V:W:X:Y:Z:")
+    Args(int argc, char **argv)
     {
-      int opt;
-      while ((opt = getopt(argc, argv, option)) != -1) {
-	if ((char)opt == 'h') {
-	  std::string str;
-	  str.append(1, (char)opt);
-	  insert(std::pair<std::string, std::string>(str, ""));
-	  continue;
+      std::vector<std::string> opts;
+      int optcount = 0;
+      insert(std::make_pair(std::string("#-"),std::string(argv[0])));
+      for (int i = 1; i < argc; ++i) {
+	opts.push_back(std::string(argv[i]));
+      }
+      for (auto i = opts.begin(); i != opts.end(); ++i) {
+	std::string &opt = *i;
+	std::string key, value;
+	if (opt.size() > 2 && opt.substr(0, 2) == "--") {
+	  auto pos = opt.find('=');
+	  if (pos == std::string::npos) {
+	    key = opt.substr(2);
+	    value = "";
+	  } else {
+	    key = opt.substr(2, pos - 2);
+	    value = opt.substr(++pos);
+	  }
+	} else if (opt.size() > 1 && opt[0] == '-') {
+	  if (opt.size() == 2) {
+	    key = opt[1];
+	    if (key == "h") {
+	      value = "";
+	    } else {
+	      ++i;
+	      if (i != opts.end()) {
+		value = *i;
+	      } else {
+		value = "";
+		--i;
+	      }
+	    }
+	  } else {
+	    key = opt[1];
+	    value = opt.substr(2);
+	  }
+	} else {
+	  key = "#" + std::to_string(optcount++);
+	  value = opt;
 	}
-	std::string str;
-	str.append(1, (char)opt);
-	insert(std::pair<std::string, std::string>(str, std::string(optarg)));
+	auto status = insert(std::make_pair(key,value));
+	if (!status.second) {
+	  std::cerr << "Args: Duplicated options. [" << opt << "]" << std::endl;
+	}
       }
-      for (int i = 0; optind < argc; optind++, i++) {
-	std::stringstream ss;
-	ss << "#" << i;
-	insert(std::pair<std::string, std::string>(ss.str(), std::string(argv[optind])));
+    }
+    std::set<std::string> getUnusedOptions() {
+      std::set<std::string> o;
+      for (auto i = begin(); i != end(); ++i) {
+	o.insert((*i).first);
       }
+      for (auto i = usedOptions.begin(); i != usedOptions.end(); ++i) {
+	o.erase(*i);
+      }
+      return o;
+    }
+    std::string checkUnusedOptions() {
+      auto uopt = getUnusedOptions();
+      std::stringstream msg;
+      if (!uopt.empty()) {
+	msg << "Unused options: ";
+	for (auto i = uopt.begin(); i != uopt.end(); ++i) {
+	  msg << *i << " ";
+	}
+      }
+      return msg.str();
     }
     std::string &find(const char *s) { return get(s); }
     char getChar(const char *s, char v) {
@@ -120,6 +168,7 @@ namespace NGT {
 	msg << s << ": Not specified" << std::endl;
 	NGTThrowException(msg.str());
       }
+      usedOptions.insert(ai->first);
       return ai->second;
     }
     long getl(const char *s, long v) {
@@ -154,7 +203,7 @@ namespace NGT {
       }
       return val;
     }
-    const char *option;
+    std::set<std::string> usedOptions;
   };
 
   class Common {

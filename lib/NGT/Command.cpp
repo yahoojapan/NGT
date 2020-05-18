@@ -716,6 +716,7 @@ using namespace std;
     graphOptimizer.shortcutReduction = (mode == 'S' || mode == 'C' || mode == 'P') ? true : false;
     graphOptimizer.searchParameterOptimization = (smode == '-' || smode == 's') ? true : false;
     graphOptimizer.prefetchParameterOptimization = (smode == '-' || smode == 'p') ? true : false;
+    graphOptimizer.accuracyTableGeneration = (smode == '-' || smode == 'a') ? true : false;
     graphOptimizer.margin = margin;
     graphOptimizer.gtEpsilon = gtEpsilon;
 
@@ -726,14 +727,12 @@ using namespace std;
   void
   NGT::Command::optimizeSearchParameters(Args &args)
   {
-    const string usage = "Usage: ngt optimize-search-parameters [-m optimization-target(e|p|a)] [-q #-of-queries] [-n #-of-results] index\n"
+    const string usage = "Usage: ngt optimize-search-parameters [-m optimization-target(s|p|a)] [-q #-of-queries] [-n #-of-results] index\n"
       "\t-m mode\n"
-      "\t\te: optimize the number of edges for search.\n"
-      "\t\tp: optimize paths in a graph.\n"
-      "\t\ta: generate an accuracy table to spcify an expected accuracy instead of an epsilon for search.\n";
+      "\t\ts: optimize search parameters (the number of explored edges).\n"
+      "\t\tp: optimize prefetch prameters.\n"
+      "\t\ta: generate an accuracy table to specify an expected accuracy instead of an epsilon for search.\n";
     
-    char mode = args.getChar("m", '-');
-
     string indexPath;
     try {
       indexPath = args.get("#1");
@@ -743,49 +742,28 @@ using namespace std;
       return;
     }
 
+    char mode = args.getChar("m", '-');
+
     size_t nOfQueries = args.getl("q", 100);		// # of query objects
     size_t nOfResults = args.getl("n", 20);		// # of resultant objects
 
-    try {
-      if (mode == 'e' || mode == '-') {
-	pair<float, float> baseAccuracyRange(0.30, 0.50);
-	pair<float, float> rateAccuracyRange(0.80, 0.90);
-	double gtEpsilon = 0.1;
-	double mergin = 0.2;
 
-	NGT::Index	index(indexPath);
-	NGT::Optimizer	optimizer(index);
-	auto param = optimizer.adjustSearchEdgeSize(baseAccuracyRange, rateAccuracyRange, nOfQueries, gtEpsilon, mergin);
-	NGT::Property prop;
-	index.getProperty(prop);
-	prop.dynamicEdgeSizeBase = param.first;
-	prop.dynamicEdgeSizeRate = param.second;
-	prop.edgeSizeForSearch = -2;
-	index.setProperty(prop);
-	static_cast<NGT::GraphIndex&>(index.getIndex()).saveProperty(indexPath);
-      }
-      if (mode == 'p' || mode == 'a' || mode == '-') {
-	NGT::Index	index(indexPath, true);
-	NGT::Property prop;
-	index.getProperty(prop);
-	if (mode == 'p' || mode == '-') {
-	  auto prefetch = NGT::GraphOptimizer::adjustPrefetchParameters(index);
-	  prop.prefetchOffset = prefetch.first;
-	  prop.prefetchSize = prefetch.second;
-	  index.setProperty(prop);
-	}
-	if (mode == 'a' || mode == '-') {
-	  std::vector<pair<float, double>> table = NGT::Optimizer::generateAccuracyTable(index, nOfResults, nOfQueries);
-	  NGT::Index::AccuracyTable accuracyTable(table);
-	  prop.accuracyTable = accuracyTable.getString();
-	  index.setProperty(prop);
-	}
-	static_cast<NGT::GraphIndex&>(index.getIndex()).saveProperty(indexPath);
-      }
+    try {
+      NGT::GraphOptimizer graphOptimizer(false);
+
+      graphOptimizer.searchParameterOptimization = (mode == '-' || mode == 's') ? true : false;
+      graphOptimizer.prefetchParameterOptimization = (mode == '-' || mode == 'p') ? true : false;
+      graphOptimizer.accuracyTableGeneration = (mode == '-' || mode == 'a') ? true : false;
+      graphOptimizer.numOfQueries = nOfQueries;
+      graphOptimizer.numOfResults = nOfResults;
+
+      graphOptimizer.set(0, 0, nOfQueries, nOfResults);
+      graphOptimizer.optimizeSearchParameters(indexPath);
     } catch (NGT::Exception &err) {
       cerr << "ngt: Error " << err.what() << endl;
       cerr << usage << endl;
     }
+
   }
 
   void
@@ -1030,7 +1008,7 @@ using namespace std;
     parameter.targetAccuracy	= args.getf("a", 0.9);
     parameter.targetNoOfObjects	= args.getl("o", 0);	// zero will replaced # of the repository size.
     parameter.noOfSampleObjects	= args.getl("s", 100000);
-    parameter.maxOfNoOfEdges	= args.getl("e", 100);
+    parameter.maxNoOfEdges	= args.getl("e", 100);
 
     NGT::GraphOptimizer graphOptimizer(false); // false=log
     auto optimizedEdge = graphOptimizer.optimizeNumberOfEdgesForANNG(indexPath, parameter);

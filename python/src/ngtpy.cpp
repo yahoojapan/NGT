@@ -27,7 +27,7 @@ namespace py = pybind11;
 class Index : public NGT::Index {
 public:
   Index(
-   const std::string path, 			// ngt index path.
+   const std::string path, 		// ngt index path.
    bool readOnly,			// read only or not.
    bool zeroBasedNumbering,		// object ID numbering.
    bool logDisabled			// stderr log is disabled.
@@ -92,7 +92,7 @@ public:
 
   void batchInsert(
    py::array_t<double> objects, 
-   size_t numThreads = 8,
+   size_t numThreads = 16,
    bool debug = false
   ) {
     py::buffer_info info = objects.request();
@@ -274,6 +274,17 @@ public:
     NGT::Index::remove(id);
   }
 
+  void refineANNG(
+    float epsilon,		// epsilon for search
+    float accuracy,		// expected accuracy for search
+    int numOfEdges,		// k to build AKNNG
+    int numOfExploredEdges,	// # of explored edges for search
+    size_t batchSize)		// batch size to search at the same time
+  {
+    bool unlog = NGT::Index::redirector.enabled;
+    NGT::GraphReconstructor::refineANNG(*this, unlog, epsilon, accuracy, numOfEdges, numOfExploredEdges, batchSize);
+  }
+
   std::vector<float> getObject(size_t id) {
     id = zeroNumbering ? id + 1 : id;
     NGT::Property prop;
@@ -317,6 +328,39 @@ public:
   size_t	numOfDistanceComputations;
   size_t	numOfSearchObjects; // k
   NGT::Distance	searchRadius;
+};
+
+class Optimizer : public NGT::GraphOptimizer {
+public:
+  using NGT::GraphOptimizer::GraphOptimizer; 
+
+  int optimizeNumberOfEdgesForANNG(
+    const std::string path,		// anng index path
+    int numOfQueries,
+    int numOfResults,
+    int numOfThreads,
+    float targetAccuracy,
+    int targetNoOfObjects,
+    int numOfSampleObjects,
+    int maxNoOfEdges) {
+
+    NGT::GraphOptimizer::ANNGEdgeOptimizationParameter p;
+
+    p.noOfQueries	= numOfQueries > 0 ? numOfQueries : p.noOfQueries;
+    p.noOfResults	= numOfResults > 0 ? numOfResults : p.noOfResults;
+    p.noOfThreads	= numOfThreads >= 0 ? numOfThreads : p.noOfThreads;
+    p.targetAccuracy	= targetAccuracy > 0.0 ? targetAccuracy : p.targetAccuracy;
+    p.targetNoOfObjects	= targetNoOfObjects >= 0 ? targetNoOfObjects : p.targetNoOfObjects;
+    p.noOfSampleObjects	= numOfSampleObjects > 0 ? numOfSampleObjects : p.noOfSampleObjects;
+    p.maxNoOfEdges	= maxNoOfEdges > 0 ? maxNoOfEdges : p.maxNoOfEdges;
+
+    auto edge = NGT::GraphOptimizer::optimizeNumberOfEdgesForANNG(path, p);
+    if (!logDisabled) {
+      std::cerr << "the optimized number of edges is" << edge.first << "(" << edge.second << ")" << std::endl;
+    }
+    return edge.first;
+  }
+
 };
 
 PYBIND11_MODULE(ngtpy, m) {
@@ -366,12 +410,18 @@ PYBIND11_MODULE(ngtpy, m) {
       .def("insert", &::Index::insert,
            py::arg("object"),
            py::arg("debug") = false)
+      .def("refine_anng", &::Index::refineANNG,
+	   py::arg("epsilon") = 0.1,
+	   py::arg("expected_accuracy") = 0.0,
+	   py::arg("num_of_edges") = 0,
+	   py::arg("num_of_explored_edges") = INT_MIN,
+	   py::arg("batch_size") = 10000)
       .def("set", &::Index::set,
            py::arg("num_of_search_objects") = 0,
 	   py::arg("search_radius") = -1.0);
 
 
-    py::class_<NGT::GraphOptimizer>(m, "Optimizer")
+    py::class_<Optimizer>(m, "Optimizer")
       .def(py::init<int, int, int, int, float, float, float, float, double, double, bool>(),
 	   py::arg("num_of_outgoings") = -1,
 	   py::arg("num_of_incomings") = -1,
@@ -381,14 +431,14 @@ PYBIND11_MODULE(ngtpy, m) {
 	   py::arg("low_accuracy_to") = -1.0,
 	   py::arg("high_accuracy_from") = -1.0,
 	   py::arg("high_accuracy_to") = -1.0,
-	   py::arg("gt_epsilon") = DBL_MIN,
+	   py::arg("gt_epsilon") = -DBL_MAX,
 	   py::arg("margin") = -1.0,
 	   py::arg("log_disabled") = false)
       .def("execute", &NGT::GraphOptimizer::execute, 
-	   py::arg("in_index_path"),
-	   py::arg("out_index_path"))
+	   py::arg("in_path"),
+	   py::arg("out_path"))
       .def("adjust_search_coefficients", &NGT::GraphOptimizer::adjustSearchCoefficients, 
-	   py::arg("index_path"))
+	   py::arg("path"))
       .def("set", (void (NGT::GraphOptimizer::*)(int, int, int, int, float, float, float, float,
 						 double, double)) &NGT::GraphOptimizer::set,
 	   py::arg("num_of_outgoings") = -1,
@@ -399,6 +449,20 @@ PYBIND11_MODULE(ngtpy, m) {
 	   py::arg("low_accuracy_to") = -1.0,
 	   py::arg("high_accuracy_from") = -1.0,
 	   py::arg("high_accuracy_to") = -1.0,
-	   py::arg("gt_epsilon") = DBL_MIN,
-	   py::arg("margin") = -1.0);
+	   py::arg("gt_epsilon") = -DBL_MAX,
+	   py::arg("margin") = -1.0)
+      .def("set_processing_modes", &NGT::GraphOptimizer::setProcessingModes,
+	   py::arg("shortcut_reduction") = true,
+	   py::arg("search_parameter_optimization") = true,
+	   py::arg("prefetch_parameter_optimization") = true,
+	   py::arg("accuracy_table_generation") = true)
+      .def("optimize_number_of_edges_for_anng", &::Optimizer::optimizeNumberOfEdgesForANNG,
+	   py::arg("path"),
+	   py::arg("num_of_queries") = -1,
+	   py::arg("num_of_results") = -1,
+	   py::arg("num_of_threads") = -1,
+	   py::arg("target_accuracy") = -1,
+	   py::arg("target_num_of_objects") = -1,
+	   py::arg("num_of_sample_objects") = -1,
+	   py::arg("max_num_of_edges") = -1);
 }

@@ -695,7 +695,7 @@ namespace NGT {
 	  double minTime = DBL_MAX;
 	  size_t minBase = 0;
 	  std::map<size_t, double> times;
-	  std::cerr << "adjustBaseSearchEdgeSize::explore for the margin " << margin << ", " << baseStart << "..." << std::endl;
+	  std::cerr << "adjustBaseSearchEdgeSize: explore for the margin " << margin << ", " << baseStart << "..." << std::endl;
 	  for (size_t baseStep = 16; baseStep != 1; baseStep /= 2) {
 	    double prevTime = DBL_MAX;
 	    for (size_t base = baseStart; ; base += baseStep) {
@@ -733,7 +733,7 @@ namespace NGT {
 		  }
 		}
 		times.insert(std::make_pair(base, time));
-		std::cerr << "adjustBaseSearchEdgeSize::base=" << base << ", query time=" << time << std::endl;
+		std::cerr << "adjustBaseSearchEdgeSize: base=" << base << ", query time=" << time << std::endl;
 	      } else {
 		time = times.at(base);
 	      }
@@ -763,11 +763,11 @@ namespace NGT {
     }
 
     size_t adjustBaseSearchEdgeSize(std::pair<float, float> accuracyRange, size_t querySize, double epsilon, float margin = 0.2) {
-      std::cerr << "adjustBaseSearchEdgeSize::Extract queries for GT..." << std::endl;
+      std::cerr << "adjustBaseSearchEdgeSize: Extract queries for GT..." << std::endl;
       std::stringstream queries;
       extractQueries(querySize, queries);
 
-      std::cerr << "adjustBaseSearchEdgeSize::create GT..." << std::endl;
+      std::cerr << "adjustBaseSearchEdgeSize: create GT..." << std::endl;
       Command::SearchParameter searchParameter;
       searchParameter.edgeSize = -1;
       std::stringstream gtStream;
@@ -796,7 +796,7 @@ namespace NGT {
 	  double minTime = DBL_MAX;
 	  size_t minRate = 0;
 	  std::map<size_t, double> times;
-	  std::cerr << "adjustRateSearchEdgeSize::explore for the margin " << margin << ", " << rateStart << "..." << std::endl;
+	  std::cerr << "adjustRateSearchEdgeSize: explore for the margin " << margin << ", " << rateStart << "..." << std::endl;
 	  for (size_t rateStep = 16; rateStep != 1; rateStep /= 2) {
 	    double prevTime = DBL_MAX;
 	    for (size_t rate = rateStart; rate < 2000; rate += rateStep) {
@@ -834,7 +834,7 @@ namespace NGT {
 		  }
 		}
 		times.insert(std::make_pair(rate, time));
-		std::cerr << "adjustRateSearchEdgeSize::rate=" << rate << ", query time=" << time << std::endl;
+		std::cerr << "adjustRateSearchEdgeSize: rate=" << rate << ", query time=" << time << std::endl;
 	      } else {
 		time = times.at(rate);
 	      }
@@ -867,6 +867,9 @@ namespace NGT {
 
     std::pair<size_t, size_t> adjustSearchEdgeSize(std::pair<float, float> baseAccuracyRange, std::pair<float, float> rateAccuracyRange, size_t querySize, double epsilon, float margin = 0.2) {
 
+      std::cerr << "adjustSearchEdgeSize: " << baseAccuracyRange.first << "-" << baseAccuracyRange.first << ":" 
+		<< rateAccuracyRange.first << "-" << rateAccuracyRange.first << ":" << querySize << ":" 
+		<<  epsilon << ":" << margin << std::endl;
 
       std::stringstream queries;
       std::stringstream gtStream;
@@ -878,12 +881,12 @@ namespace NGT {
       searchParameter.size = nOfResults;
       redirector.begin();
       try {
-	std::cerr << "adjustSearchEdgeSize::Extract queries for GT..." << std::endl;
+	std::cerr << "adjustSearchEdgeSize: Extract queries for GT..." << std::endl;
 	extractQueries(querySize, queries);
-	std::cerr << "adjustSearchEdgeSize::create GT..." << std::endl;
+	std::cerr << "adjustSearchEdgeSize: create GT..." << std::endl;
 	createGroundTruth(index, epsilon, searchParameter, queries, gtStream);
       } catch (NGT::Exception &err) {
-	std::cerr << "adjustSearchEdgeSize::Error!! Cannot adjust. " << err.what() << std::endl;
+	std::cerr << "adjustSearchEdgeSize: Error!! Cannot adjust. " << err.what() << std::endl;
 	redirector.end();
 	return std::pair<size_t, size_t>(0, 0);
       }
@@ -899,23 +902,23 @@ namespace NGT {
       for(;;) {
 	try {
 	  prop.dynamicEdgeSizeRate = rate.first;
-	  std::cerr << "adjustRateSearchEdgeSize::Base: rate=" << prop.dynamicEdgeSizeRate << std::endl;
+	  std::cerr << "adjustRateSearchEdgeSize: Base: rate=" << prop.dynamicEdgeSizeRate << std::endl;
 	  prevBase = base;
 	  base = adjustBaseSearchEdgeSize(queries, searchParameter, gtStream, baseAccuracyRange, margin, prevBase.first);
-	  std::cerr << "adjustRateSearchEdgeSize::Base: base=" << prevBase.first << "->" << base.first << ",rate=" << prevRate.first << "->" << rate.first << std::endl;
+	  std::cerr << "adjustRateSearchEdgeSize: Base: base=" << prevBase.first << "->" << base.first << ",rate=" << prevRate.first << "->" << rate.first << std::endl;
 	  if (prevBase.first == base.first) {
 	    break;
 	  }
 	  prop.dynamicEdgeSizeBase = base.first;
-	  std::cerr << "adjustRateSearchEdgeSize::Rate: base=" << prop.dynamicEdgeSizeBase << std::endl;
+	  std::cerr << "adjustRateSearchEdgeSize: Rate: base=" << prop.dynamicEdgeSizeBase << std::endl;
 	  prevRate = rate;
 	  rate = adjustRateSearchEdgeSize(queries, searchParameter, gtStream, rateAccuracyRange, margin, prevRate.first);
-	  std::cerr << "adjustRateSearchEdgeSize::Rate base=" << prevBase.first << "->" << base.first << ",rate=" << prevRate.first << "->" << rate.first << std::endl;
+	  std::cerr << "adjustRateSearchEdgeSize: Rate base=" << prevBase.first << "->" << base.first << ",rate=" << prevRate.first << "->" << rate.first << std::endl;
 	  if (prevRate.first == rate.first) {
 	    break;
 	  }
 	  if (history.count(std::make_pair(base.first, rate.first)) != 0) {
-	    std::cerr << "adjustRateSearchEdgeSize::Warning! Found an infinite loop." << std::endl;
+	    std::cerr << "adjustRateSearchEdgeSize: Warning! Found an infinite loop." << std::endl;
 	    double minTime = rate.second;
 	    std::pair<size_t, size_t> min = std::make_pair(base.first, rate.first);
 	    for (auto i = history.begin(); i != history.end(); ++i) {
@@ -930,7 +933,7 @@ namespace NGT {
 	  // store parameters here to prioritize high accuracy
 	  history.insert(std::make_pair(std::make_pair(base.first, rate.first), rate.second));
 	} catch (NGT::Exception &err) {
-	  std::cerr << "adjustRateSearchEdgeSize::Error!! Cannot adjust. " << err.what() << std::endl;
+	  std::cerr << "adjustRateSearchEdgeSize: Error!! Cannot adjust. " << err.what() << std::endl;
 	  redirector.end();
 	  return std::pair<size_t, size_t>(0, 0);
 	}
@@ -970,9 +973,9 @@ namespace NGT {
       size_t querySize = args.getl("q", 100);
       size_t nOfResults = args.getl("n", 10);
 
-      std::cerr << "adjustRateSearchEdgeSize::range= " << baseAccuracyRange.first << "-" << baseAccuracyRange.second 
+      std::cerr << "adjustRateSearchEdgeSize: range= " << baseAccuracyRange.first << "-" << baseAccuracyRange.second 
 	   << "," << rateAccuracyRange.first << "-" << rateAccuracyRange.second << std::endl;
-      std::cerr << "adjustRateSearchEdgeSize::# of queries=" << querySize << std::endl;
+      std::cerr << "adjustRateSearchEdgeSize: # of queries=" << querySize << std::endl;
 
       NGT::Index	index(indexName);
 
@@ -991,7 +994,7 @@ namespace NGT {
 	  graphIndex.saveProperty(indexName);
 	}
       } catch (NGT::Exception &err) {
-	std::cerr << "adjustRateSearchEdgeSize::Error!! Cannot adjust. " << err.what() << std::endl;
+	std::cerr << "adjustRateSearchEdgeSize: Error!! Cannot adjust. " << err.what() << std::endl;
 	return;
       }
     }

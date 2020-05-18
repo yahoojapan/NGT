@@ -782,6 +782,17 @@ class GraphReconstructor {
 #endif
   }
 
+  static void refineANNG(NGT::Index &index, bool unlog, float epsilon = 0.1, float accuracy = 0.0, int noOfEdges = 0, int exploreEdgeSize = INT_MIN, size_t batchSize = 10000) {
+    NGT::StdOstreamRedirector redirector(unlog);
+    redirector.begin();
+    try {
+      refineANNG(index, epsilon, accuracy, noOfEdges, exploreEdgeSize, batchSize);
+    } catch (NGT::Exception &err) {
+      redirector.end();
+      throw(err);
+    }
+  }
+
   static void refineANNG(NGT::Index &index, float epsilon = 0.1, float accuracy = 0.0, int noOfEdges = 0, int exploreEdgeSize = INT_MIN, size_t batchSize = 10000) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
     NGTThrowException("GraphReconstructor::refineANNG: Not implemented for the shared memory option.");
@@ -798,6 +809,9 @@ class GraphReconstructor {
 #pragma omp parallel for
       for (size_t idx = 0; idx < batchSize; idx++) {
 	size_t id = bid + idx;
+	if (id % 100000 == 0) {
+	  std::cerr << "# of processed objects=" << id << std::endl;
+	}
 	if (objectRepository.isEmpty(id)) {
 	  continue;
 	}
