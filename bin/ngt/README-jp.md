@@ -8,11 +8,13 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 Command
 =======
 
-
+Name
+----
 
 **ngt** - 高次元ベクトルデータ近傍検索
 
-
+形式
+----
 
       $ ngt command [option] index [data]
         
@@ -21,7 +23,8 @@ CygWin といった POSIXLY_CORRECT が設定されている環境では、コ�
 
       $ ngt [option] command index [data]
 
-
+概要
+----
 
 大量（数百万から数千万データ）の高次元ベクトルデータ（数十～数千次元）に対して高速な近傍検索を提供します。
 
@@ -172,7 +175,7 @@ ANNGやBKNNGを指定した場合には登録データ（ノード）からエ�
 **-d** *object\_id\_specification\_method* (__f__|__d__) （デフォルト=f） 
 削除するオブジェクトIDの指定方法を指定します。fを指定した場合には後述のオブジェクトIDの指定をファイルだとみなします。指定されたファイルには１行ごとに削除するIDが１エントリずつ指定されていなければなりません。dを指定した場合には後述のオブジェクトIDの指定はそのままオブジェクトIDの値だとみなし、削除します。
 
-### PRUNE
+### PRUNE （非推奨）
 
 指定されたインデックスのグラフ中の長いエッジを削減します。このコマンドにより検索時間が短縮されますが、性能向上には以下の reconstruct graph のパス最適化の利用をお勧めします。
 
@@ -192,7 +195,7 @@ no\_of\_forcedly\_pruned\_edgesはno\_of\_selectively\_pruned\_edgesより大き
 
 指定されたインデックスからグラフを再構成したインデックスを生成します。
 
-      $ ngt reconstruct-graph [-m mode] [-I graph_type]-o no_of_original_edges -i no_of_reverse_edge input_index reconstructed_index
+      $ ngt reconstruct-graph [-m shortcut_mode] [-s search_optimization_mode] [-I graph_type] -o no_of_outgoing_edges -i no_of_incoming_edges input_index reconstructed_index
 
 *input_index*  
 既存のインデックス名を指定します。
@@ -200,16 +203,24 @@ no\_of\_forcedly\_pruned\_edgesはno\_of\_selectively\_pruned\_edgesより大き
 *reconstructed_index*   
 再構成されるインデックス名を指定します。
 
-**-o** *no_of_original_edges*   
-再構成されるグラフに付与する元グラフの各ノードの出エッジ数を指定します。この値は再構成されるグラフの出次数の下限値となります。
+**-o** *no_of_outgoing_edges*   
+再構成されるグラフに付与する入力グラフの各ノードの出エッジ数を指定します。この値は再構成されるグラフの出次数の下限値となります。
 
-**-i** *no_of_reverse_edges*   
-再構成されるグラフに付与する元グラフの各ノードの出エッジ数を指定します。ただし、出エッジの方向を反転した上で再構成されるグラフに付与されます。この値は再構成されるグラフの入次数の下限値となります。
+**-i** *no_of_incoming_edges*  
+再構成されるグラフに付与する入力グラフの各ノードの出エッジ数を指定します。ただし、出エッジの方向を反転した上で再構成されるグラフに付与されます。この値は再構成されるグラフの入次数の下限値となります。
 
 **-m** *mode*   
-グラフのパス最適化のモードを指定します。
-- __s__: パス最適化を行いません。
-- __S__: パス最適化を行います。
+グラフのショートカット削減のモードを指定します。
+- __S__: ショートカット削減あり（デフォルト）
+- __s__: ショートカット削減なし
+
+**-s** *mode*   
+Specify the mode of the search parameter optimization.
+- __s__: 探索エッジパラメータ最適化
+- __p__: プリフェッチパラメータ最適化
+- __a__: 精度テーブル生成
+- __-__: 上記すべて（デフォルト）
+
 
 **-I** *graph_type*
 既存のグラフのタイプを指定します。ANNG以外のグラフではANNGに変換してから再構成します。
@@ -217,7 +228,8 @@ no\_of\_forcedly\_pruned\_edgesはno\_of\_selectively\_pruned\_edgesより大き
 - __o__: ANNG以外
 
 
-
+ngt コマンド使用例
+------------------
 
 ### 生成・登録
 
@@ -306,7 +318,8 @@ no\_of\_forcedly\_pruned\_edgesはno\_of\_selectively\_pruned\_edgesより大き
       Query Time= 0.00018 (sec), 0.18 (msec)
       Average Query Time= 0.000376667 (sec), 0.376667 (msec), (0.00113/3)
 
-
+[関連文献](/README-jp.md#関連文献)のインデックス生成手順
+-------------------------------------------------------
 
 #### [ONNG](/README.md#onng)
 ```

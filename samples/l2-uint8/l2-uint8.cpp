@@ -6,7 +6,7 @@ using namespace std;
 int
 main(int argc, char **argv)
 {
-  string	indexFile	= "index";
+  string	indexPath	= "index";
   string	objectFile	= "./data/sift-dataset-5k.tsv";
   string	queryFile	= "./data/sift-query-3.tsv";
   // index construction
@@ -15,11 +15,8 @@ main(int argc, char **argv)
     property.dimension		= 128;
     property.objectType		= NGT::ObjectSpace::ObjectType::Uint8;
     property.distanceType	= NGT::Index::Property::DistanceType::DistanceTypeL2;
-#ifdef NGT_SHARED_MEMORY_ALLOCATOR
-    NGT::Index	index(property, indexFile);
-#else
-    NGT::Index	index(property);
-#endif
+    NGT::Index::create(indexPath, property);
+    NGT::Index	index(indexPath);
     ifstream	is(objectFile);
     string	line;
     while (getline(is, line)) {
@@ -34,7 +31,7 @@ main(int argc, char **argv)
       index.append(obj);
     }
     index.createIndex(16);
-    index.saveIndex(indexFile);
+    index.save();
   } catch (NGT::Exception &err) {
     cerr << "Error " << err.what() << endl;
     return 1;
@@ -45,7 +42,7 @@ main(int argc, char **argv)
 
   // nearest neighbor search
   try {
-    NGT::Index		index(indexFile);
+    NGT::Index		index(indexPath);
     NGT::Property	property;
     index.getProperty(property);
     ifstream		is(queryFile);

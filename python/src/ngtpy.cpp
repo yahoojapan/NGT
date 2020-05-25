@@ -394,7 +394,7 @@ PYBIND11_MODULE(ngtpy, m) {
            py::arg("size") = 0, 
            py::arg("with_distance") = true)
       .def("get_num_of_distance_computations", &::Index::getNumOfDistanceComputations)
-      .def("save", &NGT::Index::save)
+      .def("save", (void (NGT::Index::*)()) &NGT::Index::save)
       .def("close", &NGT::Index::close)
       .def("remove", &::Index::remove,
            py::arg("object_id"))
@@ -456,6 +456,8 @@ PYBIND11_MODULE(ngtpy, m) {
 	   py::arg("search_parameter_optimization") = true,
 	   py::arg("prefetch_parameter_optimization") = true,
 	   py::arg("accuracy_table_generation") = true)
+      .def("optimize_search_parameters", &NGT::GraphOptimizer::optimizeSearchParameters, 
+	   py::arg("path"))
       .def("optimize_number_of_edges_for_anng", &::Optimizer::optimizeNumberOfEdgesForANNG,
 	   py::arg("path"),
 	   py::arg("num_of_queries") = -1,

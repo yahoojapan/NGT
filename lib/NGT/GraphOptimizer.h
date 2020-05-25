@@ -246,10 +246,12 @@ namespace NGT {
 
       {
 	NGT::StdOstreamRedirector redirector(logDisabled);
-	redirector.begin();
 	NGT::GraphIndex graphIndex(outIndexPath, false);
-
 	if (numOfOutgoingEdges > 0 || numOfIncomingEdges > 0) {
+	  if (!logDisabled) {
+	    std::cerr << "GraphOptimizer: adjusting outgoing and incoming edges..." << std::endl;
+	  }
+	  redirector.begin();
 	  NGT::Timer timer;
 	  timer.start();
 	  std::vector<NGT::ObjectDistances> graph;
@@ -274,6 +276,9 @@ namespace NGT {
 	}
 
 	if (shortcutReduction) {
+	  if (!logDisabled) {
+	    std::cerr << "GraphOptimizer: redusing shortcut edges..." << std::endl;
+	  }
 	  try {
 	    NGT::Timer timer;
 	    timer.start();
@@ -297,6 +302,9 @@ namespace NGT {
     {
 
       if (searchParameterOptimization) {
+	if (!logDisabled) {
+	  std::cerr << "GraphOptimizer: optimizing search parameters..." << std::endl;
+	}
 	NGT::Index	outIndex(outIndexPath);
 	NGT::GraphIndex	&outGraph = static_cast<NGT::GraphIndex&>(outIndex.getIndex());
 	NGT::Optimizer	optimizer(outIndex);
@@ -325,6 +333,9 @@ namespace NGT {
 	NGT::Index	outIndex(outIndexPath, true);	
 	NGT::GraphIndex	&outGraph = static_cast<NGT::GraphIndex&>(outIndex.getIndex());
 	if (prefetchParameterOptimization) {
+	  if (!logDisabled) {
+	    std::cerr << "GraphOptimizer: optimizing prefetch parameters..." << std::endl;
+	  }
 	  try {
 	    auto prefetch = adjustPrefetchParameters(outIndex);
 	    NGT::Property prop;
@@ -341,6 +352,9 @@ namespace NGT {
 	  }
 	}
 	if (accuracyTableGeneration) {
+	  if (!logDisabled) {
+	    std::cerr << "GraphOptimizer: generating the accuracy table..." << std::endl;
+	  }
 	  try {
 	    auto table = NGT::Optimizer::generateAccuracyTable(outIndex, numOfResults, numOfQueries);
 	    NGT::Index::AccuracyTable accuracyTable(table);
@@ -351,7 +365,7 @@ namespace NGT {
 	  } catch(NGT::Exception &err) {
 	    redirector.end();
 	    std::stringstream msg;
-	    msg << "Optimizer::execute: Cannot generate an accuracy table. " << err.what();
+	    msg << "Optimizer::execute: Cannot generate the accuracy table. " << err.what();
 	    NGTThrowException(msg);
 	  }
 	}

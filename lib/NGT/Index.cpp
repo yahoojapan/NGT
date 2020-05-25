@@ -685,7 +685,7 @@ insertMultipleSearchResults(GraphIndex &neighborhoodGraph,
     }
     if (static_cast<int>(gr.id) > neighborhoodGraph.NeighborhoodGraph::property.edgeSizeForCreation &&
 	static_cast<int>(gr.results->size()) < neighborhoodGraph.NeighborhoodGraph::property.edgeSizeForCreation) {
-      cerr << "CreateIndex: The specified number of edges could not be acquired, because the pruned parameter [-S] might be set." << endl;
+      cerr << "createIndex: Warning. The specified number of edges could not be acquired, because the pruned parameter [-S] might be set." << endl;
       cerr << "  The node id=" << gr.id << endl;
       cerr << "  The number of edges for the node=" << gr.results->size() << endl;
       cerr << "  The pruned parameter (edgeSizeForSearch [-S])=" << neighborhoodGraph.NeighborhoodGraph::property.edgeSizeForSearch << endl;

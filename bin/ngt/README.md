@@ -8,11 +8,13 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 Command
 =======
 
-
+Name
+----
 
 **ngt** - proximity search for high dimensional data
 
-
+Synopsis
+--------
 
       $ ngt command [options] index [additional arguments]
         
@@ -23,7 +25,8 @@ before the command as follows.
 
       $ ngt [options] command index [additional arguments]
 
-
+Description
+-----------
 
 **ngt** provides high-speed nearest neighbor searches against a large volume of data (several million to several 10 million items of data) in high dimensional vector data space (several ten to several thousand dimensions).
 
@@ -148,7 +151,7 @@ Select between using of graph only or graph and tree.
 - __s__: Perform a linear search using no index.
 
 **-e** *search\_range\_coefficient* (default = recomended value = 0.1)  
-Specify the magnification coefficient of the search range. A larger value means greater accuracy but slower searching, while a smaller value means a drop in accuracy but faster searching. While it is desirable to adjust this value within the range of 0 - 0.3, a negative value may also be specified.
+Specify the magnification coefficient (epsilon) of the search range. A larger value means greater accuracy but slower searching, while a smaller value means a drop in accuracy but faster searching. While it is desirable to adjust this value within the range of 0 - 0.3, a negative value may also be specified.
 
 **-n** *no\_of\_search\_results* (default: 20)  
 Specify the number of search results.
@@ -175,9 +178,9 @@ Specify the ID of the object to be removed.
 **-d** *object\_id\_specification\_method* (__f__|__d__) (default = f)  
 Specify the method for specifying the ID of the object to be removed. Specifying __f__ indicates that the following object-ID specification is to be treated as a file name. That file shall consist of one entry per line, each indicting the ID of an object to be removed. Specifying __d__ indicates that the following object-ID specification is to be treated simply as an object-ID referring to the object to be removed.
 
-### PRUNE
+### PRUNE (not recommended)
 
-Prune long edges in the graph of the index. Although this command shortens the query time, to further shorten the query time, the path adjustment of the following command reconstruct graph is recommended.
+Prune long edges in the graph of the index to build PANNG. Although this command shortens the query time, to further shorten the query time, the path adjustment of the following command reconstruct graph is recommended.
 
       $ ngt prune -e no_of_forcedly_pruned_edges -s no_of_selectively_pruned_edge index
 
@@ -194,9 +197,9 @@ no\_of\_forcedly\_pruned\_edges should be greater than no\_of\_selectively\_prun
 
 ### RECONSTRUCT GRAPH
 
-construct the index with the reconstructed graph from the specified index.
+Construct the index with the reconstructed graph from the specified index.
 
-      $ ngt reconstruct-graph [-m mode] [-I graph_type] -o no_of_original_edges -i no_of_reverse_edge input_index reconstructed_index
+      $ ngt reconstruct-graph [-m shortcut_mode] [-s search_optimization_mode] [-I graph_type] -o no_of_outgoing_edges -i no_of_incoming_edges input_index reconstructed_index
 
 *input_index*  
 Specify the name of the existing index.
@@ -204,23 +207,31 @@ Specify the name of the existing index.
 *reconstructed_index*  
 Specify the name of the reconstructed index.
 
-**-o** *no_of_original_edges*   
-Specify the number of edges for each node to add to the reconstructed graph from the original graph. The specified number also means the lower bound of the outdegrees of the reconstructed graph.
+**-o** *no_of_outgoing_edges*   
+Specify the number of edges for each node to add to the reconstructed graph from the input graph. The specified number also means the lower bound of the outdegrees of the reconstructed graph.
 
-**-i** *no_of_reverse_edges*  
-Specify the number of edges for each node to add to the reconstructed graph from the original graph. Unlike *no_of_original_edges*, after the direction of the edges are reveresed, the edges are added to the reconstructed graph. The specified number also means the lower bound of the indegrees of the reconstructed graph.
+**-i** *no_of_incoming_edges*  
+Specify the number of edges for each node to add to the reconstructed graph from the input graph. Unlike *no_of_ooutgoing_edges*, after the direction of the edges are reveresed, the edges are added to the reconstructed graph. The specified number also means the lower bound of the indegrees of the reconstructed graph.
 
 **-m** *mode*   
-Specify the mode of the path adjustment.
-- __s__: no path adjustment.
-- __S__: path adjustment.
+Specify the mode of the shortcut reduction.
+- __S__: Shortcut reduction (default)
+- __s__: No shortcut reduction
+
+**-s** *mode*   
+Specify the mode of the search parameter optimization.
+- __s__: Search edge parameter optimization
+- __p__: Prefetch parameter optimization
+- __a__: Accuracy table generation
+- __-__: All of the above (default)
 
 **-I** *graph_type*    
 Specify the type of the specified index as input_index. For not ANNG, the index is converted to ANNG before graph reconstruction.
 - __a__: ANNG
 - __o__: The others
 
-
+Examples of using ngt command
+-----------------------------
 
 ### Create
 
@@ -309,7 +320,8 @@ Perform a neighborhood search by three queries specified in a file:
       Query Time= 0.00018 (sec), 0.18 (msec)
       Average Query Time= 0.000376667 (sec), 0.376667 (msec), (0.00113/3)
 
-
+How to construct the indexes for our [publications](/README.md#publications)
+----------------------------------------------------------------------------
 
 #### [ONNG](/README.md#onng)
 ```

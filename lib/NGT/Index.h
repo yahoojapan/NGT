@@ -376,6 +376,11 @@ namespace NGT {
       }
       saveIndex(path);
     }
+#ifndef NGT_SHARED_MEMORY_ALLOCATOR
+    void save(std::string indexPath) {
+      saveIndex(indexPath);
+    }
+#endif
     static void mkdir(const std::string &dir) { 
       if (::mkdir(dir.c_str(), S_IRWXU | S_IRGRP | S_IXGRP |  S_IROTH | S_IXOTH) != 0) {
 	std::stringstream msg;
@@ -383,6 +388,7 @@ namespace NGT {
 	NGTThrowException(msg);	
       }
     }
+    static void create(const std::string &database, NGT::Property &prop, bool redirect = false) { createGraphAndTree(database, prop, redirect); }
     static void createGraphAndTree(const std::string &database, NGT::Property &prop, const std::string &dataFile, size_t dataSize = 0, bool redirect = false);
     static void createGraphAndTree(const std::string &database, NGT::Property &prop, bool redirect = false) { createGraphAndTree(database, prop, "", redirect); }
     static void createGraph(const std::string &database, NGT::Property &prop, const std::string &dataFile, size_t dataSize = 0, bool redirect = false);
@@ -610,8 +616,34 @@ namespace NGT {
     }
 
     virtual void append(const std::string &ifile, size_t dataSize = 0) {
-      std::ifstream is(ifile.c_str());
-      objectSpace->appendText(is, dataSize);
+      if (ifile.empty()) {
+	return;
+      }
+      std::istream *is;
+      std::ifstream *ifs = 0;
+      if (ifile == "-") {
+	is = &std::cin;
+      } else {
+	ifs = new std::ifstream;
+	ifs->std::ifstream::open(ifile);
+	if (!(*ifs)) {
+	  std::stringstream msg;
+	  msg << "Index::load: Cannot open the specified file. " << ifile;
+	  NGTThrowException(msg);
+	}
+	is = ifs;
+      }
+      try {
+	objectSpace->appendText(*is, dataSize);
+      } catch(Exception &err) {
+	if (ifile != "-") {
+	  delete ifs;
+	}
+	throw(err);
+      }
+      if (ifile != "-") {
+	delete ifs;
+      }
     }
 
     virtual void append(const float *data, size_t dataSize) { objectSpace->append(data, dataSize); }
@@ -736,10 +768,15 @@ namespace NGT {
       repositorySize = repositorySize == 0 ? 0 : repositorySize - 1; // Because the head of repository is a dummy.
       seedSize = seedSize > repositorySize ? repositorySize : seedSize;
       std::vector<ObjectID> deteted;
+      size_t emptyCount = 0;
       while (seedSize > seeds.size()) {
 	double random = ((double)rand() + 1.0) / ((double)RAND_MAX + 2.0);
 	size_t idx = floor(repositorySize * random) + 1;
 	if (repo.isEmpty(idx)) {
+	  emptyCount++;
+	  if (emptyCount > repositorySize) {
+	    break;
+	  }
 	  continue;
 	}
 	ObjectDistance obj(idx, 0.0);

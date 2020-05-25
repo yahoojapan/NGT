@@ -722,6 +722,8 @@ using namespace std;
 
     graphOptimizer.set(numOfOutgoingEdges, numOfIncomingEdges, nOfQueries, nOfResults);
     graphOptimizer.execute(inIndexPath, outIndexPath);
+
+    std::cout << "Successfully completed." << std::endl;
   }
 
   void
@@ -759,6 +761,8 @@ using namespace std;
 
       graphOptimizer.set(0, 0, nOfQueries, nOfResults);
       graphOptimizer.optimizeSearchParameters(indexPath);
+
+      std::cout << "Successfully completed." << std::endl;
     } catch (NGT::Exception &err) {
       cerr << "ngt: Error " << err.what() << endl;
       cerr << usage << endl;
@@ -1013,7 +1017,7 @@ using namespace std;
     NGT::GraphOptimizer graphOptimizer(false); // false=log
     auto optimizedEdge = graphOptimizer.optimizeNumberOfEdgesForANNG(indexPath, parameter);
     std::cout << "The optimized # of edges=" << optimizedEdge.first << "(" << optimizedEdge.second << ")" << std::endl;
-
+    std::cout << "Successfully completed." << std::endl;
   }
 
 

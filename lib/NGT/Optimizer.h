@@ -733,7 +733,6 @@ namespace NGT {
 		  }
 		}
 		times.insert(std::make_pair(base, time));
-		std::cerr << "adjustBaseSearchEdgeSize: base=" << base << ", query time=" << time << std::endl;
 	      } else {
 		time = times.at(base);
 	      }
@@ -834,7 +833,6 @@ namespace NGT {
 		  }
 		}
 		times.insert(std::make_pair(rate, time));
-		std::cerr << "adjustRateSearchEdgeSize: rate=" << rate << ", query time=" << time << std::endl;
 	      } else {
 		time = times.at(rate);
 	      }
@@ -867,9 +865,6 @@ namespace NGT {
 
     std::pair<size_t, size_t> adjustSearchEdgeSize(std::pair<float, float> baseAccuracyRange, std::pair<float, float> rateAccuracyRange, size_t querySize, double epsilon, float margin = 0.2) {
 
-      std::cerr << "adjustSearchEdgeSize: " << baseAccuracyRange.first << "-" << baseAccuracyRange.first << ":" 
-		<< rateAccuracyRange.first << "-" << rateAccuracyRange.first << ":" << querySize << ":" 
-		<<  epsilon << ":" << margin << std::endl;
 
       std::stringstream queries;
       std::stringstream gtStream;
@@ -902,7 +897,6 @@ namespace NGT {
       for(;;) {
 	try {
 	  prop.dynamicEdgeSizeRate = rate.first;
-	  std::cerr << "adjustRateSearchEdgeSize: Base: rate=" << prop.dynamicEdgeSizeRate << std::endl;
 	  prevBase = base;
 	  base = adjustBaseSearchEdgeSize(queries, searchParameter, gtStream, baseAccuracyRange, margin, prevBase.first);
 	  std::cerr << "adjustRateSearchEdgeSize: Base: base=" << prevBase.first << "->" << base.first << ",rate=" << prevRate.first << "->" << rate.first << std::endl;
@@ -910,7 +904,6 @@ namespace NGT {
 	    break;
 	  }
 	  prop.dynamicEdgeSizeBase = base.first;
-	  std::cerr << "adjustRateSearchEdgeSize: Rate: base=" << prop.dynamicEdgeSizeBase << std::endl;
 	  prevRate = rate;
 	  rate = adjustRateSearchEdgeSize(queries, searchParameter, gtStream, rateAccuracyRange, margin, prevRate.first);
 	  std::cerr << "adjustRateSearchEdgeSize: Rate base=" << prevBase.first << "->" << base.first << ",rate=" << prevRate.first << "->" << rate.first << std::endl;
