@@ -101,6 +101,12 @@ NeighborhoodGraph::Search::l2Float(NeighborhoodGraph &graph, NGT::SearchContaine
 }
 
 void 
+NeighborhoodGraph::Search::sparseJaccardFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::SparseJaccardFloat, DistanceCheckedSet>(sc, seeds);
+}
+
+void 
 NeighborhoodGraph::Search::l1Uint8(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
 {
   graph.searchReadOnlyGraph<PrimitiveComparator::L1Uint8, DistanceCheckedSet>(sc, seeds);
@@ -160,6 +166,12 @@ void
 NeighborhoodGraph::Search::l2FloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
 {
   graph.searchReadOnlyGraph<PrimitiveComparator::L2Float, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::sparseJaccardFloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::SparseJaccardFloat, DistanceCheckedSet>(sc, seeds);
 }
 
 void 

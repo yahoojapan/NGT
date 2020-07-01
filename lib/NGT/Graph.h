@@ -287,6 +287,7 @@ namespace NGT {
 	      case NGT::ObjectSpace::DistanceTypeAngle : 	    return angleFloat;
 	      case NGT::ObjectSpace::DistanceTypeL2 : 		    return l2Float;
 	      case NGT::ObjectSpace::DistanceTypeL1 : 		    return l1Float;
+	      case NGT::ObjectSpace::DistanceTypeSparseJaccard :    return sparseJaccardFloat;
 	      default:						    return l2Float;
 	      }
 	      break;
@@ -312,6 +313,7 @@ namespace NGT {
 	      case NGT::ObjectSpace::DistanceTypeAngle : 	    return angleFloatForLargeDataset;
 	      case NGT::ObjectSpace::DistanceTypeL2 : 		    return l2FloatForLargeDataset;
 	      case NGT::ObjectSpace::DistanceTypeL1 : 		    return l1FloatForLargeDataset;
+	      case NGT::ObjectSpace::DistanceTypeSparseJaccard :    return sparseJaccardFloatForLargeDataset;
 	      default:						    return l2FloatForLargeDataset;
 	      }
 	      break;
@@ -334,6 +336,7 @@ namespace NGT {
 	static void l2Float(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void hammingUint8(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void jaccardUint8(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void sparseJaccardFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void cosineSimilarityFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void angleFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void normalizedCosineSimilarityFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
@@ -345,6 +348,7 @@ namespace NGT {
 	static void l2FloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void hammingUint8ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void jaccardUint8ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void sparseJaccardFloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void cosineSimilarityFloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void angleFloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void normalizedCosineSimilarityFloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);

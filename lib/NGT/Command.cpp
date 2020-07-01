@@ -32,6 +32,9 @@ using namespace std;
       "[-e epsilon] [-o object-type(f|c)] [-D distance-function(1|2|a|A|h|j|c|C)] [-n #-of-inserted-objects] "
       "[-P path-adjustment-interval] [-B dynamic-edge-size-base] [-A object-alignment(t|f)] "
       "[-T build-time-limit] [-O outgoing x incoming] "
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+      "[-N maximum-#-of-inserted-objects] "
+#endif
       "index(output) [data.tsv(input)]";
     string database;
     try {
@@ -159,6 +162,9 @@ using namespace std;
     case 'j':
       property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeJaccard;
       break;
+    case 'J':
+      property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeSparseJaccard;
+      break;
     case 'c':
       property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeCosine;
       break;
@@ -170,6 +176,15 @@ using namespace std;
       cerr << usage << endl;
       return;
     }
+
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+    size_t maxNoOfObjects = args.getl("N", 0);
+    if (maxNoOfObjects > 0) {
+      property.graphSharedMemorySize 
+	= property.treeSharedMemorySize
+	= property.objectSharedMemorySize = 512 * ceil(maxNoOfObjects / 50000000);
+    }
+#endif
 
     switch (indexType) {
     case 't':

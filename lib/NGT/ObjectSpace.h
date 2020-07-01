@@ -172,7 +172,8 @@ namespace NGT {
       DistanceTypeCosine		= 4,
       DistanceTypeNormalizedAngle	= 5,
       DistanceTypeNormalizedCosine	= 6,
-      DistanceTypeJaccard		= 7
+      DistanceTypeJaccard		= 7,
+      DistanceTypeSparseJaccard		= 8
     };
 
     enum ObjectType {

@@ -32,7 +32,7 @@ namespace NGT {
   public:
     typedef Repository<Object>	Parent;
 #endif
-    ObjectRepository(size_t dim, const std::type_info &ot):dimension(dim), type(ot) { }
+    ObjectRepository(size_t dim, const std::type_info &ot):dimension(dim), type(ot), sparse(false) { }
 
     void initialize() {
       deleteAll();
@@ -220,22 +220,28 @@ namespace NGT {
     }
 
     template <typename T>
-      Object *allocateObject(T *o, size_t size = 0) {
-      Object *po = new Object(paddedByteSize);
-      if (size != 0 && dimension != size) {
-	std::cerr << "ObjectSpace::allocateObject: Fatal error! dimension is invalid. The indexed objects=" 
-	     << dimension << " The specified object=" << size << std::endl;
-	assert(dimension == size);
+      Object *allocateObject(T *o, size_t size) {
+      size_t osize = paddedByteSize;
+      if (sparse) {
+	size_t vsize = size * (type == typeid(float) ? 4 : 1);
+	osize = osize < vsize ? vsize : osize;
+      } else {
+	if (dimension != size) {
+	  std::cerr << "ObjectSpace::allocateObject: Fatal error! dimension is invalid. The indexed objects=" 
+		    << dimension << " The specified object=" << size << std::endl;
+	  assert(dimension == size);
+	}
       }
+      Object *po = new Object(osize);
       void *object = static_cast<void*>(&(*po)[0]);
       if (type == typeid(uint8_t)) {
 	uint8_t *obj = static_cast<uint8_t*>(object);
-	for (size_t i = 0; i < dimension; i++) {
+	for (size_t i = 0; i < size; i++) {
 	  obj[i] = static_cast<uint8_t>(o[i]);
 	}
       } else if (type == typeid(float)) {
 	float *obj = static_cast<float*>(object);
-	for (size_t i = 0; i < dimension; i++) {
+	for (size_t i = 0; i < size; i++) {
 	  obj[i] = static_cast<float>(o[i]);
 	}
       } else {
@@ -270,13 +276,14 @@ namespace NGT {
     }
 
     template <typename T>
-      PersistentObject *allocatePersistentObject(T *o, size_t size = 0) {
+      PersistentObject *allocatePersistentObject(T *o, size_t size) {
       SharedMemoryAllocator &objectAllocator = getAllocator();
       PersistentObject *po = new (objectAllocator) PersistentObject(objectAllocator, paddedByteSize);
       if (size != 0 && dimension != size) {
-	std::cerr << "ObjectSpace::allocateObject: Fatal error! dimension is invalid. The indexed objects=" 
-	     << dimension << " The specified object=" << size << std::endl;
-	assert(dimension == size);
+	std::stringstream msg;
+	msg << "ObjectSpace::allocatePersistentObject: Fatal error! The dimensionality is invalid. The specified dimensionality=" 
+	    << (sparse ? dimension - 1 : dimension) << ". The specified object=" << (sparse ? size - 1 : size) << ".";
+	NGTThrowException(msg);
       }
       void *object = static_cast<void*>(&(*po).at(0, allocator));
       if (type == typeid(uint8_t)) {
@@ -302,10 +309,20 @@ namespace NGT {
     }
 
 #else
-    // ObjectRepository
+    template <typename T>
+      PersistentObject *allocatePersistentObject(T *o, size_t size) {
+      if (size != 0 && dimension != size) {
+	std::stringstream msg;
+	msg << "ObjectSpace::allocatePersistentObject: Fatal error! The dimensionality is invalid. The specified dimensionality=" 
+	    << (sparse ? dimension - 1 : dimension) << ". The specified object=" << (sparse ? size - 1 : size) << ".";
+	NGTThrowException(msg);
+      }
+      return allocateObject(o, size);
+    }
+
     template <typename T>
     PersistentObject *allocatePersistentObject(const std::vector<T> &o) {
-      return allocateObject(o);
+      return allocatePersistentObject(o.data(), o.size());
     }
 #endif
 
@@ -344,13 +361,9 @@ namespace NGT {
     }
 #endif
 
-    void setLength(size_t l) {
-      byteSize = l;
-    }
-    void setPaddedLength(size_t l) {
-      paddedByteSize = l;
-    }
-
+    void setLength(size_t l) { byteSize = l; }
+    void setPaddedLength(size_t l) { paddedByteSize = l; }
+    void setSparse() { sparse = true; }
     size_t getByteSize() { return byteSize; }
     size_t insert(PersistentObject *obj) { return Parent::insert(obj); }
     const size_t dimension;
@@ -358,6 +371,7 @@ namespace NGT {
    protected:
     size_t byteSize;		// the length of all of elements.
     size_t paddedByteSize;
+    bool sparse;		// sparse data format
   };
 
 } // namespace NGT

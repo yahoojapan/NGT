@@ -76,7 +76,7 @@ namespace NGT {
 	databaseType	= DatabaseType::MemoryMappedFile;
       	graphSharedMemorySize	= 512; // MB
       	treeSharedMemorySize	= 512; // MB
-      	objectSharedMemorySize	= 512; // MB  512 is up to 20M objects.
+      	objectSharedMemorySize	= 512; // MB  512 is up to 50M objects.
 #else
 	databaseType	= DatabaseType::Memory;
 #endif
@@ -116,6 +116,7 @@ namespace NGT {
 	case DistanceType::DistanceTypeL2:			p.set("DistanceType", "L2"); break;
 	case DistanceType::DistanceTypeHamming:			p.set("DistanceType", "Hamming"); break;
 	case DistanceType::DistanceTypeJaccard:			p.set("DistanceType", "Jaccard"); break;
+	case DistanceType::DistanceTypeSparseJaccard:		p.set("DistanceType", "SparseJaccard"); break;
 	case DistanceType::DistanceTypeAngle:			p.set("DistanceType", "Angle"); break;
 	case DistanceType::DistanceTypeCosine:			p.set("DistanceType", "Cosine"); break;
 	case DistanceType::DistanceTypeNormalizedAngle:		p.set("DistanceType", "NormalizedAngle"); break;
@@ -177,6 +178,8 @@ namespace NGT {
 	    distanceType = DistanceType::DistanceTypeHamming;
 	  } else if (it->second == "Jaccard") {
 	    distanceType = DistanceType::DistanceTypeJaccard;
+	  } else if (it->second == "SparseJaccard") {
+	    distanceType = DistanceType::DistanceTypeSparseJaccard;
 	  } else if (it->second == "Angle") {
 	    distanceType = DistanceType::DistanceTypeAngle;
 	  } else if (it->second == "Cosine") {
@@ -392,8 +395,8 @@ namespace NGT {
     static void createGraphAndTree(const std::string &database, NGT::Property &prop, const std::string &dataFile, size_t dataSize = 0, bool redirect = false);
     static void createGraphAndTree(const std::string &database, NGT::Property &prop, bool redirect = false) { createGraphAndTree(database, prop, "", redirect); }
     static void createGraph(const std::string &database, NGT::Property &prop, const std::string &dataFile, size_t dataSize = 0, bool redirect = false);
-    template<typename T> size_t insert(std::vector<T> &object);
-    template<typename T> size_t append(std::vector<T> &object);
+    template<typename T> size_t insert(const std::vector<T> &object);
+    template<typename T> size_t append(const std::vector<T> &object);
     static void append(const std::string &database, const std::string &dataFile, size_t threadSize, size_t dataSize); 
     static void append(const std::string &database, const float *data, size_t dataSize, size_t threadSize);
     static void remove(const std::string &database, std::vector<ObjectID> &objects, bool force = false);
@@ -470,6 +473,7 @@ namespace NGT {
       ObjectDistances seeds; 
       getIndex().search(sc, seeds); 
     }
+    std::vector<float> makeSparseObject(std::vector<uint32_t> &object);
     Index &getIndex() {
       if (index == 0) {
 	assert(index != 0);
@@ -1638,9 +1642,8 @@ namespace NGT {
 
 } // namespace NGT
 
-
 template<typename T>
-size_t NGT::Index::append(std::vector<T> &object) 
+size_t NGT::Index::append(const std::vector<T> &object) 
 {
   if (getObjectSpace().getRepository().size() == 0) {
     getObjectSpace().getRepository().initialize();
@@ -1653,7 +1656,7 @@ size_t NGT::Index::append(std::vector<T> &object)
 }
 
 template<typename T>
-size_t NGT::Index::insert(std::vector<T> &object) 
+size_t NGT::Index::insert(const std::vector<T> &object) 
 {
   if (getObjectSpace().getRepository().size() == 0) {
     getObjectSpace().getRepository().initialize();

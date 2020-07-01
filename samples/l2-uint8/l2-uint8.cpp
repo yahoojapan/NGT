@@ -25,7 +25,15 @@ main(int argc, char **argv)
       while (!linestream.eof()) {
 	int value;
 	linestream >> value;
+	if (linestream.fail()) {
+	  obj.clear();
+	  break;
+	}
 	obj.push_back(value);
+      }
+      if (obj.empty()) {
+	cerr << "An empty line or invalid value: " << line << endl;
+	continue;
       }
       obj.resize(property.dimension);  // cut off additional data in the file.
       index.append(obj);

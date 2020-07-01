@@ -1700,11 +1700,11 @@ namespace NGT {
 
   class SearchQuery : public NGT::SearchContainer {
   public:
-    template <typename QTYPE> SearchQuery(std::vector<QTYPE> &q):query(0) { setQuery(q); }
-    template <typename QTYPE> SearchQuery(SearchContainer &sc, std::vector<QTYPE> &q): SearchContainer(sc), query(0) { setQuery(q); }
+    template <typename QTYPE> SearchQuery(const std::vector<QTYPE> &q):query(0) { setQuery(q); }
+    template <typename QTYPE> SearchQuery(SearchContainer &sc, const std::vector<QTYPE> &q): SearchContainer(sc), query(0) { setQuery(q); }
     ~SearchQuery() { deleteQuery(); }
 
-    template <typename QTYPE> void setQuery(std::vector<QTYPE> &q) {
+    template <typename QTYPE> void setQuery(const std::vector<QTYPE> &q) {
       if (query != 0) {
 	deleteQuery();
       }

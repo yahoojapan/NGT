@@ -379,6 +379,32 @@ namespace NGT {
     }
 #endif
 
+    inline static double compareSparseJaccardDistance(const unsigned char *a, unsigned char *b, size_t size) {
+      abort();
+    }
+
+
+    inline static double compareSparseJaccardDistance(const float *a, const float *b, size_t size) {
+      size_t loca = 0;
+      size_t locb = 0;
+      const uint32_t *ai = reinterpret_cast<const uint32_t*>(a);
+      const uint32_t *bi = reinterpret_cast<const uint32_t*>(b);
+      size_t count = 0;
+      while (locb < size && ai[loca] != 0 && bi[loca] != 0) {
+	int64_t sub = static_cast<int64_t>(ai[loca]) - static_cast<int64_t>(bi[locb]);
+	count += sub == 0;
+	loca += sub <= 0;
+	locb += sub >= 0;
+      }
+      while (ai[loca] != 0) {
+	loca++;
+      }
+      while (locb < size && bi[locb] != 0) {
+	locb++;
+      }
+      return 1.0 - static_cast<double>(count) / static_cast<double>(loca + locb - count);	
+    }
+
 #if defined(NGT_NO_AVX)
    template <typename OBJECT_TYPE> 
     inline static double compareDotProduct(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
@@ -592,6 +618,13 @@ namespace NGT {
     public:
       inline static double compare(const void *a, const void *b, size_t size) {
 	return PrimitiveComparator::compareJaccardDistance((const uint8_t*)a, (const uint8_t*)b, size);
+      }
+    };
+
+    class SparseJaccardFloat {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	return PrimitiveComparator::compareSparseJaccardDistance((const float*)a, (const float*)b, size);
       }
     };
 

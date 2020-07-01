@@ -300,6 +300,25 @@ NGT::Index::exportIndex(const string &database, const string &file) {
   cerr << "# of objects=" << idx.getObjectRepositorySize() - 1 << endl;
 }
 
+std::vector<float>
+NGT::Index::makeSparseObject(std::vector<uint32_t> &object)
+{
+  if (static_cast<NGT::GraphIndex&>(getIndex()).getProperty().distanceType != NGT::ObjectSpace::DistanceType::DistanceTypeSparseJaccard) {
+    NGTThrowException("NGT::Index::makeSparseObject: Not sparse jaccard.");
+  }
+  size_t dimension = getObjectSpace().getDimension();
+  if (object.size() + 1 > dimension) {
+    std::stringstream msg;
+    dimension = object.size() + 1;
+  }
+  std::vector<float> obj(dimension, 0.0);
+  for (size_t i = 0; i < object.size(); i++) {
+    float fv = *reinterpret_cast<float*>(&object[i]);
+    obj[i] = fv;
+  }
+  return obj;
+}
+
 void 
 NGT::Index::Property::set(NGT::Property &prop) {
   if (prop.dimension != -1) dimension = prop.dimension;
@@ -465,12 +484,17 @@ public:
 void 
 NGT::GraphIndex::constructObjectSpace(NGT::Property &prop) {
   assert(prop.dimension != 0);
+  size_t dimension = prop.dimension;
+  if (prop.distanceType == NGT::ObjectSpace::DistanceType::DistanceTypeSparseJaccard) {
+    dimension++;
+  }
+
   switch (prop.objectType) {
   case NGT::ObjectSpace::ObjectType::Float :
-    objectSpace = new ObjectSpaceRepository<float, double>(prop.dimension, typeid(float), prop.distanceType);
+    objectSpace = new ObjectSpaceRepository<float, double>(dimension, typeid(float), prop.distanceType);
     break;
   case NGT::ObjectSpace::ObjectType::Uint8 :
-    objectSpace = new ObjectSpaceRepository<unsigned char, int>(prop.dimension, typeid(uint8_t), prop.distanceType);
+    objectSpace = new ObjectSpaceRepository<unsigned char, int>(dimension, typeid(uint8_t), prop.distanceType);
     break;
   default:
     stringstream msg;

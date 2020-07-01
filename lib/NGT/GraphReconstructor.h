@@ -696,7 +696,7 @@ class GraphReconstructor {
 #endif
   }
 
-  // reconstruct a pseudo ANNG with a fewer edges form an actual ANNG with more edges.
+  // reconstruct a pseudo ANNG with a fewer edges from an actual ANNG with more edges.
   // graph is a source ANNG
   // index is an index with a reconstructed ANNG
   static 
