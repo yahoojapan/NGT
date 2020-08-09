@@ -206,7 +206,7 @@ namespace NGT {
       for (idx = 0; idx < dimension; idx++) {
 	if (tokens[idx].size() == 0) {
 	  std::stringstream msg;
-	  msg << "ObjectSpace::allocate: too few dimension. " << tokens.size() << ":" 
+	  msg << "ObjectSpace::allocate: an empty value string. " << idx << ":" << tokens.size() << ":" 
 	      << dimension << ". "  << textLine;
 	  NGTThrowException(msg);
         }

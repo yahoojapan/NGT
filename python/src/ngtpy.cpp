@@ -30,6 +30,7 @@ public:
    const std::string path, 		// ngt index path.
    bool readOnly,			// read only or not.
    bool zeroBasedNumbering,		// object ID numbering.
+   bool treeDisabled,
    bool logDisabled			// stderr log is disabled.
   ):NGT::Index(path, readOnly) {
     zeroNumbering = zeroBasedNumbering;
@@ -41,6 +42,7 @@ public:
     } else {
       NGT::Index::enableLog();
     }
+    treeIndex = !treeDisabled;
   }
 
   static void create(
@@ -167,7 +169,11 @@ public:
     }
     sc.setEdgeSize(edgeSize);			// if maxEdge is minus, the specified value in advance is used.
 
-    NGT::Index::search(sc);
+    if (treeIndex) {
+      NGT::Index::search(sc);
+    } else {
+      NGT::Index::searchUsingOnlyGraph(sc);
+    }
 
     numOfDistanceComputations += sc.distanceComputationCount;
 
@@ -328,6 +334,7 @@ public:
   size_t	numOfDistanceComputations;
   size_t	numOfSearchObjects; // k
   NGT::Distance	searchRadius;
+  bool		treeIndex;
 };
 
 class Optimizer : public NGT::GraphOptimizer {
@@ -377,10 +384,11 @@ PYBIND11_MODULE(ngtpy, m) {
           py::arg("object_type") = "Float");
 
     py::class_<Index>(m, "Index")
-      .def(py::init<const std::string &, bool, bool, bool>(), 
+      .def(py::init<const std::string &, bool, bool, bool, bool>(), 
            py::arg("path"),
            py::arg("read_only") = false,
            py::arg("zero_based_numbering") = true,
+	   py::arg("tree_disabled") = false,
            py::arg("log_disabled") = false)
       .def("search", &::Index::search, 
            py::arg("query"), 

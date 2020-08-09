@@ -283,7 +283,7 @@ using namespace std;
 	    double time = 0.0;
 	    uint64_t ntime = 0;
 	    double minTime = DBL_MAX;
-	    size_t trial = searchParameter.trial <= 1 ? 2 : searchParameter.trial;
+	    size_t trial = searchParameter.trial <= 0 ? 1 : searchParameter.trial;
 	    for (size_t t = 0; t < trial; t++) {
 	      switch (searchParameter.indexType) {
 	      case 't': timer.start(); index.search(sc); timer.stop(); break;
@@ -296,8 +296,8 @@ using namespace std;
 	      time += timer.time;
 	      ntime += timer.ntime;
 	    }
-	    time /= (double)searchParameter.trial;
-	    ntime /= searchParameter.trial;
+	    time /= (double)trial;
+	    ntime /= trial;
 	    timer.time = minTime;
 	    timer.ntime = ntime;
 	  } else {
