@@ -328,6 +328,14 @@ public:
     }
   }
 
+  void exportIndex(const std::string path) {
+    NGT::Index::exportIndex(path);
+  }
+
+  void importIndex(const std::string path) {
+    NGT::Index::importIndex(path);
+  }
+
   size_t getNumOfDistanceComputations() { return numOfDistanceComputations; }
 
   bool		zeroNumbering;	    // for object ID numbering. zero-based or one-based numbering.
@@ -426,7 +434,11 @@ PYBIND11_MODULE(ngtpy, m) {
 	   py::arg("batch_size") = 10000)
       .def("set", &::Index::set,
            py::arg("num_of_search_objects") = 0,
-	   py::arg("search_radius") = -1.0);
+	   py::arg("search_radius") = -1.0)
+      .def("export_index", &::Index::exportIndex, 
+           py::arg("path"))
+      .def("import_index", &::Index::importIndex, 
+           py::arg("path"));
 
 
     py::class_<Optimizer>(m, "Optimizer")
