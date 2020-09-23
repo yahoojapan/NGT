@@ -139,6 +139,28 @@ Specify the search radius. The default is infinity.
 **Returns**   
 None.
 
+### export_index
+Exports the index to a file.
+
+      export_index(self: ngtpy.Index, path: str)
+
+**path**    
+Path to file in which the exported index will be stored.
+
+**Returns**   
+None.
+
+### import_index
+Imports the index from a file
+
+      import_index(self: ngtpy.Index, path: str)
+
+**path**    
+Path to file from which to load the index.
+
+**Returns**   
+None.
+
 
 FUNCTIONS
 =========
