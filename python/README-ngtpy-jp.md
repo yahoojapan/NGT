@@ -137,6 +137,27 @@ Class Index
 **Returns**   
 なし。
 
+### export_index
+インデックスをエクスポートします。
+
+      export_index(self: ngtpy.Index, path: str)
+
+**path**    
+エクスポートで保存されるパスを指定します。
+
+**Returns**   
+なし。
+
+### import_index
+インデックスをインポートします。
+
+      import_index(self: ngtpy.Index, path: str)
+
+**path**    
+インポートするパスを指定します。
+
+**Returns**   
+なし。
 
 FUNCTIONS
 =========
