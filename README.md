@@ -24,7 +24,7 @@ Key Features
 - Objects beyond the memory size can be handled using [the shared memory (memory mapped file) option](README.md#shared-memory-use).
 - Supported distance functions: L1, L2, Cosine similarity, Angular, Hamming, and Jaccard
 - Data Types: 4 byte floating point number and 1 byte unsigned integer
-- Supported languages: [Python](/python/README.md), [Ruby](https://github.com/ankane/ngt), [Go](https://github.com/yahoojapan/gongt), C, and C++
+- Supported languages: [Python](/python/README.md), [Ruby](https://github.com/ankane/ngt), [Rust](https://crates.io/crates/ngt), [Go](https://github.com/yahoojapan/gongt), C, and C++
 - Distributed servers: [ngtd](https://github.com/yahoojapan/ngtd) and [vald](https://github.com/vdaas/vald)
 - [NGTQ](bin/ngtq/README.md) can handle billions of objects.
 
@@ -99,6 +99,7 @@ Supported Programming Languages
 
 - [Python](/python/README.md)
 - [Ruby](https://github.com/ankane/ngt) (Thanks Andrew!)
+- [Rust](https://crates.io/crates/ngt) (Thanks Romain!)
 - [Go](https://github.com/yahoojapan/gongt)
 - C
 - C++([sample code](samples))
@@ -133,8 +134,6 @@ Licensed under the Apache License, Version 2.0 (the "License"); you may not use 
 
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.
-
-Yahoo Japan Corporation has acquired several patents on the technologies utilized in this software. However, the patent rights shall not be exercised under Apache License Version 2.0, only when the patented techniques are used with this software.
 
 Contributor License Agreement
 -----------------------------

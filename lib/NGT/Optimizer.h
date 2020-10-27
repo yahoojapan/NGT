@@ -103,7 +103,7 @@ namespace NGT {
 	NGTThrowException(msg);
       }
 
-      search(index, gtStream, sp, acc);
+      search(index, is, gtStream, sp, acc);
     }
 
     static void search(NGT::Index &index, std::istream &queries, std::istream &gtStream, Command::SearchParameter &sp, std::vector<MeasuredValue> &acc) {

@@ -1708,7 +1708,6 @@ namespace NGT {
       if (query != 0) {
 	deleteQuery();
       }
-      query = new std::vector<QTYPE>(q);
       queryType = &typeid(QTYPE);
       if (*queryType != typeid(float) && *queryType != typeid(double) && *queryType != typeid(uint8_t)) {
 	query = 0;
@@ -1717,6 +1716,7 @@ namespace NGT {
 	msg << "NGT::SearchQuery: Invalid query type!";
 	NGTThrowException(msg);
       }
+      query = new std::vector<QTYPE>(q);
     }
     void	*getQuery() { return query; }
     const std::type_info &getQueryType() { return *queryType; }

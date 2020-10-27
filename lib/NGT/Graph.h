@@ -189,7 +189,7 @@ namespace NGT {
       void reserve(size_t s) {
 	reservedSize = ((s & 7) == 0) ? s : (s & 0xFFFFFFFFFFFFFFF8) + 8;
 	resize(reservedSize);
-	for (size_t i = (reservedSize & 0xFFFFFFFFFFFFFFF8); i < reservedSize; i++) {
+	for (size_t i = s; i < reservedSize; i++) {
 	  (*this)[i].first = 0;
 	}
       }

@@ -1072,3 +1072,49 @@ using namespace std;
     }
   }
 
+
+  void NGT::Command::exportGraph(Args &args) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+    std::cerr << "ngt: Error: exportGraph is not implemented." << std::endl;
+    abort();
+#else
+    std::string usage = "ngt export-graph [-k #-of-edges] index";
+    string indexPath;
+    try {
+      indexPath = args.get("#1");
+    } catch (...) {
+      cerr << "ngt::exportGraph: Index is not specified." << endl;
+      cerr << usage << endl;
+      return;
+    }
+
+    int k = args.getl("k", 0);
+
+    NGT::Index		index(indexPath);
+    NGT::GraphIndex	&graph = static_cast<NGT::GraphIndex&>(index.getIndex());
+
+    size_t size = index.getObjectRepositorySize();
+
+    for (size_t id = 1; id < size; ++id) {
+      NGT::GraphNode *node = 0;
+      try {
+	node = graph.getNode(id);
+      } catch(...) {
+	continue;
+      }
+      std::cout << id << "\t";
+      for (auto ei = (*node).begin(); ei != (*node).end(); ++ei) {
+	if (k != 0 && k <= distance((*node).begin(), ei)) {
+	  break;
+	}
+	std::cout << (*ei).id << "\t" << (*ei).distance;
+	if (ei + 1 != (*node).end()) {
+	  std::cout << "\t";
+	}
+      }
+      std::cout << std::endl;
+    }
+#endif
+  }
+
+
