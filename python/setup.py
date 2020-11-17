@@ -5,6 +5,7 @@ import json
 import shutil
 import glob
 import setuptools
+import pybind11
 
 static_library_option = '--static-library'
 included_library_option = '--included-library'
@@ -60,16 +61,16 @@ if sys.version_info.major >= 3:
     if static_library or included_library:
         params = {
             'include_dirs': ['/usr/local/include',
-                             os.path.dirname(locations.distutils_scheme('pybind11')['headers']),
-                             os.path.dirname(locations.distutils_scheme('pybind11', True)['headers'])],
+                             pybind11.get_include(True),
+                             pybind11.get_include(False)],
             'extra_compile_args': ['-std=c++11', '-Ofast', '-fopenmp', '-lrt', '-DNDEBUG'],
             'sources': ['src/ngtpy.cpp']
         }
     else:
         params = {
             'include_dirs': ['/usr/local/include',
-                             os.path.dirname(locations.distutils_scheme('pybind11')['headers']),
-                             os.path.dirname(locations.distutils_scheme('pybind11', True)['headers'])],
+                             pybind11.get_include(True),
+                             pybind11.get_include(False)],
             'extra_compile_args': ['-std=c++11', '-Ofast', '-fopenmp', '-march=native', '-lrt', '-DNDEBUG'],
             'sources': ['src/ngtpy.cpp']
         }
