@@ -127,7 +127,7 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 ライセンス
 ----------
 
-Copyright (C) 2015-2020 Yahoo Japan Corporation
+Copyright (C) 2015 Yahoo Japan Corporation
 
 ヤフー株式会社はApacheライセンスバージョン2.0の下で本ソフトウェアを公開致します。以下のサイトよりライセンスの内容をご確認頂けます。
 
