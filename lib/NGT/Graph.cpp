@@ -101,6 +101,12 @@ NeighborhoodGraph::Search::l2Float(NeighborhoodGraph &graph, NGT::SearchContaine
 }
 
 void 
+NeighborhoodGraph::Search::normalizedL2Float(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::NormalizedL2Float, DistanceCheckedSet>(sc, seeds);
+}
+
+void 
 NeighborhoodGraph::Search::sparseJaccardFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
 {
   graph.searchReadOnlyGraph<PrimitiveComparator::SparseJaccardFloat, DistanceCheckedSet>(sc, seeds);
@@ -166,6 +172,12 @@ void
 NeighborhoodGraph::Search::l2FloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
 {
   graph.searchReadOnlyGraph<PrimitiveComparator::L2Float, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::normalizedL2FloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::NormalizedL2Float, DistanceCheckedSetForLargeDataset>(sc, seeds);
 }
 
 void 
@@ -361,6 +373,7 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
   void
     NeighborhoodGraph::searchReadOnlyGraph(NGT::SearchContainer &sc, ObjectDistances &seeds)
   {
+
     if (sc.explorationCoefficient == 0.0) {
       sc.explorationCoefficient = NGT_EXPLORATION_COEFFICIENT;
     }
@@ -426,10 +439,8 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 #ifdef NGT_DISTANCE_COMPUTATION_COUNT
 	sc.distanceComputationCount++;
 #endif
-
 	Distance distance = COMPARATOR::compare((void*)&sc.object[0], 
 						(void*)&(*static_cast<PersistentObject*>(neighbor.second))[0], dimension);
-
 	if (distance <= explorationRadius) {
 	  result.set(neighbor.first, distance);
 	  unchecked.push(result);
@@ -453,6 +464,7 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
     } else {
       sc.workingResult = std::move(results);
     }
+
   }
 
 #endif

@@ -121,6 +121,7 @@ namespace NGT {
 	case DistanceType::DistanceTypeCosine:			p.set("DistanceType", "Cosine"); break;
 	case DistanceType::DistanceTypeNormalizedAngle:		p.set("DistanceType", "NormalizedAngle"); break;
 	case DistanceType::DistanceTypeNormalizedCosine:	p.set("DistanceType", "NormalizedCosine"); break;
+	case DistanceType::DistanceTypeNormalizedL2:		p.set("DistanceType", "NormalizedL2"); break;
 	default : std::cerr << "Fatal error. Invalid distance type. " << distanceType << std::endl; abort();
 	}
 	switch (indexType) {      
@@ -188,6 +189,8 @@ namespace NGT {
 	    distanceType = DistanceType::DistanceTypeNormalizedAngle;
 	  } else if (it->second == "NormalizedCosine") {
 	    distanceType = DistanceType::DistanceTypeNormalizedCosine;
+	  } else if (it->second == "NormalizedL2") {
+	    distanceType = DistanceType::DistanceTypeNormalizedL2;
 	  } else {
 	    std::cerr << "Invalid Distance Type in the property. " << it->first << ":" << it->second << std::endl;
 	  }
@@ -1055,7 +1058,7 @@ namespace NGT {
     Object *allocateObject(const std::vector<double> &obj) { 
       return objectSpace->allocateNormalizedObject(obj);
     }
-    Object *allocateObject(const std::vector<float> &obj) { 
+    Object *allocateObject(const std::vector<float> &obj) {
       return objectSpace->allocateNormalizedObject(obj);
     }
     Object *allocateObject(const std::vector<uint8_t> &obj) { 
@@ -1100,11 +1103,9 @@ namespace NGT {
     }
 
     float getEpsilonFromExpectedAccuracy(double accuracy) { return accuracyTable.getEpsilon(accuracy); }
-
     Index::Property &getProperty() { return property; }
-
-    protected:
-
+    bool getReadOnly() { return readOnly; }
+    
     template <class REPOSITORY> void getSeedsFromGraph(REPOSITORY &repo, ObjectDistances &seeds) {
       if (repo.size() != 0) {
 	size_t seedSize = repo.size() - 1 < (size_t)NeighborhoodGraph::property.seedSize ? 
@@ -1126,6 +1127,8 @@ namespace NGT {
 	}
       }
     }
+
+  protected:
 
     // GraphIndex
     virtual void search(NGT::SearchContainer &sc, ObjectDistances &seeds) {
@@ -1564,6 +1567,7 @@ namespace NGT {
       ObjectDistances	seeds;
       getSeedsFromTree(sc, seeds);
       GraphIndex::search(sc, seeds);
+
     }
 
     void search(NGT::SearchQuery &searchQuery) {

@@ -184,11 +184,12 @@ namespace NGT {
 
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
     class ReadOnlyGraphNode : public std::vector<std::pair<uint64_t, PersistentObject*>> {
+      typedef std::vector<std::pair<uint64_t, PersistentObject*>> PARENT;
     public:
       ReadOnlyGraphNode():reservedSize(0), usedSize(0) {}
       void reserve(size_t s) {
 	reservedSize = ((s & 7) == 0) ? s : (s & 0xFFFFFFFFFFFFFFF8) + 8;
-	resize(reservedSize);
+	PARENT::resize(reservedSize);
 	for (size_t i = s; i < reservedSize; i++) {
 	  (*this)[i].first = 0;
 	}
@@ -198,6 +199,17 @@ namespace NGT {
 	usedSize++;
       }
       size_t size() { return usedSize; }
+      size_t resize(size_t s) {
+	if (s <= usedSize) {
+	  for (size_t i = s; i < usedSize; i++) {
+	    (*this)[i].first = 0;
+	  }
+	  usedSize = s;
+	} else {
+	  std::cerr << "ReadOnlyGraphNode: Not implemented" << std::endl;
+	  abort();
+	}
+      }
       size_t reservedSize;
       size_t usedSize;
     };
@@ -285,6 +297,7 @@ namespace NGT {
 	      case NGT::ObjectSpace::DistanceTypeCosine : 	    return cosineSimilarityFloat;
 	      case NGT::ObjectSpace::DistanceTypeNormalizedAngle :  return normalizedAngleFloat;
 	      case NGT::ObjectSpace::DistanceTypeAngle : 	    return angleFloat;
+	      case NGT::ObjectSpace::DistanceTypeNormalizedL2 :     return normalizedL2Float;
 	      case NGT::ObjectSpace::DistanceTypeL2 : 		    return l2Float;
 	      case NGT::ObjectSpace::DistanceTypeL1 : 		    return l1Float;
 	      case NGT::ObjectSpace::DistanceTypeSparseJaccard :    return sparseJaccardFloat;
@@ -311,6 +324,7 @@ namespace NGT {
 	      case NGT::ObjectSpace::DistanceTypeCosine : 	    return cosineSimilarityFloatForLargeDataset;
 	      case NGT::ObjectSpace::DistanceTypeNormalizedAngle :  return normalizedAngleFloatForLargeDataset;
 	      case NGT::ObjectSpace::DistanceTypeAngle : 	    return angleFloatForLargeDataset;
+	      case NGT::ObjectSpace::DistanceTypeNormalizedL2 :     return normalizedL2FloatForLargeDataset;
 	      case NGT::ObjectSpace::DistanceTypeL2 : 		    return l2FloatForLargeDataset;
 	      case NGT::ObjectSpace::DistanceTypeL1 : 		    return l1FloatForLargeDataset;
 	      case NGT::ObjectSpace::DistanceTypeSparseJaccard :    return sparseJaccardFloatForLargeDataset;
@@ -341,6 +355,7 @@ namespace NGT {
 	static void angleFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void normalizedCosineSimilarityFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void normalizedAngleFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void normalizedL2Float(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 
 	static void l1Uint8ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void l2Uint8ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
@@ -353,7 +368,7 @@ namespace NGT {
 	static void angleFloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void normalizedCosineSimilarityFloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void normalizedAngleFloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
-
+	static void normalizedL2FloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
       };
 #endif
 
@@ -650,16 +665,20 @@ namespace NGT {
 
       // setup edgeSize
       inline size_t getEdgeSize(NGT::SearchContainer &sc) {
+	int64_t esize = sc.edgeSize == -1 ? property.edgeSizeForSearch : sc.edgeSize;
 	size_t edgeSize = INT_MAX;
-	if (sc.edgeSize < 0) {
-	  if (sc.edgeSize == -2) {
-	    double add = pow(10, (sc.explorationCoefficient - 1.0) * static_cast<float>(property.dynamicEdgeSizeRate));
-	    edgeSize = add >= static_cast<double>(INT_MAX) ? INT_MAX : property.dynamicEdgeSizeBase + add;
-	  } else {
-	    edgeSize = property.edgeSizeForSearch == 0 ? INT_MAX : property.edgeSizeForSearch;
-	  }
+
+	if (esize == 0) {
+	  edgeSize = INT_MAX;
+	} else if (esize > 0) {
+	  edgeSize = esize;
+	} else if (esize == -2) {
+	  double add = pow(10, (sc.explorationCoefficient - 1.0) * static_cast<float>(property.dynamicEdgeSizeRate));
+	  edgeSize = add >= static_cast<double>(INT_MAX) ? INT_MAX : property.dynamicEdgeSizeBase + add;
 	} else {
-	  edgeSize = sc.edgeSize == 0 ? INT_MAX : sc.edgeSize;
+	  std::stringstream msg;
+	  msg << "NGT::getEdgeSize: Invalid edge size parameters " << sc.edgeSize << ":" << property.edgeSizeForSearch;
+	  NGTThrowException(msg);
 	}
 	return edgeSize;
       }
@@ -800,8 +819,6 @@ namespace NGT {
 	repository.clear();
 #endif
       }
-
-      static double (*getComparator())(const void*, const void*, size_t);
 
 
     protected:

@@ -22,123 +22,140 @@ namespace NGTQ {
 
 class Command {
 public:
+  class CreateParameters {
+  public:
+    CreateParameters() {}
+    CreateParameters(NGT::Args &args) {
+      try {
+	index = args.get("#1");
+      } catch (...) {
+	std::stringstream msg;
+	msg << "Command::CreateParameters: Error: An index is not specified.";
+	NGTThrowException(msg);
+      }
+      try {
+	objectPath = args.get("#2");
+      } catch (...) {}
+
+      char objectType = args.getChar("o", 'f');
+      char distanceType = args.getChar("D", '2');
+      numOfObjects = args.getl("n", 0);
+
+      property.threadSize = args.getl("p", 24);
+      property.dimension = args.getl("d", 0);
+      property.globalRange = args.getf("R", 0);
+      property.localRange = args.getf("r", 0);
+      property.globalCentroidLimit = args.getl("C", 1000000);
+      property.localCentroidLimit = args.getl("c", 65000);
+      property.localDivisionNo = args.getl("N", 8);
+      property.batchSize = args.getl("b", 1000);
+      property.localClusteringSampleCoefficient = args.getl("s", 10);
+      {
+	char localCentroidType = args.getChar("T", 'f');
+	property.singleLocalCodebook = localCentroidType == 't' ? true : false;
+      }
+      {
+	char centroidCreationMode = args.getChar("M", 'd');
+	switch(centroidCreationMode) {
+	case 'd': property.centroidCreationMode = NGTQ::CentroidCreationModeDynamic; break;
+	case 's': property.centroidCreationMode = NGTQ::CentroidCreationModeStatic; break;
+	default:
+	  std::stringstream msg;
+	  msg << "Command::CreateParameters: Error: Invalid centroid creation mode. " << centroidCreationMode;
+	  NGTThrowException(msg);
+	}
+      }
+      {
+	char localCentroidCreationMode = args.getChar("L", 'd');
+	switch(localCentroidCreationMode) {
+	case 'd': property.localCentroidCreationMode = NGTQ::CentroidCreationModeDynamic; break;
+	case 's': property.localCentroidCreationMode = NGTQ::CentroidCreationModeStatic; break;
+	case 'k': property.localCentroidCreationMode = NGTQ::CentroidCreationModeDynamicKmeans; break;
+	default:
+	  std::stringstream msg;
+	  msg << "Command::CreateParameters: Error: Invalid centroid creation mode. " << localCentroidCreationMode;
+	  NGTThrowException(msg);
+	}
+      }
+
+      globalProperty.edgeSizeForCreation = args.getl("E", 10);
+      globalProperty.edgeSizeForSearch = args.getl("S", 40);
+      {
+	char indexType = args.getChar("i", 't');
+	globalProperty.indexType = indexType == 't' ? NGT::Property::GraphAndTree : NGT::Property::Graph;
+	localProperty.indexType = globalProperty.indexType;
+      }
+      globalProperty.insertionRadiusCoefficient = args.getf("e", 0.1) + 1.0;
+      localProperty.insertionRadiusCoefficient = globalProperty.insertionRadiusCoefficient;
+
+
+      switch (objectType) {
+      case 'f': property.dataType = NGTQ::DataTypeFloat; break;
+      case 'c': property.dataType = NGTQ::DataTypeUint8; break;
+      default:
+	std::stringstream msg;
+	msg << "Command::CreateParameters: Error: Invalid object type. " << objectType;
+	NGTThrowException(msg);
+      }
+
+      switch (distanceType) {
+      case '2': property.distanceType = NGTQ::DistanceTypeL2; break;
+      case '1': property.distanceType = NGTQ::DistanceTypeL1; break;
+      case 'a': property.distanceType = NGTQ::DistanceTypeAngle; break;
+      case 'C': property.distanceType = NGTQ::DistanceTypeNormalizedCosine; break;
+      case 'E': property.distanceType = NGTQ::DistanceTypeL2; break;
+      default:
+	std::stringstream msg;
+	msg << "Command::CreateParameters: Error: Invalid distance type. " << distanceType;
+	NGTThrowException(msg);
+      }
+    }
+
+    std::string index;
+    std::string objectPath;
+    size_t numOfObjects;
+    NGTQ::Property property;
+    NGT::Property globalProperty;
+    NGT::Property localProperty;
+  };
+
   Command():debugLevel(0) {}
 
   void 
   create(NGT::Args &args)
   {
     const string usage = "Usage: ngtq create "
-      "[-o object-type (f:float|c:unsigned char)] [-D distance-function] [-n data-size] "
-      "[-p #-of-thread] [-d dimension] [-R global-codebook-range] [-r local-codebook-range] "
+      " -d dimension [-o object-type (f:float|c:unsigned char)] [-D distance-function] [-n data-size] "
+      "[-p #-of-thread] [-R global-codebook-range] [-r local-codebook-range] "
       "[-C global-codebook-size-limit] [-c local-codebook-size-limit] [-N local-division-no] "
       "[-T single-local-centroid (t|f)] [-e epsilon] [-i index-type (t:Tree|g:Graph)] "
       "[-M global-centroid-creation-mode (d|s)] [-L global-centroid-creation-mode (d|k|s)] "
-      "[-S local-sample-coefficient] "
+      "[-s local-sample-coefficient] "
       "index(output) data.tsv(input)";
-    string database;
+
     try {
-      database = args.get("#1");
-    } catch (...) {
-      cerr << "DB is not specified." << endl;
-      cerr << usage << endl;
-      return;
-    }
-    string data;
-    try {
-      data = args.get("#2");
-    } catch (...) {
-      cerr << "Data is not specified." << endl;
-    }
+      NGTQ::Command::CreateParameters createParameters(args);
 
-    char objectType = args.getChar("o", 'f');
-    char distanceType = args.getChar("D", '2');
-    size_t dataSize = args.getl("n", 0);
-
-    NGTQ::Property property;
-    property.threadSize = args.getl("p", 24);
-    property.dimension = args.getl("d", 0);
-    property.globalRange = args.getf("R", 0);
-    property.localRange = args.getf("r", 0);
-    property.globalCentroidLimit = args.getl("C", 1000000);
-    property.localCentroidLimit = args.getl("c", 65000);
-    property.localDivisionNo = args.getl("N", 8);
-    property.batchSize = args.getl("b", 1000);
-    property.localClusteringSampleCoefficient = args.getl("S", 10);
-    {
-      char localCentroidType = args.getChar("T", 'f');
-      property.singleLocalCodebook = localCentroidType == 't' ? true : false;
-    }
-    {
-      char centroidCreationMode = args.getChar("M", 'd');
-      switch(centroidCreationMode) {
-      case 'd': property.centroidCreationMode = NGTQ::CentroidCreationModeDynamic; break;
-      case 's': property.centroidCreationMode = NGTQ::CentroidCreationModeStatic; break;
-      default:
-	cerr << "ngt: Invalid centroid creation mode. " << centroidCreationMode << endl;
-	cerr << usage << endl;
-	return;
+      if (debugLevel >= 1) {
+	cerr << "epsilon=" << createParameters.globalProperty.insertionRadiusCoefficient << endl;
+	cerr << "data size=" << createParameters.numOfObjects << endl;
+	cerr << "dimension=" << createParameters.property.dimension << endl;
+	cerr << "thread size=" << createParameters.property.threadSize << endl;
+	cerr << "batch size=" << createParameters.localProperty.batchSizeForCreation << endl;;
+	cerr << "index type=" << createParameters.globalProperty.indexType << endl;
       }
-    }
-    {
-      char localCentroidCreationMode = args.getChar("L", 'd');
-      switch(localCentroidCreationMode) {
-      case 'd': property.localCentroidCreationMode = NGTQ::CentroidCreationModeDynamic; break;
-      case 's': property.localCentroidCreationMode = NGTQ::CentroidCreationModeStatic; break;
-      case 'k': property.localCentroidCreationMode = NGTQ::CentroidCreationModeDynamicKmeans; break;
-      default:
-	cerr << "ngt: Invalid centroid creation mode. " << localCentroidCreationMode << endl;
-	cerr << usage << endl;
-	return;
-      }
-    }
 
-    NGT::Property globalProperty;
-    NGT::Property localProperty;
+      cerr << "ngtq: Create" << endl;
+      NGTQ::Index::create(createParameters.index, createParameters.property, createParameters.globalProperty, createParameters.localProperty);
 
-    {
-      char indexType = args.getChar("i", 't');
-      globalProperty.indexType = indexType == 't' ? NGT::Property::GraphAndTree : NGT::Property::Graph;
-      localProperty.indexType = globalProperty.indexType;
-    }
-    globalProperty.insertionRadiusCoefficient = args.getf("e", 0.1) + 1.0;
-    localProperty.insertionRadiusCoefficient = globalProperty.insertionRadiusCoefficient;
-
-    if (debugLevel >= 1) {
-      cerr << "epsilon=" << globalProperty.insertionRadiusCoefficient << endl;
-      cerr << "data size=" << dataSize << endl;
-      cerr << "dimension=" << property.dimension << endl;
-      cerr << "thread size=" << property.threadSize << endl;
-      cerr << "batch size=" << localProperty.batchSizeForCreation << endl;;
-      cerr << "index type=" << globalProperty.indexType << endl;
-    }
-
-
-    switch (objectType) {
-    case 'f': property.dataType = NGTQ::DataTypeFloat; break;
-    case 'c': property.dataType = NGTQ::DataTypeUint8; break;
-    default:
-      cerr << "ngt: Invalid object type. " << objectType << endl;
+      cerr << "ngtq: Append" << endl;
+      NGTQ::Index::append(createParameters.index, createParameters.objectPath, createParameters.numOfObjects);
+    } catch(NGT::Exception &err) {
+      std::cerr << err.what() << std::endl;
       cerr << usage << endl;
-      return;
     }
-
-    switch (distanceType) {
-    case '2': property.distanceType = NGTQ::DistanceTypeL2; break;
-    case '1': property.distanceType = NGTQ::DistanceTypeL1; break;
-    case 'a': property.distanceType = NGTQ::DistanceTypeAngle; break;
-    default:
-      cerr << "ngt: Invalid distance type. " << distanceType << endl;
-      cerr << usage << endl;
-      return;
-    }
-
-    cerr << "ngtq: Create" << endl;
-    NGTQ::Index::create(database, property, globalProperty, localProperty);
-
-    cerr << "ngtq: Append" << endl;
-    NGTQ::Index::append(database, data, dataSize);
   }
-
+  
   void 
   rebuild(NGT::Args &args)
   {
@@ -344,6 +361,7 @@ public:
 	     resultExpansion <= endOfResultExpansion; 
 	     base = mulStep ? base * stepOfResultExpansion : base + stepOfResultExpansion) {
 	  resultExpansion = base;
+	  cerr << "size=" << base << ":" << resultExpansion << endl;
 	  NGT::ObjectDistances objects;
 
 	  if (outputMode == 'e') {
@@ -499,7 +517,7 @@ public:
       return;
     }
     NGTQ::Index index(database);
-    index.info(cout);
+    index.info(cout, args.getChar("m", '-'));
 
   }
 

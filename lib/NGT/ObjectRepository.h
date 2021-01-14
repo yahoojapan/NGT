@@ -227,9 +227,10 @@ namespace NGT {
 	osize = osize < vsize ? vsize : osize;
       } else {
 	if (dimension != size) {
-	  std::cerr << "ObjectSpace::allocateObject: Fatal error! dimension is invalid. The indexed objects=" 
-		    << dimension << " The specified object=" << size << std::endl;
-	  assert(dimension == size);
+	  std::stringstream msg;
+	  msg << "ObjectSpace::allocateObject: Fatal error! The specified dimension is invalid. The indexed objects=" 
+	      << dimension << " The specified object=" << size;
+	  NGTThrowException(msg);
 	}
       }
       Object *po = new Object(osize);

@@ -23,33 +23,18 @@
 using namespace std;
 
 
-  void 
-  NGT::Command::create(Args &args)
-  {
-    const string usage = "Usage: ngt create "
-      "-d dimension [-p #-of-thread] [-i index-type(t|g)] [-g graph-type(a|k|b|o|i)] "
-      "[-t truncation-edge-limit] [-E edge-size] [-S edge-size-for-search] [-L edge-size-limit] "
-      "[-e epsilon] [-o object-type(f|c)] [-D distance-function(1|2|a|A|h|j|c|C)] [-n #-of-inserted-objects] "
-      "[-P path-adjustment-interval] [-B dynamic-edge-size-base] [-A object-alignment(t|f)] "
-      "[-T build-time-limit] [-O outgoing x incoming] "
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-      "[-N maximum-#-of-inserted-objects] "
-#endif
-      "index(output) [data.tsv(input)]";
-    string database;
+  NGT::Command::CreateParameters::CreateParameters(Args &args) {
     try {
-      database = args.get("#1");
+      index = args.get("#1");
     } catch (...) {
-      cerr << "ngt: Error: DB is not specified." << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "Command::CreateParameter: Error: An index is not specified.";
+      NGTThrowException(msg);
     }
-    string data;
-    try {
-      data = args.get("#2");
-    } catch (...) {}
 
-    NGT::Property property;
+    try {
+      objectPath = args.get("#2");
+    } catch (...) {}
 
     property.edgeSizeForCreation = args.getl("E", 10);
     property.edgeSizeForSearch = args.getl("S", 40);
@@ -63,9 +48,9 @@ using namespace std;
     property.buildTimeLimit = args.getf("T", 0.0);
 
     if (property.dimension <= 0) {
-      cerr << "ngt: Error: Specify greater than 0 for # of your data dimension by a parameter -d." << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "Command::CreateParameter: Error: Specify greater than 0 for # of your data dimension by a parameter -d.";
+      NGTThrowException(msg);
     }
 
     property.objectAlignment = args.getChar("A", 'f') == 't' ? NGT::Property::ObjectAlignmentTrue : NGT::Property::ObjectAlignmentFalse;
@@ -79,9 +64,9 @@ using namespace std;
     case 'o': property.graphType = NGT::Property::GraphType::GraphTypeONNG; break;
     case 'i': property.graphType = NGT::Property::GraphType::GraphTypeIANNG; break;
     default:
-      cerr << "ngt: Error: Invalid graph type. " << graphType << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "Command::CreateParameter: Error: Invalid graph type. " << graphType;
+      NGTThrowException(msg);
     }    
 
     if (property.graphType == NGT::Property::GraphType::GraphTypeONNG) {
@@ -92,13 +77,12 @@ using namespace std;
 	vector<string> tokens;
 	NGT::Common::tokenize(str, tokens, "x");
 	if (str != "-" && tokens.size() != 2) {
-	  cerr << "ngt: Error: outgoing/incoming edge size specification is invalid. (out)x(in) " << str << endl;
-	  cerr << usage << endl;
-	  return;
+	  std::stringstream msg;
+	  msg << "Command::CreateParameter: Error: outgoing/incoming edge size specification is invalid. (out)x(in) " << str;
+	  NGTThrowException(msg);
 	}
 	property.outgoingEdge = NGT::Common::strtod(tokens[0]);
 	property.incomingEdge = NGT::Common::strtod(tokens[1]);
-	cerr << "ngt: ONNG out x in=" << property.outgoingEdge << "x" << property.incomingEdge << endl;
       }
     }
 
@@ -115,20 +99,8 @@ using namespace std;
     char objectType = args.getChar("o", 'f');
     char distanceType = args.getChar("D", '2');
 
-    size_t dataSize = args.getl("n", 0);
-    char indexType = args.getChar("i", 't');
-
-    if (debugLevel >= 1) {
-      cerr << "edgeSizeForCreation=" << property.edgeSizeForCreation << endl;
-      cerr << "edgeSizeForSearch=" << property.edgeSizeForSearch << endl;
-      cerr << "edgeSizeLimit=" << property.edgeSizeLimitForCreation << endl;
-      cerr << "batch size=" << property.batchSizeForCreation << endl;
-      cerr << "graphType=" << property.graphType << endl;
-      cerr << "epsilon=" << property.insertionRadiusCoefficient - 1.0 << endl;
-      cerr << "thread size=" << property.threadPoolSize << endl;
-      cerr << "dimension=" << property.dimension << endl;
-      cerr << "indexType=" << indexType << endl;
-    }
+    numOfObjects = args.getl("n", 0);
+    indexType = args.getChar("i", 't');
 
     switch (objectType) {
     case 'f': 
@@ -138,9 +110,9 @@ using namespace std;
       property.objectType = NGT::Index::Property::ObjectType::Uint8;
       break;
     default:
-      cerr << "ngt: Error: Invalid object type. " << objectType << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "Command::CreateParameter: Error: Invalid object type. " << objectType;
+      NGTThrowException(msg);
     }
 
     switch (distanceType) {
@@ -148,6 +120,7 @@ using namespace std;
       property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeL1;
       break;
     case '2':
+    case 'e':
       property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeL2;
       break;
     case 'a':
@@ -171,10 +144,13 @@ using namespace std;
     case 'C':
       property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeNormalizedCosine;
       break;
+    case 'E':
+      property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeNormalizedL2;
+      break;
     default:
-      cerr << "ngt: Error: Invalid distance type. " << distanceType << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "Command::CreateParameter: Error: Invalid distance type. " << distanceType << endl;
+      NGTThrowException(msg);
     }
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
@@ -185,14 +161,48 @@ using namespace std;
 	= property.objectSharedMemorySize = 512 * ceil(maxNoOfObjects / 50000000);
     }
 #endif
+  }
 
-    switch (indexType) {
-    case 't':
-      NGT::Index::createGraphAndTree(database, property, data, dataSize);
-      break;
-    case 'g':
-      NGT::Index::createGraph(database, property, data, dataSize);	
-      break;
+  void 
+  NGT::Command::create(Args &args)
+  {
+    const string usage = "Usage: ngt create "
+      "-d dimension [-p #-of-thread] [-i index-type(t|g)] [-g graph-type(a|k|b|o|i)] "
+      "[-t truncation-edge-limit] [-E edge-size] [-S edge-size-for-search] [-L edge-size-limit] "
+      "[-e epsilon] [-o object-type(f|c)] [-D distance-function(1|2|a|A|h|j|c|C|E)] [-n #-of-inserted-objects] "
+      "[-P path-adjustment-interval] [-B dynamic-edge-size-base] [-A object-alignment(t|f)] "
+      "[-T build-time-limit] [-O outgoing x incoming] "
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+      "[-N maximum-#-of-inserted-objects] "
+#endif
+      "index(output) [data.tsv(input)]";
+
+    try {
+      CreateParameters createParameters(args);
+
+      if (debugLevel >= 1) {
+	cerr << "edgeSizeForCreation=" << createParameters.property.edgeSizeForCreation << endl;
+	cerr << "edgeSizeForSearch=" << createParameters.property.edgeSizeForSearch << endl;
+	cerr << "edgeSizeLimit=" << createParameters.property.edgeSizeLimitForCreation << endl;
+	cerr << "batch size=" << createParameters.property.batchSizeForCreation << endl;
+	cerr << "graphType=" << createParameters.property.graphType << endl;
+	cerr << "epsilon=" << createParameters.property.insertionRadiusCoefficient - 1.0 << endl;
+	cerr << "thread size=" << createParameters.property.threadPoolSize << endl;
+	cerr << "dimension=" << createParameters.property.dimension << endl;
+	cerr << "indexType=" << createParameters.indexType << endl;
+      }
+
+      switch (createParameters.indexType) {
+      case 't':
+	NGT::Index::createGraphAndTree(createParameters.index, createParameters.property, createParameters.objectPath, createParameters.numOfObjects);
+	break;
+      case 'g':
+	NGT::Index::createGraph(createParameters.index, createParameters.property, createParameters.objectPath, createParameters.numOfObjects);
+	break;
+      }
+    } catch(NGT::Exception &err) {
+      std::cerr << err.what() << std::endl;
+      cerr << usage << endl;
     }
   }
 
@@ -239,10 +249,10 @@ using namespace std;
 
 
   void
-  NGT::Command::search(NGT::Index &index, NGT::Command::SearchParameter &searchParameter, istream &is, ostream &stream)
+  NGT::Command::search(NGT::Index &index, NGT::Command::SearchParameters &searchParameters, istream &is, ostream &stream)
   {
 
-    if (searchParameter.outputMode[0] == 'e') { 
+    if (searchParameters.outputMode[0] == 'e') { 
       stream << "# Beginning of Evaluation" << endl; 
     }
 
@@ -250,42 +260,42 @@ using namespace std;
     double totalTime	= 0;
     size_t queryCount	= 0;
     while(getline(is, line)) {
-      if (searchParameter.querySize > 0 && queryCount >= searchParameter.querySize) {
+      if (searchParameters.querySize > 0 && queryCount >= searchParameters.querySize) {
 	break;
       }
       NGT::Object *object = index.allocateObject(line, " \t");
       queryCount++;
-      size_t step = searchParameter.step == 0 ? UINT_MAX : searchParameter.step;
+      size_t step = searchParameters.step == 0 ? UINT_MAX : searchParameters.step;
       for (size_t n = 0; n <= step; n++) {
 	NGT::SearchContainer sc(*object);
 	double epsilon;
-	if (searchParameter.step != 0) {
-	  epsilon = searchParameter.beginOfEpsilon + (searchParameter.endOfEpsilon - searchParameter.beginOfEpsilon) * n / step; 
+	if (searchParameters.step != 0) {
+	  epsilon = searchParameters.beginOfEpsilon + (searchParameters.endOfEpsilon - searchParameters.beginOfEpsilon) * n / step; 
 	} else {
-	  epsilon = searchParameter.beginOfEpsilon + searchParameter.stepOfEpsilon * n;
-	  if (epsilon > searchParameter.endOfEpsilon) {
+	  epsilon = searchParameters.beginOfEpsilon + searchParameters.stepOfEpsilon * n;
+	  if (epsilon > searchParameters.endOfEpsilon) {
 	    break;
 	  }
 	}
 	NGT::ObjectDistances objects;
 	sc.setResults(&objects);
-	sc.setSize(searchParameter.size);
-	sc.setRadius(searchParameter.radius);
-	if (searchParameter.accuracy > 0.0) {
-	  sc.setExpectedAccuracy(searchParameter.accuracy);
+	sc.setSize(searchParameters.size);
+	sc.setRadius(searchParameters.radius);
+	if (searchParameters.accuracy > 0.0) {
+	  sc.setExpectedAccuracy(searchParameters.accuracy);
 	} else {
 	  sc.setEpsilon(epsilon);
 	}
- 	sc.setEdgeSize(searchParameter.edgeSize);
+ 	sc.setEdgeSize(searchParameters.edgeSize);
 	NGT::Timer timer;
 	try {
-	  if (searchParameter.outputMode[0] == 'e') {
+	  if (searchParameters.outputMode[0] == 'e') {
 	    double time = 0.0;
 	    uint64_t ntime = 0;
 	    double minTime = DBL_MAX;
-	    size_t trial = searchParameter.trial <= 0 ? 1 : searchParameter.trial;
+	    size_t trial = searchParameters.trial <= 0 ? 1 : searchParameters.trial;
 	    for (size_t t = 0; t < trial; t++) {
-	      switch (searchParameter.indexType) {
+	      switch (searchParameters.indexType) {
 	      case 't': timer.start(); index.search(sc); timer.stop(); break;
 	      case 'g': timer.start(); index.searchUsingOnlyGraph(sc); timer.stop(); break;
 	      case 's': timer.start(); index.linearSearch(sc); timer.stop(); break;
@@ -301,25 +311,25 @@ using namespace std;
 	    timer.time = minTime;
 	    timer.ntime = ntime;
 	  } else {
-	    switch (searchParameter.indexType) {
+	    switch (searchParameters.indexType) {
 	    case 't': timer.start(); index.search(sc); timer.stop(); break;
 	    case 'g': timer.start(); index.searchUsingOnlyGraph(sc); timer.stop(); break;
 	    case 's': timer.start(); index.linearSearch(sc); timer.stop(); break;
 	    }
 	  }
 	} catch (NGT::Exception &err) {
-	  if (searchParameter.outputMode != "ei") {
+	  if (searchParameters.outputMode != "ei") {
 	    // not ignore exceptions
 	    throw err;
 	  }
 	}
 	totalTime += timer.time;
-	if (searchParameter.outputMode[0] == 'e') {
+	if (searchParameters.outputMode[0] == 'e') {
 	  stream << "# Query No.=" << queryCount << endl;
 	  stream << "# Query=" << line.substr(0, 20) + " ..." << endl;
-	  stream << "# Index Type=" << searchParameter.indexType << endl;
-	  stream << "# Size=" << searchParameter.size << endl;
-	  stream << "# Radius=" << searchParameter.radius << endl;
+	  stream << "# Index Type=" << searchParameters.indexType << endl;
+	  stream << "# Size=" << searchParameters.size << endl;
+	  stream << "# Radius=" << searchParameters.radius << endl;
 	  stream << "# Epsilon=" << epsilon << endl;
 	  stream << "# Query Time (msec)=" << timer.time * 1000.0 << endl;
 	  stream << "# Distance Computation=" << sc.distanceComputationCount << endl;
@@ -332,25 +342,25 @@ using namespace std;
 	  stream << i + 1 << "\t" << objects[i].id << "\t";
 	  stream << objects[i].distance << endl;
 	}
-	if (searchParameter.outputMode[0] == 'e') {
+	if (searchParameters.outputMode[0] == 'e') {
 	  stream << "# End of Search" << endl;
 	} else {
 	  stream << "Query Time= " << timer.time << " (sec), " << timer.time * 1000.0 << " (msec)" << endl;
 	}
       } // for
       index.deleteObject(object);
-      if (searchParameter.outputMode[0] == 'e') {
+      if (searchParameters.outputMode[0] == 'e') {
 	stream << "# End of Query" << endl;
       }
     } // while
-    if (searchParameter.outputMode[0] == 'e') {
+    if (searchParameters.outputMode[0] == 'e') {
       stream << "# Average Query Time (msec)=" << totalTime * 1000.0 / (double)queryCount << endl;
       stream << "# Number of queries=" << queryCount << endl;
       stream << "# End of Evaluation" << endl;
 
-      if (searchParameter.outputMode == "e+") {
+      if (searchParameters.outputMode == "e+") {
 	// show graph information
-	size_t esize = searchParameter.edgeSize;
+	size_t esize = searchParameters.edgeSize;
 	long double distance = 0.0;
 	size_t numberOfNodes = 0;
 	size_t numberOfEdges = 0;
@@ -408,19 +418,19 @@ using namespace std;
       return;
     }
 
-    SearchParameter searchParameter(args);
+    SearchParameters searchParameters(args);
 
     if (debugLevel >= 1) {
-      cerr << "indexType=" << searchParameter.indexType << endl;
-      cerr << "size=" << searchParameter.size << endl;
-      cerr << "edgeSize=" << searchParameter.edgeSize << endl;
-      cerr << "epsilon=" << searchParameter.beginOfEpsilon << "<->" << searchParameter.endOfEpsilon << "," 
-	   << searchParameter.stepOfEpsilon << endl;
+      cerr << "indexType=" << searchParameters.indexType << endl;
+      cerr << "size=" << searchParameters.size << endl;
+      cerr << "edgeSize=" << searchParameters.edgeSize << endl;
+      cerr << "epsilon=" << searchParameters.beginOfEpsilon << "<->" << searchParameters.endOfEpsilon << "," 
+	   << searchParameters.stepOfEpsilon << endl;
     }
 
     try {
-      NGT::Index	index(database, searchParameter.openMode == 'r');
-      search(index, searchParameter, cout);
+      NGT::Index	index(database, searchParameters.openMode == 'r');
+      search(index, searchParameters, cout);
     } catch (NGT::Exception &err) {
       cerr << "ngt: Error " << err.what() << endl;
       cerr << usage << endl;
@@ -681,10 +691,10 @@ using namespace std;
   void
   NGT::Command::reconstructGraph(Args &args)
   {
-    const string usage = "Usage: ngt reconstruct-graph [-m mode] [-P path-adjustment-mode] -o #-of-outgoing-edges -i #-of-incoming(reversed)-edges [-q #-of-queries] [-n #-of-results] index(input) index(output)\n"
+    const string usage = "Usage: ngt reconstruct-graph [-m mode] [-P path-adjustment-mode] -o #-of-outgoing-edges -i #-of-incoming(reversed)-edges [-q #-of-queries] [-n #-of-results] [-E minimum-#-of-edges] index(input) index(output)\n"
       "\t-m mode\n"
-      "\t\ts: Edge adjustment. (default)\n"
-      "\t\tS: Edge adjustment and path adjustment.\n"
+      "\t\ts: Edge adjustment.\n"
+      "\t\tS: Edge adjustment and path adjustment. (default)\n"
       "\t\tc: Edge adjustment with the constraint.\n"
       "\t\tC: Edge adjustment with the constraint and path adjustment.\n"
       "\t\tP: Path adjustment.\n"
@@ -734,7 +744,8 @@ using namespace std;
     graphOptimizer.accuracyTableGeneration = (smode == '-' || smode == 'a') ? true : false;
     graphOptimizer.margin = margin;
     graphOptimizer.gtEpsilon = gtEpsilon;
-
+    graphOptimizer.minNumOfEdges = args.getl("E", 0);
+    
     graphOptimizer.set(numOfOutgoingEdges, numOfIncomingEdges, nOfQueries, nOfResults);
     graphOptimizer.execute(inIndexPath, outIndexPath);
 

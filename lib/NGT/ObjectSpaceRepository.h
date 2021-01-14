@@ -72,6 +72,27 @@ namespace NGT {
 #endif
     };
 
+    class ComparatorNormalizedL2 : public Comparator {
+      public:
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+        ComparatorNormalizedL2(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
+	double operator()(Object &objecta, Object &objectb) {
+	  return PrimitiveComparator::compareNormalizedL2((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
+	}
+	double operator()(Object &objecta, PersistentObject &objectb) {
+	  return PrimitiveComparator::compareNormalizedL2((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
+	}
+	double operator()(PersistentObject &objecta, PersistentObject &objectb) {
+	  return PrimitiveComparator::compareNormalizedL2((OBJECT_TYPE*)&objecta.at(0, allocator), (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
+	}
+#else
+        ComparatorNormalizedL2(size_t d) : Comparator(d) {}
+	double operator()(Object &objecta, Object &objectb) {
+	  return PrimitiveComparator::compareNormalizedL2((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
+	}
+#endif
+    };
+
     class ComparatorHammingDistance : public Comparator {
       public:
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
@@ -294,6 +315,10 @@ namespace NGT {
       case DistanceTypeL2:
 	comparator = new ObjectSpaceRepository::ComparatorL2(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
 	break;
+      case DistanceTypeNormalizedL2:
+	comparator = new ObjectSpaceRepository::ComparatorNormalizedL2(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
+	normalization = true;
+	break;
       case DistanceTypeHamming:
 	comparator = new ObjectSpaceRepository::ComparatorHammingDistance(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
 	break;
@@ -324,6 +349,10 @@ namespace NGT {
 	break;
       case DistanceTypeL2:
 	comparator = new ObjectSpaceRepository::ComparatorL2(ObjectSpace::getPaddedDimension());
+	break;
+      case DistanceTypeNormalizedL2:
+	comparator = new ObjectSpaceRepository::ComparatorNormalizedL2(ObjectSpace::getPaddedDimension());
+	normalization = true;
 	break;
       case DistanceTypeHamming:
 	comparator = new ObjectSpaceRepository::ComparatorHammingDistance(ObjectSpace::getPaddedDimension());
@@ -439,6 +468,17 @@ namespace NGT {
       for (size_t i = 0; i < dim; i++) {
 	v[i] = static_cast<float>(obj[i]);
       }
+    }
+
+    std::vector<float> getObject(Object &object) {
+      std::vector<float> v;
+      OBJECT_TYPE *obj = static_cast<OBJECT_TYPE*>(object.getPointer());
+      size_t dim = getDimension();
+      v.resize(dim);
+      for (size_t i = 0; i < dim; i++) {
+	v[i] = static_cast<float>(obj[i]);
+      }
+      return v;
     }
 
     void getObjects(const std::vector<size_t> &idxs, std::vector<std::vector<float>> &vs) {

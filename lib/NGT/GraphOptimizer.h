@@ -62,7 +62,8 @@ namespace NGT {
 
     void init() {
       numOfOutgoingEdges = 10;
-      numOfIncomingEdges= 120;
+      numOfIncomingEdges = 120;
+      minNumOfEdges = 0;
       numOfQueries = 100;
       numOfResults = 20;
       baseAccuracyRange = std::pair<float, float>(0.30, 0.50);
@@ -282,7 +283,7 @@ namespace NGT {
 	  try {
 	    NGT::Timer timer;
 	    timer.start();
-	    NGT::GraphReconstructor::adjustPathsEffectively(graphIndex);
+	    NGT::GraphReconstructor::adjustPathsEffectively(graphIndex, minNumOfEdges);
 	    timer.stop();
 	    std::cerr << "Optimizer::execute: Path adjustment time=" << timer.time << " (sec) " << std::endl;
 	    graphIndex.saveGraph(outIndexPath);
@@ -404,15 +405,15 @@ namespace NGT {
 	float epsilon = 0.0;  
 	for (size_t edgeSize = 5; edgeSize <= maxNoOfEdges; edgeSize += (edgeSize >= 10 ? 10 : 5) ) {
 	  NGT::GraphReconstructor::reconstructANNGFromANNG(graph, index, edgeSize);
-	  NGT::Command::SearchParameter searchParameter;
-	  searchParameter.size = nOfResults;
-	  searchParameter.outputMode = 'e';
-	  searchParameter.edgeSize = 0;
-	  searchParameter.beginOfEpsilon = searchParameter.endOfEpsilon = epsilon;
+	  NGT::Command::SearchParameters searchParameters;
+	  searchParameters.size = nOfResults;
+	  searchParameters.outputMode = 'e';
+	  searchParameters.edgeSize = 0;
+	  searchParameters.beginOfEpsilon = searchParameters.endOfEpsilon = epsilon;
 	  queryStream.clear();
 	  queryStream.seekg(0, std::ios_base::beg);
 	  std::vector<NGT::Optimizer::MeasuredValue> acc;
-	  NGT::Optimizer::search(index, queryStream, gtStream, searchParameter, acc);
+	  NGT::Optimizer::search(index, queryStream, gtStream, searchParameters, acc);
 	  if (acc.size() == 0) {
 	    NGTThrowException("Fatal error! Cannot get any accuracy value.");
 	  }
@@ -634,6 +635,7 @@ namespace NGT {
 
     size_t numOfOutgoingEdges;
     size_t numOfIncomingEdges;
+    size_t minNumOfEdges;
     std::pair<float, float> baseAccuracyRange;
     std::pair<float, float> rateAccuracyRange;
     size_t numOfQueries;

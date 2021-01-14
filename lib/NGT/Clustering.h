@@ -126,10 +126,22 @@ namespace NGT {
 	throw std::runtime_error("loadVectors::Cannot open " + file );
       }
       std::string line;
+      size_t prevdim = 0;
       while (getline(is, line)) {
 	std::vector<float> v;
 	extractVector(line, v);
+	if (v.size() == 0) {
+	  std::stringstream msg;
+	  msg << "Clustering:loadVectors: Error! The dimensionality is zero." << std::endl;
+	  NGTThrowException(msg);
+	}
+	if (prevdim != 0 && prevdim != v.size()) {
+	  std::stringstream msg;
+	  msg << "Clustering:loadVectors: Error! The dimensionality is inconsist. " << prevdim << ":" <<v.size() << std::endl;
+	  NGTThrowException(msg);
+	}
 	vectors.push_back(v);
+	prevdim = v.size();
       }
     }
 
@@ -356,7 +368,7 @@ namespace NGT {
       // distribute objects to the nearest clusters in the same size constraint.
       for (auto soi = sortedObjects.rbegin(); soi != sortedObjects.rend();) {
 	Entry &entry = *soi;
-	if (entry.centroidID >= clusters.size()) {
+        if (entry.centroidID >= clusters.size()) {
 	  std::cerr << "Something wrong. " << entry.centroidID << ":" << clusters.size() << std::endl;
 	  soi++;
 	  continue;
@@ -418,106 +430,144 @@ namespace NGT {
 
     static void
       assignWithNGT(NGT::Index &index, std::vector<std::vector<float> > &vectors, std::vector<Cluster> &clusters, 
-		    float &radius, size_t &resultSize, float epsilon = 0.12, size_t notRetrievedObjectCount = 0) {
+		    size_t &resultSize, float epsilon = 0.12,
+		    size_t clusterSize = std::numeric_limits<size_t>::max()) {
       size_t dataSize = vectors.size();
       assert(index.getObjectRepositorySize() - 1 == vectors.size());
       vector<vector<Entry> > results(clusters.size());
 #pragma omp parallel for
       for (size_t ci = 0; ci < clusters.size(); ci++) {
 	auto cit = clusters.begin() + ci;
-	NGT::ObjectDistances objects;		// result set
+	NGT::ObjectDistances objects;
 	NGT::Object *query = 0;
 	query = index.allocateObject((*cit).centroid);
-	// set search prameters.                                                                                      
-	NGT::SearchContainer sc(*query);	// search parametera container.                                     
-	sc.setResults(&objects);		// set the result set.                                              
-	sc.setEpsilon(epsilon);			// set exploration coefficient.                                     
-	if (radius > 0.0) {
-	  sc.setRadius(radius);
-	  sc.setSize(dataSize / 2);
-	} else {
-	  sc.setSize(resultSize);		// the number of resultant objects.
-	}
+	NGT::SearchContainer sc(*query);
+	sc.setResults(&objects);
+	sc.setEpsilon(epsilon);
+	sc.setSize(resultSize);
 	index.search(sc);
 	results[ci].reserve(objects.size());
 	for (size_t idx = 0; idx < objects.size(); idx++) {
 	  size_t oidx = objects[idx].id - 1;
 	  results[ci].push_back(Entry(oidx, ci, objects[idx].distance));
 	}
-
 	index.deleteObject(query);
       }
       size_t resultCount = 0;
       for (auto ri = results.begin(); ri != results.end(); ++ri) {
 	resultCount += (*ri).size();
       }
-      vector<Entry> sortedResults;
-      sortedResults.reserve(resultCount);
+      vector<Entry> sortedDistances;
+      sortedDistances.reserve(resultCount);
       for (auto ri = results.begin(); ri != results.end(); ++ri) {
-	auto end = (*ri).begin();
-	for (; end != (*ri).end(); ++end) {
-	}
-	std::copy((*ri).begin(), end, std::back_inserter(sortedResults));
+	std::copy((*ri).begin(), (*ri).end(), std::back_inserter(sortedDistances));
       }
 
-      vector<bool> processedObjects(dataSize, false);
-      for (auto i = sortedResults.begin(); i != sortedResults.end(); ++i) {
-	processedObjects[(*i).vectorID] = true;
-      }
-
-      notRetrievedObjectCount = 0;
-      vector<uint32_t> notRetrievedObjectIDs;
-      for (size_t idx = 0; idx < dataSize; idx++) {
-	if (!processedObjects[idx]) {
-	  notRetrievedObjectCount++;
-	  notRetrievedObjectIDs.push_back(idx);
-	}
-      }
-  
-      sort(sortedResults.begin(), sortedResults.end());
+      vector<bool> assignedObjects(dataSize, false);
+      
+      sort(sortedDistances.begin(), sortedDistances.end());
 
       for (auto cit = clusters.begin(); cit != clusters.end(); ++cit) {    
 	(*cit).members.clear();
       }
 
-      for (auto i = sortedResults.rbegin(); i != sortedResults.rend(); ++i) {
+      size_t assignedObjectCount = 0;
+      for (auto i = sortedDistances.rbegin(); i != sortedDistances.rend(); ++i) {
 	size_t objectID = (*i).vectorID;
 	size_t clusterID = (*i).centroidID;
-	if (processedObjects[objectID]) {
-	  processedObjects[objectID] = false;	
+	if (clusters[clusterID].members.size() >= clusterSize) {
+	  continue;
+	}
+	if (!assignedObjects[objectID]) {
+	  assignedObjects[objectID] = true;
 	  clusters[clusterID].members.push_back(*i);
 	  clusters[clusterID].members.back().centroidID = clusterID;
-	  radius = (*i).distance;
+	  assignedObjectCount++;
 	}
       }
 
-      vector<Entry> notRetrievedObjects(notRetrievedObjectIDs.size());
+      //size_t notAssignedObjectCount = 0;
+      vector<uint32_t> notAssignedObjectIDs;
+      notAssignedObjectIDs.reserve(dataSize - assignedObjectCount);
+      for (size_t idx = 0; idx < dataSize; idx++) {
+	if (!assignedObjects[idx]) {
+	  notAssignedObjectIDs.push_back(idx);
+	}
+      }
 
+  
+
+      if (clusterSize < std::numeric_limits<size_t>::max()) {
+	do {
+	  vector<vector<Entry>> notAssignedObjects(notAssignedObjectIDs.size());
+	  size_t nOfClosestClusters = 1 * 1024 * 1024 * 1024 / 16 / notAssignedObjectIDs.size(); 
 #pragma omp parallel for
-      for (size_t vi = 0; vi < notRetrievedObjectIDs.size(); vi++) {
-	auto vit = notRetrievedObjectIDs.begin() + vi;
-	{
-	  double mind = DBL_MAX;
-	  size_t mincidx = -1;
-	  for (auto cit = clusters.begin(); cit != clusters.end(); ++cit) {    
-	    double d = distanceL2(vectors[*vit], (*cit).centroid);
-	    if (d < mind) {
-	      mind = d;
-	      mincidx = distance(clusters.begin(), cit);
+	  for (size_t vi = 0; vi < notAssignedObjectIDs.size(); vi++) {
+	    auto vit = notAssignedObjectIDs.begin() + vi;
+	    if (assignedObjects[*vit]) {
+	      continue;
+	    }
+	    vector<Entry> ds;
+	    ds.reserve(clusters.size());
+	    for (auto cit = clusters.begin(); cit != clusters.end(); ++cit) {
+	      if ((*cit).members.size() >= clusterSize) {
+		continue;
+	      }
+	      double d = distanceL2(vectors[*vit], (*cit).centroid);
+	      ds.push_back(Entry(*vit, distance(clusters.begin(), cit), d));
+	    }
+	    sort(ds.begin(), ds.end());
+	    size_t topk = ds.size() < nOfClosestClusters ? ds.size() : nOfClosestClusters;
+	    std::copy(ds.end() - topk, ds.end(), std::back_inserter(notAssignedObjects[vi]));
+	  }
+
+	  sortedDistances.clear();
+	  for (auto i = notAssignedObjects.begin(); i != notAssignedObjects.end(); ++i) {
+	    std::copy((*i).begin(), (*i).end(), std::back_inserter(sortedDistances));
+	    vector<Entry> empty;
+	    (*i).swap(empty);
+	  }
+	  sort(sortedDistances.begin(), sortedDistances.end());
+
+	  for (auto i = sortedDistances.rbegin(); i != sortedDistances.rend(); ++i) {
+	    size_t objectID = (*i).vectorID;
+	    size_t clusterID = (*i).centroidID;
+	    if (clusters[clusterID].members.size() >= clusterSize) {
+	      continue;
+	    }
+	    if (!assignedObjects[objectID]) {
+	      assignedObjects[objectID] = true;
+	      clusters[clusterID].members.push_back(*i);
+	      clusters[clusterID].members.back().centroidID = clusterID;
 	    }
 	  }
-	  notRetrievedObjects[vi] = Entry(*vit, mincidx, mind);	// Entry(vectorID, centroidID, distance)
+        } while (std::any_of(assignedObjects.begin(), assignedObjects.end(), [](bool x){ return !x; }));
+      } else {
+	vector<Entry> notAssignedObjects(notAssignedObjectIDs.size());
+#pragma omp parallel for
+	for (size_t vi = 0; vi < notAssignedObjectIDs.size(); vi++) {
+	  auto vit = notAssignedObjectIDs.begin() + vi;
+	  {
+	    double mind = DBL_MAX;
+	    size_t mincidx = -1;
+	    for (auto cit = clusters.begin(); cit != clusters.end(); ++cit) {
+	      double d = distanceL2(vectors[*vit], (*cit).centroid);
+	      if (d < mind) {
+		mind = d;
+		mincidx = distance(clusters.begin(), cit);
+	      }
+	    }
+	    notAssignedObjects[vi] = Entry(*vit, mincidx, mind);	// Entry(vectorID, centroidID, distance)
+	  }
 	}
+	for (auto nroit = notAssignedObjects.begin(); nroit != notAssignedObjects.end(); ++nroit) {
+	  clusters[(*nroit).centroidID].members.push_back(*nroit);
+	}
+	moveFartherObjectsToEmptyClusters(clusters);
       }
 
-      sort(notRetrievedObjects.begin(), notRetrievedObjects.end());
 
-      for (auto nroit = notRetrievedObjects.begin(); nroit != notRetrievedObjects.end(); ++nroit) {
-	clusters[(*nroit).centroidID].members.push_back(*nroit);
-      }
-
-      moveFartherObjectsToEmptyClusters(clusters);
-
+      
     }
 
     static double
@@ -576,7 +626,6 @@ namespace NGT {
 
       double diff = 0;
       for (size_t i = 0; i < maximumIteration; i++) {
-	std::cerr << "iteration=" << i << std::endl;
 	assign(vectors, clusters, clusterSize);
 	// centroid is recomputed.
 	// diff is distance between the current centroids and the previous centroids.
@@ -593,23 +642,27 @@ namespace NGT {
     double kmeansWithNGT(NGT::Index &index, std::vector<std::vector<float> > &vectors, size_t numberOfClusters, std::vector<Cluster> &clusters, float epsilon)
     {
 
+      size_t clusterSize = std::numeric_limits<size_t>::max();
+      if (clusterSizeConstraint) {
+	clusterSize = ceil((double)vectors.size() / (double)numberOfClusters);
+	for (size_t ci = 0; ci < clusters.size(); ci++) {
+	  clusters[ci].members.reserve(clusterSize);
+	}
+      }
+
       diffHistory.clear();
       NGT::Timer timer;
       timer.start();
-      float radius;
       double diff = 0.0;
       size_t resultSize;
       resultSize = resultSizeCoefficient * vectors.size() / clusters.size();
       for (size_t i = 0; i < maximumIteration; i++) {
-	size_t notRetrievedObjectCount = 0;
-	radius = -1.0;
-	assignWithNGT(index, vectors, clusters, radius, resultSize, epsilon, notRetrievedObjectCount);
+	assignWithNGT(index, vectors, clusters, resultSize, epsilon, clusterSize);
 	// centroid is recomputed.
 	// diff is distance between the current centroids and the previous centroids.
 	std::vector<Cluster> prevClusters = clusters;
 	diff = calculateCentroid(vectors, clusters);  
 	timer.stop();
-	std::cerr << "iteration=" << i << " time=" << timer << " diff=" << diff << std::endl;
 	timer.start();
 	diffHistory.push_back(diff);
 
@@ -620,6 +673,7 @@ namespace NGT {
       return diff;
     }
 
+#ifndef NGT_SHARED_MEMORY_ALLOCATOR
     double kmeansWithNGT(std::vector<std::vector<float> > &vectors, size_t numberOfClusters, std::vector<Cluster> &clusters)
     {
       pid_t pid = getpid();
@@ -635,8 +689,6 @@ namespace NGT {
       property.objectType = NGT::Index::Property::ObjectType::Float;
       property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeL2;
 
-      NGT::Index::createGraphAndTree(database, property, dataFile, dataSize);
-
       float *data = new float[vectors.size() * dim];
       float *ptr = data;
       dataSize = vectors.size();
@@ -645,15 +697,16 @@ namespace NGT {
 	ptr += dim;
       }
       size_t threadSize = 20;
-      NGT::Index::append(database, data, dataSize, threadSize);
-      delete[] data;
 
-      NGT::Index index(database);
+      NGT::Index index(property);
+      index.append(data, dataSize);
+      index.createIndex(threadSize);
 
       return kmeansWithNGT(index, vectors, numberOfClusters, clusters, epsilonFrom);
 
     }
-
+#endif
+    
     double kmeansWithNGT(NGT::Index &index, size_t numberOfClusters, std::vector<Cluster> &clusters)
     {
       NGT::GraphIndex	&graph = static_cast<NGT::GraphIndex&>(index.getIndex());
@@ -667,12 +720,10 @@ namespace NGT {
 	  cerr << "Cannot get object " << idx << endl;
 	}
       }
-      cerr << "# of data for clustering=" << vectors.size() << endl;
       double diff = DBL_MAX;
       clusters.clear();
       setupInitialClusters(vectors, numberOfClusters, clusters);
       for (float epsilon = epsilonFrom; epsilon <= epsilonTo; epsilon += epsilonStep) {
-	cerr << "epsilon=" << epsilon << endl;
 	diff = kmeansWithNGT(index, vectors, numberOfClusters, clusters, epsilon);
 	if (diff == 0.0) {
 	  return diff;
@@ -811,9 +862,11 @@ namespace NGT {
       case ClusteringTypeKmeansWithoutNGT: 
 	return kmeansWithoutNGT(vectors, numberOfClusters, clusters);
 	break;
-      case ClusteringTypeKmeansWithNGT:
+#ifndef NGT_SHARED_MEMORY_ALLOCATOR
+      case ClusteringTypeKmeansWithNGT: 
 	return kmeansWithNGT(vectors, numberOfClusters, clusters);
 	break;
+#endif
       default:
 	cerr << "kmeans::fatal error!. invalid clustering type. " << clusteringType << endl;
 	abort();

@@ -17,6 +17,7 @@
 #include	"NGT/Index.h"
 #include	"NGT/GraphOptimizer.h"
 #include	"NGT/version_defs.h"
+#include	"NGT/NGTQ/QuantizedGraph.h"
 
 #include	<pybind11/pybind11.h>
 #include	<pybind11/stl.h>
@@ -84,6 +85,8 @@ public:
       prop.distanceType = NGT::Property::DistanceType::DistanceTypeCosine;
     } else if (distanceType == "Normalized Cosine") {
       prop.distanceType = NGT::Property::DistanceType::DistanceTypeNormalizedCosine;
+    } else if (distanceType == "Normalized L2") {
+      prop.distanceType = NGT::Property::DistanceType::DistanceTypeNormalizedL2;
     } else {
       std::stringstream msg;
       msg << "ngtpy::create: invalid distance type. " << distanceType;
@@ -370,6 +373,115 @@ public:
 
 };
 
+
+class QuantizedIndex : public NGTQG::Index {
+public:
+  QuantizedIndex(
+   const  std::string path, 		// ngt index path.
+   size_t maxNoOfEdges,			// the maximum number of quantized graph edges.
+   bool   zeroBasedNumbering,		// object ID numbering.
+   bool   treeDisabled,			// not use the tree index.
+   bool   logDisabled			// stderr log is disabled.
+  ):NGTQG::Index(path, maxNoOfEdges) {
+    zeroNumbering = zeroBasedNumbering;
+    numOfDistanceComputations = 0;
+    treeIndex = !treeDisabled;
+    withDistance = true;;
+    defaultNumOfSearchObjects = 20;
+    defaultEpsilon = 0.02;
+    defaultResultExpansion = 5;
+    defaultEdgeSize = 0; // not used
+    if (logDisabled) {
+      NGT::Index::disableLog();
+    } else {
+      NGT::Index::enableLog();
+    }
+  }
+
+  py::object search(
+   py::object query,
+   size_t size, 		// the number of resultant objects
+   float epsilon, 		// search parameter epsilon. the adequate range is from 0.0 to 0.05.
+   float resultExpansion,	// the number of inner resultant objects
+   int edgeSize		// the number of used edges for each node during the exploration of the graph.
+  ) {
+    py::array_t<float> qobject(query);
+    py::buffer_info qinfo = qobject.request();
+    std::vector<float> qvector(static_cast<float*>(qinfo.ptr), static_cast<float*>(qinfo.ptr) + qinfo.size);
+    NGTQG::SearchQuery sc(qvector);
+    size		= size > 0 ? size : defaultNumOfSearchObjects;
+    epsilon		= epsilon > -1.0 ? epsilon : defaultEpsilon;
+    resultExpansion	= resultExpansion >= 0.0 ? resultExpansion : defaultResultExpansion;
+    edgeSize		= edgeSize >= -2 ? edgeSize : defaultEdgeSize;
+    sc.setSize(size);				// the number of resulting objects.
+    sc.setEpsilon(epsilon);			// set exploration coefficient.
+    sc.setResultExpansion(resultExpansion);	// set result expansion.
+    sc.setEdgeSize(edgeSize);			// if maxEdge is minus, the specified value in advance is used.
+
+    NGTQG::Index::search(sc);
+
+    numOfDistanceComputations += sc.distanceComputationCount;
+
+    if (!withDistance) {
+      NGT::ResultPriorityQueue &r = sc.getWorkingResult();
+      py::array_t<int> ids(r.size());
+      py::buffer_info idsinfo = ids.request();
+      int *endptr = reinterpret_cast<int*>(idsinfo.ptr); 
+      int *ptr = endptr + (r.size() - 1);
+      if (zeroNumbering) {
+        while (ptr >= endptr) {
+	  *ptr-- = r.top().id - 1;
+	  r.pop();
+        }
+      } else {
+        while (ptr >= endptr) {
+	  *ptr-- = r.top().id;
+	  r.pop();
+        }
+      }
+
+      return ids;
+    }
+    py::list results;
+    NGT::ObjectDistances r;
+    r.moveFrom(sc.getWorkingResult());
+    if (zeroNumbering) {
+      for (auto ri = r.begin(); ri != r.end(); ++ri) {
+	results.append(py::make_tuple((*ri).id - 1, (*ri).distance));
+      }
+    } else {
+      for (auto ri = r.begin(); ri != r.end(); ++ri) {
+	results.append(py::make_tuple((*ri).id, (*ri).distance));
+      }
+    }
+    return results;
+  }
+
+  void setWithDistance(bool v) { withDistance = v; }
+
+  void setDefaults(
+   size_t numOfSearchObjects, 		// the number of resultant objects
+   float epsilon,	 		// search parameter epsilon. the adequate range is from 0.0 to 0.05.
+   float resultExpansion,		// the number of inner resultant objects
+   int edgeSize				// not used
+  ) {
+    defaultNumOfSearchObjects = numOfSearchObjects > 0 ? numOfSearchObjects : defaultNumOfSearchObjects;
+    defaultEpsilon	      = epsilon > -1.0 ? epsilon : defaultEpsilon;
+    defaultResultExpansion    = resultExpansion >= 0.0 ? resultExpansion : defaultResultExpansion;
+    defaultEdgeSize	      = edgeSize >= -2 ? edgeSize : defaultEdgeSize;
+  }
+
+  bool		zeroNumbering;	    // for object ID numbering. zero-based or one-based numbering.
+  size_t	numOfDistanceComputations;
+  bool		treeIndex;
+  bool		withDistance;
+  size_t	defaultNumOfSearchObjects; // k
+  float		defaultEpsilon;
+  float		defaultResultExpansion;
+  int64_t	defaultEdgeSize;
+};
+
+
 PYBIND11_MODULE(ngtpy, m) {
     m.doc() = "ngt python";
 
@@ -479,4 +591,26 @@ PYBIND11_MODULE(ngtpy, m) {
 	   py::arg("target_num_of_objects") = -1,
 	   py::arg("num_of_sample_objects") = -1,
 	   py::arg("max_num_of_edges") = -1);
+
+    py::class_<QuantizedIndex>(m, "QuantizedIndex")
+      .def(py::init<const std::string &, size_t, bool, bool, bool>(), 
+           py::arg("path"),
+	   py::arg("max_no_of_edges") = 128,
+           py::arg("zero_based_numbering") = true,
+	   py::arg("tree_disabled") = false,
+           py::arg("log_disabled") = false)
+      .def("search", &::QuantizedIndex::search,
+           py::arg("query"),
+           py::arg("size") = 0,
+           py::arg("epsilon") = -FLT_MAX,
+           py::arg("result_expansion") = -FLT_MAX,
+           py::arg("edge_size") = INT_MIN)
+      .def("set_with_distance", &::QuantizedIndex::setWithDistance,
+           py::arg("boolean") = true)
+      .def("set_defaults", &::QuantizedIndex::setDefaults,
+           py::arg("size") = 0,
+           py::arg("epsilon") = -FLT_MAX,
+           py::arg("result_expansion") = -FLT_MAX,
+           py::arg("edge_size") = INT_MIN);
+
 }

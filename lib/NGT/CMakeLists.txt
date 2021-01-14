@@ -3,7 +3,7 @@ if( ${UNIX} )
 	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/defines.h.in ${CMAKE_CURRENT_BINARY_DIR}/defines.h)
 	include_directories("${CMAKE_CURRENT_BINARY_DIR}" "${PROJECT_SOURCE_DIR}/lib" "${PROJECT_BINARY_DIR}/lib/")
 
-	file(GLOB NGT_SOURCES *.cpp)
+	file(GLOB NGT_SOURCES *.cpp NGTQ/*.cpp)
 	file(GLOB HEADER_FILES *.h *.hpp)
 	file(GLOB NGTQ_HEADER_FILES NGTQ/*.h NGTQ/*.hpp)
 
@@ -32,6 +32,7 @@ if( ${UNIX} )
 	add_custom_command(OUTPUT command DEPENDS ${NGT_SOURCES} WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND sh ${PROJECT_SOURCE_DIR}/utils/mk_version_defs_h.sh ${PROJECT_SOURCE_DIR} version_defs.h)
 	add_custom_target(versiondef DEPENDS command)
 	add_dependencies(ngtstatic versiondef)
+
 
 	install(TARGETS
 		ngt

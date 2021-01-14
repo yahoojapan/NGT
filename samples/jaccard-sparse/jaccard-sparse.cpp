@@ -94,26 +94,26 @@ append(NGT::Args &args)
 
 
 void
-search(NGT::Index &index, NGT::Command::SearchParameter &searchParameter, ostream &stream)
+search(NGT::Index &index, NGT::Command::SearchParameters &searchParameters, ostream &stream)
 {
 
-  std::ifstream		is(searchParameter.query);
+  std::ifstream		is(searchParameters.query);
   if (!is) {
-    std::cerr << "Cannot open the specified file. " << searchParameter.query << std::endl;
+    std::cerr << "Cannot open the specified file. " << searchParameters.query << std::endl;
     return;
   }
 
-  if (searchParameter.outputMode[0] == 'e') { 
+  if (searchParameters.outputMode[0] == 'e') { 
     stream << "# Beginning of Evaluation" << endl; 
   }
 
   string line;
   double totalTime	= 0;
   size_t queryCount	= 0;
-  double epsilon	= searchParameter.beginOfEpsilon;
+  double epsilon	= searchParameters.beginOfEpsilon;
 
   while(getline(is, line)) {
-    if (searchParameter.querySize > 0 && queryCount >= searchParameter.querySize) {
+    if (searchParameters.querySize > 0 && queryCount >= searchParameters.querySize) {
       break;
     }
     vector<uint32_t>	query;
@@ -128,27 +128,27 @@ search(NGT::Index &index, NGT::Command::SearchParameter &searchParameter, ostrea
     NGT::SearchQuery	sc(sparseQuery);
     NGT::ObjectDistances objects;
     sc.setResults(&objects);
-    sc.setSize(searchParameter.size);
-    sc.setRadius(searchParameter.radius);
-    if (searchParameter.accuracy > 0.0) {
-      sc.setExpectedAccuracy(searchParameter.accuracy);
+    sc.setSize(searchParameters.size);
+    sc.setRadius(searchParameters.radius);
+    if (searchParameters.accuracy > 0.0) {
+      sc.setExpectedAccuracy(searchParameters.accuracy);
     } else {
       sc.setEpsilon(epsilon);
     }
-    sc.setEdgeSize(searchParameter.edgeSize);
+    sc.setEdgeSize(searchParameters.edgeSize);
     NGT::Timer timer;
-    switch (searchParameter.indexType) {
+    switch (searchParameters.indexType) {
     case 't': timer.start(); index.search(sc); timer.stop(); break;
     case 'g': timer.start(); index.searchUsingOnlyGraph(sc); timer.stop(); break;
     case 's': timer.start(); index.linearSearch(sc); timer.stop(); break;
     }
     totalTime += timer.time;
-    if (searchParameter.outputMode[0] == 'e') {
+    if (searchParameters.outputMode[0] == 'e') {
       stream << "# Query No.=" << queryCount << endl;
       stream << "# Query=" << line.substr(0, 20) + " ..." << endl;
-      stream << "# Index Type=" << searchParameter.indexType << endl;
-      stream << "# Size=" << searchParameter.size << endl;
-      stream << "# Radius=" << searchParameter.radius << endl;
+      stream << "# Index Type=" << searchParameters.indexType << endl;
+      stream << "# Size=" << searchParameters.size << endl;
+      stream << "# Radius=" << searchParameters.radius << endl;
       stream << "# Epsilon=" << epsilon << endl;
       stream << "# Query Time (msec)=" << timer.time * 1000.0 << endl;
       stream << "# Distance Computation=" << sc.distanceComputationCount << endl;
@@ -161,16 +161,16 @@ search(NGT::Index &index, NGT::Command::SearchParameter &searchParameter, ostrea
       stream << i + 1 << "\t" << objects[i].id << "\t";
       stream << objects[i].distance << endl;
     }
-    if (searchParameter.outputMode[0] == 'e') {
+    if (searchParameters.outputMode[0] == 'e') {
       stream << "# End of Search" << endl;
     } else {
       stream << "Query Time= " << timer.time << " (sec), " << timer.time * 1000.0 << " (msec)" << endl;
     }
-    if (searchParameter.outputMode[0] == 'e') {
+    if (searchParameters.outputMode[0] == 'e') {
       stream << "# End of Query" << endl;
     }
   }
-  if (searchParameter.outputMode[0] == 'e') {
+  if (searchParameters.outputMode[0] == 'e') {
     stream << "# Average Query Time (msec)=" << totalTime * 1000.0 / (double)queryCount << endl;
     stream << "# Number of queries=" << queryCount << endl;
     stream << "# End of Evaluation" << endl;
@@ -195,11 +195,11 @@ search(NGT::Args &args) {
     return;
   }
 
-  NGT::Command::SearchParameter searchParameter(args);
+  NGT::Command::SearchParameters searchParameters(args);
 
   try {
-    NGT::Index	index(database, searchParameter.openMode == 'r');
-    search(index, searchParameter, cout);
+    NGT::Index	index(database, searchParameters.openMode == 'r');
+    search(index, searchParameters, cout);
   } catch (NGT::Exception &err) {
     cerr << "jaccard-sparse: Error " << err.what() << endl;
     cerr << usage << endl;

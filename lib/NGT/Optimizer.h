@@ -95,7 +95,7 @@ namespace NGT {
     void enableLog() { redirector.disable(); }
     void disableLog() { redirector.enable(); }
 
-    static void search(NGT::Index &index, std::istream &gtStream, Command::SearchParameter &sp, std::vector<MeasuredValue> &acc) {
+    static void search(NGT::Index &index, std::istream &gtStream, Command::SearchParameters &sp, std::vector<MeasuredValue> &acc) {
       std::ifstream		is(sp.query);
       if (!is) {
 	std::stringstream msg;
@@ -106,7 +106,7 @@ namespace NGT {
       search(index, is, gtStream, sp, acc);
     }
 
-    static void search(NGT::Index &index, std::istream &queries, std::istream &gtStream, Command::SearchParameter &sp, std::vector<MeasuredValue> &acc) {
+    static void search(NGT::Index &index, std::istream &queries, std::istream &gtStream, Command::SearchParameters &sp, std::vector<MeasuredValue> &acc) {
       sp.stepOfEpsilon = 1.0;
       std::stringstream resultStream;
       NGT::Command::search(index, sp, queries, resultStream);
@@ -168,15 +168,15 @@ namespace NGT {
 
     static std::vector<MeasuredValue>
       evaluate(std::istream &gtStream, std::istream &resultStream, std::string &type, 
-	       size_t &resultDataSize, size_t specifiedResultSize = 0, size_t groundTruthSize = 0, bool recall = false)
+	       size_t &resultDataSize, size_t specifiedResultSize = 0, size_t groundTruthSize = 0, bool recall = false, bool approximateDistance = false)
     {
       SumupValues sumupValues;
-      return evaluate(gtStream, resultStream, sumupValues, type, resultDataSize, specifiedResultSize, groundTruthSize, recall);
+      return evaluate(gtStream, resultStream, sumupValues, type, resultDataSize, specifiedResultSize, groundTruthSize, recall, approximateDistance);
     }
 
     static std::vector<MeasuredValue>
       evaluate(std::istream &gtStream, std::istream &resultStream, SumupValues &sumupValues, std::string &type, 
-	       size_t &resultDataSize, size_t specifiedResultSize = 0, size_t groundTruthSize = 0, bool recall = false)
+	       size_t &resultDataSize, size_t specifiedResultSize = 0, size_t groundTruthSize = 0, bool recall = false, bool approximateDistance = false)
     {
       resultDataSize = 0;
 
@@ -212,6 +212,9 @@ namespace NGT {
 	      loadGroundTruth(gtStream, gt, resultDataSize, farthestDistance);
 	    } else {
 	      loadGroundTruth(gtStream, gt, groundTruthSize, farthestDistance);
+	    }
+	    if (approximateDistance) {
+	      farthestDistance = 0.0;
 	    }
 	    sumup(resultStream, queryNo, sumupValues,
 		  gt, resultDataSize, type, recall, farthestDistance);
@@ -513,7 +516,7 @@ namespace NGT {
     }
 
     static void exploreEpsilonForAccuracy(NGT::Index &index, std::istream &queries, std::istream &gtStream, 
-					  Command::SearchParameter &sp, std::pair<float, float> accuracyRange, double margin) 
+					  Command::SearchParameters &sp, std::pair<float, float> accuracyRange, double margin) 
     {
       double fromUnder = 0.0;
       double fromOver = 1.0;
@@ -647,14 +650,14 @@ namespace NGT {
       NGTThrowException(msg);
     }
 
-    MeasuredValue measure(std::istream &queries, std::istream &gtStream, Command::SearchParameter &searchParameter, std::pair<float, float> accuracyRange, double margin) {
+    MeasuredValue measure(std::istream &queries, std::istream &gtStream, Command::SearchParameters &searchParameters, std::pair<float, float> accuracyRange, double margin) {
 
-      exploreEpsilonForAccuracy(index, queries, gtStream, searchParameter, accuracyRange, margin);
+      exploreEpsilonForAccuracy(index, queries, gtStream, searchParameters, accuracyRange, margin);
     
       std::stringstream resultStream;
       queries.clear();
       queries.seekg(0, std::ios_base::beg);
-      NGT::Command::search(index, searchParameter, queries, resultStream);
+      NGT::Command::search(index, searchParameters, queries, resultStream);
       gtStream.clear();
       gtStream.seekg(0, std::ios_base::beg);
       resultStream.clear();
@@ -677,8 +680,8 @@ namespace NGT {
       return v;
     }
 
-    std::pair<size_t, double> adjustBaseSearchEdgeSize(std::stringstream &queries, Command::SearchParameter &searchParameter, std::stringstream &gtStream, std::pair<float, float> accuracyRange, float marginInit = 0.2, size_t prevBase = 0) {
-      searchParameter.edgeSize = -2;
+    std::pair<size_t, double> adjustBaseSearchEdgeSize(std::stringstream &queries, Command::SearchParameters &searchParameters, std::stringstream &gtStream, std::pair<float, float> accuracyRange, float marginInit = 0.2, size_t prevBase = 0) {
+      searchParameters.edgeSize = -2;
       size_t minimumBase = 4;
       size_t minimumStep = 2;
       size_t baseStartInit = 1;
@@ -704,7 +707,7 @@ namespace NGT {
 		msg << "base is too large! " << base;
 		NGTThrowException(msg);
 	      }
-	      searchParameter.step = 10;
+	      searchParameters.step = 10;
 	      NGT::GraphIndex &graphIndex = static_cast<GraphIndex&>(index.getIndex());
 	      NeighborhoodGraph::Property &prop = graphIndex.getGraphProperty();
 	      prop.dynamicEdgeSizeBase = base;
@@ -712,7 +715,7 @@ namespace NGT {
 	      if (times.count(base) == 0) {
 		for (;;) {
 		  try {
-		    auto values = measure(queries, gtStream, searchParameter, accuracyRange, margin);
+		    auto values = measure(queries, gtStream, searchParameters, accuracyRange, margin);
 		    time = values.meanTime;
 		    break;
 		  } catch(NGT::Exception &err) {
@@ -767,18 +770,18 @@ namespace NGT {
       extractQueries(querySize, queries);
 
       std::cerr << "adjustBaseSearchEdgeSize: create GT..." << std::endl;
-      Command::SearchParameter searchParameter;
-      searchParameter.edgeSize = -1;
+      Command::SearchParameters searchParameters;
+      searchParameters.edgeSize = -1;
       std::stringstream gtStream;
-      createGroundTruth(index, epsilon, searchParameter, queries, gtStream);
+      createGroundTruth(index, epsilon, searchParameters, queries, gtStream);
 
-      auto base = adjustBaseSearchEdgeSize(queries, searchParameter, gtStream, accuracyRange, margin);
+      auto base = adjustBaseSearchEdgeSize(queries, searchParameters, gtStream, accuracyRange, margin);
       return base.first;
     }
 
 
-    std::pair<size_t, double> adjustRateSearchEdgeSize(std::stringstream &queries, Command::SearchParameter &searchParameter, std::stringstream &gtStream, std::pair<float, float> accuracyRange, float marginInit = 0.2, size_t prevRate = 0) {
-      searchParameter.edgeSize = -2;
+    std::pair<size_t, double> adjustRateSearchEdgeSize(std::stringstream &queries, Command::SearchParameters &searchParameters, std::stringstream &gtStream, std::pair<float, float> accuracyRange, float marginInit = 0.2, size_t prevRate = 0) {
+      searchParameters.edgeSize = -2;
       size_t minimumRate = 2;
       size_t minimumStep = 4;
       size_t rateStartInit = 1;
@@ -804,7 +807,7 @@ namespace NGT {
 		msg << "rate is too large! " << rate;
 		NGTThrowException(msg);
 	      }
-	      searchParameter.step = 10;
+	      searchParameters.step = 10;
 	      NGT::GraphIndex &graphIndex = static_cast<GraphIndex&>(index.getIndex());
 	      NeighborhoodGraph::Property &prop = graphIndex.getGraphProperty();
 	      prop.dynamicEdgeSizeRate = rate;
@@ -812,7 +815,7 @@ namespace NGT {
 	      if (times.count(rate) == 0) {
 		for (;;) {
 		  try {
-		    auto values = measure(queries, gtStream, searchParameter, accuracyRange, margin);
+		    auto values = measure(queries, gtStream, searchParameters, accuracyRange, margin);
 		    time = values.meanTime;
 		    break;
 		  } catch(NGT::Exception &err) {
@@ -869,17 +872,17 @@ namespace NGT {
       std::stringstream queries;
       std::stringstream gtStream;
 
-      Command::SearchParameter searchParameter;
-      searchParameter.edgeSize = -1;
+      Command::SearchParameters searchParameters;
+      searchParameters.edgeSize = -1;
       NGT::GraphIndex &graphIndex = static_cast<GraphIndex&>(index.getIndex());
       NeighborhoodGraph::Property &prop = graphIndex.getGraphProperty();
-      searchParameter.size = nOfResults;
+      searchParameters.size = nOfResults;
       redirector.begin();
       try {
 	std::cerr << "adjustSearchEdgeSize: Extract queries for GT..." << std::endl;
 	extractQueries(querySize, queries);
 	std::cerr << "adjustSearchEdgeSize: create GT..." << std::endl;
-	createGroundTruth(index, epsilon, searchParameter, queries, gtStream);
+	createGroundTruth(index, epsilon, searchParameters, queries, gtStream);
       } catch (NGT::Exception &err) {
 	std::cerr << "adjustSearchEdgeSize: Error!! Cannot adjust. " << err.what() << std::endl;
 	redirector.end();
@@ -898,14 +901,14 @@ namespace NGT {
 	try {
 	  prop.dynamicEdgeSizeRate = rate.first;
 	  prevBase = base;
-	  base = adjustBaseSearchEdgeSize(queries, searchParameter, gtStream, baseAccuracyRange, margin, prevBase.first);
+	  base = adjustBaseSearchEdgeSize(queries, searchParameters, gtStream, baseAccuracyRange, margin, prevBase.first);
 	  std::cerr << "adjustRateSearchEdgeSize: Base: base=" << prevBase.first << "->" << base.first << ",rate=" << prevRate.first << "->" << rate.first << std::endl;
 	  if (prevBase.first == base.first) {
 	    break;
 	  }
 	  prop.dynamicEdgeSizeBase = base.first;
 	  prevRate = rate;
-	  rate = adjustRateSearchEdgeSize(queries, searchParameter, gtStream, rateAccuracyRange, margin, prevRate.first);
+	  rate = adjustRateSearchEdgeSize(queries, searchParameters, gtStream, rateAccuracyRange, margin, prevRate.first);
 	  std::cerr << "adjustRateSearchEdgeSize: Rate base=" << prevBase.first << "->" << base.first << ",rate=" << prevRate.first << "->" << rate.first << std::endl;
 	  if (prevRate.first == rate.first) {
 	    break;
@@ -1212,12 +1215,12 @@ namespace NGT {
 
     }
 
-    static void createGroundTruth(NGT::Index &index, double epsilon, Command::SearchParameter &searchParameter, std::stringstream &queries, std::stringstream &gtStream){
+    static void createGroundTruth(NGT::Index &index, double epsilon, Command::SearchParameters &searchParameters, std::stringstream &queries, std::stringstream &gtStream){
       queries.clear();
       queries.seekg(0, std::ios_base::beg);
-      searchParameter.outputMode = 'e';
-      searchParameter.beginOfEpsilon = searchParameter.endOfEpsilon = epsilon;
-      NGT::Command::search(index, searchParameter, queries, gtStream);
+      searchParameters.outputMode = 'e';
+      searchParameters.beginOfEpsilon = searchParameters.endOfEpsilon = epsilon;
+      NGT::Command::search(index, searchParameters, queries, gtStream);
     }
 
     static int 
@@ -1359,6 +1362,11 @@ namespace NGT {
 	std::cerr << "Recall" << std::endl;
 	recall = true;
       }
+      bool approximateDistance = false;
+      if (args.getChar("m", '-') == 'a') {
+	std::cerr << "Approximate distance" << std::endl;
+	approximateDistance = true;
+      }
       char omode = args.getChar("o", '-');
     
       std::ifstream	resultStream(resultFile);
@@ -1378,7 +1386,7 @@ namespace NGT {
       std::string type;
       size_t actualResultSize = 0;
       std::vector<MeasuredValue> accuracies =
-	evaluate(gtStream, resultStream, type, actualResultSize, resultSize, groundTruthSize, recall);
+	evaluate(gtStream, resultStream, type, actualResultSize, resultSize, groundTruthSize, recall, approximateDistance);
 
       std::cout << "# # of evaluated resultant objects per query=" << actualResultSize << std::endl;
       if (recall) {
@@ -1469,13 +1477,13 @@ namespace NGT {
 
       {
 	// generate (pseudo) ground truth data
-	NGT::Command::SearchParameter searchParameter;
-	searchParameter.size = nOfResults;
-	searchParameter.outputMode = 'e';
-	searchParameter.edgeSize = 0;	// get the best accuracy by using all edges
-	//searchParameter.indexType = 's'; // linear search
+	NGT::Command::SearchParameters searchParameters;
+	searchParameters.size = nOfResults;
+	searchParameters.outputMode = 'e';
+	searchParameters.edgeSize = 0;	// get the best accuracy by using all edges
+	//searchParameters.indexType = 's'; // linear search
 	extractQueries(queries, queryStream);
-	NGT::Optimizer::createGroundTruth(index, maxEpsilon, searchParameter, queryStream, gtStream);
+	NGT::Optimizer::createGroundTruth(index, maxEpsilon, searchParameters, queryStream, gtStream);
       }
     }
 
@@ -1508,12 +1516,12 @@ namespace NGT {
 	do {
 	  auto pair = map.find(epsilon);
 	  if (pair == map.end()) {
-	    NGT::Command::SearchParameter searchParameter;
-	    searchParameter.outputMode = 'e';
-	    searchParameter.beginOfEpsilon = searchParameter.endOfEpsilon = epsilon;
+	    NGT::Command::SearchParameters searchParameters;
+	    searchParameters.outputMode = 'e';
+	    searchParameters.beginOfEpsilon = searchParameters.endOfEpsilon = epsilon;
 	    queryStream.clear();
 	    queryStream.seekg(0, std::ios_base::beg);
-	    NGT::Optimizer::search(index, queryStream, gtStream, searchParameter, acc);
+	    NGT::Optimizer::search(index, queryStream, gtStream, searchParameters, acc);
 	    if (acc.size() == 0) {
 	      NGTThrowException("Fatal error! Cannot get any accuracy value.");
 	    }

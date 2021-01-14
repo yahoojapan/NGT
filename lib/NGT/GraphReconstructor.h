@@ -155,10 +155,10 @@ class GraphReconstructor {
   }
 
   static void 
-    adjustPathsEffectively(NGT::Index &outIndex)
+    adjustPathsEffectively(NGT::Index &outIndex, size_t minNoOfEdges = 0)
   {
     NGT::GraphIndex	&outGraph = dynamic_cast<NGT::GraphIndex&>(outIndex.getIndex());
-    adjustPathsEffectively(outGraph);
+    adjustPathsEffectively(outGraph, minNoOfEdges);
   }
 
   static bool edgeComp(NGT::ObjectDistance a, NGT::ObjectDistance b) {
@@ -195,7 +195,8 @@ class GraphReconstructor {
 
 
   static void 
-    adjustPathsEffectively(NGT::GraphIndex &outGraph)
+    adjustPathsEffectively(NGT::GraphIndex &outGraph,
+			   size_t minNoOfEdges) 
   {
     Timer timer;
     timer.start();
@@ -310,7 +311,7 @@ class GraphReconstructor {
 	try {
 	  NGT::GraphNode &srcNode = tmpGraph[idx];
 	  if (rank >= srcNode.size()) {
-	    if (!removeCandidates[idx].empty()) {
+	    if (!removeCandidates[idx].empty() && minNoOfEdges == 0) {
 	      std::cerr << "Something wrong! ID=" << id << " # of remaining candidates=" << removeCandidates[idx].size() << std::endl;
 	      abort();
 	    }
@@ -321,7 +322,7 @@ class GraphReconstructor {
 	    it = ids.erase(it);
 	    continue;
 	  }
-	  if (removeCandidates[idx].size() > 0) {
+	  if (removeCandidates[idx].size() > 0 && ((*outGraph.getNode(id)).size() + srcNode.size() - rank) > minNoOfEdges) {
 	    removeCandidateCount++;
 	    bool pathExist = false;
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
@@ -803,6 +804,8 @@ class GraphReconstructor {
     size_t nOfObjects = objectRepository.size();
     bool error = false;
     std::string errorMessage;
+
+    size_t noOfSearchedEdges = noOfEdges < 0 ? -noOfEdges : (noOfEdges > prop.edgeSizeForCreation ? noOfEdges : prop.edgeSizeForCreation);
     for (size_t bid = 1; bid < nOfObjects; bid += batchSize) {
       NGT::ObjectDistances results[batchSize];
       // search
@@ -818,7 +821,7 @@ class GraphReconstructor {
 	NGT::SearchContainer searchContainer(*objectRepository.get(id));
 	searchContainer.setResults(&results[idx]);
 	assert(prop.edgeSizeForCreation > 0);
-	searchContainer.setSize(noOfEdges > prop.edgeSizeForCreation ? noOfEdges : prop.edgeSizeForCreation);
+	searchContainer.setSize(noOfSearchedEdges);
 	if (accuracy > 0.0) {
           searchContainer.setExpectedAccuracy(accuracy);
         } else {
@@ -886,7 +889,7 @@ class GraphReconstructor {
 	}
       }
     }
-    if (noOfEdges != 0) {
+    if (noOfEdges > 0) {
       // prune to build knng
       size_t  nedges = noOfEdges < 0 ? -noOfEdges : noOfEdges;
 #pragma omp parallel for

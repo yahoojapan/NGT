@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2016 Yahoo Japan Corporation
+// Copyright (C) 2016-2020 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,16 +14,16 @@
 // limitations under the License.
 //
 
-#include	"NGT/NGTQ/NGTQCommand.h"
+#include	"NGT/NGTQ/NGTQGCommand.h"
 
 int
 main(int argc, char **argv)
 {
   NGT::Args args(argc, argv);
 
-  NGTQ::Command ngtq;
+  NGTQG::Command ngt;
 
-  ngtq.execute(args);
+  ngt.execute(args);
 }
 
 

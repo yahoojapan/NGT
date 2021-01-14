@@ -173,7 +173,8 @@ namespace NGT {
       DistanceTypeNormalizedAngle	= 5,
       DistanceTypeNormalizedCosine	= 6,
       DistanceTypeJaccard		= 7,
-      DistanceTypeSparseJaccard		= 8
+      DistanceTypeSparseJaccard		= 8,
+      DistanceTypeNormalizedL2		= 9
     };
 
     enum ObjectType {
@@ -238,8 +239,10 @@ namespace NGT {
 
     virtual void *getObject(size_t idx) = 0;
     virtual void getObject(size_t idx, std::vector<float> &v) = 0;
+    virtual std::vector<float> getObject(Object &object) = 0;
     virtual void getObjects(const std::vector<size_t> &idxs, std::vector<std::vector<float>> &vs) = 0;
 
+    DistanceType getDistanceType() { return distanceType; }
     size_t getDimension() { return dimension; }
     size_t getPaddedDimension() { return ((dimension - 1) / 16 + 1) * 16; }
 

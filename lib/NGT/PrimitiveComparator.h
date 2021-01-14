@@ -222,6 +222,15 @@ namespace NGT {
       return sqrt(s);
     }
 #endif
+
+    template <typename OBJECT_TYPE> 
+    inline static double compareNormalizedL2(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
+      double v = 2.0 - 2.0 * compareDotProduct(a, b, size);
+
+      return sqrt(v);
+    }
+
+
 #if defined(NGT_NO_AVX)
     template <typename OBJECT_TYPE, typename COMPARE_TYPE> 
     static double compareL1(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
@@ -639,6 +648,13 @@ namespace NGT {
       }
     };
 
+    class NormalizedL2Float {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	return PrimitiveComparator::compareNormalizedL2((const float*)a, (const float*)b, size);
+      }
+    };
+
     class L1Float {
     public:
       inline static double compare(const void *a, const void *b, size_t size) {
@@ -653,17 +669,17 @@ namespace NGT {
       }
     };
 
-    class AngleFloat {
-    public:
-      inline static double compare(const void *a, const void *b, size_t size) {
-	return PrimitiveComparator::compareAngleDistance((const float*)a, (const float*)b, size);
-      }
-    };
-
     class NormalizedCosineSimilarityFloat {
     public:
       inline static double compare(const void *a, const void *b, size_t size) {
 	return PrimitiveComparator::compareNormalizedCosineSimilarity((const float*)a, (const float*)b, size);
+      }
+    };
+
+    class AngleFloat {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	return PrimitiveComparator::compareAngleDistance((const float*)a, (const float*)b, size);
       }
     };
 

@@ -1135,6 +1135,11 @@ NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode, siz
       size_t in = indegreeHistogram.size() <= i ? 0 : indegreeHistogram[i];
       std::cerr << i << "\t" << out << "\t" << in << std::endl;
     }
+  } else if (mode == 'p') {
+    std::cerr << "ID\toutdegree\tindegree" << std::endl;
+    for (size_t id = 1; id < graph.size(); id++) {
+      std::cerr << id << "\t" << outGraph.getNode(id)->size() << "\t" << indegreeCount[id] << std::endl;
+    }
   }
   return valid;
 }
@@ -1295,19 +1300,16 @@ GraphAndTreeIndex::createIndex(const vector<pair<NGT::Object*, size_t> > &object
 	  cnt = output.size();
 	}
 	{
-	  // This processing occupies about 30% of total indexing time when batch size is 200.
-	  // Only initial batch objects should be connected for each other.
-	  // The number of nodes in the graph is checked to know whether the batch is initial.
 	  size_t size = NeighborhoodGraph::property.edgeSizeForCreation;
-	  // add distances from a current object to subsequence objects to imitate of sequential insertion.
-
 	  sort(output.begin(), output.end());	
 	  for (size_t idxi = 0; idxi < cnt; idxi++) {
 	    // add distances
 	    ObjectDistances &objs = *output[idxi].results;
 	    for (size_t idxj = 0; idxj < idxi; idxj++) {
+	      if (output[idxi].batchIdx == output[idxj].batchIdx) {
+		continue;
+	      }
 	      if (output[idxj].id == 0) {
-		// unregistered object
 		continue;
 	      }
 	      ObjectDistance	r;
@@ -1315,7 +1317,7 @@ GraphAndTreeIndex::createIndex(const vector<pair<NGT::Object*, size_t> > &object
 	      r.id = output[idxj].id;
 	      objs.push_back(r);
 	    }
-	    // sort and cut excess edges	    
+
 	    std::sort(objs.begin(), objs.end());
 	    if (objs.size() > size) {
 	      objs.resize(size);
@@ -1327,7 +1329,7 @@ GraphAndTreeIndex::createIndex(const vector<pair<NGT::Object*, size_t> > &object
 	      ids[output[idxi].batchIdx].identical = true;
 	      ids[output[idxi].batchIdx].id = objs[0].id;
 	      ids[output[idxi].batchIdx].distance = objs[0].distance;
-	      output[idxi].id = 0;
+	      output[idxi].id = 0;	
 	    } else {
 	      assert(output[idxi].id == 0);
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR

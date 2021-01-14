@@ -472,18 +472,20 @@ namespace NGT {
     size_t size() const { return (size_t)vectorSize; }
 
     void extend() {
-      if (vectorSize == allocatedSize) {
-	if (vectorSize == 0) {
-	  reserve(2);
-	} else {
-	  uint64_t size = vectorSize;
+      extend(vectorSize);
+    }
+
+    void extend(size_t idx) {
+      if (idx >= allocatedSize) {
+	uint64_t size = allocatedSize == 0 ? 1 : allocatedSize;
+	do {
 	  size <<= 1;
-	  if (size > 0xffff) {
-	    std::cerr << "CompactVector is too big. " << size << std::endl;
-	    abort();
-	  }
-	  reserve(size);
+	} while (size <= idx);
+	if (size > 0xffff) {
+	  std::cerr << "CompactVector is too big. " << size << std::endl;
+	  abort();
 	}
+	reserve(size);
       }
     }
 
@@ -976,25 +978,392 @@ namespace NGT {
 
     void extend(size_t idx, SharedMemoryAllocator &allocator) {
       if (idx >= allocatedSize) {
-	if (idx == 0) {
-	  reserve(2, allocator);
-	} else {
-	  uint64_t size = allocatedSize == 0 ? 1 : allocatedSize;
-	  do {
-	    size <<= 1;
-	  } while (size <= idx);
-	  if (size > 0xffffffff) {
-	    std::cerr << "Vector is too big. " << size << std::endl;
-	    abort();
-	  }
-	  reserve(size, allocator);
+	uint64_t size = allocatedSize == 0 ? 1 : allocatedSize;
+	do {
+	  size <<= 1;
+	} while (size <= idx);
+	if (size > 0xffffffff) {
+	  std::cerr << "Vector is too big. " << size << std::endl;
+	  abort();
 	}
+	reserve(size, allocator);
       }
     }
 
     off_t vector;
     uint32_t vectorSize;
     uint32_t allocatedSize;
+  };
+#endif 
+
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+  template <class TYPE> 
+    class DynamicLengthVector {
+  public:
+    typedef TYPE *	iterator;
+
+    DynamicLengthVector(): vector(0), vectorSize(0), allocatedSize(0), elementSize(0) {}
+    ~DynamicLengthVector() {}
+
+    void clear(SharedMemoryAllocator &allocator) {
+      if (vector != 0) {
+	allocator.free(allocator.getAddr(vector));
+      }
+      vector = 0;
+      vectorSize = 0;
+      allocatedSize = 0;
+    }
+
+    TYPE &front(SharedMemoryAllocator &allocator) { return (*this).at(0, allocator); }
+    TYPE &back(SharedMemoryAllocator &allocator) { return (*this).at(vectorSize - 1, allocator); }
+    bool empty() { return vectorSize == 0; }
+    iterator begin(SharedMemoryAllocator &allocator) { 
+      return (TYPE*)allocator.getAddr((off_t)vector); 
+    }
+    iterator end(SharedMemoryAllocator &allocator) {
+      return begin(allocator) + vectorSize;
+    }
+
+    DynamicLengthVector &operator=(DynamicLengthVector<TYPE> &v) {
+      std::cerr << "DynamicLengthVector cannot be copied." << std::endl;
+      abort();
+    }
+
+    TYPE &at(size_t idx, SharedMemoryAllocator &allocator) {
+      if (idx >= vectorSize) {
+	std::stringstream msg;
+	msg << "Vector: beyond the range. " << idx << ":" << vectorSize;
+	NGTThrowException(msg);  
+      }
+      return *reinterpret_cast<TYPE*>(reinterpret_cast<uint8_t*>(begin(allocator)) + idx * elementSize);
+    }
+    
+    void copy(TYPE &dst, const TYPE &src) {
+      memcpy(&dst, &src, elementSize);
+    }
+
+    iterator erase(iterator b, iterator e, SharedMemoryAllocator &allocator) {
+      iterator ret;
+      e = end(allocator) < e ? end(allocator) : e;
+      for (iterator i = b; i < e; i++) {
+	ret = erase(i, allocator);
+      }
+      return ret;
+    }
+
+    iterator erase(iterator i, SharedMemoryAllocator &allocator) {
+      iterator back = i;
+      vectorSize--;
+      iterator e = end(allocator);
+      for (; i < e; i++) {
+	copy(*i, *(i + 1));
+      }
+      return back;
+    }
+
+    void pop_back() {
+      if (vectorSize > 0) {
+	vectorSize--;
+      }
+    }
+    iterator insert(iterator &i, const TYPE &data, SharedMemoryAllocator &allocator) {
+      if (size() == 0) {
+	push_back(data, allocator);
+	return end(allocator);
+      }
+      off_t oft = i - begin(allocator);
+      extend(allocator);
+      i = begin(allocator) + oft;
+      iterator b = begin(allocator);
+      for (iterator ci = end(allocator); ci > i && ci != b; ci--) {
+	copy(*ci, *(ci - 1));
+      }
+      copy(*i, data);
+      vectorSize++;
+      return i + 1;
+    }
+
+    void push_back(const TYPE &data, SharedMemoryAllocator &allocator) {
+      extend(allocator);
+      vectorSize++;
+      copy((*this).at(vectorSize - 1, allocator), data);
+    }
+
+    void reserve(size_t s, SharedMemoryAllocator &allocator) {
+      if (s <= allocatedSize) {
+	return;
+      } else {
+	uint8_t *newptr = new(allocator) uint8_t[s * elementSize];
+	uint8_t *dstptr = newptr;
+	uint8_t *srcptr = static_cast<uint8_t*>(allocator.getAddr(vector));
+	memcpy(dstptr, srcptr, vectorSize * elementSize);
+	allocatedSize = s;
+	if (vector != 0) {
+	  allocator.free(allocator.getAddr(vector));
+	}
+	vector = allocator.getOffset(newptr);
+      }
+    }
+
+    void resize(size_t s, SharedMemoryAllocator &allocator, TYPE v = TYPE()) {
+      if (s > allocatedSize) {
+	size_t asize = allocatedSize == 0 ? 1 : allocatedSize;
+	while (asize < s) {
+	  asize <<= 1;
+	}
+	reserve(asize, allocator);
+	uint8_t *base = allocator.getAddr(vector);
+	uint8_t *dstptr = base + vectorSize;
+	for (size_t i = vectorSize; i < s; i++) {
+	  copy(*(base + i * elementSize), v);
+	}
+      }
+      vectorSize = s;
+    }
+
+    void serializeAsText(std::ostream &os, ObjectSpace *objectspace = 0) { 
+      unsigned int s = size();
+      os << s << " ";
+      for (unsigned int i = 0; i < s; i++) {
+	Serializer::writeAsText(os, (*this)[i]);
+	os << " ";
+      }
+    }
+
+
+    void deserializeAsText(std::istream &is, ObjectSpace *objectspace = 0) { 
+      clear();
+      size_t s;
+      Serializer::readAsText(is, s);
+      resize(s);
+      for (unsigned int i = 0; i < s; i++) {
+	Serializer::readAsText(is, (*this)[i]);
+      }
+    }
+
+
+    size_t size() { return vectorSize; }
+
+  public:
+    void extend(SharedMemoryAllocator &allocator) {
+      extend(vectorSize, allocator);
+    }
+
+    void extend(size_t idx, SharedMemoryAllocator &allocator) {
+      if (idx >= allocatedSize) {
+	uint64_t size = allocatedSize == 0 ? 1 : allocatedSize;
+	do {
+	  size <<= 1;
+	} while (size <= idx);
+	if (size > 0xffffffff) {
+	  std::cerr << "Vector is too big. " << size << std::endl;
+	  abort();
+	}
+	reserve(size, allocator);
+      }
+    }
+
+    off_t vector;
+    uint32_t vectorSize;
+    uint32_t allocatedSize;
+    uint32_t elementSize;
+  };
+
+#else // NGT_SHARED_MEMORY_ALLOCATOR
+
+  template <class TYPE> 
+    class DynamicLengthVector {
+  public:
+    typedef TYPE *	iterator;
+
+    DynamicLengthVector(): vector(0), vectorSize(0), allocatedSize(0), elementSize(0) {}
+    ~DynamicLengthVector() { clear(); }
+
+    void clear() {
+      if (vector != 0) {
+	delete[] vector;
+      }
+      vector = 0;
+      vectorSize = 0;
+      allocatedSize = 0;
+    }
+
+    TYPE &front() { return (*this).at(0); }
+    TYPE &back() { return (*this).at(vectorSize - 1); }
+    bool empty() { return vectorSize == 0; }
+    iterator begin() { 
+      return reinterpret_cast<iterator>(vector); 
+    }
+    iterator end(SharedMemoryAllocator &allocator) {
+      return begin() + vectorSize;
+    }
+
+    DynamicLengthVector &operator=(DynamicLengthVector<TYPE> &v) {
+      std::cerr << "DynamicLengthVector cannot be copied." << std::endl;
+      abort();
+    }
+
+    TYPE &at(size_t idx) {
+      if (idx >= vectorSize) {
+	std::stringstream msg;
+	msg << "Vector: beyond the range. " << idx << ":" << vectorSize;
+	NGTThrowException(msg);  
+      }
+      return *reinterpret_cast<TYPE*>(reinterpret_cast<uint8_t*>(begin()) + idx * elementSize);
+    }
+
+    TYPE &operator[](size_t idx) {
+      return *reinterpret_cast<TYPE*>(reinterpret_cast<uint8_t*>(begin()) + idx * elementSize);
+    }
+    
+    void copy(TYPE &dst, const TYPE &src) {
+      memcpy(&dst, &src, elementSize);
+    }
+
+    iterator erase(iterator b, iterator e) {
+      iterator ret;
+      e = end() < e ? end() : e;
+      for (iterator i = b; i < e; i++) {
+	ret = erase(i);
+      }
+      return ret;
+    }
+
+    iterator erase(iterator i) {
+      iterator back = i;
+      vectorSize--;
+      iterator e = end();
+      for (; i < e; i++) {
+	copy(*i, *(i + 1));
+      }
+      return back;
+    }
+
+    void pop_back() {
+      if (vectorSize > 0) {
+	vectorSize--;
+      }
+    }
+
+    iterator insert(iterator &i, const TYPE &data) {
+      if (size() == 0) {
+	push_back(data);
+	return end();
+      }
+      off_t oft = i - begin();
+      extend();
+      i = begin() + oft;
+      iterator b = begin();
+      for (iterator ci = end(); ci > i && ci != b; ci--) {
+	copy(*ci, *(ci - 1));
+      }
+      copy(*i, data);
+      vectorSize++;
+      return i + 1;
+    }
+
+    void push_back(const TYPE &data) {
+      extend();
+      vectorSize++;
+      copy((*this).at(vectorSize - 1), data);
+    }
+
+    void reserve(size_t s) {
+      if (s <= allocatedSize) {
+	return;
+      } else {
+	uint8_t *newptr = new uint8_t[s * elementSize];
+	uint8_t *dstptr = newptr;
+	uint8_t *srcptr = vector;
+	memcpy(dstptr, srcptr, vectorSize * elementSize);
+	allocatedSize = s;
+	if (vector != 0) {
+	  delete[] vector;
+	}
+	vector = newptr;
+      }
+    }
+
+    void resize(size_t s, TYPE v = TYPE()) {
+      if (s > allocatedSize) {
+	size_t asize = allocatedSize == 0 ? 1 : allocatedSize;
+	while (asize < s) {
+	  asize <<= 1;
+	}
+	reserve(asize);
+	uint8_t *base = vector;
+	for (size_t i = vectorSize; i < s; i++) {
+	  copy(*reinterpret_cast<TYPE*>(base + i * elementSize), v);
+	}
+      }
+      vectorSize = s;
+    }
+
+    void serializeAsText(std::ostream &os, ObjectSpace *objectspace = 0) { 
+      unsigned int s = size();
+      os << s << " ";
+      for (unsigned int i = 0; i < s; i++) {
+	Serializer::writeAsText(os, (*this)[i]);
+	os << " ";
+      }
+    }
+
+
+    void deserializeAsText(std::istream &is, ObjectSpace *objectspace = 0) { 
+      clear();
+      size_t s;
+      Serializer::readAsText(is, s);
+      resize(s);
+      for (unsigned int i = 0; i < s; i++) {
+	Serializer::readAsText(is, (*this)[i]);
+      }
+    }
+
+
+    void serialize(std::ofstream &os, NGT::ObjectSpace *objspace = 0) {
+      uint32_t sz = size();
+      NGT::Serializer::write(os, sz);    
+      os.write(reinterpret_cast<char*>(vector), size() * elementSize);
+    }
+
+    void deserialize(std::ifstream &is, NGT::ObjectSpace *objectspace = 0) {
+      uint32_t sz;
+      try {
+	NGT::Serializer::read(is, sz);
+      } catch(NGT::Exception &err) {
+	std::stringstream msg;
+	msg << "DynamicLengthVector::deserialize: It might be caused by inconsistency of the valuable type of the vector. " << err.what();
+	NGTThrowException(msg);
+      }
+      resize(sz);
+      is.read(reinterpret_cast<char*>(vector), sz * elementSize);
+    }
+
+    size_t size() { return vectorSize; }
+
+  public:
+    void extend() {
+      extend(vectorSize);
+    }
+
+    void extend(size_t idx) {
+      if (idx >= allocatedSize) {
+	uint64_t size = allocatedSize == 0 ? 1 : allocatedSize;
+	do {
+	  size <<= 1;
+	} while (size <= idx);
+	if (size > 0xffffffff) {
+	  std::cerr << "Vector is too big. " << size << std::endl;
+	  abort();
+	}
+	reserve(size);
+      }
+    }
+
+    uint8_t* vector;
+    uint32_t vectorSize;
+    uint32_t allocatedSize;
+    uint32_t elementSize;
   };
 
 #endif // NGT_SHARED_MEMORY_ALLOCATOR
@@ -1550,7 +1919,7 @@ namespace NGT {
       }
       this->clear();
 #ifdef ADVANCED_USE_REMOVED_LIST
-      while(!removedList.empty()){ removedList.pop(); };
+      while(!removedList.empty()){ removedList.pop(); }
 #endif
     }
 
@@ -1632,7 +2001,7 @@ namespace NGT {
     Object		&object;
     ObjectID		id;
   };
-
+  
   typedef std::priority_queue<ObjectDistance, std::vector<ObjectDistance>, std::less<ObjectDistance> > ResultPriorityQueue;
 
   class SearchContainer : public NGT::Container {
@@ -1698,11 +2067,11 @@ namespace NGT {
     ObjectDistances	*result;
   };
 
-  class SearchQuery : public NGT::SearchContainer {
+
+  class QueryContainer {
   public:
-    template <typename QTYPE> SearchQuery(const std::vector<QTYPE> &q):query(0) { setQuery(q); }
-    template <typename QTYPE> SearchQuery(SearchContainer &sc, const std::vector<QTYPE> &q): SearchContainer(sc), query(0) { setQuery(q); }
-    ~SearchQuery() { deleteQuery(); }
+    template <typename QTYPE> QueryContainer(const std::vector<QTYPE> &q):query(0) { setQuery(q); }
+    ~QueryContainer() { deleteQuery(); }
 
     template <typename QTYPE> void setQuery(const std::vector<QTYPE> &q) {
       if (query != 0) {
@@ -1739,6 +2108,11 @@ namespace NGT {
     const std::type_info	*queryType;
   };
 
+  class SearchQuery : public NGT::QueryContainer, public NGT::SearchContainer {
+    public:
+    template <typename QTYPE> SearchQuery(const std::vector<QTYPE> &q):NGT::QueryContainer(q) { }
+  };
+  
   class InsertContainer : public Container {
   public:
     InsertContainer(Object &f, ObjectID i):Container(f, i) {}

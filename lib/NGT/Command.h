@@ -22,9 +22,21 @@ namespace NGT {
 
 class Command {
 public:
-  class SearchParameter {
+  class CreateParameters {
   public:
-    SearchParameter() {
+    CreateParameters() {}
+    CreateParameters(Args &args);
+
+    std::string index;
+    std::string objectPath;
+    size_t numOfObjects;
+    NGT::Property property;
+    char indexType;
+  };
+  
+  class SearchParameters {
+  public:
+    SearchParameters() {
       openMode   = 'r';
       query      = "";
       querySize  = 0;
@@ -38,7 +50,7 @@ public:
       beginOfEpsilon = endOfEpsilon = stepOfEpsilon = 0.1;
       accuracy	 = 0.0;
     }
-    SearchParameter(Args &args) { parse(args); }
+    SearchParameters(Args &args) { parse(args); }
     void parse(Args &args) {
       openMode = args.getChar("m", 'r');
       try {
@@ -94,16 +106,16 @@ public:
 
   void create(Args &args);
   void append(Args &args);
-  static void search(NGT::Index &index, SearchParameter &searchParameter, std::ostream &stream)
+  static void search(NGT::Index &index, SearchParameters &searchParameters, std::ostream &stream)
   {
-    std::ifstream		is(searchParameter.query);
+    std::ifstream		is(searchParameters.query);
     if (!is) {
-      std::cerr << "Cannot open the specified file. " << searchParameter.query << std::endl;
+      std::cerr << "Cannot open the specified file. " << searchParameters.query << std::endl;
       return;
     }
-    search(index, searchParameter, is, stream);
+    search(index, searchParameters, is, stream);
   }
-  static void search(NGT::Index &index, SearchParameter &searchParameter, std::istream &is, std::ostream &stream);
+  static void search(NGT::Index &index, SearchParameters &searchParameters, std::istream &is, std::ostream &stream);
   void search(Args &args);
   void remove(Args &args);
   void exportIndex(Args &args);
