@@ -292,6 +292,7 @@ namespace NGTQG {
 	    NGT::ObjectRepository &objectRepository = NGT::Index::getObjectSpace().getRepository();
 	    NGT::ObjectSpace::Comparator &comparator =  NGT::Index::getObjectSpace().getComparator();
 	    for (auto i = qresults.begin(); i != qresults.end(); ++i) {
+#ifdef NGTQG_PREFETCH
 	      if (static_cast<size_t>(distance(qresults.begin(), i + 10)) < qresults.size()) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)    
 		NGT::PersistentObject &o = *objectRepository.get((*(i + 10)).id);
@@ -300,6 +301,7 @@ namespace NGTQG {
 #endif
 		_mm_prefetch(&o[0], _MM_HINT_T0);
 	      }
+#endif
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
 	      NGT::PersistentObject &obj = *objectRepository.get((*i).id);
 #else

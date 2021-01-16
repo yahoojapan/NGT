@@ -23,6 +23,7 @@
 
 #define NGTQ_SIMD_BLOCK_SIZE	16	
 #define NGTQ_BATCH_SIZE	2	
+#define NGTQG_PREFETCH
 #if defined(NGT_AVX512)
 #define NGTQG_AVX512	
 #warning "AVX512 is available for NGTQG"
@@ -30,9 +31,9 @@
 #define NGTQG_AVX2
 #warning "AVX2 is available for NGTQG"
 #else
+#undef NGTQG_PREFETCH
 #warning "SIMD is not available for NGTQG. NGTQG might not work well."
 #endif
-#define NGTQG_PREFETCH
 
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
