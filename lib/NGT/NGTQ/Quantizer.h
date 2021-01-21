@@ -2236,7 +2236,6 @@ public:
       }
     }
     invertedIndexObjects.resize(lastID + 1);
-
     for (size_t gid = 1; gid < invertedIndex.size(); gid++) {
       for (size_t idx = 0; idx < invertedIndex[gid]->size(); idx++) {
 #ifdef NGTQ_SHARED_INVERTED_INDEX

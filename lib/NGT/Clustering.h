@@ -496,11 +496,10 @@ namespace NGT {
       }
 
   
-
       if (clusterSize < std::numeric_limits<size_t>::max()) {
 	do {
 	  vector<vector<Entry>> notAssignedObjects(notAssignedObjectIDs.size());
-	  size_t nOfClosestClusters = 1 * 1024 * 1024 * 1024 / 16 / notAssignedObjectIDs.size(); 
+	  size_t nOfClosestClusters = 1 * 1024 * 1024 * 1024 / 16 / (notAssignedObjectIDs.size() == 0 ? 1 : notAssignedObjectIDs.size()); 
 #pragma omp parallel for
 	  for (size_t vi = 0; vi < notAssignedObjectIDs.size(); vi++) {
 	    auto vit = notAssignedObjectIDs.begin() + vi;
@@ -520,7 +519,6 @@ namespace NGT {
 	    size_t topk = ds.size() < nOfClosestClusters ? ds.size() : nOfClosestClusters;
 	    std::copy(ds.end() - topk, ds.end(), std::back_inserter(notAssignedObjects[vi]));
 	  }
-
 	  sortedDistances.clear();
 	  for (auto i = notAssignedObjects.begin(); i != notAssignedObjects.end(); ++i) {
 	    std::copy((*i).begin(), (*i).end(), std::back_inserter(sortedDistances));

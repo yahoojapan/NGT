@@ -27,13 +27,13 @@ NGTQG::Command::create(NGT::Args &args)
 {
 
   const string usage = "Usage: ngtqg create "
-    "[-o object-type (f:float|c:unsigned char)] [-D distance-function] [-n data-size] "
+    "[-D distance-function] "
     "[-p #-of-thread] [-d dimension] [-R global-codebook-range] [-r local-codebook-range] "
     "[-C global-codebook-size-limit] [-c local-codebook-size-limit] [-N local-division-no] "
-    "[-T single-local-centroid (t|f)] [-e epsilon] [-i index-type (t:Tree|g:Graph)] "
+    "[-i index-type (t:Tree|g:Graph)] "
     "[-M global-centroid-creation-mode (d|s)] [-l global-centroid-creation-mode (d|k|s)] "
     "[-s local-sample-coefficient] "
-    "index(output) data.tsv(input)";
+    "index(output)";
 
   try {
     NGT::Command::CreateParameters createParameters(args);
@@ -89,7 +89,12 @@ NGTQG::Command::build(NGT::Args &args)
 void 
 NGTQG::Command::quantize(NGT::Args &args)
 {
-  const std::string usage = "Usage: ngtqg quantize [-m quantization-mode(q|g|a)] [-E max-number-of-edges] [creation parameters] index";
+  const std::string usage = "Usage: ngtqg quantize "
+    "[-m quantization-mode(q|g|a)] [-E max-number-of-edges] [creation parameters] index\n"
+    "\t-m mode\n"
+    "\t\ta: quantize the objects and build and save a quantized graph. (default)\n"
+    "\t\tq: just quantize the objects but not build and save a quantized graph.\n"
+    "\t\tg: not quantize the objects but build and save a quantized graph.\n";
   string indexPath;
   try {
     indexPath = args.get("#1");
@@ -112,8 +117,10 @@ NGTQG::Command::quantize(NGT::Args &args)
       std::string quantizedIndexPath = indexPath + "/qg";
       struct stat st;
       if (stat(quantizedIndexPath.c_str(), &st) != 0) {
+	NGT::Property property;
+	index.getProperty(property);
 	std::cerr << "create a quantized graph" << std::endl; ////-/
-	NGTQ::Command::CreateParameters createParameters(args);
+	NGTQ::Command::CreateParameters createParameters(args, 1, 16, property.dimension);
 	try {
 	  char localCentroidCreationMode = args.getChar("l", 'd');
 	  switch(localCentroidCreationMode) {
@@ -124,9 +131,8 @@ NGTQG::Command::quantize(NGT::Args &args)
 	    cerr << "ngt: Invalid centroid creation mode. " << localCentroidCreationMode << endl;
 	    return;
 	  }
-	  NGT::Property property;
-	  index.getProperty(property);
 	  createParameters.property.dimension = property.dimension;
+	  createParameters.property.centroidCreationMode = NGTQ::CentroidCreationModeStatic;
 	  NGTQ::Index::create(quantizedIndexPath, createParameters.property, createParameters.globalProperty, createParameters.localProperty);
 	} catch(NGT::Exception &err) {
 	  std::cerr << err.what() << std::endl;
@@ -135,7 +141,7 @@ NGTQG::Command::quantize(NGT::Args &args)
       }
 
       NGTQ::Index	quantizedIndex(quantizedIndexPath);
-      NGTQ::Quantizer &quantizer = quantizedIndex.getQuantizer();
+      NGTQ::Quantizer	&quantizer = quantizedIndex.getQuantizer();
 
       {
 	std::vector<float> meanObject(objectSpace.getDimension(), 0);

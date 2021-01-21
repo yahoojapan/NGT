@@ -25,7 +25,7 @@ public:
   class CreateParameters {
   public:
     CreateParameters() {}
-    CreateParameters(NGT::Args &args) {
+    CreateParameters(NGT::Args &args, int globalCentroidLimit = 1000000, int localCentroidLimit = 65000, int localDivisionNo = 8) {
       try {
 	index = args.get("#1");
       } catch (...) {
@@ -45,9 +45,9 @@ public:
       property.dimension = args.getl("d", 0);
       property.globalRange = args.getf("R", 0);
       property.localRange = args.getf("r", 0);
-      property.globalCentroidLimit = args.getl("C", 1000000);
-      property.localCentroidLimit = args.getl("c", 65000);
-      property.localDivisionNo = args.getl("N", 8);
+      property.globalCentroidLimit = args.getl("C", globalCentroidLimit);
+      property.localCentroidLimit = args.getl("c", localCentroidLimit);
+      property.localDivisionNo = args.getl("N", localDivisionNo);
       property.batchSize = args.getl("b", 1000);
       property.localClusteringSampleCoefficient = args.getl("s", 10);
       {
