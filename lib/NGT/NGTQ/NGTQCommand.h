@@ -25,7 +25,8 @@ public:
   class CreateParameters {
   public:
     CreateParameters() {}
-    CreateParameters(NGT::Args &args, int globalCentroidLimit = 1000000, int localCentroidLimit = 65000, int localDivisionNo = 8) {
+    CreateParameters(NGT::Args &args, char centroidCreationMode = 'd', 
+		     int globalCentroidLimit = 1000000, int localCentroidLimit = 65000) {
       try {
 	index = args.get("#1");
       } catch (...) {
@@ -47,7 +48,7 @@ public:
       property.localRange = args.getf("r", 0);
       property.globalCentroidLimit = args.getl("C", globalCentroidLimit);
       property.localCentroidLimit = args.getl("c", localCentroidLimit);
-      property.localDivisionNo = args.getl("N", localDivisionNo);
+      property.localDivisionNo = args.getl("N", 8);
       property.batchSize = args.getl("b", 1000);
       property.localClusteringSampleCoefficient = args.getl("s", 10);
       {
@@ -55,7 +56,7 @@ public:
 	property.singleLocalCodebook = localCentroidType == 't' ? true : false;
       }
       {
-	char centroidCreationMode = args.getChar("M", 'd');
+	centroidCreationMode = args.getChar("M", centroidCreationMode);
 	switch(centroidCreationMode) {
 	case 'd': property.centroidCreationMode = NGTQ::CentroidCreationModeDynamic; break;
 	case 's': property.centroidCreationMode = NGTQ::CentroidCreationModeStatic; break;

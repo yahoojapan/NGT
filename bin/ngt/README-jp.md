@@ -323,12 +323,12 @@ ngt コマンド使用例
 
 #### [ONNG](/README.md#onng)
 ```
-$ ngt create -i t -g a -S 0 -e 0.0 -E no_of_edges -d dimensionality_of_data -o data_type -D distatnce_type anng-index vector-data.dat
+$ ngt create -i t -g a -S 0 -e 0.1 -E no_of_edges -d dimensionality_of_data -o data_type -D distatnce_type anng-index vector-data.dat
 $ ngt reconstruct-graph -m S -o outdegree -i indegree anng-index onng-index
 ```
 e.g.  
 ```
-$ ngt create -i t -g a -S 0 -e 0.0 -E 100 -d 128 -o c -D 2 anng-index vector-data.dat
+$ ngt create -i t -g a -S 0 -e 0.1 -E 100 -d 128 -o c -D 2 anng-index vector-data.dat
 $ ngt reconstruct-graph -m S -o 10 -i 120 anng-index onng-index
 ```
 #### [PANNG](/README.md#panng)

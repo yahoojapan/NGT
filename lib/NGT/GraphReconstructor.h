@@ -433,6 +433,8 @@ class GraphReconstructor {
     NGT::Timer	originalEdgeTimer, reverseEdgeTimer, normalizeEdgeTimer;
     originalEdgeTimer.start();
 
+    size_t warningCount = 0;
+    const size_t warningLimit = 10;
     for (size_t id = 1; id < outGraph.repository.size(); id++) {
       try {
 	NGT::GraphNode &node = *outGraph.getNode(id);
@@ -446,7 +448,13 @@ class GraphReconstructor {
 	} else {
 	  NGT::ObjectDistances n = graph[id - 1];
 	  if (n.size() < originalEdgeSize) {
-	    std::cerr << "GraphReconstructor: Warning. The edges are too few. " << n.size() << ":" << originalEdgeSize << " for " << id << std::endl;
+	    warningCount++;
+	    if (warningCount <= warningLimit) {
+	      std::cerr << "GraphReconstructor: Warning. The edges are too few. " << n.size() << ":" << originalEdgeSize << " for " << id << std::endl;
+	    }
+	    if (warningCount == warningLimit) {
+	      std::cerr << "GraphReconstructor: Info. Too many warnings. Warning is disabled." << std::endl;
+	    }
 	    continue;
 	  }
 	  n.resize(originalEdgeSize);
@@ -457,9 +465,18 @@ class GraphReconstructor {
 #endif
 	}
       } catch(NGT::Exception &err) {
-	std::cerr << "GraphReconstructor: Warning. Cannot get the node. ID=" << id << ":" << err.what() << std::endl;
+	warningCount++;
+	if (warningCount <= warningLimit) {
+	  std::cerr << "GraphReconstructor: Warning. Cannot get the node. ID=" << id << ":" << err.what() << std::endl;
+	}
+	if (warningCount == warningLimit) {
+	  std::cerr << "GraphReconstructor: Info. Too many warnings. Warning is disabled." << std::endl;
+	}
 	continue;
       }
+    }
+    if (warningCount > warningLimit) {
+      std::cerr << "GraphReconstructor: The total " << warningCount << " Warnings." << std::endl;
     }
     originalEdgeTimer.stop();
 

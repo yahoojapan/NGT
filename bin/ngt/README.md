@@ -97,6 +97,7 @@ Specify the data object type.
 Specify the distance function as follows.
 - __1__: L1 distance
 - __2__: L2 distance (default)
+- __E__: Normalized L2 distance. The specified data are automatically normalized to be appended to the index. It is mainly used for cosine similarity of the quantized graph (NGTQG).
 - __a__: Angle distance
 - __A__: Normalized angle distance. The specified data are automatically normalized to be appended to the index.
 - __c__: Cosine similarity
@@ -160,7 +161,7 @@ Specify the number of search results.
 Specify the maximum number of edges to be used in the search. This option is specified when conducting a search with fewer edges than the number of edges of each node on the graph. Since a large number of edges can be generated in the case of an ANNG or BKNNG, limiting the number of edges in this way tends to improve search performance. Specifying zero here indicates no limitation of the number of edges (use all actual edges).
 
 **-r** *search\_radius* (default = infinite circle)  
-Specifys the search range in terms of the radius of a circle.
+Specify the search range in terms of the radius of a circle.
 
 ### REMOVE
 
@@ -325,12 +326,12 @@ How to construct the indexes for our [publications](/README.md#publications)
 
 #### [ONNG](/README.md#onng)
 ```
-$ ngt create -i t -g a -S 0 -e 0.0 -E no_of_edges -d dimensionality_of_data -o data_type -D distatnce_type anng-index vector-data.dat
+$ ngt create -i t -g a -S 0 -e 0.1 -E no_of_edges -d dimensionality_of_data -o data_type -D distatnce_type anng-index vector-data.dat
 $ ngt reconstruct-graph -m S -o outdegree -i indegree anng-index onng-index
 ```
 e.g.  
 ```
-$ ngt create -i t -g a -S 0 -e 0.0 -E 100 -d 128 -o c -D 2 anng-index vector-data.dat
+$ ngt create -i t -g a -S 0 -e 0.1 -E 100 -d 128 -o c -D 2 anng-index vector-data.dat
 $ ngt reconstruct-graph -m S -o 10 -i 120 anng-index onng-index
 ```
 #### [PANNG](/README.md#panng)

@@ -29,8 +29,8 @@ NGTQG::Command::create(NGT::Args &args)
   const string usage = "Usage: ngtqg create "
     "[-D distance-function] "
     "[-p #-of-thread] [-d dimension] [-R global-codebook-range] [-r local-codebook-range] "
-    "[-C global-codebook-size-limit] [-c local-codebook-size-limit] [-N local-division-no] "
-    "[-i index-type (t:Tree|g:Graph)] "
+    "[-C global-codebook-size-limit] [-c local-codebook-size-limit] "
+    "[-Q quantization-ratio] [-i index-type (t:Tree|g:Graph)] "
     "[-M global-centroid-creation-mode (d|s)] [-l global-centroid-creation-mode (d|k|s)] "
     "[-s local-sample-coefficient] "
     "index(output)";
@@ -51,7 +51,7 @@ NGTQG::Command::create(NGT::Args &args)
     cerr << usage << endl;
   }
 
-  NGTQ::Command::CreateParameters createParameters(args);
+  NGTQG::Command::CreateParameters createParameters(args);
 
   try {
     char localCentroidCreationMode = args.getChar("l", 'd');
@@ -119,19 +119,9 @@ NGTQG::Command::quantize(NGT::Args &args)
       if (stat(quantizedIndexPath.c_str(), &st) != 0) {
 	NGT::Property property;
 	index.getProperty(property);
-	std::cerr << "create a quantized graph" << std::endl; ////-/
-	NGTQ::Command::CreateParameters createParameters(args, 1, 16, property.dimension);
+	NGTQG::Command::CreateParameters createParameters(args, property.dimension);
+
 	try {
-	  char localCentroidCreationMode = args.getChar("l", 'd');
-	  switch(localCentroidCreationMode) {
-	  case 'd': createParameters.property.localCentroidCreationMode = NGTQ::CentroidCreationModeDynamic; break;
-	  case 's': createParameters.property.localCentroidCreationMode = NGTQ::CentroidCreationModeStatic; break;
-	  case 'k': createParameters.property.localCentroidCreationMode = NGTQ::CentroidCreationModeDynamicKmeans; break;
-	  default:
-	    cerr << "ngt: Invalid centroid creation mode. " << localCentroidCreationMode << endl;
-	    return;
-	  }
-	  createParameters.property.dimension = property.dimension;
 	  createParameters.property.centroidCreationMode = NGTQ::CentroidCreationModeStatic;
 	  NGTQ::Index::create(quantizedIndexPath, createParameters.property, createParameters.globalProperty, createParameters.localProperty);
 	} catch(NGT::Exception &err) {

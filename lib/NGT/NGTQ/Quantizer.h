@@ -1747,12 +1747,11 @@ public:
     clustering.epsilonStep = 0.05;
     clustering.maximumIteration = 10;
     for (size_t li = 0; li < localCodebookNo; ++li) {
-      cerr << "Beginning of clustering " << localCodebook[li].getPath() << ":" << localCodebook[li].getObjectRepositorySize() << endl;
       double diff = clustering.kmeansWithNGT(localCodebook[li], numberOfCentroids);
       if (diff > 0.0) {
-	cerr << "Not converge" << endl;
+	cerr << "Not converge. " << diff << endl;
       }
-      cerr << "End of clustering " << localCodebook[li].getPath() << ":" << localCodebook[li].getObjectRepositorySize() << endl;
+      cerr << "Clustering of the subvector is complete. " << localCodebook[li].getPath() << ":" << localCodebook[li].getObjectRepositorySize() << endl;
     }
   }
 

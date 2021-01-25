@@ -190,6 +190,7 @@ Specify the number of edges for each node to explore the graph for the search pr
 Specify the distance function for the objects.
 - __L1__: L1 distance
 - __L2__: L2 distance (default)
+- __Normalized L2__: Normalized L2 distance. The specified data are automatically normalized to be appended to the index. It is mainly used for cosine similarity of the quantized graph (NGTQG).
 - __Angle__: Angle distance
 - __Normalized Angle__: Normalized angle distance. The specified data are automatically normalized to be appended to the index.
 - __Cosine__: Cosine similarity
@@ -244,3 +245,46 @@ Optimize search coefficients.
 
 **index_path**   
 Specify the index which is optimized.
+
+Class QuantizedIndex
+===========
+
+## Member Functions
+
+### \_\_init\_\_
+Open the specified quantized index and create the index object for the index.
+
+      __init__(self: ngtpy.Index, path: str, zero_based_numbering: bool=True, log_disabled: bool=False)
+
+**Returns**  
+None.
+
+**path**   
+Specify the path of the quantized index to open. The quantized index should be built by using the command `ngtqg quantize` from ONNG or ANNG in advance. The python function for quantization is not available yet.
+
+**zero_based_numbering**   
+Specify zero-based numbering for object IDs. False means one-based numbering.
+
+**log_disabled**    
+Disable stderr messages about the progression of an operation.
+
+### search
+Search the nearest objects to the specified query object.
+
+      object search(self: ngtpy.Index, query: object, size: int=20, epsilon: float=0.02, result_expansion: float=3.0)
+
+**Returns**   
+The list of tuples(object ID, distance) as the search result. 
+
+**query**   
+Specify the query object.
+
+**size**   
+Specify the number of the objects as the search result.
+
+**epsilon**   
+Specify epsilon which defines the explored range for the quantized graph.
+
+**result_expansion**   
+Specify the expansion ratio of the number of approximate inner search objects to the number of search objects. For example, when the ratio is 10 and the number of search objects is 20, the number of the approximate search objects is set to 200 inside the search processing. A larger value brings higher accuracy but slower searching.
+

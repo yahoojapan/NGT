@@ -23,11 +23,44 @@ namespace NGTQG {
   
   class Command : public NGT::Command {
   public:
+    class CreateParameters : public NGTQ::Command::CreateParameters {
+    public:
+      CreateParameters(NGT::Args &args): NGTQ::Command::CreateParameters(args, 's', 1, 16) {
+        setup(args, property.dimension);
+      }
+      CreateParameters(NGT::Args &args, int dimension): NGTQ::Command::CreateParameters(args, 's', 1, 16) {
+        setup(args, dimension);
+      }
+      void setup(NGT::Args &args, size_t dimension) {
+        size_t quantizationRatio = args.getl("Q", 0);
+        if (quantizationRatio == 0) {
+	  if ((dimension > 400) && (dimension % 2 == 0)) {
+	    property.localDivisionNo = dimension / 2;
+	  } else {
+	    property.localDivisionNo = dimension;
+	  }
+	} else {
+	  property.localDivisionNo = dimension;
+	}
+	property.dimension = dimension;
+	char localCentroidCreationMode = args.getChar("l", 'k');
+	switch(localCentroidCreationMode) {
+	case 'd': property.localCentroidCreationMode = NGTQ::CentroidCreationModeDynamic; break;
+	case 's': property.localCentroidCreationMode = NGTQ::CentroidCreationModeStatic; break;
+	case 'k': property.localCentroidCreationMode = NGTQ::CentroidCreationModeDynamicKmeans; break;
+	default:
+	  std::stringstream msg;
+	  msg << "NGTQG::Command::CreateParameters: Error: Invalid centroid creation mode. " << localCentroidCreationMode;
+	  NGTThrowException(msg);
+	}
+      }
+    };
+
     class SearchParameters : public NGT::Command::SearchParameters {
     public:
-      SearchParameters(NGT::Args &args): NGT::Command::SearchParameters(args) {
+      SearchParameters(NGT::Args &args): NGT::Command::SearchParameters(args, "0.02") {
         stepOfResultExpansion = 2;
-	std::string resultExpansion = args.getString("p", "5.0");
+	std::string resultExpansion = args.getString("p", "3.0");
 	std::vector<std::string> tokens;
 	NGT::Common::tokenize(resultExpansion, tokens, ":");
 	if (tokens.size() >= 1) { beginOfResultExpansion = endOfResultExpansion = NGT::Common::strtod(tokens[0]); }

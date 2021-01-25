@@ -73,6 +73,8 @@ public:
       prop.distanceType = NGT::Index::Property::DistanceType::DistanceTypeL1;
     } else if (distanceType == "L2") {
       prop.distanceType = NGT::Property::DistanceType::DistanceTypeL2;
+    } else if (distanceType == "Normalized L2") {
+      prop.distanceType = NGT::Property::DistanceType::DistanceTypeNormalizedL2;
     } else if (distanceType == "Hamming") {
       prop.distanceType = NGT::Property::DistanceType::DistanceTypeHamming;
     } else if (distanceType == "Jaccard") {
@@ -389,7 +391,7 @@ public:
     withDistance = true;;
     defaultNumOfSearchObjects = 20;
     defaultEpsilon = 0.02;
-    defaultResultExpansion = 5;
+    defaultResultExpansion = 3.0;
     defaultEdgeSize = 0; // not used
     if (logDisabled) {
       NGT::Index::disableLog();
@@ -408,53 +410,62 @@ public:
     py::array_t<float> qobject(query);
     py::buffer_info qinfo = qobject.request();
     std::vector<float> qvector(static_cast<float*>(qinfo.ptr), static_cast<float*>(qinfo.ptr) + qinfo.size);
-    NGTQG::SearchQuery sc(qvector);
-    size		= size > 0 ? size : defaultNumOfSearchObjects;
-    epsilon		= epsilon > -1.0 ? epsilon : defaultEpsilon;
-    resultExpansion	= resultExpansion >= 0.0 ? resultExpansion : defaultResultExpansion;
-    edgeSize		= edgeSize >= -2 ? edgeSize : defaultEdgeSize;
-    sc.setSize(size);				// the number of resulting objects.
-    sc.setEpsilon(epsilon);			// set exploration coefficient.
-    sc.setResultExpansion(resultExpansion);	// set result expansion.
-    sc.setEdgeSize(edgeSize);			// if maxEdge is minus, the specified value in advance is used.
+    try {
+      NGTQG::SearchQuery sc(qvector);
+      size		= size > 0 ? size : defaultNumOfSearchObjects;
+      epsilon		= epsilon > -1.0 ? epsilon : defaultEpsilon;
+      resultExpansion	= resultExpansion >= 0.0 ? resultExpansion : defaultResultExpansion;
+      edgeSize		= edgeSize >= -2 ? edgeSize : defaultEdgeSize;
+      sc.setSize(size);				// the number of resulting objects.
+      sc.setEpsilon(epsilon);			// set exploration coefficient.
+      sc.setResultExpansion(resultExpansion);	// set result expansion.
+      sc.setEdgeSize(edgeSize);			// if maxEdge is minus, the specified value in advance is used.
 
-    NGTQG::Index::search(sc);
+      NGTQG::Index::search(sc);
 
-    numOfDistanceComputations += sc.distanceComputationCount;
+      numOfDistanceComputations += sc.distanceComputationCount;
 
-    if (!withDistance) {
-      NGT::ResultPriorityQueue &r = sc.getWorkingResult();
-      py::array_t<int> ids(r.size());
-      py::buffer_info idsinfo = ids.request();
-      int *endptr = reinterpret_cast<int*>(idsinfo.ptr); 
-      int *ptr = endptr + (r.size() - 1);
+      if (!withDistance) {
+	NGT::ResultPriorityQueue &r = sc.getWorkingResult();
+	py::array_t<int> ids(r.size());
+	py::buffer_info idsinfo = ids.request();
+	int *endptr = reinterpret_cast<int*>(idsinfo.ptr); 
+	int *ptr = endptr + (r.size() - 1);
+	if (zeroNumbering) {
+	  while (ptr >= endptr) {
+	    *ptr-- = r.top().id - 1;
+	    r.pop();
+	  }
+	} else {
+	  while (ptr >= endptr) {
+	    *ptr-- = r.top().id;
+	    r.pop();
+	  }
+	}
+
+	return ids;
+      }
+      py::list results;
+      NGT::ObjectDistances r;
+      r.moveFrom(sc.getWorkingResult());
       if (zeroNumbering) {
-        while (ptr >= endptr) {
-	  *ptr-- = r.top().id - 1;
-	  r.pop();
-        }
+	for (auto ri = r.begin(); ri != r.end(); ++ri) {
+	  results.append(py::make_tuple((*ri).id - 1, (*ri).distance));
+	}
       } else {
-        while (ptr >= endptr) {
-	  *ptr-- = r.top().id;
-	  r.pop();
-        }
+	for (auto ri = r.begin(); ri != r.end(); ++ri) {
+	  results.append(py::make_tuple((*ri).id, (*ri).distance));
+	}
       }
-
-      return ids;
-    }
-    py::list results;
-    NGT::ObjectDistances r;
-    r.moveFrom(sc.getWorkingResult());
-    if (zeroNumbering) {
-      for (auto ri = r.begin(); ri != r.end(); ++ri) {
-	results.append(py::make_tuple((*ri).id - 1, (*ri).distance));
-      }
-    } else {
-      for (auto ri = r.begin(); ri != r.end(); ++ri) {
-	results.append(py::make_tuple((*ri).id, (*ri).distance));
+      return results;
+    } catch (NGT::Exception &e) {
+      std::cerr << e.what() << std::endl;
+      if (!withDistance) {
+	return py::array_t<int>();
+      } else {
+	return py::list();
       }
     }
-    return results;
   }
 
   void setWithDistance(bool v) { withDistance = v; }

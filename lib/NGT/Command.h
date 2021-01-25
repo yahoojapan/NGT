@@ -50,8 +50,8 @@ public:
       beginOfEpsilon = endOfEpsilon = stepOfEpsilon = 0.1;
       accuracy	 = 0.0;
     }
-    SearchParameters(Args &args) { parse(args); }
-    void parse(Args &args) {
+    SearchParameters(Args &args, const std::string epsilonDefault = "0.1") { parse(args, epsilonDefault); }
+    void parse(Args &args, const std::string epsilonDefault) {
       openMode = args.getChar("m", 'r');
       try {
 	query = args.get("#2");
@@ -75,7 +75,7 @@ public:
       trial		= args.getl("t", 1);
       {
 	beginOfEpsilon = endOfEpsilon = stepOfEpsilon = 0.1;
-	std::string epsilon = args.getString("e", "0.1");
+	std::string epsilon = args.getString("e", epsilonDefault.c_str());
 	std::vector<std::string> tokens;
 	NGT::Common::tokenize(epsilon, tokens, ":");
 	if (tokens.size() >= 1) { beginOfEpsilon = endOfEpsilon = NGT::Common::strtod(tokens[0]); }
