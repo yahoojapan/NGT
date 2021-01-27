@@ -1510,7 +1510,7 @@ namespace NGT {
     void createIndex(size_t threadNumber, size_t sizeOfRepository = 0);
 
     void createIndex(const std::vector<std::pair<NGT::Object*, size_t> > &objects, std::vector<InsertionResult> &ids,
-		     double range, size_t threadNumber);
+		     float range, size_t threadNumber);
 
     void createTreeIndex();
 

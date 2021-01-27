@@ -305,8 +305,8 @@ public:
   inline size_t getLocalCodebookNo() { return singleLocalCodebook ? 1 : localDivisionNo; }
 
   size_t	threadSize;
-  double	globalRange;
-  double	localRange;
+  float		globalRange;
+  float		localRange;
   size_t	globalCentroidLimit;
   size_t	localCentroidLimit;
   size_t	dimension;
@@ -728,7 +728,6 @@ public:
 #else
     createFloatL2DistanceLookup(&((NGT::Object&)object)[0], sizeOfObject, &gcentroid[0], dlutmp);
 #endif
-
     {
       uint8_t *cdlu = distanceLUT.localDistanceLookup;
       float *dlu = dlutmp;
@@ -1223,8 +1222,8 @@ public:
   void deleteObject(NGT::Object *object) { globalCodebook.deleteObject(object); }
   
   void setThreadSize(size_t size) { property.threadSize = size; }
-  void setGlobalRange(double r) { property.globalRange = r; }
-  void setLocalRange(double r) { property.localRange = r; }
+  void setGlobalRange(float r) { property.globalRange = r; }
+  void setLocalRange(float r) { property.localRange = r; }
   void setGlobalCentroidLimit(size_t s) { property.globalCentroidLimit = s; }
   void setLocalCentroidLimit(size_t s) { property.localCentroidLimit = s; }
   void setDimension(size_t s) { property.dimension = s; }
@@ -1585,11 +1584,11 @@ public:
 		   size_t centroidLimit,
 		   const vector<pair<NGT::Object*, size_t> > &objects, 
 		   vector<NGT::Index::InsertionResult> &ids, 
-		   double &range)
+		   float &range)
   {
     if (centroidLimit > 0) {
       if (getNumberOfObjects(codebook) >= centroidLimit) {
-	range = -1.0;
+	range = FLT_MAX;
 	codebook.createIndex(objects, ids, range, property.threadSize);
       } else if (getNumberOfObjects(codebook) + objects.size() > centroidLimit) {
 	auto start = objects.begin();
@@ -1609,7 +1608,7 @@ public:
 	  std::copy(idstmp.begin(), idstmp.end(), std::back_inserter(ids));
 	  start = end;
 	} while (start != objects.end() && centroidLimit - getNumberOfObjects(codebook) > 0);
-	range = -1.0;
+	range = FLT_MAX;
 	vector<NGT::Index::InsertionResult> idstmp;
 	vector<pair<NGT::Object*, size_t> > objtmp;
 	std::copy(start, objects.end(), std::back_inserter(objtmp));
@@ -1672,10 +1671,10 @@ public:
   }
 
   void setSingleLocalCodeToInvertedIndexEntry(vector<NGT::GraphAndTreeIndex*> &lcodebook, vector<LocalDatam> &localData, vector<vector<pair<NGT::Object*, size_t> > > &localObjs) {
-    double lr = property.localRange;
+    float lr = property.localRange;
     size_t localCentroidLimit = property.localCentroidLimit;
     if (property.localCodebookState) {
-      lr = -1.0;	
+      lr = FLT_MAX;	
       localCentroidLimit = 0;
     }
     vector<NGT::Index::InsertionResult> lids;
@@ -1705,18 +1704,22 @@ public:
     size_t localCodebookNo = property.getLocalCodebookNo();
     bool localCodebookFull = true;  
     for (size_t li = 0; li < localCodebookNo; ++li) {
-      double lr = property.localRange;
+      float lr = property.localRange;
       size_t localCentroidLimit = property.localCentroidLimit;
       if (property.localCentroidCreationMode == CentroidCreationModeDynamicKmeans) {
 	localCentroidLimit *= property.localClusteringSampleCoefficient;
       }
       if (property.localCodebookState) {
-	lr = -1.0;	
+	lr = FLT_MAX;	
 	localCentroidLimit = 0;
+      } else {
+	if (property.localCentroidCreationMode == CentroidCreationModeDynamicKmeans) {
+	  lr = -1.0;
+	}
       }
       vector<NGT::Index::InsertionResult> lids;
       createIndex(*lcodebook[li], localCentroidLimit, localObjs[li], lids, lr);
-      if (lr >= 0.0) { 
+      if (lr != FLT_MAX) { 
 	localCodebookFull = false;
       }
       assert(localData.size() == lids.size());
@@ -1796,7 +1799,7 @@ public:
     for (size_t i = 0; i < localCodebookNo; i++) {
       lcodebook.push_back(&(NGT::GraphAndTreeIndex &)localCodebook[i].getIndex());
     }
-    double gr = property.globalRange;
+    float gr = property.globalRange;
     vector<NGT::Index::InsertionResult> ids;	
     createIndex(gcodebook, property.globalCentroidLimit, objects, ids, gr);
 #ifdef NGTQ_SHARED_INVERTED_INDEX

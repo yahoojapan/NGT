@@ -25,13 +25,16 @@ namespace NGTQG {
   public:
     class CreateParameters : public NGTQ::Command::CreateParameters {
     public:
-      CreateParameters(NGT::Args &args): NGTQ::Command::CreateParameters(args, 's', 1, 16) {
+      CreateParameters(NGT::Args &args): NGTQ::Command::CreateParameters(args, 's', 'k') {
         setup(args, property.dimension);
       }
-      CreateParameters(NGT::Args &args, int dimension): NGTQ::Command::CreateParameters(args, 's', 1, 16) {
+      CreateParameters(NGT::Args &args, int dimension): NGTQ::Command::CreateParameters(args, 's', 'k') {
         setup(args, dimension);
       }
       void setup(NGT::Args &args, size_t dimension) {
+	property.globalCentroidLimit = args.getl("C", 1);
+	property.localCentroidLimit = args.getl("c", 16);
+	property.localClusteringSampleCoefficient = args.getl("s", 100);
         size_t quantizationRatio = args.getl("Q", 0);
         if (quantizationRatio == 0) {
 	  if ((dimension > 400) && (dimension % 2 == 0)) {
@@ -40,19 +43,9 @@ namespace NGTQG {
 	    property.localDivisionNo = dimension;
 	  }
 	} else {
-	  property.localDivisionNo = dimension;
+	  property.localDivisionNo = dimension / quantizationRatio;
 	}
 	property.dimension = dimension;
-	char localCentroidCreationMode = args.getChar("l", 'k');
-	switch(localCentroidCreationMode) {
-	case 'd': property.localCentroidCreationMode = NGTQ::CentroidCreationModeDynamic; break;
-	case 's': property.localCentroidCreationMode = NGTQ::CentroidCreationModeStatic; break;
-	case 'k': property.localCentroidCreationMode = NGTQ::CentroidCreationModeDynamicKmeans; break;
-	default:
-	  std::stringstream msg;
-	  msg << "NGTQG::Command::CreateParameters: Error: Invalid centroid creation mode. " << localCentroidCreationMode;
-	  NGTThrowException(msg);
-	}
       }
     };
 

@@ -1250,7 +1250,7 @@ GraphAndTreeIndex::createIndex(size_t threadPoolSize, size_t sizeOfRepository)
 void 
 GraphAndTreeIndex::createIndex(const vector<pair<NGT::Object*, size_t> > &objects, 
 			       vector<InsertionResult> &ids, 
-			       double range, size_t threadPoolSize)
+			       float range, size_t threadPoolSize)
 {
   Timer		timer;
   size_t	timerInterval = 100000;
@@ -1317,12 +1317,11 @@ GraphAndTreeIndex::createIndex(const vector<pair<NGT::Object*, size_t> > &object
 	      r.id = output[idxj].id;
 	      objs.push_back(r);
 	    }
-
 	    std::sort(objs.begin(), objs.end());
 	    if (objs.size() > size) {
 	      objs.resize(size);
 	    }
-	    if ((objs.size() > 0) && (range < 0.0 || ((double)objs[0].distance <= range + FLT_EPSILON))) {
+	    if ((objs.size() > 0) && (range >= 0.0) && (objs[0].distance <= range)) {
 	      // The line below was replaced by the line above to consider EPSILON for float comparison. 170702
 	      // if ((objs.size() > 0) && (range < 0.0 || (objs[0].distance <= range))) {
 	      // An identical or similar object already exits

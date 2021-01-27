@@ -407,13 +407,21 @@ namespace NGT {
       for (auto cit = clusters.begin(); cit != clusters.end(); ++cit) {    
 	if ((*cit).members.size() == 0) {
 	  emptyClusterCount++;
-	  double max = 0.0;
+	  double max = -DBL_MAX;
 	  auto maxit = clusters.begin();
 	  for (auto scit = clusters.begin(); scit != clusters.end(); ++scit) {    	
 	    if ((*scit).members.size() >= 2 && (*scit).members.back().distance > max) {
 	      maxit = scit;
 	      max = (*scit).members.back().distance;
 	    }
+	  }
+	  if (max == -DBL_MAX) {
+	    std::stringstream msg;
+	    msg << "Clustering::moveFartherObjectsToEmptyClusters: Not found max. ";
+	    for (auto scit = clusters.begin(); scit != clusters.end(); ++scit) {
+	      msg << distance(clusters.begin(), scit) << ":" << (*scit).members.size() << " ";
+	    }
+	    NGTThrowException(msg);
 	  }
 	  (*cit).members.push_back((*maxit).members.back());
 	  (*cit).members.back().centroidID = distance(clusters.begin(), cit);
