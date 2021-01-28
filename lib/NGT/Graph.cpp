@@ -112,6 +112,20 @@ NeighborhoodGraph::Search::sparseJaccardFloat(NeighborhoodGraph &graph, NGT::Sea
   graph.searchReadOnlyGraph<PrimitiveComparator::SparseJaccardFloat, DistanceCheckedSet>(sc, seeds);
 }
 
+// added by Nyapicom
+void 
+NeighborhoodGraph::Search::poincareFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::poincareFloat, DistanceCheckedSet>(sc, seeds);
+}
+
+// added by Nyapicom
+void 
+NeighborhoodGraph::Search::lorentzFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::lorentzFloat, DistanceCheckedSet>(sc, seeds);
+}
+
 void 
 NeighborhoodGraph::Search::l1Uint8(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
 {

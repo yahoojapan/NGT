@@ -24,7 +24,7 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 - データの追加削除が可能
 - [共有メモリ（マップドメモリ）](README-jp.md#共有メモリの利用)のオプションによるNGTではメモリサイズを超えるデータが利用可能
 - データ型：1バイト整数、4バイト単精度浮動小数点
-- 距離関数：L1、L2、コサイン類似度、角度、ハミング、ジャッカード
+- 距離関数：L1、L2、コサイン類似度、角度、ハミング、ジャッカード、ポアンカレ、ローレンツ
 - 対応言語：[Python](/python/README-jp.md)、[Ruby](https://github.com/ankane/ngt)、[Go](https://github.com/yahoojapan/gongt)、C、C++
 - 分散サーバ：[ngtd](https://github.com/yahoojapan/ngtd), [vald](https://github.com/vdaas/vald)
 - 量子化版NGT（[NGTQ](bin/ngtq/README-jp.md)）は10億ものデータの検索が可能

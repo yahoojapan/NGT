@@ -147,6 +147,12 @@ using namespace std;
     case 'E':
       property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeNormalizedL2;
       break;
+		case 'p':  // added by Nyapicom
+      property.distanceType = NGT::Index::Property::DistanceType::DistanceTypePoincare;
+      break;
+		case 'l':  // added by Nyapicom
+      property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeLorentz;
+      break;
     default:
       std::stringstream msg;
       msg << "Command::CreateParameter: Error: Invalid distance type. " << distanceType << endl;
@@ -169,7 +175,7 @@ using namespace std;
     const string usage = "Usage: ngt create "
       "-d dimension [-p #-of-thread] [-i index-type(t|g)] [-g graph-type(a|k|b|o|i)] "
       "[-t truncation-edge-limit] [-E edge-size] [-S edge-size-for-search] [-L edge-size-limit] "
-      "[-e epsilon] [-o object-type(f|c)] [-D distance-function(1|2|a|A|h|j|c|C|E)] [-n #-of-inserted-objects] "
+      "[-e epsilon] [-o object-type(f|c)] [-D distance-function(1|2|a|A|h|j|c|C|E|p|l)] [-n #-of-inserted-objects] "  // added by Nyapicom
       "[-P path-adjustment-interval] [-B dynamic-edge-size-base] [-A object-alignment(t|f)] "
       "[-T build-time-limit] [-O outgoing x incoming] "
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)

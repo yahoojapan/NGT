@@ -591,6 +591,50 @@ namespace NGT {
       }
     }
 
+		// added by Nyapicom
+		inline static double comparePoincareDistance(const unsigned char *a, const unsigned char *b, size_t size) {
+			// Unlike the other distance functions, this is not optimized...
+			double a2 = 0.0;
+			double b2 = 0.0;
+			double c2 = compareL2(a, b, size);
+			for(size_t i=0; i < size; i++){
+				a2 += (double)a[i] * (double)a[i];
+				b2 += (double)b[i] * (double)b[i];
+			}
+      return std::acosh(1 + 2.0 * c2*c2 / (1.0 - a2) / (1.0 - b2));
+    }
+		// added by Nyapicom
+		inline static double comparePoincareDistance(const float *a, const float *b, size_t size) {
+			// Unlike the other distance functions, this is not optimized...
+			double a2 = 0.0;
+			double b2 = 0.0;
+			double c2 = compareL2(a, b, size);
+			for(size_t i=0; i < size; i++){
+				a2 += (double)a[i] * (double)a[i];
+				b2 += (double)b[i] * (double)b[i];
+			}
+      return std::acosh(1 + 2.0 * c2*c2 / (1.0 - a2) / (1.0 - b2));
+    }
+
+		// added by Nyapicom
+		inline static double compareLorentzDistance(const unsigned char *a, const unsigned char *b, size_t size) {
+			// Unlike the other distance functions, this is not optimized...
+			double sum = (double)a[0] * (double)b[0];
+			for(size_t i=1; i < size; i++){
+				sum -= (double)a[i] * (double)b[i];
+			}
+      return std::acosh(sum);
+    }
+		// added by Nyapicom
+		inline static double compareLorentzDistance(const float *a, const float *b, size_t size) {
+			// Unlike the other distance functions, this is not optimized...
+			double sum = (double)a[0] * (double)b[0];
+			for(size_t i=1; i < size; i++){
+				sum -= (double)a[i] * (double)b[i];
+			}
+      return std::acosh(sum);
+    }
+
     template <typename OBJECT_TYPE> 
     inline static double compareCosineSimilarity(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       return 1.0 - compareCosine(a, b, size);
@@ -687,6 +731,22 @@ namespace NGT {
     public:
       inline static double compare(const void *a, const void *b, size_t size) {
 	return PrimitiveComparator::compareNormalizedAngleDistance((const float*)a, (const float*)b, size);
+      }
+    };
+
+		// added by Nyapicom
+		class poincareFloat {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	return PrimitiveComparator::comparePoincareDistance((const float*)a, (const float*)b, size);
+      }
+    };
+
+		// added by Nyapicom
+		class lorentzFloat {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	return PrimitiveComparator::compareLorentzDistance((const float*)a, (const float*)b, size);
       }
     };
 

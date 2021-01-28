@@ -240,6 +240,48 @@ namespace NGT {
 #endif
     };
 
+		class ComparatorPoincareDistance : public Comparator {  // added by Nyapicom
+			public:
+			#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+			ComparatorPoincareDistance(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
+			double operator()(Object &objecta, Object &objectb) {
+				return PrimitiveComparator::comparePoincareDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
+			}
+			double operator()(Object &objecta, PersistentObject &objectb) {
+				return PrimitiveComparator::comparePoincareDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
+			}
+			double operator()(PersistentObject &objecta, PersistentObject &objectb) {
+				return PrimitiveComparator::comparePoincareDistance((OBJECT_TYPE*)&objecta.at(0, allocator), (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
+			}
+			#else
+			ComparatorPoincareDistance(size_t d) : Comparator(d) {}
+			double operator()(Object &objecta, Object &objectb) {
+				return PrimitiveComparator::comparePoincareDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
+			}
+			#endif
+		};
+
+		class ComparatorLorentzDistance : public Comparator {  // added by Nyapicom
+			public:
+			#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+			ComparatorLorentzDistance(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
+			double operator()(Object &objecta, Object &objectb) {
+				return PrimitiveComparator::compareLorentzDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
+			}
+			double operator()(Object &objecta, PersistentObject &objectb) {
+				return PrimitiveComparator::compareLorentzDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
+			}
+			double operator()(PersistentObject &objecta, PersistentObject &objectb) {
+				return PrimitiveComparator::compareLorentzDistance((OBJECT_TYPE*)&objecta.at(0, allocator), (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
+			}
+			#else
+			ComparatorLorentzDistance(size_t d) : Comparator(d) {}
+			double operator()(Object &objecta, Object &objectb) {
+				return PrimitiveComparator::compareLorentzDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
+			}
+			#endif
+		};
+
     ObjectSpaceRepository(size_t d, const std::type_info &ot, DistanceType t) : ObjectSpace(d), ObjectRepository(d, ot) {
      size_t objectSize = 0;
      if (ot == typeid(uint8_t)) {
@@ -335,6 +377,12 @@ namespace NGT {
       case DistanceTypeCosine:
 	comparator = new ObjectSpaceRepository::ComparatorCosineSimilarity(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
 	break;
+	case DistanceTypePoincare:  // added by Nyapicom
+		comparator = new ObjectSpaceRepository::ComparatorPoincareDistance(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
+	break;
+	case DistanceTypeLorentz:  // added by Nyapicom
+		comparator = new ObjectSpaceRepository::ComparatorLorentzDistance(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
+	break;
       case DistanceTypeNormalizedAngle:
 	comparator = new ObjectSpaceRepository::ComparatorNormalizedAngleDistance(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
 	normalization = true;
@@ -369,6 +417,12 @@ namespace NGT {
 	break;
       case DistanceTypeCosine:
 	comparator = new ObjectSpaceRepository::ComparatorCosineSimilarity(ObjectSpace::getPaddedDimension());
+	break;
+	case DistanceTypePoincare:  // added by Nyapicom
+		comparator = new ObjectSpaceRepository::ComparatorPoincareDistance(ObjectSpace::getPaddedDimension());
+	break;
+	case DistanceTypeLorentz:  // added by Nyapicom
+		comparator = new ObjectSpaceRepository::ComparatorLorentzDistance(ObjectSpace::getPaddedDimension());
 	break;
       case DistanceTypeNormalizedAngle:
 	comparator = new ObjectSpaceRepository::ComparatorNormalizedAngleDistance(ObjectSpace::getPaddedDimension());
