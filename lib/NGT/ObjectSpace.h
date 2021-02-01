@@ -174,7 +174,9 @@ namespace NGT {
       DistanceTypeNormalizedCosine	= 6,
       DistanceTypeJaccard		= 7,
       DistanceTypeSparseJaccard		= 8,
-      DistanceTypeNormalizedL2		= 9
+      DistanceTypeNormalizedL2		= 9,
+			DistanceTypePoincare		= 100,  // added by Nyapicom
+			DistanceTypeLorentz		= 101  // added by Nyapicom
     };
 
     enum ObjectType {

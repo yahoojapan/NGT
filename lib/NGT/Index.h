@@ -122,6 +122,8 @@ namespace NGT {
 	case DistanceType::DistanceTypeNormalizedAngle:		p.set("DistanceType", "NormalizedAngle"); break;
 	case DistanceType::DistanceTypeNormalizedCosine:	p.set("DistanceType", "NormalizedCosine"); break;
 	case DistanceType::DistanceTypeNormalizedL2:		p.set("DistanceType", "NormalizedL2"); break;
+	case DistanceType::DistanceTypePoincare:	p.set("DistanceType", "Poincare"); break;  // added by Nyapicom
+	case DistanceType::DistanceTypeLorentz:	p.set("DistanceType", "Lorentz"); break;  // added by Nyapicom
 	default : std::cerr << "Fatal error. Invalid distance type. " << distanceType << std::endl; abort();
 	}
 	switch (indexType) {      
@@ -185,6 +187,10 @@ namespace NGT {
 	    distanceType = DistanceType::DistanceTypeAngle;
 	  } else if (it->second == "Cosine") {
 	    distanceType = DistanceType::DistanceTypeCosine;
+	  } else if (it->second == "Poincare") {  // added by Nyapicom
+	    distanceType = DistanceType::DistanceTypePoincare;
+	  } else if (it->second == "Lorentz") {  // added by Nyapicom
+	    distanceType = DistanceType::DistanceTypeLorentz;
 	  } else if (it->second == "NormalizedAngle") {
 	    distanceType = DistanceType::DistanceTypeNormalizedAngle;
 	  } else if (it->second == "NormalizedCosine") {
