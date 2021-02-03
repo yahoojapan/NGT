@@ -147,10 +147,10 @@ using namespace std;
     case 'E':
       property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeNormalizedL2;
       break;
-		case 'p':  // added by Nyapicom
+    case 'p':  // added by Nyapicom
       property.distanceType = NGT::Index::Property::DistanceType::DistanceTypePoincare;
       break;
-		case 'l':  // added by Nyapicom
+    case 'l':  // added by Nyapicom
       property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeLorentz;
       break;
     default:

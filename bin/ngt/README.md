@@ -104,8 +104,8 @@ Specify the distance function as follows.
 - __C__: Normalized cosine similarity. The specified data are automatically normalized to be appended to the index.
 - __h__: Hamming distance. 1 byte unsigned integer should be specified for the data object type.
 - __j__: Jaccard distance. 1 byte unsigned integer should be specified for the data object type.
-- __p__: Poincare distance.
-- __l__: Lorentz distance.
+- __p__: Poincare distance
+- __l__: Lorentz distance
 
 **-n** *no\_of\_registration\_data*  
 Specify the number of data items to be registered. If not specified, all data in the specified file will be registered.

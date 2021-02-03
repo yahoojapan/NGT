@@ -301,8 +301,8 @@ namespace NGT {
 	      case NGT::ObjectSpace::DistanceTypeL2 : 		    return l2Float;
 	      case NGT::ObjectSpace::DistanceTypeL1 : 		    return l1Float;
 	      case NGT::ObjectSpace::DistanceTypeSparseJaccard :    return sparseJaccardFloat;
-				case NGT::ObjectSpace::DistanceTypePoincare :    return poincareFloat;  // added by Nyapicom
-				case NGT::ObjectSpace::DistanceTypeLorentz :    return lorentzFloat;  // added by Nyapicom
+	      case NGT::ObjectSpace::DistanceTypePoincare :         return poincareFloat;  // added by Nyapicom
+	      case NGT::ObjectSpace::DistanceTypeLorentz :          return lorentzFloat;  // added by Nyapicom
 	      default:						    return l2Float;
 	      }
 	      break;
@@ -330,6 +330,8 @@ namespace NGT {
 	      case NGT::ObjectSpace::DistanceTypeL2 : 		    return l2FloatForLargeDataset;
 	      case NGT::ObjectSpace::DistanceTypeL1 : 		    return l1FloatForLargeDataset;
 	      case NGT::ObjectSpace::DistanceTypeSparseJaccard :    return sparseJaccardFloatForLargeDataset;
+	      case NGT::ObjectSpace::DistanceTypePoincare :         return poincareFloatForLargeDataset;
+	      case NGT::ObjectSpace::DistanceTypeLorentz :          return lorentzFloatForLargeDataset;
 	      default:						    return l2FloatForLargeDataset;
 	      }
 	      break;
@@ -373,6 +375,8 @@ namespace NGT {
 	static void normalizedCosineSimilarityFloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void normalizedAngleFloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void normalizedL2FloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void poincareFloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void lorentzFloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
       };
 #endif
 

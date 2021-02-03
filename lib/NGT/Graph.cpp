@@ -116,14 +116,14 @@ NeighborhoodGraph::Search::sparseJaccardFloat(NeighborhoodGraph &graph, NGT::Sea
 void 
 NeighborhoodGraph::Search::poincareFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
 {
-  graph.searchReadOnlyGraph<PrimitiveComparator::poincareFloat, DistanceCheckedSet>(sc, seeds);
+  graph.searchReadOnlyGraph<PrimitiveComparator::PoincareFloat, DistanceCheckedSet>(sc, seeds);
 }
 
 // added by Nyapicom
 void 
 NeighborhoodGraph::Search::lorentzFloat(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
 {
-  graph.searchReadOnlyGraph<PrimitiveComparator::lorentzFloat, DistanceCheckedSet>(sc, seeds);
+  graph.searchReadOnlyGraph<PrimitiveComparator::LorentzFloat, DistanceCheckedSet>(sc, seeds);
 }
 
 void 
@@ -197,7 +197,19 @@ NeighborhoodGraph::Search::normalizedL2FloatForLargeDataset(NeighborhoodGraph &g
 void 
 NeighborhoodGraph::Search::sparseJaccardFloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
 {
-  graph.searchReadOnlyGraph<PrimitiveComparator::SparseJaccardFloat, DistanceCheckedSet>(sc, seeds);
+  graph.searchReadOnlyGraph<PrimitiveComparator::SparseJaccardFloat, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::poincareFloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::PoincareFloat, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::lorentzFloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::LorentzFloat, DistanceCheckedSetForLargeDataset>(sc, seeds);
 }
 
 void 
