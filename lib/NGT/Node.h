@@ -54,7 +54,7 @@ namespace NGT {
       void setNull() { id = 0; }
       void serialize(std::ofstream &os) { NGT::Serializer::write(os, id); }
       void deserialize(std::ifstream &is) { NGT::Serializer::read(is, id); }
-      void serializeAsText(std::ofstream &os) { NGT::Serializer::writeAsText(os, id);	}
+      void serializeAsText(std::ofstream &os) { NGT::Serializer::writeAsText(os, id); }
       void deserializeAsText(std::ifstream &is) { NGT::Serializer::readAsText(is, id); }
     protected:
       NodeID id;

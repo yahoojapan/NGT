@@ -923,9 +923,11 @@ using namespace std;
 	if (removedIDs.find(id) == removedIDs.end() && id < objSize) {
           std::cerr << "Not found an object in the tree. However, it might be a duplicated object. " << id << std::endl;
 	  uninsertedTreeObjectCount++;
-	  try {
-	    graphIndex.repository.remove(id);
-	  } catch(...) {}
+	  if (repair) {
+	    try {
+	      graphIndex.repository.remove(id);
+	    } catch(...) {}
+	  }
 	}
       }
     }
@@ -952,14 +954,18 @@ using namespace std;
 	  }
 	  invalidGraphObjectCount++;
 	}
-      } catch (...) {
+      } catch(NGT::Exception &err) {
         if (removedIDs.find(id) == removedIDs.end() && id < objSize) {
-          std::cerr << "Not found an object in the graph. It should be inserted into the graph. " << id << std::endl;
+          std::cerr << "Not found an object in the graph. It should be inserted into the graph. " << err.what() << " ID=" << id << std::endl;
 	  uninsertedGraphObjectCount++;
-	  try {
-	    graphAndTreeIndex.DVPTree::removeNaively(id);
-	  } catch(...) {}
+	  if (repair) {
+	    try {
+	      graphAndTreeIndex.DVPTree::removeNaively(id);
+	    } catch(...) {}
+	  }
 	}
+      } catch(...) {
+	std::cerr << "Unexpected error!" << std::endl;
       }
     }
 

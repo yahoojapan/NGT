@@ -22,7 +22,7 @@
 
 
 #define NGTQ_SIMD_BLOCK_SIZE	16	
-#define NGTQ_BATCH_SIZE	2	
+#define NGTQ_BATCH_SIZE		2	
 #define NGTQG_PREFETCH
 #if defined(NGT_AVX512)
 #define NGTQG_AVX512	
@@ -368,7 +368,7 @@ public:
     float		*localDistanceLookup;
 #endif
     size_t		size;
-    vector<bool>	flag;
+    vector<bool>	flag;	
   };
 
   class DistanceLookupTableUint8 {
@@ -382,29 +382,18 @@ public:
 	delete[] offsets;
       }
     }
-    bool isValid(size_t idx) { return flag[idx]; }
-#ifndef NGTQ_DISTANCE_ANGLE
-    void set(size_t idx, double d) { flag[idx] = true; localDistanceLookup[idx] = d; }
-    double getDistance(size_t idx) { return localDistanceLookup[idx]; }
-#endif
-    void initialize(size_t s) {
-      size = s;
-#ifdef NGTQ_DISTANCE_ANGLE
-      localDistanceLookup = new LocalDistanceLookup[size];
-#else
+    void initialize(size_t numOfSubspaces, size_t localCodebookCentroidNo) {
+      size_t alignedNumOfSubvectors = ((numOfSubspaces - 1) / NGTQ_BATCH_SIZE + 1) * NGTQ_BATCH_SIZE;
+      size = alignedNumOfSubvectors * localCodebookCentroidNo;
       localDistanceLookup = new uint8_t[size];
-#endif
-      scales = new float[size];
-      offsets = new float[size];
-      flag.resize(size, false);
+      scales = new float[alignedNumOfSubvectors];
+      offsets = new float[alignedNumOfSubvectors];
     }
-#ifdef NGTQ_DISTANCE_ANGLE
-    LocalDistanceLookup	*localDistanceLookup;
-#else
+
     uint8_t		*localDistanceLookup;
-#endif
     size_t		size;
-    vector<bool>	flag;
+    size_t		aslignedNumOfSubspaces;
+    size_t		localCodebookCentroidNo;
     float		*scales;
     float		*offsets;
     float		totalOffset;
@@ -759,7 +748,14 @@ public:
 	distanceLUT.scales[li] = scale;
 	distanceLUT.totalOffset += offset;
       }
-      
+      if ((localCodebookNo & 0x1) != 0) {
+	for (size_t k = 0; k < localCodebookCentroidNo; k++) {
+	  *cdlu++ = 0;
+        }
+	distanceLUT.offsets[localCodebookNo] = 0.0;
+	distanceLUT.scales[localCodebookNo] = 0.0;
+      }
+
     }
   }
 
@@ -802,14 +798,7 @@ public:
   }
 
   void initialize(DistanceLookupTableUint8 &c) {
-#if defined(NGTQG_AVX512)
-    size_t size = (localCodebookNo / 4 + 1) * 4;
-#elif defined(NGTQG_AVX2)
-    size_t size = (localCodebookNo / 2 + 1) * 2;
-#else
-    size_t size = localCodebookNo;
-#endif
-    c.initialize(size * localCodebookCentroidNo);
+    c.initialize(localCodebookNo, localCodebookCentroidNo);
   }
 
   NGT::Index	*globalCodebook;
@@ -964,25 +953,22 @@ public:
   }
 
 
+#if defined(NGTQG_AVX512) || defined(NGTQG_AVX2)
   inline void operator()(void *inv, float *distances, size_t size, DistanceLookupTableUint8 &distanceLUT) {
     uint8_t *localID = static_cast<uint8_t*>(inv);
-
-#if defined(NGTQG_AVX512) || defined(NGTQG_AVX2)
     float *d = distances;
     
-    auto *last = localID + localDivisionNo * size / 2;
-
 #if defined(NGTQG_AVX512)
     __m512i mask512x0F = _mm512_set1_epi16(0x000f);
     __m512i mask512xF0 = _mm512_set1_epi16(0x00f0);
-    const size_t step512 = 32;
-    const size_t range512 = (localDivisionNo >> 2) * step512 - (step512 - 1);
-#endif
+    constexpr size_t step512 = 32;
+    const size_t range512 = (localDivisionNo >> 2) * step512;
+#endif 
     const __m256i mask256x0F = _mm256_set1_epi16(0x000f);
     const __m256i mask256xF0 = _mm256_set1_epi16(0x00f0);
-    const size_t step256 = 16;
-    const size_t range256 = (localDivisionNo >> 1) * step256;
-
+    constexpr size_t step256 = 16;
+    const size_t range256 = (((localDivisionNo - 1) >> 1) + 1) * step256; 
+    auto *last = localID + range256 / NGTQ_SIMD_BLOCK_SIZE * size;
     while (localID < last) {
       uint8_t *lut = distanceLUT.localDistanceLookup;
       auto *lastgroup256 = localID + range256;
@@ -1000,7 +986,7 @@ public:
         depu16 = _mm512_adds_epu16(depu16, _mm512_cvtepu8_epi16(_mm512_extracti64x4_epi64(vtmp, 0)));
 	depu16 = _mm512_adds_epu16(depu16, _mm512_cvtepu8_epi16(_mm512_extracti64x4_epi64(vtmp, 1)));
 	lut += (localCodebookCentroidNo - 1) * 4;
-	localID += 32;
+	localID += step512;
       } 
 #else 
       __m256i depu16l = _mm256_setzero_si256();
@@ -1014,10 +1000,15 @@ public:
 	__m256i hi = _mm256_slli_epi16(_mm256_and_si256(packedobj, mask256xF0), 4);
 	__m256i obj = _mm256_or_si256(lo, hi);
 	__m256i vtmp = _mm256_shuffle_epi8(lookupTable, obj);
+	__attribute__((aligned(32))) uint8_t v[32];
+	_mm256_storeu_si256((__m256i*)&v, vtmp);
 
 #if defined(NGTQG_AVX512)
         depu16 = _mm512_adds_epu16(depu16, _mm512_cvtepu8_epi16(vtmp));
 #else
+	__attribute__((aligned(32))) uint16_t v16[16];
+	_mm256_storeu_si256((__m256i*)&v16, depu16l);
+	_mm256_storeu_si256((__m256i*)&v16, depu16h);
 	depu16l = _mm256_adds_epu16(depu16l, _mm256_cvtepu8_epi16(_mm256_extractf128_si256(vtmp, 0)));
 	depu16h = _mm256_adds_epu16(depu16h, _mm256_cvtepu8_epi16(_mm256_extractf128_si256(vtmp, 1)));
 #endif
@@ -1046,6 +1037,9 @@ public:
       __m256i hih = _mm256_cvtepu16_epi32(_mm256_extractf128_si256(depu16h, 1));
       __m256 distancel = _mm256_cvtepi32_ps(_mm256_add_epi32(lol, hil));
       __m256 distanceh = _mm256_cvtepi32_ps(_mm256_add_epi32(loh, hih));
+      __attribute__((aligned(32))) float v32[8];
+      _mm256_storeu_ps((float*)&v32, distancel);
+      _mm256_storeu_ps((float*)&v32, distanceh);
       __m256 scalel = _mm256_broadcastss_ps(*reinterpret_cast<__m128*>(&distanceLUT.scales[0]));
       __m256 scaleh = _mm256_broadcastss_ps(*reinterpret_cast<__m128*>(&distanceLUT.scales[0]));
       distancel = _mm256_mul_ps(distancel, scalel);
@@ -1065,22 +1059,41 @@ public:
 #endif 
       d += 16;
     } 
+  }
+
 
 #else 
-    uint8_t *lut = distanceLUT.localDistanceLookup;
-    for (size_t li = 0; li < localDivisionNo; li++) {
-      for (size_t i = 0; i < size; i++) {
-        distances[i] += static_cast<float>(*(lut + (*localID - 1))) * distanceLUT.scales[li] / 255.0 + distanceLUT.offsets[li];
-	localID++;
+  inline void operator()(void *inv, float *distances, size_t size, DistanceLookupTableUint8 &distanceLUT) {
+    uint8_t *localID = static_cast<uint8_t*>(inv);
+    size_t alignedNumOfSubvectors = ((localDivisionNo - 1) / NGTQ_BATCH_SIZE + 1) * NGTQ_BATCH_SIZE;
+    size_t alignedSize = ((size - 1) / 2 + 1) * 2;
+    uint32_t d[NGTQ_SIMD_BLOCK_SIZE];
+    size_t didx = 0;
+    size_t byteSize = alignedNumOfSubvectors * alignedSize / 2;
+    auto *last = localID + byteSize;
+    while (localID < last) {
+      uint8_t *lut = distanceLUT.localDistanceLookup;
+      memset(d, 0, sizeof(uint32_t) * NGTQ_SIMD_BLOCK_SIZE);
+      for (size_t li = 0; li < alignedNumOfSubvectors; li++) {
+	for (size_t i = 0; i < NGTQ_SIMD_BLOCK_SIZE; i++) {
+	  uint8_t obj = *localID;
+	  if (i % 2 == 0) {
+	    obj &= 0x0f;
+	  } else {
+	    obj >>= 4;
+	    localID++;
+	  }
+	  d[i] += *(lut + obj);
+	}
+	lut += localCodebookCentroidNo - 1;
       }
-      lut += localCodebookCentroidNo - 1;
+      for (size_t i = 0; i < NGTQ_SIMD_BLOCK_SIZE; i++) {
+	distances[didx + i] = sqrt(static_cast<float>(d[i]) * distanceLUT.scales[0] + distanceLUT.totalOffset);
+      }
+      didx += NGTQ_SIMD_BLOCK_SIZE;
     }
-
-    for (size_t i = 0; i < size; i++) {
-      distances[i] = sqrt(distances[i]);
-    }
-#endif 
   }
+#endif 
 
 
   inline double operator()(NGT::Object &object, size_t objectID, void *l) {
@@ -1253,7 +1266,90 @@ public:
 
 };
 
+class QuantizedObjectProcessingStream {
+ public:
+ QuantizedObjectProcessingStream(Quantizer &quantizer, size_t numOfObjects): stream(0) {
+    initialize(quantizer.divisionNo);
+    setStreamSize(numOfObjects);
+    stream = new uint8_t[streamSize]();
+  }
 
+  QuantizedObjectProcessingStream(size_t numOfSubspaces): stream(0) {
+    initialize(numOfSubspaces);
+  }
+
+  ~QuantizedObjectProcessingStream() {
+    delete[] stream;
+  }
+
+  void initialize(size_t divisionNo) {
+    alignedNumOfSubvectors = ((divisionNo - 1) / NGTQ_BATCH_SIZE + 1) * NGTQ_BATCH_SIZE;
+    alignedBlockSize = NGTQ_SIMD_BLOCK_SIZE * alignedNumOfSubvectors;
+  }
+
+  void setStreamSize(size_t numOfObjects) {
+    alignedNumOfObjects = (((numOfObjects - 1) / NGTQ_SIMD_BLOCK_SIZE + 1) * NGTQ_SIMD_BLOCK_SIZE);
+    streamSize = alignedNumOfObjects * alignedNumOfSubvectors;
+    return;
+  }
+
+  void arrangeQuantizedObject(size_t dataNo, size_t subvectorNo, uint8_t quantizedObject) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+    abort();
+#else
+    size_t blkNo = dataNo / NGTQ_SIMD_BLOCK_SIZE;	
+    size_t oft = dataNo - blkNo * NGTQ_SIMD_BLOCK_SIZE;	
+    stream[blkNo * alignedBlockSize + NGTQ_SIMD_BLOCK_SIZE * subvectorNo + oft] = quantizedObject;
+#endif
+  }
+
+  uint8_t* compressIntoUint4() {
+    size_t idx = 0;
+    size_t uint4StreamSize = streamSize / 2;
+    uint8_t *uint4Objects = new uint8_t[uint4StreamSize]();
+    while (idx < streamSize) {
+      for (size_t lidx = 0; lidx < alignedNumOfSubvectors; lidx++) {
+	for (size_t bidx = 0; bidx < NGTQ_SIMD_BLOCK_SIZE; bidx++) {
+	  if (idx / 2 > uint4StreamSize) {
+	    std::stringstream msg;
+	    msg << "Quantizer::compressIntoUint4: Fatal inner error! " << (idx / 2) << ":" << uint4StreamSize;
+	    NGTThrowException(msg);
+	  }
+	  if (idx % 2 == 0) {
+	    uint4Objects[idx / 2] = stream[idx];
+	  } else {
+	    uint4Objects[idx / 2] |= (stream[idx] << 4);
+	  }
+	  idx++;
+	}
+      }
+    }
+    return uint4Objects;
+  }
+  
+  uint8_t*	getStream() {
+    auto s = stream;
+    stream = 0;
+    return s;
+  }
+
+  size_t getUint4StreamSize(size_t numOfObjects) {
+    setStreamSize(numOfObjects);
+    return streamSize / 2;
+  }
+
+  size_t getStreamSize(size_t numOfObjects) {
+    setStreamSize(numOfObjects);
+    return streamSize;
+  }
+
+  uint8_t	*stream;
+  size_t	alignedNumOfSubvectors;
+  size_t	alignedBlockSize;
+  size_t	alignedNumOfObjects;
+  size_t	streamSize;
+};
+ 
 class GenerateResidualObject {
 public:
   virtual ~GenerateResidualObject() {}
@@ -1748,7 +1844,7 @@ public:
     clustering.epsilonFrom = 0.10;
     clustering.epsilonTo = 0.50;
     clustering.epsilonStep = 0.05;
-    clustering.maximumIteration = 10;
+    clustering.maximumIteration = 20;
     for (size_t li = 0; li < localCodebookNo; ++li) {
       double diff = clustering.kmeansWithNGT(localCodebook[li], numberOfCentroids);
       if (diff > 0.0) {

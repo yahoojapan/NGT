@@ -856,6 +856,11 @@ NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode, siz
 #else
       NGT::ObjectDistance &n = (*node)[i];
 #endif
+      if (std::isnan(n.distance)) {
+	stringstream msg;
+	msg << "Index::showStatisticsOfGraph: Fatal inner error! The graph has a node with nan distance. " << id << ":" << n.id << ":" << n.distance;
+	NGTThrowException(msg);
+      }
       if (n.id == 0) {
 	std::cerr << "ngt info: Warning. id is zero." << std::endl;
 	valid = false;
@@ -978,7 +983,11 @@ NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode, siz
     }
     std::sort(node.begin(), node.end());
     for (size_t i = 0; i < node.size(); i++) {  
-      assert(i == 0 || node[i - 1] <= node[i]);
+      if (i > 0 && node[i - 1] > node[i]) {
+	stringstream msg;
+	msg << "Index::showStatisticsOfGraph: Fatal inner error! Wrong distance order " << node[i - 1] << ":" << node[i];
+	NGTThrowException(msg);
+      }
       if (i >= dcsize) {
 	break;
       }

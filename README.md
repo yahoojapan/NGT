@@ -10,7 +10,7 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
 News
 ----
-- 01/18/2021 NGT v1.13.0 to provide the [quantized graph (NGTQG)](bin/ngtqg/README.md) is released.
+- 01/15/2021 NGT v1.13.0 to provide the [quantized graph (NGTQG)](bin/ngtqg/README.md) is released.
 - 11/04/2019 [NGT tutorial](https://github.com/yahoojapan/NGT/wiki) has been released.
 - 06/26/2019 Jaccard distance is available. (v1.7.6)
 - 06/10/2019 PyPI NGT package v1.7.5 is now available.

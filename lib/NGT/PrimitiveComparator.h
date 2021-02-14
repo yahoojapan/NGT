@@ -226,8 +226,11 @@ namespace NGT {
     template <typename OBJECT_TYPE> 
     inline static double compareNormalizedL2(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       double v = 2.0 - 2.0 * compareDotProduct(a, b, size);
-
-      return sqrt(v);
+      if (v < 0.0) {
+	return 0.0;
+      } else {
+	return sqrt(v);
+      }
     }
 
 
@@ -470,7 +473,6 @@ namespace NGT {
 #endif
       __attribute__((aligned(32))) float f[4];
       _mm_store_ps(f, sum128);
-
       double s = f[0] + f[1] + f[2] + f[3];
       return s;
     }

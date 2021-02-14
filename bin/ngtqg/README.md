@@ -40,7 +40,7 @@ Quantize the objects of the specified index and build a quantized graph into the
 Specify the name of the directory for the existing index such as ANNG or ONNG to be quantized. The index only with L2 distance or normalized L2 distance can be quantized. You should build the ANNG or ONNG with normalized L2 distance in order to use cosine similarity for the quantized graph.
 
 **-E** *max_no_of_edges*  
-Specify the maximum number of edges to build a qunatized graph. Since every 64 or 32 objects that are associated with edges of each node are processed, the number should be a multple of 64 for avx512 or 32 for avx2.
+Specify the maximum number of edges to build a qunatized graph. Since every 16 objects that are associated with edges of each node are processed, the number should be a multiple of 16.
 
 ### SEARCH
 

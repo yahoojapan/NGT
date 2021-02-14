@@ -63,24 +63,10 @@ namespace NGTQG {
       return PARENT::at(id).ids;
     }
     
-
-    size_t getNumOfPaddedUint8Objects(size_t noEdges) {
-      if (noEdges == 0) {
-	return 0;
-      }
-      return ((noEdges - 1) / (NGTQ_SIMD_BLOCK_SIZE * NGTQ_BATCH_SIZE) + 1) * (NGTQ_SIMD_BLOCK_SIZE * NGTQ_BATCH_SIZE);
-    }
-    size_t getNumOfPaddedUint4Objects(size_t noUint8Objects) {
-      if (noUint8Objects == 0) {
-	return 0;
-      }
-      return (noUint8Objects * numOfSubspaces) / 2 + 1;
-    }
-
     void construct(NGT::Index &ngtindex, NGTQ::Index &quantizedIndex, size_t maxNoOfEdges) {
       NGTQ::InvertedIndexEntry<uint16_t> invertedIndexObjects(numOfSubspaces);
       quantizedIndex.getQuantizer().extractInvertedIndexObject(invertedIndexObjects);
-
+      
       NGT::GraphAndTreeIndex &index = static_cast<NGT::GraphAndTreeIndex&>(ngtindex.getIndex());
       NGT::NeighborhoodGraph &graph = static_cast<NGT::NeighborhoodGraph&>(index);
 
@@ -89,12 +75,11 @@ namespace NGTQG {
 
       for (size_t id = 1; id < graphRepository.size(); id++) {
 	NGT::GraphNode &node = *graphRepository.VECTOR::get(id);
-	size_t noEdges = node.size() < maxNoOfEdges ? node.size() : maxNoOfEdges;
-	(*this)[id].ids.reserve(noEdges);
-	size_t noObjects = getNumOfPaddedUint8Objects(noEdges);
-	uint8_t *objectData = new uint8_t[noObjects * numOfSubspaces]();
+	size_t numOfEdges = node.size() < maxNoOfEdges ? node.size() : maxNoOfEdges;
+	(*this)[id].ids.reserve(numOfEdges);
+	NGTQ::QuantizedObjectProcessingStream quantizedStream(quantizedIndex.getQuantizer(), numOfEdges);
 	for (auto i = node.begin(); i != node.end(); i++) {
-	  if (distance(node.begin(), i) >= static_cast<int64_t>(noEdges)) {
+	  if (distance(node.begin(), i) >= static_cast<int64_t>(numOfEdges)) {
 	    break;
 	  }
 	  if ((*i).id == 0) {
@@ -105,51 +90,35 @@ namespace NGTQG {
 	  (*this)[id].ids.push_back((*i).id);
 	  for (size_t idx = 0; idx < numOfSubspaces; idx++) {
             size_t dataNo = distance(node.begin(), i);  
-	    size_t blkNo = dataNo / NGTQ_SIMD_BLOCK_SIZE;	
-	    size_t oft = dataNo - blkNo * NGTQ_SIMD_BLOCK_SIZE;	
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
 	    abort();
 #else
-	    objectData[blkNo * (NGTQ_SIMD_BLOCK_SIZE * numOfSubspaces) + NGTQ_SIMD_BLOCK_SIZE * idx + oft] = invertedIndexObjects[(*i).id].localID[idx] - 1;
+	    quantizedStream.arrangeQuantizedObject(dataNo, idx, invertedIndexObjects[(*i).id].localID[idx] - 1);
 #endif
 	  }
 	} 
 
-	{
-	  size_t idx = 0;
-	  uint8_t *uint4Objects = new uint8_t[getNumOfPaddedUint4Objects(noObjects)]();
-	  for (size_t nidx = 0; nidx < noObjects; nidx += NGTQ_SIMD_BLOCK_SIZE * NGTQ_BATCH_SIZE) {
-	    for (size_t bcnt = 0; bcnt < NGTQ_BATCH_SIZE; bcnt++) {
-	      for (size_t lidx = 0; lidx < numOfSubspaces; lidx++) {
-		for (size_t bidx = 0; bidx < NGTQ_SIMD_BLOCK_SIZE; bidx++) {
-		  if (idx % 2 == 0) {
-		    uint4Objects[idx / 2] = objectData[idx];
-		  } else {
-		    uint4Objects[idx / 2] |= (objectData[idx] << 4);
-		  }
-		  idx++;
-		}
-	      }
-	    }
-	  }
-	  delete[] objectData;
-	  (*this)[id].objects = uint4Objects;
-        }
+
+	(*this)[id].objects = quantizedStream.compressIntoUint4();
       }
     }
+
     void serialize(std::ofstream &os, NGT::ObjectSpace *objspace = 0) {
+      NGTQ::QuantizedObjectProcessingStream quantizedObjectProcessingStream(numOfSubspaces);
       uint64_t n = numOfSubspaces;
       NGT::Serializer::write(os, n);
       n = PARENT::size();
       NGT::Serializer::write(os, n);
       for (auto i = PARENT::begin(); i != PARENT::end(); ++i) {
 	NGT::Serializer::write(os, (*i).ids);
-	size_t noObjects = getNumOfPaddedUint4Objects(getNumOfPaddedUint8Objects((*i).ids.size()));
-	NGT::Serializer::write(os, static_cast<uint8_t*>((*i).objects), noObjects);
+	size_t streamSize = quantizedObjectProcessingStream.getUint4StreamSize((*i).ids.size());
+	NGT::Serializer::write(os, static_cast<uint8_t*>((*i).objects), streamSize);
       }
     }
+
     void deserialize(std::ifstream &is, NGT::ObjectSpace *objectspace = 0) {
       try {
+	NGTQ::QuantizedObjectProcessingStream quantizedObjectProcessingStream(numOfSubspaces);
 	uint64_t n;
 	NGT::Serializer::read(is, n);
 	numOfSubspaces = n;
@@ -157,10 +126,10 @@ namespace NGTQG {
 	PARENT::resize(n);
 	for (auto i = PARENT::begin(); i != PARENT::end(); ++i) {
 	  NGT::Serializer::read(is, (*i).ids);
-	  size_t noObjects = getNumOfPaddedUint4Objects(getNumOfPaddedUint8Objects((*i).ids.size()));
-	  uint8_t *objects = new uint8_t[noObjects];
-	  NGT::Serializer::read(is, objects, noObjects);
-	  (*i).objects = objects;
+          size_t streamSize = quantizedObjectProcessingStream.getUint4StreamSize((*i).ids.size());
+	  uint8_t *objectStream = new uint8_t[streamSize];
+	  NGT::Serializer::read(is, objectStream, streamSize);
+	  (*i).objects = objectStream;
 	}
       } catch(NGT::Exception &err) {
 	std::stringstream msg;
@@ -168,16 +137,19 @@ namespace NGTQG {
 	NGTThrowException(msg);
       }
     }
+
     void save(const string &path) {
       const std::string p(path + "/grp");
       std::ofstream os(p);
       serialize(os);
     }
+
     void load(const string &path) {
       const std::string p(path + "/grp");
       std::ifstream is(p);
       deserialize(is);
     }
+
     size_t numOfSubspaces;
   };
 

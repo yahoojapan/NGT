@@ -250,9 +250,9 @@ namespace NGT {
 
     template <typename T>
     void normalize(T *data, size_t dim) {
-      double sum = 0.0;
+      float sum = 0.0;
       for (size_t i = 0; i < dim; i++) {
-	sum += (double)data[i] * (double)data[i];
+	sum += data[i] * data[i];
       }
       if (sum == 0.0) {
 	std::stringstream msg;
@@ -261,7 +261,7 @@ namespace NGT {
       }
       sum = sqrt(sum);
       for (size_t i = 0; i < dim; i++) {
-	data[i] = (double)data[i] / sum;
+	data[i] = data[i] / sum;
       }
     }
     uint32_t getPrefetchOffset() { return prefetchOffset; }
@@ -304,6 +304,11 @@ namespace NGT {
       size_t byteSize = objectspace->getByteSizeOfObject();
       assert(&(*this)[0] != 0);
       NGT::Serializer::read(is, (uint8_t*)&(*this)[0], byteSize); 
+      if (is.eof()) {
+	std::stringstream msg;
+	msg << "ObjectSpace::BaseObject: Fatal Error! Read beyond the end of the object file. The object file is corrupted?" << byteSize;
+	NGTThrowException(msg);
+      }
     }
     void serializeAsText(std::ostream &os, ObjectSpace *objectspace = 0) { 
       assert(objectspace != 0);
