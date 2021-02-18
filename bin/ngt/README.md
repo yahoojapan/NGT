@@ -97,7 +97,7 @@ Specify the data object type.
 Specify the distance function as follows.
 - __1__: L1 distance
 - __2__: L2 distance (default)
-- __E__: Normalized L2 distance. The specified data are automatically normalized to be appended to the index. It is mainly used for cosine similarity of the quantized graph (NGTQG).
+- __E__: Normalized L2 distance. The specified data are automatically normalized to be appended to the index.
 - __a__: Angle distance
 - __A__: Normalized angle distance. The specified data are automatically normalized to be appended to the index.
 - __c__: Cosine similarity

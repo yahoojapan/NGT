@@ -190,7 +190,7 @@ Specify the number of edges for each node to explore the graph for the search pr
 Specify the distance function for the objects.
 - __L1__: L1 distance
 - __L2__: L2 distance (default)
-- __Normalized L2__: Normalized L2 distance. The specified data are automatically normalized to be appended to the index. It is mainly used for cosine similarity of the quantized graph (NGTQG).
+- __Normalized L2__: Normalized L2 distance. The specified data are automatically normalized to be appended to the index.
 - __Angle__: Angle distance
 - __Normalized Angle__: Normalized angle distance. The specified data are automatically normalized to be appended to the index.
 - __Cosine__: Cosine similarity
