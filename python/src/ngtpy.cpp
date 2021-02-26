@@ -36,14 +36,17 @@ public:
   ):NGT::Index(path, readOnly) {
     zeroNumbering = zeroBasedNumbering;
     numOfDistanceComputations = 0;
-    numOfSearchObjects = 10;
-    searchRadius = FLT_MAX;
     if (logDisabled) {
       NGT::Index::disableLog();
     } else {
       NGT::Index::enableLog();
     }
     treeIndex = !treeDisabled;
+    defaultNumOfSearchObjects = 20;
+    defaultEpsilon = 0.1;
+    defaultRadius = FLT_MAX;
+    defaultEdgeSize = -1;	// -1: use edge_size_for_search in the profile
+    defaultExpectedAccuracy = -1.0;
   }
 
   static void create(
@@ -161,18 +164,14 @@ public:
       }
     }
     NGT::SearchContainer sc(*ngtquery);
-    if (size == 0) {
-      sc.setSize(numOfSearchObjects);		// the number of resulting objects.
-    } else {
-      sc.setSize(size);				// the number of resulting objects.
-    }
-    sc.setRadius(searchRadius);			// the radius of search.
+    sc.setSize(size == 0 ? defaultNumOfSearchObjects : size);		// the number of resulting objects.
+    sc.setRadius(defaultRadius);					// the radius of search.
     if (expectedAccuracy > 0.0) {
       sc.setExpectedAccuracy(expectedAccuracy);
     } else {
-      sc.setEpsilon(epsilon);			// set exploration coefficient.
+      sc.setEpsilon(epsilon <= -1.0 ? defaultEpsilon : epsilon);	// set exploration coefficient.
     }
-    sc.setEdgeSize(edgeSize);			// if maxEdge is minus, the specified value in advance is used.
+    sc.setEdgeSize(edgeSize < -2 ? defaultEdgeSize : edgeSize);		// if maxEdge is negative, the specified value in advance is used.
 
     if (treeIndex) {
       NGT::Index::search(sc);
@@ -238,12 +237,8 @@ public:
     }
 
     NGT::SearchContainer sc(*ngtquery);
-    if (size == 0) {
-      sc.setSize(numOfSearchObjects);		// the number of resulting objects.
-    } else {
-      sc.setSize(size);				// the number of resulting objects.
-    }
-    sc.setRadius(searchRadius);			// the radius of search.
+    sc.setSize(size == 0 ? defaultNumOfSearchObjects : size);	// the number of resulting objects.
+    sc.setRadius(defaultRadius);				// the radius of search.
     NGT::ObjectDistances rs;
     sc.setResults(&rs);
 
@@ -324,13 +319,18 @@ public:
     return object;
   }
 
-  void set(size_t k, NGT::Distance r) {
-    if (k > 0) {
-      numOfSearchObjects = k;
-    }
-    if (r >= 0.0) {
-      searchRadius = r; 
-    }
+  void set(
+   size_t numOfSearchObjects, 		// the number of resultant objects
+   NGT::Distance radius,		// search radius.
+   float epsilon,	 		// search parameter epsilon. the adequate range is from 0.0 to 0.05.
+   int edgeSize,			// the number of edges for each node
+   float expectedAccuracy		// Expected accuracy
+  ) {
+    defaultNumOfSearchObjects = numOfSearchObjects > 0 ? numOfSearchObjects : defaultNumOfSearchObjects;
+    defaultEpsilon	      = epsilon > -1.0 ? epsilon : defaultEpsilon;
+    defaultRadius	      = radius >= 0.0 ? radius : defaultRadius;
+    defaultEdgeSize	      = edgeSize >= -2 ? edgeSize : defaultEdgeSize;
+    defaultExpectedAccuracy   = expectedAccuracy > 0.0 ? expectedAccuracy : defaultExpectedAccuracy;
   }
 
   size_t getNumOfDistanceComputations() { return numOfDistanceComputations; }
@@ -338,8 +338,12 @@ public:
   bool		zeroNumbering;	    // for object ID numbering. zero-based or one-based numbering.
   size_t	numOfDistanceComputations;
   size_t	numOfSearchObjects; // k
-  NGT::Distance	searchRadius;
   bool		treeIndex;
+  size_t	defaultNumOfSearchObjects; // k
+  float		defaultEpsilon;
+  float		defaultRadius;
+  int64_t	defaultEdgeSize;
+  float		defaultExpectedAccuracy;
 };
 
 class Optimizer : public NGT::GraphOptimizer {
@@ -470,7 +474,7 @@ public:
 
   void setWithDistance(bool v) { withDistance = v; }
 
-  void setDefaults(
+  void set(
    size_t numOfSearchObjects, 		// the number of resultant objects
    float epsilon,	 		// search parameter epsilon. the adequate range is from 0.0 to 0.05.
    float resultExpansion,		// the number of inner resultant objects
@@ -516,9 +520,9 @@ PYBIND11_MODULE(ngtpy, m) {
       .def("search", &::Index::search, 
            py::arg("query"), 
            py::arg("size") = 0, 
-           py::arg("epsilon") = 0.1, 
-           py::arg("edge_size") = -1,
-           py::arg("expected_accuracy") = -1.0, 
+           py::arg("epsilon") = -FLT_MAX, 
+           py::arg("edge_size") = INT_MIN,
+           py::arg("expected_accuracy") = -FLT_MAX, 
            py::arg("with_distance") = true)
       .def("linear_search", &::Index::linearSearch, 
            py::arg("query"), 
@@ -549,7 +553,10 @@ PYBIND11_MODULE(ngtpy, m) {
 	   py::arg("batch_size") = 10000)
       .def("set", &::Index::set,
            py::arg("num_of_search_objects") = 0,
-	   py::arg("search_radius") = -1.0)
+	   py::arg("search_radius") = -FLT_MAX,
+	   py::arg("epsilon") = -FLT_MAX,
+	   py::arg("edge_size") = INT_MIN,
+	   py::arg("expected_accuracy") = -FLT_MAX)
       .def("export_index", (void (NGT::Index::*)(const std::string&)) &NGT::Index::exportIndex, 
            py::arg("path"))
       .def("import_index", (void (NGT::Index::*)(const std::string&)) &NGT::Index::importIndex, 
@@ -618,10 +625,15 @@ PYBIND11_MODULE(ngtpy, m) {
            py::arg("edge_size") = INT_MIN)
       .def("set_with_distance", &::QuantizedIndex::setWithDistance,
            py::arg("boolean") = true)
-      .def("set_defaults", &::QuantizedIndex::setDefaults,
+      .def("set", &::QuantizedIndex::set,
+           py::arg("num_of_search_objects") = 0,
+           py::arg("epsilon") = -FLT_MAX,
+           py::arg("result_expansion") = -FLT_MAX,
+           py::arg("edge_size") = INT_MIN)
+      // set_defaults is deprecated
+      .def("set_defaults", &::QuantizedIndex::set,
            py::arg("size") = 0,
            py::arg("epsilon") = -FLT_MAX,
            py::arg("result_expansion") = -FLT_MAX,
            py::arg("edge_size") = INT_MIN);
-
 }

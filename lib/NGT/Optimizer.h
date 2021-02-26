@@ -25,7 +25,6 @@ namespace NGT {
   class Optimizer {
   public:
 
-
     Optimizer(NGT::Index &i, size_t n = 10):index(i), nOfResults(n) { 
     }
     ~Optimizer() {}
@@ -123,7 +122,6 @@ namespace NGT {
 	gtStream.clear();
 	gtStream.seekg(0, std::ios_base::beg);
 	acc = evaluate(gtStream, resultStream, sumupValues, type, actualResultSize);
-
       }
 
       assert(acc.size() == 1);
@@ -371,7 +369,7 @@ namespace NGT {
 	      size_t distanceCount = 0;
 	      size_t visitCount = 0;
 	      double totalDistance = 0.0;
-	      std::unordered_set<size_t> searchedIDs;
+	      std::vector<size_t> searchedIDs;
 	      while (getline(resultStream, line)) {
 		lineNo++;
 		if (line.size() != 0 && line.at(0) == '#') {
@@ -462,11 +460,18 @@ namespace NGT {
 		      result.distanceCount = distanceCount;
 		      result.visitCount = visitCount;
 		      result.meanDistance = totalDistance / (double)resultDataSize;
-		      for (auto i = gt.begin(); i != gt.end(); ++i) {
-			if (searchedIDs.find(*i) == searchedIDs.end()) {
-			  result.unsearchedIDs.push_back(*i);
-			} else {
-			  result.searchedIDs.push_back(*i);
+		      {
+			std::unordered_set<size_t> sids;
+			for (auto i = searchedIDs.begin(); i != searchedIDs.end(); ++i) {
+			  if (gt.find(*i) != gt.end()) {
+			    result.searchedIDs.push_back(*i);
+			  }
+			  sids.insert(*i);
+			}
+			for (auto i = gt.begin(); i != gt.end(); ++i) {
+			  if (sids.find(*i) == sids.end()) {
+			    result.unsearchedIDs.push_back(*i);
+			  }
 			}
 		      }
 		      sumupValues.results.push_back(result);
@@ -491,7 +496,7 @@ namespace NGT {
 		if (gt.count(id) != 0) {
 		  relevantCount++;
 		  if (sumupValues.resultIsAvailable) {
-		    searchedIDs.insert(id);
+		    searchedIDs.push_back(id);
 		  }
 		} else {
 		  if (farthestDistance > 0.0 && distance <= farthestDistance) {

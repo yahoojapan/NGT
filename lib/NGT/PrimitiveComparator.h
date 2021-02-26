@@ -116,19 +116,19 @@ namespace NGT {
       COMPARE_TYPE diff0, diff1, diff2, diff3;
       double d = 0.0;
       while (a < lastgroup) {
-	diff0 = (COMPARE_TYPE)(a[0] - b[0]);
-	diff1 = (COMPARE_TYPE)(a[1] - b[1]);
-	diff2 = (COMPARE_TYPE)(a[2] - b[2]);
-	diff3 = (COMPARE_TYPE)(a[3] - b[3]);
+	diff0 = static_cast<COMPARE_TYPE>(a[0] - b[0]);
+	diff1 = static_cast<COMPARE_TYPE>(a[1] - b[1]);
+	diff2 = static_cast<COMPARE_TYPE>(a[2] - b[2]);
+	diff3 = static_cast<COMPARE_TYPE>(a[3] - b[3]);
 	d += diff0 * diff0 + diff1 * diff1 + diff2 * diff2 + diff3 * diff3;
 	a += 4;
 	b += 4;
       }
       while (a < last) {
-	diff0 = (COMPARE_TYPE)(*a++ - *b++);
+	diff0 = static_cast<COMPARE_TYPE>(*a++ - *b++);
 	d += diff0 * diff0;
       }
-      return sqrt((double)d);
+      return sqrt(static_cast<double>(d));
     }
 
     inline static double compareL2(const uint8_t *a, const uint8_t *b, size_t size) {
@@ -306,7 +306,7 @@ namespace NGT {
       _mm_store_ps(f, sum);
       double s = f[0] + f[1] + f[2] + f[3];
       while (a < last) {
-	double d = fabs((double)*a++ - (double)*b++);
+	double d = fabs(static_cast<double>(*a++) - static_cast<double>(*b++));
 	s += d;
       }
       return s;
@@ -422,7 +422,7 @@ namespace NGT {
     inline static double compareDotProduct(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       double sum = 0.0;
       for (size_t loc = 0; loc < size; loc++) {
-	sum += (double)a[loc] * (double)b[loc];
+	sum += static_cast<float>(a[loc]) * static_cast<float>(b[loc]);
       }
       return sum;
     }
@@ -433,9 +433,9 @@ namespace NGT {
       double normB = 0.0;
       double sum = 0.0;
       for (size_t loc = 0; loc < size; loc++) {
-	normA += (double)a[loc] * (double)a[loc];
-	normB += (double)b[loc] * (double)b[loc];
-	sum += (double)a[loc] * (double)b[loc];
+	normA += static_cast<double>(a[loc]) * static_cast<double>(a[loc]);
+	normB += static_cast<double>(b[loc]) * static_cast<double>(b[loc]);
+	sum += static_cast<double>(a[loc]) * static_cast<double>(b[loc]);
       }
 
       double cosine = sum / sqrt(normA * normB);
@@ -452,7 +452,6 @@ namespace NGT {
 	a += 16;
 	b += 16;
       }
-
       __m256 sum256 = _mm256_add_ps(_mm512_extractf32x8_ps(sum512, 0), _mm512_extractf32x8_ps(sum512, 1));
       __m128 sum128 = _mm_add_ps(_mm256_extractf128_ps(sum256, 0), _mm256_extractf128_ps(sum256, 1));
 #elif defined(NGT_AVX2)
@@ -473,14 +472,14 @@ namespace NGT {
 #endif
       __attribute__((aligned(32))) float f[4];
       _mm_store_ps(f, sum128);
-      double s = f[0] + f[1] + f[2] + f[3];
+      double s = static_cast<double>(f[0]) + static_cast<double>(f[1]) + static_cast<double>(f[2]) + static_cast<double>(f[3]);
       return s;
     }
 
     inline static double compareDotProduct(const unsigned char *a, const unsigned char *b, size_t size) {
       double sum = 0.0;
       for (size_t loc = 0; loc < size; loc++) {
-	sum += (double)a[loc] * (double)b[loc];
+	sum += static_cast<double>(a[loc]) * static_cast<double>(b[loc]);
       }
       return sum;
     }
@@ -558,9 +557,9 @@ namespace NGT {
       double normB = 0.0;
       double sum = 0.0;
       for (size_t loc = 0; loc < size; loc++) {
-	normA += (double)a[loc] * (double)a[loc];
-	normB += (double)b[loc] * (double)b[loc];
-	sum += (double)a[loc] * (double)b[loc];
+	normA += static_cast<double>(a[loc]) * static_cast<double>(a[loc]);
+	normB += static_cast<double>(b[loc]) * static_cast<double>(b[loc]);
+	sum += static_cast<double>(a[loc]) * static_cast<double>(b[loc]);
       }
 
       double cosine = sum / sqrt(normA * normB);
@@ -599,9 +598,9 @@ namespace NGT {
       double a2 = 0.0;
       double b2 = 0.0;
       double c2 = compareL2(a, b, size);
-      for(size_t i=0; i < size; i++){
-	a2 += (double)a[i] * (double)a[i];
-	b2 += (double)b[i] * (double)b[i];
+      for(size_t i = 0; i < size; i++){
+	a2 += static_cast<double>(a[i]) * static_cast<double>(a[i]);
+	b2 += static_cast<double>(b[i]) * static_cast<double>(b[i]);
       }
       return std::acosh(1 + 2.0 * c2*c2 / (1.0 - a2) / (1.0 - b2));
     }
@@ -611,9 +610,9 @@ namespace NGT {
       double a2 = 0.0;
       double b2 = 0.0;
       double c2 = compareL2(a, b, size);
-      for(size_t i=0; i < size; i++){
-	a2 += (double)a[i] * (double)a[i];
-	b2 += (double)b[i] * (double)b[i];
+      for(size_t i = 0; i < size; i++){
+	a2 += static_cast<double>(a[i]) * static_cast<double>(a[i]);
+	b2 += static_cast<double>(b[i]) * static_cast<double>(b[i]);
       }
       return std::acosh(1 + 2.0 * c2*c2 / (1.0 - a2) / (1.0 - b2));
     }
@@ -621,18 +620,18 @@ namespace NGT {
     // added by Nyapicom
     inline static double compareLorentzDistance(const unsigned char *a, const unsigned char *b, size_t size) {
       // Unlike the other distance functions, this is not optimized...
-      double sum = (double)a[0] * (double)b[0];
-      for(size_t i=1; i < size; i++){
-	sum -= (double)a[i] * (double)b[i];
+      double sum = static_cast<double>(a[0]) * static_cast<double>(b[0]);
+      for(size_t i = 1; i < size; i++){
+	sum -= static_cast<double>(a[i]) * static_cast<double>(b[i]);
       }
       return std::acosh(sum);
     }
     // added by Nyapicom
     inline static double compareLorentzDistance(const float *a, const float *b, size_t size) {
       // Unlike the other distance functions, this is not optimized...
-      double sum = (double)a[0] * (double)b[0];
-      for(size_t i=1; i < size; i++){
-	sum -= (double)a[i] * (double)b[i];
+      double sum = static_cast<double>(a[0]) * static_cast<double>(b[0]);
+      for(size_t i = 1; i < size; i++){
+	sum -= static_cast<double>(a[i]) * static_cast<double>(b[i]);
       }
       return std::acosh(sum);
     }
