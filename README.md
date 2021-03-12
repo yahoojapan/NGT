@@ -107,7 +107,7 @@ Supported Programming Languages
 
 Benchmark Results
 -----------------
-The followings are the results of [ann benchmarks](https://github.com/erikbern/ann-benchmarks) on an AWS c5.4xlarge instance for NGT v1.7.5.
+The followings are the results of [ann benchmarks](https://github.com/erikbern/ann-benchmarks) for NGT v1.13.5 where the timeout is 5 hours on an AWS c5.4xlarge instance.
 
 #### glove-100-angular
 <img src="./tests/ann-benchmarks-results/glove-100-angular.png?raw=true" width="400">
