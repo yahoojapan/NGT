@@ -10,7 +10,8 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
 ニュース
 -------
-
+- 2021/03/12 READMEに量子化グラフの結果を追加しました。
+- 2021/01/15 [量子化グラフ (NGTQG)](bin/ngtqg/README.md)を実装した NGT v1.13.0 をリリースしました。
 - 2019/11/04 [NGT チュートリアル](https://github.com/yahoojapan/NGT/wiki) をリリースしました。
 - 2019/06/26 Jaccard距離が利用可能になりました。(v1.7.6)
 - 2019/06/10 PyPI NGT パッケージ v1.7.5 が利用可能になりました。
@@ -93,13 +94,15 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 -------------
 
 - コマンド : [ngt](/bin/ngt/README-jp.md#command), [ngtq](bin/ngtq/README-jp.md)
-- サーバ : [ngtd](https://github.com/yahoojapan/ngtd)
+- サーバ : [ngtd](https://github.com/yahoojapan/ngtd), [vald](https://github.com/vdaas/vald)
 
 対応言語
 --------
 
 - [Python](/python/README-jp.md)
 - [Ruby](https://github.com/ankane/ngt) (Thanks Andrew!)
+- [Rust](https://crates.io/crates/ngt) (Thanks Romain!)
+- JavaScript/NodeJS : [ngt-tool](https://www.npmjs.com/package/ngt-tool), [spatial-db-ngt](https://www.npmjs.com/package/spatial-db-ngt) (Thanks stonkpunk!)
 - [Go](https://github.com/yahoojapan/gongt)
 - C
 - C++([sample code](samples))
@@ -138,7 +141,7 @@ Copyright (C) 2015 Yahoo Japan Corporation
 貢献者ライセンス同意(CLA)
 -------------------------
 
-本ソフトウェアへのソースコードのご提供者は[貢献者ライセンス](https://gist.github.com/ydnjp/3095832f100d5c3d2592)に同意して頂きます。
+本ソフトウェアへのソースコードのご提供者は[貢献者ライセンス](https://gist.github.com/yahoojapanoss/9bf8afd6ea67f32d29b4082abf220340)に同意して頂きます。
 
 なお、GitHub (https://github.com/yahoojapan/NGT) へのご提供の場合のみ、個別の同意書面なしに、上記貢献者ライセンスに同意して頂いたと見なしますので、ご注意ください。
 

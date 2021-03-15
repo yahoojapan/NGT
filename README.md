@@ -10,6 +10,7 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
 News
 ----
+- 03/12/2021 The results for the quantized graph are added to this README.
 - 01/15/2021 NGT v1.13.0 to provide the [quantized graph (NGTQG)](bin/ngtqg/README.md) is released.
 - 11/04/2019 [NGT tutorial](https://github.com/yahoojapan/NGT/wiki) has been released.
 - 06/26/2019 Jaccard distance is available. (v1.7.6)
@@ -101,6 +102,7 @@ Supported Programming Languages
 - [Python](/python/README.md)
 - [Ruby](https://github.com/ankane/ngt) (Thanks Andrew!)
 - [Rust](https://crates.io/crates/ngt) (Thanks Romain!)
+- JavaScript/NodeJS : [ngt-tool](https://www.npmjs.com/package/ngt-tool), [spatial-db-ngt](https://www.npmjs.com/package/spatial-db-ngt) (Thanks stonkpunk!)
 - [Go](https://github.com/yahoojapan/gongt)
 - C
 - C++([sample code](samples))
@@ -139,7 +141,7 @@ See the License for the specific language governing permissions and limitations 
 Contributor License Agreement
 -----------------------------
 
-This project requires contributors to accept the terms in the [Contributor License Agreement (CLA)](https://gist.github.com/ydnjp/3095832f100d5c3d2592).
+This project requires contributors to accept the terms in the [Contributor License Agreement (CLA)](https://gist.github.com/yahoojapanoss/9bf8afd6ea67f32d29b4082abf220340).
 
 Please note that contributors to the NGT repository on GitHub (https://github.com/yahoojapan/NGT) shall be deemed to have accepted the CLA without individual written agreements.
 
