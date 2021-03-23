@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2016-2020 Yahoo Japan Corporation
+// Copyright (C) 2020 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,8 +19,6 @@
 
 #include	"NGT/Index.h"
 #include	"NGT/NGTQ/Quantizer.h"
-
-#if !defined(NGT_SHARED_MEMORY_ALLOCATOR) && !defined(NGTQ_SHARED_INVERTED_INDEX)
 
 
 #define GLOBAL_SIZE	1
@@ -78,8 +76,13 @@ namespace NGTQG {
 	size_t numOfEdges = node.size() < maxNoOfEdges ? node.size() : maxNoOfEdges;
 	(*this)[id].ids.reserve(numOfEdges);
 	NGTQ::QuantizedObjectProcessingStream quantizedStream(quantizedIndex.getQuantizer(), numOfEdges);
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	for (auto i = node.begin(graphRepository.allocator); i != node.end(graphRepository.allocator); ++i) {
+	  if (distance(node.begin(graphRepository.allocator), i) >= static_cast<int64_t>(numOfEdges)) {
+#else
 	for (auto i = node.begin(); i != node.end(); i++) {
 	  if (distance(node.begin(), i) >= static_cast<int64_t>(numOfEdges)) {
+#endif
 	    break;
 	  }
 	  if ((*i).id == 0) {
@@ -89,10 +92,18 @@ namespace NGTQG {
 	  }
 	  (*this)[id].ids.push_back((*i).id);
 	  for (size_t idx = 0; idx < numOfSubspaces; idx++) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+            size_t dataNo = distance(node.begin(graphRepository.allocator), i);  
+#else
             size_t dataNo = distance(node.begin(), i);  
+#endif
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
 	    abort();
 #else
+	    if (invertedIndexObjects[(*i).id].localID[idx] < 1 || invertedIndexObjects[(*i).id].localID[idx] > 16) {
+	      std::cerr << "Fatal inner error! Invalid local centroid ID. ID=" << (*i).id << ":" << invertedIndexObjects[(*i).id].localID[idx] << std::endl;
+	      abort();
+	    }
 	    quantizedStream.arrangeQuantizedObject(dataNo, idx, invertedIndexObjects[(*i).id].localID[idx] - 1);
 #endif
 	  }
@@ -360,6 +371,109 @@ namespace NGTQG {
       deleteObject(query);
     }
 
+    static size_t getNumberOfSubvectors(size_t dimension, size_t dimensionOfSubvector) {
+      if (dimensionOfSubvector == 0) {
+	dimensionOfSubvector = dimension > 400 ? 2 : 1;
+	dimensionOfSubvector = (dimension % dimensionOfSubvector == 0) ? dimensionOfSubvector : 1;
+      }
+      if (dimension % dimensionOfSubvector != 0) {
+	stringstream msg;
+	msg << "Quantizer::getNumOfSubvectors: dimensionOfSubvector is invalid. " << dimension << " : " << dimensionOfSubvector << std::endl;
+	NGTThrowException(msg);
+      }
+      return dimension / dimensionOfSubvector;
+    }
+
+    static void buildQuantizedGraph(const std::string indexPath, size_t maxNumOfEdges) {
+      NGTQG::Index index(indexPath, maxNumOfEdges);
+      index.save();
+    }
+
+    static void buildQuantizedObjects(const std::string quantizedIndexPath, NGT::ObjectSpace &objectSpace) {
+      NGTQ::Index	quantizedIndex(quantizedIndexPath);
+      NGTQ::Quantizer	&quantizer = quantizedIndex.getQuantizer();
+
+      {
+	std::vector<float> meanObject(objectSpace.getDimension(), 0);
+	quantizedIndex.getQuantizer().globalCodebook.insert(meanObject);
+	quantizedIndex.getQuantizer().globalCodebook.createIndex(8);
+      }
+
+      vector<pair<NGT::Object*, size_t> > objects;
+      for (size_t id = 1; id < objectSpace.getRepository().size(); id++) {
+	if (id % 100000 == 0) {
+	  std::cerr << "Processed " << id << " objects." << std::endl;
+	}
+	std::vector<float> object;
+	try {
+	  objectSpace.getObject(id, object);
+	} catch(...) {
+	  continue;
+	}
+	quantizer.insert(object, objects, id);
+      }
+      if (objects.size() > 0) {
+	quantizer.insert(objects);
+      }
+
+      quantizedIndex.save();
+      quantizedIndex.close();
+    }
+
+    static void constructQuantizedGraphFrame(const std::string quantizedIndexPath, size_t dimension, size_t dimensionOfSubvector) {
+      NGTQ::Property property;
+      NGT::Property globalProperty;
+      NGT::Property localProperty;
+
+      property.threadSize = 24;
+      property.globalRange = 0;
+      property.localRange = 0;
+      property.dataType = NGTQ::DataTypeFloat;
+      property.distanceType = NGTQ::DistanceTypeL2;
+      property.singleLocalCodebook = false;
+      property.batchSize = 1000;
+      property.centroidCreationMode = NGTQ::CentroidCreationModeStatic; 
+      property.localCentroidCreationMode = NGTQ::CentroidCreationModeDynamicKmeans; 
+
+      property.globalCentroidLimit = 1; 
+      property.localCentroidLimit = 16; 
+      property.localClusteringSampleCoefficient = 100; 
+      property.localDivisionNo = NGTQG::Index::getNumberOfSubvectors(dimension, dimensionOfSubvector);
+      property.dimension = dimension;
+
+      globalProperty.edgeSizeForCreation = 10;
+      globalProperty.edgeSizeForSearch = 40;
+      globalProperty.indexType = NGT::Property::GraphAndTree;
+      globalProperty.insertionRadiusCoefficient = 1.1;
+
+      localProperty.indexType = NGT::Property::GraphAndTree;
+      localProperty.insertionRadiusCoefficient = 1.1;
+
+      NGTQ::Index::create(quantizedIndexPath, property, globalProperty, localProperty);
+
+    }
+
+    static void quantize(const std::string indexPath, float dimensionOfSubvector, size_t maxNumOfEdges) {
+      NGT::Index	index(indexPath);
+      NGT::ObjectSpace &objectSpace = index.getObjectSpace();
+
+
+      {
+	std::string quantizedIndexPath = indexPath + "/qg";
+	struct stat st;
+	if (stat(quantizedIndexPath.c_str(), &st) != 0) {
+	  NGT::Property ngtProperty;
+	  index.getProperty(ngtProperty);
+	  //NGTQG::Command::CreateParameters createParameters(args, property.dimension);
+	  constructQuantizedGraphFrame(quantizedIndexPath, ngtProperty.dimension, dimensionOfSubvector);
+	  buildQuantizedObjects(quantizedIndexPath, objectSpace);
+	  if (maxNumOfEdges != 0) {
+	    buildQuantizedGraph(indexPath, maxNumOfEdges);
+	  }
+	}
+      }
+    }
+
     const std::string path;
     NGTQ::Index quantizedIndex;
     NGTQ::Index blobIndex;
@@ -370,4 +484,3 @@ namespace NGTQG {
 
 } 
 
-#endif 

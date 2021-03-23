@@ -34,13 +34,16 @@ before the command as follows.
 
 Quantize the objects of the specified index and build a quantized graph into the index.
 
-      $ ngtqg quantize [-E max_no_of_edges] index
+      $ ngtqg quantize [-E max_no_of_edges] [-Q dimension_of_subvector] index
 
 *index*  
 Specify the name of the directory for the existing index such as ANNG or ONNG to be quantized. The index only with L2 distance and normalized cosine similarity distance can be quantized. You should build the ANNG or ONNG with normalized cosine similarity in order to use cosine similarity for the quantized graph.
 
 **-E** *max_no_of_edges*  
 Specify the maximum number of edges to build a qunatized graph. Since every 16 objects that are associated with edges of each node are processed, the number should be a multiple of 16.
+
+**-Q** *dimension_of_subvector*  
+Specify dimension of a suvbector for quantized objects. The dimension should be a divisor of the dimension of the inserted objects.
 
 ### SEARCH
 

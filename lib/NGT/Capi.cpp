@@ -683,18 +683,18 @@ uint8_t* ngt_get_object_as_integer(NGTObjectSpace object_space, ObjectID id, NGT
 
 void ngt_destroy_results(NGTObjectDistances results) {
     if(results == NULL) return;
-    delete(static_cast<NGT::ObjectDistances*>(results));
+    delete static_cast<NGT::ObjectDistances*>(results);
 }
 
 void ngt_destroy_property(NGTProperty prop) {
     if(prop == NULL) return;  
-    delete(static_cast<NGT::Property*>(prop));
+    delete static_cast<NGT::Property*>(prop);
 }
 
 void ngt_close_index(NGTIndex index) {
     if(index == NULL) return;
     (static_cast<NGT::Index*>(index))->close();
-    delete(static_cast<NGT::Index*>(index));
+    delete static_cast<NGT::Index*>(index);
 }
 
 int16_t ngt_get_property_edge_size_for_creation(NGTProperty prop, NGTError error) {
@@ -886,7 +886,7 @@ bool ngt_optimizer_set_processing_modes(NGTOptimizer optimizer, bool searchParam
 void ngt_destroy_optimizer(NGTOptimizer optimizer)
 {
     if(optimizer == NULL) return;  
-    delete(static_cast<NGT::GraphOptimizer*>(optimizer));
+    delete static_cast<NGT::GraphOptimizer*>(optimizer);
 }
 
 bool ngt_refine_anng(NGTIndex index, float epsilon, float accuracy, int noOfEdges, int exploreEdgeSize, size_t batchSize, NGTError error)

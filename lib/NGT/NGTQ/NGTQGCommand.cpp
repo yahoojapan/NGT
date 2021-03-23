@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2020 Yahoo Japan Corporation
+// Copyright (C) 2020 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ NGTQG::Command::create(NGT::Args &args)
     "[-D distance-function] "
     "[-p #-of-thread] [-d dimension] [-R global-codebook-range] [-r local-codebook-range] "
     "[-C global-codebook-size-limit] [-c local-codebook-size-limit] "
-    "[-Q quantization-ratio] [-i index-type (t:Tree|g:Graph)] "
+    "[-Q dimension-of-subvector] [-i index-type (t:Tree|g:Graph)] "
     "[-M global-centroid-creation-mode (d|s)] [-l global-centroid-creation-mode (d|k|s)] "
     "[-s local-sample-coefficient] "
     "index(output)";
@@ -80,21 +80,13 @@ NGTQG::Command::create(NGT::Args &args)
 void 
 NGTQG::Command::build(NGT::Args &args)
 {
-
   NGT::Command::append(args);
-
 }
-
 
 void 
 NGTQG::Command::quantize(NGT::Args &args)
 {
-  const std::string usage = "Usage: ngtqg quantize "
-    "[-m quantization-mode(q|g|a)] [-E max-number-of-edges] [creation parameters] index\n"
-    "\t-m mode\n"
-    "\t\ta: quantize the objects and build and save a quantized graph. (default)\n"
-    "\t\tq: just quantize the objects but not build and save a quantized graph.\n"
-    "\t\tg: not quantize the objects but build and save a quantized graph.\n";
+  const std::string usage = "Usage: ngtqg quantize  [-Q dimension-of-subvector] [-E max-number-of-edges] index";
   string indexPath;
   try {
     indexPath = args.get("#1");
@@ -103,67 +95,9 @@ NGTQG::Command::quantize(NGT::Args &args)
     cerr << usage << endl;
     return;
   }
-  char mode = args.getChar("m", 'a');
   size_t maxNumOfEdges = args.getl("E", 128);
-  if (mode == 'q') {
-    maxNumOfEdges = 0;
-  }
-  if (mode != 'g') {
-    NGT::Index	index(indexPath);
-    NGT::ObjectSpace &objectSpace = index.getObjectSpace();
-
-
-    {
-      std::string quantizedIndexPath = indexPath + "/qg";
-      struct stat st;
-      if (stat(quantizedIndexPath.c_str(), &st) != 0) {
-	NGT::Property property;
-	index.getProperty(property);
-	NGTQG::Command::CreateParameters createParameters(args, property.dimension);
-
-	try {
-	  createParameters.property.centroidCreationMode = NGTQ::CentroidCreationModeStatic;
-	  NGTQ::Index::create(quantizedIndexPath, createParameters.property, createParameters.globalProperty, createParameters.localProperty);
-	} catch(NGT::Exception &err) {
-	  std::cerr << err.what() << std::endl;
-	  //cerr << usage << endl;
-	}
-      }
-
-      NGTQ::Index	quantizedIndex(quantizedIndexPath);
-      NGTQ::Quantizer	&quantizer = quantizedIndex.getQuantizer();
-
-      {
-	std::vector<float> meanObject(objectSpace.getDimension(), 0);
-	quantizedIndex.getQuantizer().globalCodebook.insert(meanObject);
-	quantizedIndex.getQuantizer().globalCodebook.createIndex(8);
-      }
-    
-      vector<pair<NGT::Object*, size_t> > objects;
-      for (size_t id = 1; id < objectSpace.getRepository().size(); id++) {
-	if (id % 100000 == 0) {
-	  std::cerr << "Processed " << id << " objects." << std::endl;
-	}
-	std::vector<float> object;
-	try {
-	  objectSpace.getObject(id, object);
-	} catch(...) {
-	  continue;
-	}
-	quantizer.insert(object, objects, id);
-      }
-      if (objects.size() > 0) {
-	quantizer.insert(objects);
-      }
-
-      quantizedIndex.save();
-      quantizedIndex.close();
-    }
-  }
-  if (maxNumOfEdges != 0) {
-    NGTQG::Index index(indexPath, maxNumOfEdges);
-    index.save();
-  }
+  size_t dimensionOfSubvector = args.getl("Q", 0);
+  NGTQG::Index::quantize(indexPath, dimensionOfSubvector, maxNumOfEdges);
 }
 
 void

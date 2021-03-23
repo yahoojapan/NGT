@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2015-2020 Yahoo Japan Corporation
+// Copyright (C) 2020 Yahoo Japan Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,16 +35,8 @@ namespace NGTQG {
 	property.globalCentroidLimit = args.getl("C", 1);
 	property.localCentroidLimit = args.getl("c", 16);
 	property.localClusteringSampleCoefficient = args.getl("s", 100);
-        size_t quantizationRatio = args.getl("Q", 0);
-        if (quantizationRatio == 0) {
-	  if ((dimension > 400) && (dimension % 2 == 0)) {
-	    property.localDivisionNo = dimension / 2;
-	  } else {
-	    property.localDivisionNo = dimension;
-	  }
-	} else {
-	  property.localDivisionNo = dimension / quantizationRatio;
-	}
+	size_t dimensionOfSubvector = args.getl("Q", 0);
+	property.localDivisionNo = NGTQG::Index::getNumberOfSubvectors(dimension, dimensionOfSubvector);
 	property.dimension = dimension;
       }
     };
