@@ -35,7 +35,7 @@ namespace NGTQG {
 	property.globalCentroidLimit = args.getl("C", 1);
 	property.localCentroidLimit = args.getl("c", 16);
 	property.localClusteringSampleCoefficient = args.getl("s", 100);
-	size_t dimensionOfSubvector = args.getl("Q", 0);
+        size_t dimensionOfSubvector = args.getl("Q", 0);
 	property.localDivisionNo = NGTQG::Index::getNumberOfSubvectors(dimension, dimensionOfSubvector);
 	property.dimension = dimension;
       }

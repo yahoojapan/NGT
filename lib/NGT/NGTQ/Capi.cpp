@@ -66,7 +66,7 @@ void ngtqg_close_index(NGTQGIndex index) {
 }
 
 static bool ngtqg_search_index_(NGTQG::Index* pindex, std::vector<float> &query, NGTQGQuery &param, NGTObjectDistances results) {
-  // set search prameters.
+  // set search parameters.
   NGTQG::SearchQuery sq(query);  // Query.
 
   sq.setResults(static_cast<NGT::ObjectDistances*>(results));          // set the result set.
@@ -114,12 +114,12 @@ bool ngtqg_search_index(NGTQGIndex index, NGTQGQuery query, NGTObjectDistances r
   return true;
 }
 
-void ngtqg_initialize_quantization_parameters(NGTQGQuantizationPrameters *parameters) {
+void ngtqg_initialize_quantization_parameters(NGTQGQuantizationParameters *parameters) {
   parameters->dimension_of_subvector = 0;
   parameters->max_number_of_edges = 128;
 }
 
-void ngtqg_quantize(const char *indexPath, NGTQGQuantizationPrameters parameters, NGTError error) {
+void ngtqg_quantize(const char *indexPath, NGTQGQuantizationParameters parameters, NGTError error) {
   try{
     NGTQG::Index::quantize(indexPath, parameters.dimension_of_subvector, parameters.max_number_of_edges);
   }catch(std::exception &err){

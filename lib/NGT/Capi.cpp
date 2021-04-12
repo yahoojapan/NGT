@@ -325,7 +325,7 @@ NGTObjectDistances ngt_create_empty_results(NGTError error) {
 }
 
 static bool ngt_search_index_(NGT::Index* pindex, NGT::Object *ngtquery, size_t size, float epsilon, float radius, NGTObjectDistances results, int edge_size = INT_MIN) {
-  // set search prameters.
+  // set search parameters.
   NGT::SearchContainer sc(*ngtquery);      // search parametera container.
   
   sc.setResults(static_cast<NGT::ObjectDistances*>(results));          // set the result set.

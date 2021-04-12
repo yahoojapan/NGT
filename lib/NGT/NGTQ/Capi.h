@@ -24,7 +24,7 @@
     
     // quantize the specified existing index
     //   build quantized objects and a quantized graph
-    NGTQGQuantizationPrameters quantizationParameters;
+    NGTQGQuantizationParameters quantizationParameters;
     ngtqg_initialize_quantization_parameters(&quantizationParameters);
     ngtqg_quantize(indexPath.c_str(), quantizationParameters, err);
 
@@ -62,7 +62,7 @@
     for (std::vector<std::string>::iterator ti = tokens.begin(); ti != tokens.end(); ++ti) {
       queryVector[distance(tokens.begin(), ti)] = NGT::Common::strtod(*ti);
     }
-    // set search prameters.
+    // set search parameters.
     NGTObjectDistances result = ngt_create_empty_results(err);
     NGTQGQuery query;
     ngtqg_initialize_query(&query);
@@ -73,13 +73,18 @@
 
     // search with the quantized graph
     bool status = ngtqg_search_index(index, query, result, err);
+    NGTObjectSpace objectSpace = ngt_get_object_space(index, err);
     auto rsize = ngt_get_result_size(result, err);
-
     // show resultant objects.
-    std::cout << "Rank\tID\tDistance" << std::endl;
+    std::cout << "Rank\tID\tDistance\tObject" << std::endl;
     for (size_t i = 0; i < rsize; i++) {
       NGTObjectDistance object = ngt_get_result(result, i, err);
-      std::cout << i + 1 << "\t" << object.id << "\t" << object.distance << std::endl;
+      std::cout << i + 1 << "\t" << object.id << "\t" << object.distance << "\t";
+      float *objectVector = ngt_get_object_as_float(objectSpace, object.id, err);
+      for (size_t i = 0; i < dimension; i++) {
+	std::cout << objectVector[i] << " ";
+      }
+      std::cout << std::endl;
     }
     ngt_destroy_results(result);
     ngtqg_close_index(index);
@@ -113,15 +118,15 @@ typedef struct {
 typedef struct {
   float dimension_of_subvector;
   size_t max_number_of_edges;
-} NGTQGQuantizationPrameters;
+} NGTQGQuantizationParameters;
 
 NGTQGIndex ngtqg_open_index(const char *, NGTError);
 
 void ngtqg_close_index(NGTQGIndex);
 
-void ngtqg_initialize_quantization_parameters(NGTQGQuantizationPrameters *);
+void ngtqg_initialize_quantization_parameters(NGTQGQuantizationParameters *);
 
-void ngtqg_quantize(const char *, NGTQGQuantizationPrameters, NGTError);
+void ngtqg_quantize(const char *, NGTQGQuantizationParameters, NGTError);
 
 void ngtqg_initialize_query(NGTQGQuery *);
 
