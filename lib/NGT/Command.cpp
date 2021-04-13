@@ -764,7 +764,7 @@ using namespace std;
     const string usage = "Usage: ngt optimize-search-parameters [-m optimization-target(s|p|a)] [-q #-of-queries] [-n #-of-results] index\n"
       "\t-m mode\n"
       "\t\ts: optimize search parameters (the number of explored edges).\n"
-      "\t\tp: optimize prefetch prameters.\n"
+      "\t\tp: optimize prefetch parameters.\n"
       "\t\ta: generate an accuracy table to specify an expected accuracy instead of an epsilon for search.\n";
     
     string indexPath;

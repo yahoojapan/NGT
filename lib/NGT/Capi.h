@@ -184,7 +184,7 @@ bool ngt_optimizer_set_processing_modes(NGTOptimizer optimizer, bool searchParam
 void ngt_destroy_optimizer(NGTOptimizer);
 
 // refine: the specified index by searching each node.
-// epsilon, exepectedAccuracy and edgeSize: the same as the prameters for search. but if edgeSize is INT_MIN, default is used.
+// epsilon, exepectedAccuracy and edgeSize: the same as the parameters for search. but if edgeSize is INT_MIN, default is used.
 // noOfEdges: if this is not 0, kNNG with k = noOfEdges is build 
 // batchSize: batch size for parallelism.
 bool ngt_refine_anng(NGTIndex index, float epsilon, float expectedAccuracy, 

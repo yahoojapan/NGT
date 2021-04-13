@@ -1739,9 +1739,14 @@ public:
 #else
       invertedIndexEntry.pushBack(object.second);
 #endif
-      if (id.distance != 0.0) {
+      if (property.centroidCreationMode == CentroidCreationModeStatic) {
 	localData.push_back(LocalDatam(globalCentroidID, 
 				       invertedIndexEntry.size() - 1)); 
+      } else {
+	if (id.distance != 0.0) {
+	  localData.push_back(LocalDatam(globalCentroidID, 
+					 invertedIndexEntry.size() - 1)); 
+	}
       }
     } else {
       if (property.centroidCreationMode != CentroidCreationModeDynamic) {
@@ -2898,7 +2903,6 @@ public:
    size_t getSharedMemorySize(ostream &os, SharedMemoryAllocator::GetMemorySizeType t = SharedMemoryAllocator::GetTotalMemorySize) {
      return quantizer->getSharedMemorySize(os, t);
    }
-
 
  protected:
 

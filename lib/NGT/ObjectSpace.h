@@ -256,7 +256,7 @@ namespace NGT {
       }
       if (sum == 0.0) {
 	std::stringstream msg;
-	msg << "ObjectSpace::normalize: Error! the object is an invalid zero vector for the cosine similarity or angle distance.";
+	msg << "ObjectSpace::normalize: Error! the object is an invalid zero vector for the cosine similarity or normalized distances.";
 	NGTThrowException(msg);
       }
       sum = sqrt(sum);

@@ -1417,7 +1417,7 @@ findPathAmongIdenticalObjects(GraphAndTreeIndex &graph, size_t srcid, size_t dst
     done.insert(tid);
     GraphNode &node = *graph.GraphIndex::getNode(tid);
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-    for (auto i = node.begin(graph.repository.allocator); i != node.end(graph.GraphIndex::repository.allocator); ++i) {
+    for (auto i = node.begin(graph.GraphIndex::repository.allocator); i != node.end(graph.GraphIndex::repository.allocator); ++i) {
 #else
     for (auto i = node.begin(); i != node.end(); ++i) {
 #endif
