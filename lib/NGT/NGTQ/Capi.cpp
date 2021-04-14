@@ -75,8 +75,6 @@ static bool ngtqg_search_index_(NGTQG::Index* pindex, std::vector<float> &query,
   sq.setEpsilon(param.epsilon);                  // exploration coefficient.
   sq.setResultExpansion(param.result_expansion); // result expansion.
 
-  auto tmp = static_cast<NGT::ObjectDistances*>(results);
-
   pindex->search(sq);
 
   return true;
@@ -119,14 +117,15 @@ void ngtqg_initialize_quantization_parameters(NGTQGQuantizationParameters *param
   parameters->max_number_of_edges = 128;
 }
 
-void ngtqg_quantize(const char *indexPath, NGTQGQuantizationParameters parameters, NGTError error) {
+bool ngtqg_quantize(const char *indexPath, NGTQGQuantizationParameters parameters, NGTError error) {
   try{
     NGTQG::Index::quantize(indexPath, parameters.dimension_of_subvector, parameters.max_number_of_edges);
+    return true;
   }catch(std::exception &err){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
     operate_error_string_(ss, error);    
-    return;
+    return false;
   }
 }
 

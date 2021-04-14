@@ -26,7 +26,10 @@
     //   build quantized objects and a quantized graph
     NGTQGQuantizationParameters quantizationParameters;
     ngtqg_initialize_quantization_parameters(&quantizationParameters);
-    ngtqg_quantize(indexPath.c_str(), quantizationParameters, err);
+    if (!ngtqg_quantize(indexPath.c_str(), quantizationParameters, err)) {
+      std::cerr << ngt_get_error_string(err) << std::endl;
+      return false;
+    }
 
     // open the index (ANNG or ONNG).
     index = ngtqg_open_index(indexPath.c_str(), err);
@@ -126,7 +129,7 @@ void ngtqg_close_index(NGTQGIndex);
 
 void ngtqg_initialize_quantization_parameters(NGTQGQuantizationParameters *);
 
-void ngtqg_quantize(const char *, NGTQGQuantizationParameters, NGTError);
+bool ngtqg_quantize(const char *, NGTQGQuantizationParameters, NGTError);
 
 void ngtqg_initialize_query(NGTQGQuery *);
 
