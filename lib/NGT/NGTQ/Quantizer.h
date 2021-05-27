@@ -1112,7 +1112,6 @@ public:
     for (size_t li = 0; li < localDivisionNo; li++) {
       size_t distanceLUTidx = li * localCodebookCentroidNo + localID[li];
       if (distanceLUT.isValid(distanceLUTidx)) {
-	//std::cerr << "hit" << std::endl;
 	distance += distanceLUT.getDistance(distanceLUTidx);
 	optr += localDataSize;
 	gcptr += localDataSize;
@@ -2415,7 +2414,6 @@ public:
 
 
   inline void aggregateObjects(NGT::ObjectDistance &globalCentroid, NGT::Object *query, size_t size, NGT::ObjectSpace::ResultSet &results, size_t approximateSearchSize) {
-    std::cerr << "approximateSearchSize=" << approximateSearchSize << std::endl;
     for (size_t j = 0; j < invertedIndex[globalCentroid.id]->size() && results.size() < approximateSearchSize; j++) {
 #ifdef NGTQ_SHARED_INVERTED_INDEX
       InvertedIndexObject<LOCAL_ID_TYPE> &invertedIndexEntry = (*invertedIndex[globalCentroid.id]).at(j, invertedIndex.allocator);
