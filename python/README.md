@@ -68,7 +68,7 @@ See also [sample.py](https://github.com/yahoojapan/NGT/blob/master/python/sample
 
   index = ngt.Index.create(b"tmp", dim)
   index.insert(vectors)
-  # You can also insert objects from a file like this.
+  # You can also insert vectors from a file like this.
   # index.insert_from_tsv('list.tsv') 
 
   index.save()
