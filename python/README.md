@@ -42,7 +42,7 @@ ngtpy(pybind11) can reduce the processing times than ngt(ctypes). It is more eff
   
   ngtpy.create(b"tmp", dim)
   index = ngtpy.Index(b"tmp")
-  index.batch_insert(objects)
+  index.batch_insert(vectors)
   index.save()
 
   results = index.search(query, 3)
