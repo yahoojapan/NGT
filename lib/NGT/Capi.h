@@ -111,6 +111,12 @@ bool ngt_search_index_as_float(NGTIndex, float*, int32_t, size_t, float, float, 
 
 bool ngt_search_index_with_query(NGTIndex, NGTQuery, NGTObjectDistances, NGTError);
 
+bool ngt_linear_search_index(NGTIndex, double*, int32_t, size_t, NGTObjectDistances, NGTError);
+
+bool ngt_linear_search_index_as_float(NGTIndex, float*, int32_t, size_t, NGTObjectDistances, NGTError);
+
+bool ngt_linear_search_index_with_query(NGTIndex, NGTQuery, NGTObjectDistances, NGTError);
+
 int32_t ngt_get_size(NGTObjectDistances, NGTError); // deprecated
   
 uint32_t ngt_get_result_size(NGTObjectDistances, NGTError); 

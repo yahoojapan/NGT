@@ -23,7 +23,7 @@
 #include "Capi.h"
 
 static bool operate_error_string_(const std::stringstream &ss, NGTError error){
-  if(error != NULL){  
+  if(error != NULL){
     try{
       std::string *error_str = static_cast<std::string*>(error);
       *error_str = ss.str();
@@ -50,12 +50,12 @@ NGTIndex ngt_open_index(const char *index_path, NGTError error) {
     return NULL;
   }
 }
-    
+
 NGTIndex ngt_create_graph_and_tree(const char *database, NGTProperty prop, NGTError error) {
   NGT::Index *index = NULL;
   try{
     std::string database_str(database);
-    NGT::Property prop_i = *(static_cast<NGT::Property*>(prop));    
+    NGT::Property prop_i = *(static_cast<NGT::Property*>(prop));
     NGT::Index::createGraphAndTree(database_str, prop_i, true);
     index = new NGT::Index(database_str);
     index->disableLog();
@@ -63,7 +63,7 @@ NGTIndex ngt_create_graph_and_tree(const char *database, NGTProperty prop, NGTEr
   }catch(std::exception &err){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-    operate_error_string_(ss, error);    
+    operate_error_string_(ss, error);
     delete index;
     return NULL;
   }
@@ -73,7 +73,7 @@ NGTIndex ngt_create_graph_and_tree_in_memory(NGTProperty prop, NGTError error) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
   std::stringstream ss;
   ss << "Capi : " << __FUNCTION__ << "() : Error: " << __FUNCTION__ << " is unavailable for shared-memory-type NGT.";
-  operate_error_string_(ss, error);        
+  operate_error_string_(ss, error);
   return NULL;
 #else
   try{
@@ -83,7 +83,7 @@ NGTIndex ngt_create_graph_and_tree_in_memory(NGTProperty prop, NGTError error) {
   }catch(std::exception &err){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-    operate_error_string_(ss, error);        
+    operate_error_string_(ss, error);
     return NULL;
   }
 #endif
@@ -95,7 +95,7 @@ NGTProperty ngt_create_property(NGTError error) {
   }catch(std::exception &err){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-    operate_error_string_(ss, error);        
+    operate_error_string_(ss, error);
     return NULL;
   }
 }
@@ -107,7 +107,7 @@ bool ngt_save_index(const NGTIndex index, const char *database, NGTError error) 
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-    operate_error_string_(ss, error);    
+    operate_error_string_(ss, error);
     return false;
   }
   return true;
@@ -117,10 +117,10 @@ bool ngt_get_property(NGTIndex index, NGTProperty prop, NGTError error) {
   if(index == NULL || prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " prop = " << prop;
-    operate_error_string_(ss, error);        
+    operate_error_string_(ss, error);
     return false;
   }
-  
+
   try{
     (static_cast<NGT::Index*>(index))->getProperty(*(static_cast<NGT::Property*>(prop)));
   }catch(std::exception &err) {
@@ -136,16 +136,16 @@ int32_t ngt_get_property_dimension(NGTProperty prop, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
-    operate_error_string_(ss, error);    
+    operate_error_string_(ss, error);
     return -1;
   }
-  return (*static_cast<NGT::Property*>(prop)).dimension;      
+  return (*static_cast<NGT::Property*>(prop)).dimension;
 }
 
 bool ngt_set_property_dimension(NGTProperty prop, int32_t value, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
-    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;            
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
     operate_error_string_(ss, error);
     return false;
   }
@@ -157,7 +157,7 @@ bool ngt_set_property_edge_size_for_creation(NGTProperty prop, int16_t value, NG
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
-    operate_error_string_(ss, error);    
+    operate_error_string_(ss, error);
     return false;
   }
   (*static_cast<NGT::Property*>(prop)).edgeSizeForCreation = value;
@@ -167,8 +167,8 @@ bool ngt_set_property_edge_size_for_creation(NGTProperty prop, int16_t value, NG
 bool ngt_set_property_edge_size_for_search(NGTProperty prop, int16_t value, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
-    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;            
-    operate_error_string_(ss, error);        
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
+    operate_error_string_(ss, error);
     return false;
   }
   (*static_cast<NGT::Property*>(prop)).edgeSizeForSearch = value;
@@ -179,7 +179,7 @@ int32_t ngt_get_property_object_type(NGTProperty prop, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
-    operate_error_string_(ss, error);              
+    operate_error_string_(ss, error);
     return -1;
   }
   return (*static_cast<NGT::Property*>(prop)).objectType;
@@ -197,10 +197,10 @@ bool ngt_set_property_object_type_float(NGTProperty prop, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
-    operate_error_string_(ss, error);                    
+    operate_error_string_(ss, error);
     return false;
   }
-  
+
   (*static_cast<NGT::Property*>(prop)).objectType = NGT::ObjectSpace::ObjectType::Float;
   return true;
 }
@@ -212,7 +212,7 @@ bool ngt_set_property_object_type_integer(NGTProperty prop, NGTError error) {
     operate_error_string_(ss, error);
     return false;
   }
-  
+
   (*static_cast<NGT::Property*>(prop)).objectType = NGT::ObjectSpace::ObjectType::Uint8;
   return true;
 }
@@ -221,10 +221,10 @@ bool ngt_set_property_distance_type_l1(NGTProperty prop, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
-    operate_error_string_(ss, error);      
+    operate_error_string_(ss, error);
     return false;
   }
-  
+
   (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeL1;
   return true;
 }
@@ -233,10 +233,10 @@ bool ngt_set_property_distance_type_l2(NGTProperty prop, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
-    operate_error_string_(ss, error);            
+    operate_error_string_(ss, error);
     return false;
   }
-  
+
   (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeL2;
   return true;
 }
@@ -245,10 +245,10 @@ bool ngt_set_property_distance_type_angle(NGTProperty prop, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
-    operate_error_string_(ss, error);                  
+    operate_error_string_(ss, error);
     return false;
   }
-  
+
   (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeAngle;
   return true;
 }
@@ -257,10 +257,10 @@ bool ngt_set_property_distance_type_hamming(NGTProperty prop, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
-    operate_error_string_(ss, error);                        
+    operate_error_string_(ss, error);
     return false;
   }
-  
+
   (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeHamming;
   return true;
 }
@@ -269,10 +269,10 @@ bool ngt_set_property_distance_type_jaccard(NGTProperty prop, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
-    operate_error_string_(ss, error);                        
+    operate_error_string_(ss, error);
     return false;
   }
-  
+
   (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeJaccard;
   return true;
 }
@@ -284,7 +284,7 @@ bool ngt_set_property_distance_type_cosine(NGTProperty prop, NGTError error) {
     operate_error_string_(ss, error);
     return false;
   }
- 
+
   (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeCosine;
   return true;
 }
@@ -296,7 +296,7 @@ bool ngt_set_property_distance_type_normalized_angle(NGTProperty prop, NGTError 
     operate_error_string_(ss, error);
     return false;
   }
- 
+
   (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeNormalizedAngle;
   return true;
 }
@@ -308,7 +308,7 @@ bool ngt_set_property_distance_type_normalized_cosine(NGTProperty prop, NGTError
     operate_error_string_(ss, error);
     return false;
   }
- 
+
   (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeNormalizedCosine;
   return true;
 }
@@ -319,7 +319,7 @@ NGTObjectDistances ngt_create_empty_results(NGTError error) {
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-    operate_error_string_(ss, error);                              
+    operate_error_string_(ss, error);
     return NULL;
   }
 }
@@ -327,7 +327,7 @@ NGTObjectDistances ngt_create_empty_results(NGTError error) {
 static bool ngt_search_index_(NGT::Index* pindex, NGT::Object *ngtquery, size_t size, float epsilon, float radius, NGTObjectDistances results, int edge_size = INT_MIN) {
   // set search parameters.
   NGT::SearchContainer sc(*ngtquery);      // search parametera container.
-  
+
   sc.setResults(static_cast<NGT::ObjectDistances*>(results));          // set the result set.
   sc.setSize(size);                        // the number of resultant objects.
   sc.setRadius(radius);                    // search radius.
@@ -337,7 +337,7 @@ static bool ngt_search_index_(NGT::Index* pindex, NGT::Object *ngtquery, size_t 
   }
 
   pindex->search(sc);
-  
+
   // delete the query object.
   pindex->deleteObject(ngtquery);
   return true;
@@ -350,22 +350,22 @@ bool ngt_search_index(NGTIndex index, double *query, int32_t query_dim, size_t s
     operate_error_string_(ss, error);
     return false;
   }
-  
-  NGT::Index* pindex = static_cast<NGT::Index*>(index);    
+
+  NGT::Index* pindex = static_cast<NGT::Index*>(index);
   NGT::Object *ngtquery = NULL;
-  
+
   if(radius < 0.0){
     radius = FLT_MAX;
   }
-  
-  try{	  
+
+  try{
     std::vector<double> vquery(&query[0], &query[query_dim]);
     ngtquery = pindex->allocateObject(vquery);
     ngt_search_index_(pindex, ngtquery, size, epsilon, radius, results);
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-    operate_error_string_(ss, error);      
+    operate_error_string_(ss, error);
     if(ngtquery != NULL){
       pindex->deleteObject(ngtquery);
     }
@@ -381,22 +381,22 @@ bool ngt_search_index_as_float(NGTIndex index, float *query, int32_t query_dim, 
     operate_error_string_(ss, error);
     return false;
   }
-  
-  NGT::Index* pindex = static_cast<NGT::Index*>(index);    
+
+  NGT::Index* pindex = static_cast<NGT::Index*>(index);
   NGT::Object *ngtquery = NULL;
 
   if(radius < 0.0){
     radius = FLT_MAX;
   }
 
-  try{	  
+  try{
     std::vector<float> vquery(&query[0], &query[query_dim]);
     ngtquery = pindex->allocateObject(vquery);
     ngt_search_index_(pindex, ngtquery, size, epsilon, radius, results);
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-    operate_error_string_(ss, error);      
+    operate_error_string_(ss, error);
     if(ngtquery != NULL){
       pindex->deleteObject(ngtquery);
     }
@@ -412,8 +412,8 @@ bool ngt_search_index_with_query(NGTIndex index,  NGTQuery query, NGTObjectDista
     operate_error_string_(ss, error);
     return false;
   }
-  
-  NGT::Index* pindex = static_cast<NGT::Index*>(index);   
+
+  NGT::Index* pindex = static_cast<NGT::Index*>(index);
   int32_t dim = pindex->getObjectSpace().getDimension();
 
   NGT::Object *ngtquery = NULL;
@@ -438,16 +438,116 @@ bool ngt_search_index_with_query(NGTIndex index,  NGTQuery query, NGTObjectDista
   return true;
 }
 
+static bool ngt_linear_search_index_(NGT::Index* pindex, NGT::Object *ngtquery, size_t size, NGTObjectDistances results, int edge_size = INT_MIN) {
+  // set search parameters.
+  NGT::SearchContainer sc(*ngtquery);      // search parametera container.
+
+  sc.setResults(static_cast<NGT::ObjectDistances*>(results));          // set the result set.
+  sc.setSize(size);                        // the number of resultant objects.
+  if (edge_size != INT_MIN) {
+    sc.setEdgeSize(edge_size);// set # of edges for each node
+  }
+
+  pindex->linearSearch(sc);
+
+  // delete the query object.
+  pindex->deleteObject(ngtquery);
+  return true;
+}
+
+bool ngt_linear_search_index(NGTIndex index, double *query, int32_t query_dim, size_t size, NGTObjectDistances results, NGTError error) {
+  if(index == NULL || query == NULL || results == NULL || query_dim <= 0){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " query = " << query << " results = " << results << " query_dim = " << query_dim;
+    operate_error_string_(ss, error);
+    return false;
+  }
+
+  NGT::Index* pindex = static_cast<NGT::Index*>(index);
+  NGT::Object *ngtquery = NULL;
+
+  try{
+    std::vector<double> vquery(&query[0], &query[query_dim]);
+    ngtquery = pindex->allocateObject(vquery);
+    ngt_linear_search_index_(pindex, ngtquery, size, results);
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    if(ngtquery != NULL){
+      pindex->deleteObject(ngtquery);
+    }
+    return false;
+  }
+  return true;
+}
+
+bool ngt_linear_search_index_as_float(NGTIndex index, float *query, int32_t query_dim, size_t size, NGTObjectDistances results, NGTError error) {
+  if(index == NULL || query == NULL || results == NULL || query_dim <= 0){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " query = " << query << " results = " << results << " query_dim = " << query_dim;
+    operate_error_string_(ss, error);
+    return false;
+  }
+
+  NGT::Index* pindex = static_cast<NGT::Index*>(index);
+  NGT::Object *ngtquery = NULL;
+
+  try{
+    std::vector<float> vquery(&query[0], &query[query_dim]);
+    ngtquery = pindex->allocateObject(vquery);
+    ngt_linear_search_index_(pindex, ngtquery, size, results);
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    if(ngtquery != NULL){
+      pindex->deleteObject(ngtquery);
+    }
+    return false;
+  }
+  return true;
+}
+
+bool ngt_linear_search_index_with_query(NGTIndex index,  NGTQuery query, NGTObjectDistances results, NGTError error) {
+  if(index == NULL || query.query == NULL || results == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " query = " << query.query << " results = " << results;
+    operate_error_string_(ss, error);
+    return false;
+  }
+
+  NGT::Index* pindex = static_cast<NGT::Index*>(index);
+  int32_t dim = pindex->getObjectSpace().getDimension();
+
+  NGT::Object *ngtquery = NULL;
+
+  try{
+    std::vector<float> vquery(&query.query[0], &query.query[dim]);
+    ngtquery = pindex->allocateObject(vquery);
+    ngt_linear_search_index_(pindex, ngtquery, query.size, results, query.edge_size);
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    if(ngtquery != NULL){
+      pindex->deleteObject(ngtquery);
+    }
+    return false;
+  }
+  return true;
+}
+
 
 // * deprecated *
 int32_t ngt_get_size(NGTObjectDistances results, NGTError error) {
   if(results == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: results = " << results;
-    operate_error_string_(ss, error);            
+    operate_error_string_(ss, error);
     return -1;
   }
-  
+
   return (static_cast<NGT::ObjectDistances*>(results))->size();
 }
 
@@ -455,10 +555,10 @@ uint32_t ngt_get_result_size(NGTObjectDistances results, NGTError error) {
   if(results == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: results = " << results;
-    operate_error_string_(ss, error);            
+    operate_error_string_(ss, error);
     return 0;
   }
-  
+
   return (static_cast<NGT::ObjectDistances*>(results))->size();
 }
 
@@ -471,7 +571,7 @@ NGTObjectDistance ngt_get_result(const NGTObjectDistances results, const uint32_
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
     operate_error_string_(ss, error);
-    
+
     NGTObjectDistance err_val = {0};
     return err_val;
   }
@@ -488,11 +588,11 @@ ObjectID ngt_insert_index(NGTIndex index, double *obj, uint32_t obj_dim, NGTErro
   try{
     NGT::Index* pindex = static_cast<NGT::Index*>(index);
     std::vector<double> vobj(&obj[0], &obj[obj_dim]);
-    return pindex->insert(vobj);    
+    return pindex->insert(vobj);
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-    operate_error_string_(ss, error);      
+    operate_error_string_(ss, error);
     return 0;
   }
 }
@@ -508,11 +608,11 @@ ObjectID ngt_append_index(NGTIndex index, double *obj, uint32_t obj_dim, NGTErro
   try{
     NGT::Index* pindex = static_cast<NGT::Index*>(index);
     std::vector<double> vobj(&obj[0], &obj[obj_dim]);
-    return pindex->append(vobj);    
+    return pindex->append(vobj);
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-    operate_error_string_(ss, error);      
+    operate_error_string_(ss, error);
     return 0;
   }
 }
@@ -528,11 +628,11 @@ ObjectID ngt_insert_index_as_float(NGTIndex index, float *obj, uint32_t obj_dim,
   try{
     NGT::Index* pindex = static_cast<NGT::Index*>(index);
     std::vector<float> vobj(&obj[0], &obj[obj_dim]);
-    return pindex->insert(vobj);    
+    return pindex->insert(vobj);
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-    operate_error_string_(ss, error);      
+    operate_error_string_(ss, error);
     return 0;
   }
 }
@@ -548,11 +648,11 @@ ObjectID ngt_append_index_as_float(NGTIndex index, float *obj, uint32_t obj_dim,
   try{
     NGT::Index* pindex = static_cast<NGT::Index*>(index);
     std::vector<float> vobj(&obj[0], &obj[obj_dim]);
-    return pindex->append(vobj);    
+    return pindex->append(vobj);
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-    operate_error_string_(ss, error);      
+    operate_error_string_(ss, error);
     return 0;
   }
 }
@@ -565,7 +665,7 @@ bool ngt_batch_append_index(NGTIndex index, float *obj, uint32_t data_count, NGT
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-    operate_error_string_(ss, error);      
+    operate_error_string_(ss, error);
     return false;
   }
 }
@@ -585,7 +685,7 @@ bool ngt_batch_insert_index(NGTIndex index, float *obj, uint32_t data_count, uin
       ids[idx] = 0;
       std::stringstream ss;
       ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-      operate_error_string_(ss, error);      
+      operate_error_string_(ss, error);
     }
   }
   return status;
@@ -595,16 +695,16 @@ bool ngt_create_index(NGTIndex index, uint32_t pool_size, NGTError error) {
   if(index == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: idnex = " << index;
-    operate_error_string_(ss, error);            
+    operate_error_string_(ss, error);
     return false;
   }
-  
+
   try{
     (static_cast<NGT::Index*>(index))->createIndex(pool_size);
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-    operate_error_string_(ss, error);                  
+    operate_error_string_(ss, error);
     return false;
   }
   return true;
@@ -614,16 +714,16 @@ bool ngt_remove_index(NGTIndex index, ObjectID id, NGTError error) {
   if(index == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: idnex = " << index;
-    operate_error_string_(ss, error);                        
+    operate_error_string_(ss, error);
     return false;
   }
-  
+
   try{
     (static_cast<NGT::Index*>(index))->remove(id);
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-    operate_error_string_(ss, error);                              
+    operate_error_string_(ss, error);
     return false;
   }
   return true;
@@ -633,10 +733,10 @@ NGTObjectSpace ngt_get_object_space(NGTIndex index, NGTError error) {
   if(index == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: idnex = " << index;
-    operate_error_string_(ss, error);                                    
+    operate_error_string_(ss, error);
     return NULL;
   }
-  
+
   try{
     return static_cast<NGTObjectSpace>(&(static_cast<NGT::Index*>(index))->getObjectSpace());
   }catch(std::exception &err) {
@@ -651,7 +751,7 @@ float* ngt_get_object_as_float(NGTObjectSpace object_space, ObjectID id, NGTErro
   if(object_space == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: object_space = " << object_space;
-    operate_error_string_(ss, error);      
+    operate_error_string_(ss, error);
     return NULL;
   }
   try{
@@ -668,7 +768,7 @@ uint8_t* ngt_get_object_as_integer(NGTObjectSpace object_space, ObjectID id, NGT
   if(object_space == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: object_space = " << object_space;
-    operate_error_string_(ss, error);      
+    operate_error_string_(ss, error);
     return NULL;
   }
   try{
@@ -687,7 +787,7 @@ void ngt_destroy_results(NGTObjectDistances results) {
 }
 
 void ngt_destroy_property(NGTProperty prop) {
-    if(prop == NULL) return;  
+    if(prop == NULL) return;
     delete static_cast<NGT::Property*>(prop);
 }
 
@@ -701,7 +801,7 @@ int16_t ngt_get_property_edge_size_for_creation(NGTProperty prop, NGTError error
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
-    operate_error_string_(ss, error);      
+    operate_error_string_(ss, error);
     return -1;
   }
   return (*static_cast<NGT::Property*>(prop)).edgeSizeForCreation;
@@ -711,7 +811,7 @@ int16_t ngt_get_property_edge_size_for_search(NGTProperty prop, NGTError error) 
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
-    operate_error_string_(ss, error);            
+    operate_error_string_(ss, error);
     return -1;
   }
   return (*static_cast<NGT::Property*>(prop)).edgeSizeForSearch;
@@ -721,10 +821,10 @@ int32_t ngt_get_property_distance_type(NGTProperty prop, NGTError error){
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
-    operate_error_string_(ss, error);                  
+    operate_error_string_(ss, error);
     return -1;
   }
-  return (*static_cast<NGT::Property*>(prop)).distanceType; 
+  return (*static_cast<NGT::Property*>(prop)).distanceType;
 }
 
 NGTError ngt_create_error_object()
@@ -735,7 +835,7 @@ NGTError ngt_create_error_object()
   }catch(std::exception &err){
     std::cerr << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
     return NULL;
-  }    
+  }
 }
 
 const char *ngt_get_error_string(const NGTError error)
@@ -772,7 +872,7 @@ bool ngt_optimizer_adjust_search_coefficients(NGTOptimizer optimizer, const char
   if(optimizer == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: optimizer = " << optimizer;
-    operate_error_string_(ss, error);      
+    operate_error_string_(ss, error);
     return false;
   }
   try{
@@ -780,7 +880,7 @@ bool ngt_optimizer_adjust_search_coefficients(NGTOptimizer optimizer, const char
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-    operate_error_string_(ss, error);                  
+    operate_error_string_(ss, error);
     return false;
   }
   return true;
@@ -790,7 +890,7 @@ bool ngt_optimizer_execute(NGTOptimizer optimizer, const char *inIndex, const ch
   if(optimizer == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: optimizer = " << optimizer;
-    operate_error_string_(ss, error);      
+    operate_error_string_(ss, error);
     return false;
   }
   try{
@@ -798,21 +898,21 @@ bool ngt_optimizer_execute(NGTOptimizer optimizer, const char *inIndex, const ch
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-    operate_error_string_(ss, error);                  
+    operate_error_string_(ss, error);
     return false;
   }
   return true;
 }
 
 // obsolute because of a lack of a parameter
-bool ngt_optimizer_set(NGTOptimizer optimizer, int outgoing, int incoming, int nofqs, 
+bool ngt_optimizer_set(NGTOptimizer optimizer, int outgoing, int incoming, int nofqs,
 		       float baseAccuracyFrom, float baseAccuracyTo,
 		       float rateAccuracyFrom, float rateAccuracyTo,
 		       double gte, double m, NGTError error) {
   if(optimizer == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: optimizer = " << optimizer;
-    operate_error_string_(ss, error);      
+    operate_error_string_(ss, error);
     return false;
   }
   try{
@@ -821,7 +921,7 @@ bool ngt_optimizer_set(NGTOptimizer optimizer, int outgoing, int incoming, int n
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-    operate_error_string_(ss, error);                  
+    operate_error_string_(ss, error);
     return false;
   }
   return true;
@@ -832,7 +932,7 @@ bool ngt_optimizer_set_minimum(NGTOptimizer optimizer, int outgoing, int incomin
   if(optimizer == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: optimizer = " << optimizer;
-    operate_error_string_(ss, error);      
+    operate_error_string_(ss, error);
     return false;
   }
   try{
@@ -840,7 +940,7 @@ bool ngt_optimizer_set_minimum(NGTOptimizer optimizer, int outgoing, int incomin
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-    operate_error_string_(ss, error);                  
+    operate_error_string_(ss, error);
     return false;
   }
   return true;
@@ -853,7 +953,7 @@ bool ngt_optimizer_set_extension(NGTOptimizer optimizer,
   if(optimizer == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: optimizer = " << optimizer;
-    operate_error_string_(ss, error);      
+    operate_error_string_(ss, error);
     return false;
   }
   try{
@@ -862,19 +962,19 @@ bool ngt_optimizer_set_extension(NGTOptimizer optimizer,
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-    operate_error_string_(ss, error);                  
+    operate_error_string_(ss, error);
     return false;
   }
   return true;
 }
 
-bool ngt_optimizer_set_processing_modes(NGTOptimizer optimizer, bool searchParameter, 
+bool ngt_optimizer_set_processing_modes(NGTOptimizer optimizer, bool searchParameter,
 					bool prefetchParameter, bool accuracyTable, NGTError error)
 {
   if(optimizer == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: optimizer = " << optimizer;
-    operate_error_string_(ss, error);      
+    operate_error_string_(ss, error);
     return false;
   }
 
@@ -885,30 +985,30 @@ bool ngt_optimizer_set_processing_modes(NGTOptimizer optimizer, bool searchParam
 
 void ngt_destroy_optimizer(NGTOptimizer optimizer)
 {
-    if(optimizer == NULL) return;  
+    if(optimizer == NULL) return;
     delete static_cast<NGT::GraphOptimizer*>(optimizer);
 }
 
 bool ngt_refine_anng(NGTIndex index, float epsilon, float accuracy, int noOfEdges, int exploreEdgeSize, size_t batchSize, NGTError error)
 {
-    NGT::Index* pindex = static_cast<NGT::Index*>(index);    
+    NGT::Index* pindex = static_cast<NGT::Index*>(index);
     try {
       NGT::GraphReconstructor::refineANNG(*pindex, true, epsilon, accuracy, noOfEdges, exploreEdgeSize, batchSize);
     } catch(std::exception &err) {
       std::stringstream ss;
       ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-      operate_error_string_(ss, error);      
+      operate_error_string_(ss, error);
       return false;
     }
     return true;
 }
 
-bool ngt_get_edges(NGTIndex index, ObjectID id, NGTObjectDistances edges, NGTError error) 
+bool ngt_get_edges(NGTIndex index, ObjectID id, NGTObjectDistances edges, NGTError error)
 {
   if(index == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index;
-    operate_error_string_(ss, error);        
+    operate_error_string_(ss, error);
     return false;
   }
 
@@ -933,7 +1033,7 @@ uint32_t ngt_get_object_repository_size(NGTIndex index, NGTError error)
   if(index == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index;
-    operate_error_string_(ss, error);        
+    operate_error_string_(ss, error);
     return false;
   }
   NGT::Index&		pindex = *static_cast<NGT::Index*>(index);
@@ -943,7 +1043,7 @@ uint32_t ngt_get_object_repository_size(NGTIndex index, NGTError error)
 NGTAnngEdgeOptimizationParameter ngt_get_anng_edge_optimization_parameter()
 {
   NGT::GraphOptimizer::ANNGEdgeOptimizationParameter gp;
-  NGTAnngEdgeOptimizationParameter parameter;  
+  NGTAnngEdgeOptimizationParameter parameter;
 
   parameter.no_of_queries		= gp.noOfQueries;
   parameter.no_of_results		= gp.noOfResults;
@@ -959,7 +1059,7 @@ NGTAnngEdgeOptimizationParameter ngt_get_anng_edge_optimization_parameter()
 
 bool ngt_optimize_number_of_edges(const char *indexPath, NGTAnngEdgeOptimizationParameter parameter, NGTError error)
 {
-  
+
   NGT::GraphOptimizer::ANNGEdgeOptimizationParameter p;
 
   p.noOfQueries	= parameter.no_of_queries;
@@ -980,7 +1080,7 @@ bool ngt_optimize_number_of_edges(const char *indexPath, NGTAnngEdgeOptimization
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-    operate_error_string_(ss, error);                  
+    operate_error_string_(ss, error);
     return false;
   }
   return true;
