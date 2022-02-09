@@ -71,8 +71,8 @@ public:
  
 template <typename T>
 class InvertedIndexEntry : public NGT::DynamicLengthVector<InvertedIndexObject<T> > {
-  typedef NGT::DynamicLengthVector<InvertedIndexObject<T>> PARENT;
 public:
+  typedef NGT::DynamicLengthVector<InvertedIndexObject<T>> PARENT;
 #ifdef NGTQ_SHARED_INVERTED_INDEX
   InvertedIndexEntry(size_t n, NGT::ObjectSpace *os = 0):numOfLocalIDs(n) {
     PARENT::elementSize = getSizeOfElement();
@@ -168,13 +168,15 @@ public:
    DistanceTypeHamming		= 3,
    DistanceTypeAngle		= 4,
    DistanceTypeNormalizedCosine	= 5,
-   DistanceTypeNormalizedL2	= 6
+   DistanceTypeNormalizedL2	= 6,
+   DistanceTypeCosine		= 7	
  };
 
  enum CentroidCreationMode {
    CentroidCreationModeDynamic		= 0,
    CentroidCreationModeStatic		= 1,
    CentroidCreationModeDynamicKmeans	= 2,
+   CentroidCreationModeNone		= 9	
  };
 
  enum AggregationMode {
@@ -708,14 +710,12 @@ public:
 
   inline void createDistanceLookup(NGT::Object &object, size_t objectID, DistanceLookupTableUint8 &distanceLUT) {
     assert(globalCodebook != 0);
-    NGT::Object &gcentroid = (NGT::Object &)*globalCodebook->getObjectSpace().getRepository().get(objectID);
-    size_t sizeOfObject = globalCodebook->getObjectSpace().getByteSizeOfObject();
-
+    size_t sizeOfObject = dimension * sizeOfType;
     float dlutmp[distanceLUT.size];
 #ifdef NGTQG_DOT_PRODUCT
     createFloatDotProductLookup(&((NGT::Object&)object)[0], sizeOfObject, &gcentroid[0], dlutmp);
 #else
-    createFloatL2DistanceLookup(&((NGT::Object&)object)[0], sizeOfObject, &gcentroid[0], dlutmp);
+    createFloatL2DistanceLookup(&((NGT::Object&)object)[0], sizeOfObject, globalCentroid.data(), dlutmp);
 #endif
     {
       uint8_t *cdlu = distanceLUT.localDistanceLookup;
@@ -759,14 +759,23 @@ public:
     }
   }
 
-  void set(NGT::Index *gcb, NGT::Index lcb[], size_t dn, size_t lcn, size_t sizeoftype, size_t dimension) {
+  void set(NGT::Index *gcb, NGT::Index lcb[], size_t dn, size_t lcn, size_t sizeoftype, size_t dim) {
     globalCodebook = gcb;
     localCodebook = lcb;
     localDivisionNo = dn;
+    dimension = dim;
     assert(dimension % localDivisionNo == 0);
     localDataSize = dimension / localDivisionNo;
     sizeOfType = sizeoftype;
     set(lcb, lcn);
+    if (globalCodebook->getObjectSpace().getRepository().size() == 2) {
+      NGT::ObjectID id = 1;
+      try {
+	globalCodebook->getObjectSpace().getObject(id, globalCentroid);
+      } catch (NGT::Exception &err) {
+	std::cerr << "Cannot load the global centroid. id=" << id << std::endl;
+      }
+    }
 
     float *lc = new float[localCodebookNo * localCodebookCentroidNo * localDataSize];
     for (size_t li = 0; li < localCodebookNo; li++) {
@@ -809,6 +818,8 @@ public:
 
   size_t	localDataSize;
   size_t	sizeOfType;
+  size_t	dimension;
+  vector<float>	globalCentroid;
 
   float		*localCentroids;	
 
@@ -1189,6 +1200,7 @@ public:
   virtual void open(const string &index, NGT::Property &globalProperty) = 0;
   virtual void open(const string &index) = 0;
   virtual void close() = 0;
+  virtual void closeCodebooks() = 0;
 #ifdef NGTQ_SHARED_INVERTED_INDEX
   virtual void reconstructInvertedIndex(const string &indexFile) = 0;
 #endif
@@ -1357,7 +1369,7 @@ public:
 
   void set(NGT::Index &gc, NGT::Index lc[], size_t dn, size_t lcn,
 	   Quantizer::ObjectList *ol) {
-    globalCodebook = &(NGT::GraphAndTreeIndex&)gc.getIndex();;
+    globalCodebook = &(NGT::GraphAndTreeIndex&)gc.getIndex();
     divisionNo = dn;
     objectList = ol;
     set(lc, lcn);
@@ -1596,12 +1608,16 @@ public:
     property.save(rootDirectory);
   }
 
-  void close() {
-    objectList.close();
+  void closeCodebooks() {
     globalCodebook.close();
     for (size_t i = 0; i < localCodebook.size(); ++i) {
       localCodebook[i].close();
     }
+  }
+
+  void close() {
+    objectList.close();
+    closeCodebooks();
     if (quantizedObjectDistance != 0) {
       delete quantizedObjectDistance;
       quantizedObjectDistance = 0;
@@ -2120,6 +2136,10 @@ public:
       break;
     case DistanceTypeNormalizedCosine:
       gp.distanceType = NGT::Index::Property::DistanceType::DistanceTypeNormalizedCosine;
+      lp.distanceType = NGT::Index::Property::DistanceType::DistanceTypeL2;
+      break;
+    case DistanceTypeCosine:
+      gp.distanceType = NGT::Index::Property::DistanceType::DistanceTypeCosine;
       lp.distanceType = NGT::Index::Property::DistanceType::DistanceTypeL2;
       break;
     case DistanceTypeNormalizedL2:
@@ -2702,15 +2722,24 @@ public:
   
 class Quantization {
 public:
-  static Quantizer *generate(DataType dataType, size_t dimension, size_t divisionNo, size_t localIDByteSize) {
-    Quantizer *quantizer;
-    if (localIDByteSize == 4) {
-      quantizer = new QuantizerInstance<uint32_t>(dataType, dimension, divisionNo);
-    } else if (localIDByteSize == 2) {
-      quantizer = new QuantizerInstance<uint16_t>(dataType, dimension, divisionNo);
+  static Quantizer *generate(Property &property) {
+    DataType dataType      = property.dataType;
+    size_t dimension       = property.dimension;
+    size_t divisionNo      = property.getLocalCodebookNo();
+    size_t localIDByteSize = property.localIDByteSize;
+    Quantizer *quantizer = 0;
+    if (property.centroidCreationMode == CentroidCreationModeNone) {
+      NGTThrowException("Centroid creation mode is not specified");
     } else {
-      cerr << "Not support the specified size of local ID. " << localIDByteSize << endl;
-      abort();
+      if (localIDByteSize == 4) {
+	quantizer = new QuantizerInstance<uint32_t>(dataType, dimension, divisionNo);
+      } else if (localIDByteSize == 2) {
+	quantizer = new QuantizerInstance<uint16_t>(dataType, dimension, divisionNo);
+      } else {
+	std::stringstream msg;
+	msg << "Not support the specified size of local ID. " << localIDByteSize;
+	NGTThrowException(msg);
+      }
     }
 
     return quantizer;
@@ -2720,7 +2749,7 @@ public:
  class Index {
  public:
    Index():quantizer(0) {}
-   Index(const string& index):quantizer(0) { open(index); }
+   Index(const string& index, bool rdOnly = false):quantizer(0) { open(index, rdOnly); }
    ~Index() { close(); }
 
 
@@ -2733,7 +2762,7 @@ public:
      }
      property.setupLocalIDByteSize();
      NGTQ::Quantizer *quantizer = 
-       NGTQ::Quantization::generate(property.dataType, property.dimension, property.getLocalCodebookNo(), property.localIDByteSize);
+       NGTQ::Quantization::generate(property);
      try {
        quantizer->property.setup(property);
        quantizer->create(index, globalProperty, localProperty);
@@ -2828,12 +2857,15 @@ public:
 
   }
 
-   void open(const string &index) {
+  void open(const string &index, bool readOnly = false) {
      close();
      NGT::Property globalProperty;
      globalProperty.clear();
      globalProperty.edgeSizeForSearch = 40;
      quantizer = getQuantizer(index, globalProperty);
+     if (readOnly) {
+       quantizer->closeCodebooks();
+     }
    }
 
    void save() {
@@ -2919,8 +2951,7 @@ public:
        msg << "Quantizer::getQuantizer: Cannot load the property. " << index << " : " << err.what();
        NGTThrowException(msg);
      }
-     NGTQ::Quantizer *quantizer =
-       NGTQ::Quantization::generate(property.dataType, property.dimension, property.localDivisionNo, property.localIDByteSize);
+     NGTQ::Quantizer *quantizer = NGTQ::Quantization::generate(property);
      if (quantizer == 0) {
        NGTThrowException("NGTQ::Index: Cannot get quantizer.");
      }

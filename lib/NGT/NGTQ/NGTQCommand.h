@@ -129,7 +129,7 @@ public:
       "[-p #-of-thread] [-R global-codebook-range] [-r local-codebook-range] "
       "[-C global-codebook-size-limit] [-c local-codebook-size-limit] [-N local-division-no] "
       "[-T single-local-centroid (t|f)] [-e epsilon] [-i index-type (t:Tree|g:Graph)] "
-      "[-M global-centroid-creation-mode (d|s)] [-L global-centroid-creation-mode (d|k|s)] "
+      "[-M global-centroid-creation-mode (d|s)] [-L local-centroid-creation-mode (d|k|s)] "
       "[-s local-sample-coefficient] "
       "index(output) data.tsv(input)";
 
@@ -265,7 +265,6 @@ public:
     }
 
     NGTQ::Index::append(index, data, dataSize);
-
   }
 
   void
@@ -361,14 +360,7 @@ public:
 	     resultExpansion <= endOfResultExpansion; 
 	     base = mulStep ? base * stepOfResultExpansion : base + stepOfResultExpansion) {
 	  resultExpansion = base;
-	  cerr << "size=" << base << ":" << resultExpansion << endl;
 	  NGT::ObjectDistances objects;
-
-	  if (outputMode == 'e') {
-	    index.search(query, objects, size, resultExpansion, aggregationMode, epsilon);
-	    objects.clear();
-	  }
-
 	  NGT::Timer timer;
 	  timer.start();
 	  // size : # of final resultant objects 

@@ -108,6 +108,9 @@ namespace NGT {
 	switch (objectType) {
 	case ObjectSpace::ObjectType::Uint8: p.set("ObjectType", "Integer-1"); break;
 	case ObjectSpace::ObjectType::Float: p.set("ObjectType", "Float-4"); break;
+#ifdef NGT_HALF_FLOAT
+	case ObjectSpace::ObjectType::Float16: p.set("ObjectType", "Float-2"); break;
+#endif
 	default : std::cerr << "Fatal error. Invalid object type. " << objectType << std::endl; abort();
 	}
 	switch (distanceType) {
@@ -163,6 +166,10 @@ namespace NGT {
 	    objectType = ObjectSpace::ObjectType::Float;
 	  } else if (it->second == "Integer-1") {
 	    objectType = ObjectSpace::ObjectType::Uint8;
+#ifdef NGT_HALF_FLOAT
+	  } else if (it->second == "Float-2") {
+	    objectType = ObjectSpace::ObjectType::Float16;
+#endif
 	  } else {
 	    std::cerr << "Invalid Object Type in the property. " << it->first << ":" << it->second << std::endl;
 	  }
@@ -366,6 +373,7 @@ namespace NGT {
     Index(NGT::Property &prop);
 #endif
     Index(const std::string &database, bool rdOnly = false):index(0) { open(database, rdOnly); }
+    Index(const std::string &database, bool rdOnly, bool graphDisabled):index(0) { open(database, rdOnly, graphDisabled); }
     Index(const std::string &database, NGT::Property &prop):index(0) { open(database, prop);  }
     virtual ~Index() { close(); }
 
@@ -373,7 +381,8 @@ namespace NGT {
       open(database);
       setProperty(prop);
     }
-    void open(const std::string &database, bool rdOnly = false);
+    void open(const std::string &database, bool rdOnly = false) { open(database, rdOnly, false); }
+    void open(const std::string &database, bool rdOnly, bool graphDisabled);
 
     void close() {
       if (index != 0) { 
@@ -450,6 +459,9 @@ namespace NGT {
     virtual Object *allocateObject(const std::vector<double> &obj) { return getIndex().allocateObject(obj); }
     virtual Object *allocateObject(const std::vector<float> &obj) { return getIndex().allocateObject(obj); }
     virtual Object *allocateObject(const std::vector<uint8_t> &obj) { return getIndex().allocateObject(obj); }
+#ifdef NGT_HALF_FLOAT
+    virtual Object *allocateObject(const std::vector<float16> &obj) { return getIndex().allocateObject(obj); }
+#endif
     virtual Object *allocateObject(const float *obj, size_t size) { return getIndex().allocateObject(obj, size); }
     virtual size_t getSizeOfElement() { return getIndex().getSizeOfElement(); }
     virtual void setProperty(NGT::Property &prop) { getIndex().setProperty(prop); }
@@ -530,6 +542,10 @@ namespace NGT {
 	object = allocateObject(*static_cast<std::vector<double>*>(vec));
       } else if (objectType == typeid(uint8_t)) {
 	object = allocateObject(*static_cast<std::vector<uint8_t>*>(vec));
+#ifdef NGT_HALF_FLOAT
+      } else if (objectType == typeid(float16)) {
+	object = allocateObject(*static_cast<std::vector<float16>*>(vec));
+#endif
       } else {
 	std::stringstream msg;
 	msg << "NGT::Index::allocateObject: Unavailable object type.";
@@ -557,7 +573,7 @@ namespace NGT {
     }
     void initialize(const std::string &allocator, NGT::Property &prop);
 #else // NGT_SHARED_MEMORY_ALLOCATOR
-    GraphIndex(const std::string &database, bool rdOnly = false);
+    GraphIndex(const std::string &database, bool rdOnly = false, bool graphDisabled = false);
     GraphIndex(NGT::Property &prop):readOnly(false) {
       initialize(prop);
     }
@@ -590,6 +606,14 @@ namespace NGT {
 	os->deleteAll();
 #endif
 	delete os;
+#ifdef NGT_HALF_FLOAT
+      } else if (property.objectType == NGT::ObjectSpace::ObjectType::Float16) {
+	ObjectSpaceRepository<float16, float> *os = (ObjectSpaceRepository<float16, float>*)objectSpace;
+#ifndef NGT_SHARED_MEMORY_ALLOCATOR
+	os->deleteAll();
+#endif
+	delete os;
+#endif
       } else {
 	std::cerr << "Cannot find Object Type in the property. " << property.objectType << std::endl;
 	return;
@@ -698,7 +722,7 @@ namespace NGT {
 
     void exportProperty(const std::string &file);
 
-    virtual void loadIndex(const std::string &ifile, bool readOnly);
+    virtual void loadIndex(const std::string &ifile, bool readOnly, bool graphDisabled);
 
     virtual void exportIndex(const std::string &ofile) {
       try {
@@ -1572,8 +1596,8 @@ namespace NGT {
       sc.visitCount = 0;
       ObjectDistances	seeds;
       getSeedsFromTree(sc, seeds);
+      sc.visitCount = sc.distanceComputationCount;
       GraphIndex::search(sc, seeds);
-
     }
 
     void search(NGT::SearchQuery &searchQuery) {

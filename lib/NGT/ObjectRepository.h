@@ -192,7 +192,8 @@ namespace NGT {
       return (Object*)po;
     }
 
-    void extractObjectFromText(const std::string &textLine, const std::string &sep, std::vector<double> &object) {
+    template <typename T>
+      void extractObjectFromText(const std::string &textLine, const std::string &sep, std::vector<T> &object) {
       object.resize(dimension);
       std::vector<std::string> tokens;
       NGT::Common::tokenize(textLine, tokens, sep);
@@ -211,7 +212,7 @@ namespace NGT {
 	  NGTThrowException(msg);
         }
 	char *e;
-	object[idx] = strtod(tokens[idx].c_str(), &e);
+	object[idx] = static_cast<T>(strtod(tokens[idx].c_str(), &e));
 	if (*e != 0) {
 	  std::cerr << "ObjectSpace::readText: Warning! Not numerical value. [" << e << "]" << std::endl;
 	  break;
@@ -245,8 +246,15 @@ namespace NGT {
 	for (size_t i = 0; i < size; i++) {
 	  obj[i] = static_cast<float>(o[i]);
 	}
+#ifdef NGT_HALF_FLOAT
+      } else if (type == typeid(float16)) {
+	float16 *obj = static_cast<float16*>(object);
+	for (size_t i = 0; i < size; i++) {
+	  obj[i] = static_cast<float16>(o[i]);
+	}
+#endif
       } else {
-	std::cerr << "ObjectSpace::allocate: Fatal error: unsupported type!" << std::endl;
+	std::cerr << "ObjectSpace::allocateObject: Fatal error: unsupported type!" << std::endl;
 	abort();
       }
       return po;
@@ -265,8 +273,12 @@ namespace NGT {
 	cpsize *= sizeof(uint8_t);
       } else if (type == typeid(float)) {
 	cpsize *= sizeof(float);
+#ifdef NGT_HALF_FLOAT
+      } else if (type == typeid(float16)) {
+	cpsize *= sizeof(float16);
+#endif
       } else {
-	std::cerr << "ObjectSpace::allocate: Fatal error: unsupported type!" << std::endl;
+	std::cerr << "ObjectSpace::allocatePersistentObject: Fatal error: unsupported type!" << std::endl;
 	abort();
       }
       PersistentObject *po = new (objectAllocator) PersistentObject(objectAllocator, paddedByteSize);
@@ -297,8 +309,15 @@ namespace NGT {
 	for (size_t i = 0; i < dimension; i++) {
 	  obj[i] = static_cast<float>(o[i]);
 	}
+#ifdef NGT_HALF_FLOAT
+      } else if (type == typeid(float16)) {
+	float16 *obj = static_cast<float16*>(object);
+	for (size_t i = 0; i < size; i++) {
+	  obj[i] = static_cast<float16>(o[i]);
+	}
+#endif
       } else {
-	std::cerr << "ObjectSpace::allocate: Fatal error: unsupported type!" << std::endl;
+	std::cerr << "ObjectSpace::allocatePersistentObject: Fatal error: unsupported type!" << std::endl;
 	abort();
       }
       return po;
@@ -343,6 +362,13 @@ namespace NGT {
 	for (size_t i = 0; i < dimension; i++) {
 	  d.push_back(obj[i]);
 	}
+#ifdef NGT_HALF_FLOAT
+      } else if (type == typeid(float16)) {
+	float16 *obj = (float16*)object;
+	for (size_t i = 0; i < dimension; i++) {
+	  d.push_back(obj[i]);
+	}
+#endif
       } else {
 	std::cerr << "ObjectSpace::allocate: Fatal error: unsupported type!" << std::endl;
 	abort();

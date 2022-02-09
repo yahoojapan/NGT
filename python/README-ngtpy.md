@@ -201,6 +201,7 @@ Specify the distance function for the objects.
 **object_type**  
 Specify the data type of the objects.
 - __Float__: 4 byte floating point number
+- __Float16__: 2 byte floating point number
 - __Byte__: 1 byte unsigned integer
 
 

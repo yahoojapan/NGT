@@ -66,6 +66,10 @@ public:
       prop.objectType = NGT::Index::Property::ObjectType::Float;
     } else if (objectType == "Byte" || objectType == "byte") {
       prop.objectType = NGT::Index::Property::ObjectType::Uint8;
+#ifdef NGT_HALF_FLOAT
+    } else if (objectType == "Float16" || objectType == "float16") {
+      prop.objectType = NGT::Index::Property::ObjectType::Float16;
+#endif
     } else {
       std::stringstream msg;
       msg << "ngtpy::create: invalid object type. " << objectType;
@@ -82,6 +86,8 @@ public:
       prop.distanceType = NGT::Property::DistanceType::DistanceTypeHamming;
     } else if (distanceType == "Jaccard") {
       prop.distanceType = NGT::Property::DistanceType::DistanceTypeJaccard;
+    } else if (distanceType == "Sparse Jaccard") {
+      prop.distanceType = NGT::Property::DistanceType::DistanceTypeSparseJaccard;
     } else if (distanceType == "Angle") {
       prop.distanceType = NGT::Property::DistanceType::DistanceTypeAngle;
     } else if (distanceType == "Normalized Angle") {
@@ -379,7 +385,6 @@ public:
 
 };
 
-
 class QuantizedIndex : public NGTQG::Index {
 public:
   QuantizedIndex(
@@ -561,7 +566,6 @@ PYBIND11_MODULE(ngtpy, m) {
            py::arg("path"))
       .def("import_index", (void (NGT::Index::*)(const std::string&)) &NGT::Index::importIndex, 
            py::arg("path"));
-
 
     py::class_<Optimizer>(m, "Optimizer")
       .def(py::init<int, int, int, int, float, float, float, float, double, double, bool>(),

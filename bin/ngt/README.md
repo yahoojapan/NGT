@@ -92,6 +92,7 @@ Specify the number of edges at search time accompanying or following index gener
 Specify the data object type.
 - __c__: 1 byte unsigned integer
 - __f__: 4 byte floating point number (default)
+- __h__: 2 byte floating point number
 
 **-D** *distance\_function*  
 Specify the distance function as follows.

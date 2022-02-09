@@ -81,9 +81,13 @@ int32_t ngt_get_property_object_type(NGTProperty, NGTError);
 
 bool ngt_is_property_object_type_float(int32_t);
 
+bool ngt_is_property_object_type_float16(int32_t);
+
 bool ngt_is_property_object_type_integer(int32_t);
 
 bool ngt_set_property_object_type_float(NGTProperty, NGTError);
+
+bool ngt_set_property_object_type_float16(NGTProperty, NGTError);
 
 bool ngt_set_property_object_type_integer(NGTProperty, NGTError);
 

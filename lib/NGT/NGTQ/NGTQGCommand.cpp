@@ -231,7 +231,8 @@ NGTQG::Command::search(NGT::Args &args) {
   }
   NGTQG::Command::SearchParameters searchParameters(args);
 
-  NGTQG::Index index(indexPath, 128);
+  bool readOnly = true; 
+  NGTQG::Index index(indexPath, 128, readOnly);
 
   if (debugLevel >= 1) {
     cerr << "indexType=" << searchParameters.indexType << endl;

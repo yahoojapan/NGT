@@ -39,12 +39,19 @@
 #include	"NGT/defines.h"
 #include	"NGT/SharedMemoryAllocator.h"
 
+#ifdef NGT_HALF_FLOAT
+#include	"NGT/half.hpp"
+#endif
+
 #define ADVANCED_USE_REMOVED_LIST
 #define	SHARED_REMOVED_LIST
 
 namespace NGT {
   typedef	unsigned int	ObjectID;
   typedef	float		Distance;
+#ifdef NGT_HALF_FLOAT
+  typedef	half_float::half	float16;
+#endif
 
 #define	NGTThrowException(MESSAGE)			throw NGT::Exception(__FILE__, (size_t)__LINE__, MESSAGE)
 #define	NGTThrowSpecificException(MESSAGE, TYPE)	throw NGT::TYPE(__FILE__, (size_t)__LINE__, MESSAGE)
@@ -2100,6 +2107,10 @@ namespace NGT {
 	delete static_cast<std::vector<double>*>(query);
       } else if (*queryType == typeid(uint8_t)) {
 	delete static_cast<std::vector<uint8_t>*>(query);
+#ifdef NGT_HALF_FLOAT
+      } else if (*queryType == typeid(float16)) {
+	delete static_cast<std::vector<float16>*>(query);
+#endif
       }
       query = 0;
       queryType = 0;

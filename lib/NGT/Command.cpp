@@ -109,6 +109,11 @@ using namespace std;
     case 'c':
       property.objectType = NGT::Index::Property::ObjectType::Uint8;
       break;
+#ifdef NGT_HALF_FLOAT
+    case 'h':
+      property.objectType = NGT::Index::Property::ObjectType::Float16;
+      break;
+#endif
     default:
       std::stringstream msg;
       msg << "Command::CreateParameter: Error: Invalid object type. " << objectType;
@@ -175,7 +180,13 @@ using namespace std;
     const string usage = "Usage: ngt create "
       "-d dimension [-p #-of-thread] [-i index-type(t|g)] [-g graph-type(a|k|b|o|i)] "
       "[-t truncation-edge-limit] [-E edge-size] [-S edge-size-for-search] [-L edge-size-limit] "
-      "[-e epsilon] [-o object-type(f|c)] [-D distance-function(1|2|a|A|h|j|c|C|E|p|l)] [-n #-of-inserted-objects] "  // added by Nyapicom
+      "[-e epsilon] "
+#ifdef NGT_HALF_FLOAT
+      "[-o object-type(f|h|c)] "
+#else
+      "[-o object-type(f|c)] "
+#endif
+      "[-D distance-function(1|2|a|A|h|j|c|C|E|p|l)] [-n #-of-inserted-objects] "  // added by Nyapicom
       "[-P path-adjustment-interval] [-B dynamic-edge-size-base] [-A object-alignment(t|f)] "
       "[-T build-time-limit] [-O outgoing x incoming] "
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)

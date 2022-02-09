@@ -288,6 +288,10 @@ namespace NGT {
        objectSize = sizeof(uint8_t);
      } else if (ot == typeid(float)) {
        objectSize = sizeof(float);
+#ifdef NGT_HALF_FLOAT
+     } else if (ot == typeid(float16)) {
+       objectSize = sizeof(float16);
+#endif
      } else {
        std::stringstream msg;
        msg << "ObjectSpace::constructor: Not supported type. " << ot.name();
@@ -636,6 +640,11 @@ namespace NGT {
 	for (size_t i = 0; i < getDimension(); i++) {
 	  os << optr[i] << " ";
 	}
+      } else if (t == typeid(float16)) {
+	float16 *optr = reinterpret_cast<float16*>(&object[0]);
+	for (size_t i = 0; i < getDimension(); i++) {
+	  os << optr[i] << " ";
+	}
       } else {
 	os << " not implement for the type.";
       }
@@ -667,6 +676,10 @@ namespace NGT {
       NGT::Serializer::writeAsText(os, (uint8_t*)ref, dimension); 
     } else if (t == typeid(float)) {
       NGT::Serializer::writeAsText(os, (float*)ref, dimension); 
+#ifdef NGT_HALF_FLOAT
+    } else if (t == typeid(float16)) {
+      NGT::Serializer::writeAsText(os, (float16*)ref, dimension); 
+#endif
     } else if (t == typeid(double)) {
       NGT::Serializer::writeAsText(os, (double*)ref, dimension); 
     } else if (t == typeid(uint16_t)) {
@@ -690,6 +703,10 @@ namespace NGT {
       NGT::Serializer::readAsText(is, (uint8_t*)ref, dimension); 
     } else if (t == typeid(float)) {
       NGT::Serializer::readAsText(is, (float*)ref, dimension); 
+#ifdef NGT_HALF_FLOAT
+    } else if (t == typeid(float16)) {
+      NGT::Serializer::readAsText(is, (float16*)ref, dimension); 
+#endif
     } else if (t == typeid(double)) {
       NGT::Serializer::readAsText(is, (double*)ref, dimension); 
     } else if (t == typeid(uint16_t)) {

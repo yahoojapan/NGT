@@ -150,6 +150,70 @@ NeighborhoodGraph::Search::jaccardUint8(NeighborhoodGraph &graph, NGT::SearchCon
   graph.searchReadOnlyGraph<PrimitiveComparator::JaccardUint8, DistanceCheckedSet>(sc, seeds);
 }
 
+#ifdef NGT_HALF_FLOAT
+void 
+NeighborhoodGraph::Search::normalizedCosineSimilarityFloat16(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::NormalizedCosineSimilarityFloat16, DistanceCheckedSet>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::cosineSimilarityFloat16(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::CosineSimilarityFloat16, DistanceCheckedSet>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::normalizedAngleFloat16(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::NormalizedAngleFloat16, DistanceCheckedSet>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::angleFloat16(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::AngleFloat16, DistanceCheckedSet>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::l1Float16(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::L1Float16, DistanceCheckedSet>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::l2Float16(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::L2Float16, DistanceCheckedSet>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::normalizedL2Float16(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::NormalizedL2Float16, DistanceCheckedSet>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::sparseJaccardFloat16(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::SparseJaccardFloat16, DistanceCheckedSet>(sc, seeds);
+}
+
+// added by Nyapicom
+void 
+NeighborhoodGraph::Search::poincareFloat16(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::PoincareFloat16, DistanceCheckedSet>(sc, seeds);
+}
+
+// added by Nyapicom
+void 
+NeighborhoodGraph::Search::lorentzFloat16(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::LorentzFloat16, DistanceCheckedSet>(sc, seeds);
+}
+#endif 
+
 ////
 
 void 
@@ -236,7 +300,67 @@ NeighborhoodGraph::Search::jaccardUint8ForLargeDataset(NeighborhoodGraph &graph,
   graph.searchReadOnlyGraph<PrimitiveComparator::JaccardUint8, DistanceCheckedSetForLargeDataset>(sc, seeds);
 }
 
+#ifdef NGT_HALF_FLOAT
+void 
+NeighborhoodGraph::Search::normalizedCosineSimilarityFloat16ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::NormalizedCosineSimilarityFloat16, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
 
+void 
+NeighborhoodGraph::Search::cosineSimilarityFloat16ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::CosineSimilarityFloat16, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::normalizedAngleFloat16ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::NormalizedAngleFloat16, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::angleFloat16ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::AngleFloat16, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::l1Float16ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::L1Float16, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::l2Float16ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::L2Float16, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::normalizedL2Float16ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::NormalizedL2Float16, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::sparseJaccardFloat16ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::SparseJaccardFloat16, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::poincareFloat16ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::PoincareFloat16, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+
+void 
+NeighborhoodGraph::Search::lorentzFloat16ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::LorentzFloat16, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+#endif
 
 #endif
 
@@ -333,6 +457,7 @@ NeighborhoodGraph::setupDistances(NGT::SearchContainer &sc, ObjectDistances &see
   }
 
 #ifdef NGT_DISTANCE_COMPUTATION_COUNT
+  sc.visitCount += seeds.size();
   sc.distanceComputationCount += seeds.size();
 #endif
 }
@@ -416,7 +541,6 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
     setupDistances(sc, seeds, COMPARATOR::compare);
     setupSeeds(sc, seeds, results, unchecked, distanceChecked);
 
-
     Distance explorationRadius = sc.explorationCoefficient * sc.radius;
     const size_t dimension = objectSpace->getPaddedDimension();
     ReadOnlyGraphNode *nodes = &searchRepository.front();
@@ -440,16 +564,19 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 
       pair<uint64_t, PersistentObject*>* nsPtrs[neighborSize];
       size_t nsPtrsSize = 0;
-
       for (; neighborptr < neighborendptr; ++neighborptr) {
-       if (!distanceChecked[(*(neighborptr)).first]) {
-         nsPtrs[nsPtrsSize] = neighborptr;
-         if (nsPtrsSize < prefetchOffset) {
-           unsigned char *ptr = reinterpret_cast<unsigned char*>((*(neighborptr)).second);
-           MemoryCache::prefetch(ptr, prefetchSize);
-         }
-         nsPtrsSize++;
-       }
+#ifdef NGT_VISIT_COUNT
+	sc.visitCount++;
+#endif
+	if (!distanceChecked[(*(neighborptr)).first]) {
+	  distanceChecked.insert((*(neighborptr)).first);
+          nsPtrs[nsPtrsSize] = neighborptr;
+          if (nsPtrsSize < prefetchOffset) {
+            unsigned char *ptr = reinterpret_cast<unsigned char*>((*(neighborptr)).second);
+            MemoryCache::prefetch(ptr, prefetchSize);
+          }
+          nsPtrsSize++;
+        }
       }
       for (size_t idx = 0; idx < nsPtrsSize; idx++) {
 	neighborptr = nsPtrs[idx]; 
@@ -457,26 +584,19 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 	  unsigned char *ptr = reinterpret_cast<unsigned char*>((*(nsPtrs[idx + prefetchOffset])).second);
 	  MemoryCache::prefetch(ptr, prefetchSize);
 	}
-#ifdef NGT_VISIT_COUNT
-	sc.visitCount++;
-#endif
-	auto &neighbor = *neighborptr;
-        distanceChecked.insert(neighbor.first);
 
 #ifdef NGT_DISTANCE_COMPUTATION_COUNT
 	sc.distanceComputationCount++;
 #endif
 	Distance distance = COMPARATOR::compare((void*)&sc.object[0], 
-						(void*)&(*static_cast<PersistentObject*>(neighbor.second))[0], dimension);
+						(void*)&(*static_cast<PersistentObject*>(neighborptr->second))[0], dimension);
 	if (distance <= explorationRadius) {
-	  result.set(neighbor.first, distance);
+	  result.set(neighborptr->first, distance);
 	  unchecked.push(result);
 	  if (distance <= sc.radius) {
 	    results.push(result);
-	    if (results.size() >= sc.size) {
-	      if (results.size() > sc.size) {
-	        results.pop();
-	      }
+	    if (results.size() > sc.size) {
+	      results.pop();
 	      sc.radius = results.top().distance;
 	      explorationRadius = sc.explorationCoefficient * sc.radius;
 	    } 
@@ -805,7 +925,7 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 	}
 	if (insertionA != insertionB) {
 	  stringstream msg;
-	  msg << "Graph::removeEdgeReliably:Warning. Lost conectivity! Isn't this ANNG? ID=" << id << ".";
+	  msg << "Graph::removeEdgeReliably:Warning. Lost connectivity! Isn't this ANNG? ID=" << id << ".";
 #ifdef NGT_FORCED_REMOVE
 	  msg << " Anyway continue...";
 	  cerr << msg.str() << endl;

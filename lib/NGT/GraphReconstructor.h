@@ -823,6 +823,7 @@ class GraphReconstructor {
     std::string errorMessage;
 
     size_t noOfSearchedEdges = noOfEdges < 0 ? -noOfEdges : (noOfEdges > prop.edgeSizeForCreation ? noOfEdges : prop.edgeSizeForCreation);
+    noOfSearchedEdges++;
     for (size_t bid = 1; bid < nOfObjects; bid += batchSize) {
       NGT::ObjectDistances results[batchSize];
       // search

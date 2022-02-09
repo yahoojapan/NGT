@@ -90,14 +90,18 @@ NGT::Index::getEpsilonFromExpectedAccuracy(double accuracy) {
  }
 
 void 
-NGT::Index::open(const string &database, bool rdOnly) {
+NGT::Index::open(const string &database, bool rdOnly, bool graphDisabled) {
   NGT::Property prop;
   prop.load(database);
   Index* idx = 0;
-  if (prop.indexType == NGT::Index::Property::GraphAndTree) {
+  if ((prop.indexType == NGT::Index::Property::GraphAndTree) && !graphDisabled) {
     idx = new NGT::GraphAndTreeIndex(database, rdOnly);
-  } else if (prop.indexType == NGT::Index::Property::Graph) {
+  } else if ((prop.indexType == NGT::Index::Property::Graph) || graphDisabled) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
     idx = new NGT::GraphIndex(database, rdOnly);
+#else
+    idx = new NGT::GraphIndex(database, rdOnly, graphDisabled);
+#endif
   } else {
     NGTThrowException("Index::Open: Not found IndexType in property file.");
   }
@@ -496,6 +500,11 @@ NGT::GraphIndex::constructObjectSpace(NGT::Property &prop) {
   case NGT::ObjectSpace::ObjectType::Uint8 :
     objectSpace = new ObjectSpaceRepository<unsigned char, int>(dimension, typeid(uint8_t), prop.distanceType);
     break;
+#ifdef NGT_HALF_FLOAT
+  case NGT::ObjectSpace::ObjectType::Float16 :
+    objectSpace = new ObjectSpaceRepository<float16, float>(dimension, typeid(float16), prop.distanceType);
+    break;
+#endif
   default:
     stringstream msg;
     msg << "Invalid Object Type in the property. " << prop.objectType;
@@ -504,8 +513,11 @@ NGT::GraphIndex::constructObjectSpace(NGT::Property &prop) {
 }
 
 void 
-NGT::GraphIndex::loadIndex(const string &ifile, bool readOnly) {
+NGT::GraphIndex::loadIndex(const string &ifile, bool readOnly, bool graphDisabled) {
   objectSpace->deserialize(ifile + "/obj");
+  if (graphDisabled) {
+    return;
+  }
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
   if (readOnly && property.indexType == NGT::Index::Property::IndexType::Graph) {
     GraphIndex::NeighborhoodGraph::loadSearchGraph(ifile);
@@ -584,7 +596,7 @@ NGT::GraphIndex::initialize(const string &allocator, NGT::Property &prop) {
   setProperty(prop);
 }
 #else // NGT_SHARED_MEMORY_ALLOCATOR
-NGT::GraphIndex::GraphIndex(const string &database, bool rdOnly):readOnly(rdOnly) {
+NGT::GraphIndex::GraphIndex(const string &database, bool rdOnly, bool graphDisabled):readOnly(rdOnly) {
   NGT::Property prop;
   prop.load(database);
   if (prop.databaseType != NGT::Index::Property::DatabaseType::Memory) {
@@ -592,7 +604,7 @@ NGT::GraphIndex::GraphIndex(const string &database, bool rdOnly):readOnly(rdOnly
   }
   assert(prop.dimension != 0);
   initialize(prop);
-  loadIndex(database, readOnly);
+  loadIndex(database, readOnly, graphDisabled);
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
   if (prop.searchType == "Large") {
     searchUnupdatableGraph = NeighborhoodGraph::Search::getMethod(prop.distanceType, prop.objectType, 10000000);

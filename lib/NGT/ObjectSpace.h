@@ -183,6 +183,10 @@ namespace NGT {
       ObjectTypeNone	= 0,
       Uint8		= 1,
       Float		= 2
+#ifdef NGT_HALF_FLOAT
+      ,
+      Float16		= 3
+#endif
     };
 
 
@@ -252,7 +256,7 @@ namespace NGT {
     void normalize(T *data, size_t dim) {
       float sum = 0.0;
       for (size_t i = 0; i < dim; i++) {
-	sum += data[i] * data[i];
+        sum += static_cast<float>(data[i]) * static_cast<float>(data[i]);
       }
       if (sum == 0.0) {
 	std::stringstream msg;
@@ -261,7 +265,7 @@ namespace NGT {
       }
       sum = sqrt(sum);
       for (size_t i = 0; i < dim; i++) {
-	data[i] = data[i] / sum;
+        data[i] = static_cast<float>(data[i]) / sum;
       }
     }
     uint32_t getPrefetchOffset() { return prefetchOffset; }

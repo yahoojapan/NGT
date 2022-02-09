@@ -189,6 +189,10 @@ bool ngt_is_property_object_type_float(int32_t object_type) {
     return (object_type == NGT::ObjectSpace::ObjectType::Float);
 }
 
+bool ngt_is_property_object_type_float16(int32_t object_type) {
+    return (object_type == NGT::ObjectSpace::ObjectType::Float16);
+}
+
 bool ngt_is_property_object_type_integer(int32_t object_type) {
     return (object_type == NGT::ObjectSpace::ObjectType::Uint8);
 }
@@ -202,6 +206,18 @@ bool ngt_set_property_object_type_float(NGTProperty prop, NGTError error) {
   }
 
   (*static_cast<NGT::Property*>(prop)).objectType = NGT::ObjectSpace::ObjectType::Float;
+  return true;
+}
+
+bool ngt_set_property_object_type_float16(NGTProperty prop, NGTError error) {
+  if(prop == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
+    operate_error_string_(ss, error);
+    return false;
+  }
+
+  (*static_cast<NGT::Property*>(prop)).objectType = NGT::ObjectSpace::ObjectType::Float16;
   return true;
 }
 
