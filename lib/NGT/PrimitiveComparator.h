@@ -139,6 +139,10 @@ namespace NGT {
       return compareL2<float, double>(a, b, size);
     }
 
+    inline static double compareL2(const float16 *a, const float16 *b, size_t size) {
+      return compareL2<float16, double>(a, b, size);
+    }
+
 #else
     inline static double compareL2(const float *a, const float *b, size_t size) {
       const float *last = a + size;
@@ -320,7 +324,11 @@ namespace NGT {
     inline static double compareL1(const float *a, const float *b, size_t size) {
       return compareL1<float, double>(a, b, size);
     }
-
+#ifdef NGT_HALF_FLOAT
+    inline static double compareL1(const float16 *a, const float16 *b, size_t size) {
+      return compareL1<float16, double>(a, b, size);
+    }
+#endif
 #else
     inline static double compareL1(const float *a, const float *b, size_t size) {
       __m256 sum = _mm256_setzero_ps();
@@ -877,11 +885,7 @@ namespace NGT {
     class L2Float {
     public:
       inline static double compare(const void *a, const void *b, size_t size) {
-#if defined(NGT_NO_AVX)
-	return PrimitiveComparator::compareL2<float, double>((const float*)a, (const float*)b, size);
-#else
 	return PrimitiveComparator::compareL2((const float*)a, (const float*)b, size);
-#endif
       }
     };
 
@@ -954,11 +958,7 @@ namespace NGT {
     class L2Float16 {
     public:
       inline static double compare(const void *a, const void *b, size_t size) {
-#if defined(NGT_NO_AVX)
-	return PrimitiveComparator::compareL2<float, double>((const float16*)a, (const float16*)b, size);
-#else
 	return PrimitiveComparator::compareL2((const float16*)a, (const float16*)b, size);
-#endif
       }
     };
 
