@@ -10,6 +10,7 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
 ニュース
 -------
+- 2022/02/04 FP16(半精度浮動小数点)が利用可能になりました。(v1.14.0)
 - 2021/03/12 READMEに量子化グラフの結果を追加しました。
 - 2021/01/15 [量子化グラフ (NGTQG)](bin/ngtqg/README.md)を実装した NGT v1.13.0 をリリースしました。
 - 2019/11/04 [NGT チュートリアル](https://github.com/yahoojapan/NGT/wiki) をリリースしました。

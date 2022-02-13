@@ -10,6 +10,7 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
 News
 ----
+- 02/04/2022 FP16 (half-precision floating point) is now available. (v1.14.0)
 - 03/12/2021 The results for the quantized graph are added to this README.
 - 01/15/2021 NGT v1.13.0 to provide the [quantized graph (NGTQG)](bin/ngtqg/README.md) is released.
 - 11/04/2019 [NGT tutorial](https://github.com/yahoojapan/NGT/wiki) has been released.
