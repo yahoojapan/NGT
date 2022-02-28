@@ -1016,6 +1016,9 @@ namespace NGT {
 	}
 	break;
       default:
+#ifdef NGT_HALF_FLOAT
+      case NGT::ObjectSpace::ObjectType::Float16:
+#endif
       case NGT::ObjectSpace::ObjectType::Float:
 	{
 	  for (auto i = v.begin(); i != v.end(); ++i) {
@@ -1051,6 +1054,17 @@ namespace NGT {
 	  }
 	}
 	break;
+#ifdef NGT_HALF_FLOAT
+      case NGT::ObjectSpace::ObjectType::Float16:
+	{
+	  auto *obj = static_cast<NGT::float16*>(index.getObjectSpace().getObject(id));
+	  for (int i = 0; i < prop.dimension; i++) {
+	    float d = *obj++;
+	    v.push_back(d);
+	  }
+	}
+	break;
+#endif
       default:
       case NGT::ObjectSpace::ObjectType::Float:
 	{
@@ -1078,6 +1092,18 @@ namespace NGT {
 	  }
 	}
 	break;
+#ifdef NGT_HALF_FLOAT
+      case NGT::ObjectSpace::ObjectType::Float16:
+	{
+	  auto *obj1 = static_cast<NGT::float16*>(index.getObjectSpace().getObject(id1));
+	  auto *obj2 = static_cast<NGT::float16*>(index.getObjectSpace().getObject(id2));
+	  for (int i = 0; i < prop.dimension; i++) {
+	    float d = (*obj1++ + *obj2++) / 2.0F;
+	    v.push_back(d);
+	  }
+	}
+	break;
+#endif
       default:
       case NGT::ObjectSpace::ObjectType::Float:
 	{
@@ -1431,7 +1457,6 @@ namespace NGT {
 	for (auto i = queries.begin(); i != queries.end(); ++i) {
 	  queryObjects.push_back(index.allocateObject(*i));
 	}
-
 	int identityCount = 0;
 	std::vector<NGT::Distance> lastDistances(nOfQueries);
 	double time = 0.0;
@@ -1449,6 +1474,11 @@ namespace NGT {
 	    timer.restart();
 	    index.search(sc);
 	    timer.stop();
+	    if (results.size() == 0) {
+	      std::stringstream msg;
+	      msg << "generatePseudoGroundTruth: Cannot get any search result.";
+	      NGTThrowException(msg);
+	    }
 	    NGT::Distance d = results.back().distance;
 	    if (d != lastDistances[idx]) {
 	      identity = false;

@@ -323,6 +323,10 @@ namespace NGT {
 	NGT::Serializer::writeAsText(os, (uint8_t*)ref, dimension); 
       } else if (t == typeid(float)) {
 	NGT::Serializer::writeAsText(os, (float*)ref, dimension); 
+#ifdef NGT_HALF_FLOAT
+      } else if (t == typeid(float16)) {
+	NGT::Serializer::writeAsText(os, (float16*)ref, dimension); 
+#endif
       } else if (t == typeid(double)) {
 	NGT::Serializer::writeAsText(os, (double*)ref, dimension); 
       } else if (t == typeid(uint16_t)) {
@@ -344,6 +348,10 @@ namespace NGT {
 	NGT::Serializer::readAsText(is, (uint8_t*)ref, dimension); 
       } else if (t == typeid(float)) {
 	NGT::Serializer::readAsText(is, (float*)ref, dimension); 
+#ifdef NGT_HALF_FLOAT
+      } else if (t == typeid(float16)) {
+	NGT::Serializer::readAsText(is, (float16*)ref, dimension); 
+#endif
       } else if (t == typeid(double)) {
 	NGT::Serializer::readAsText(is, (double*)ref, dimension); 
       } else if (t == typeid(uint16_t)) {

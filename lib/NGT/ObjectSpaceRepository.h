@@ -309,12 +309,19 @@ namespace NGT {
     void show(std::ostream &os, PersistentObject &object) {
       const std::type_info &t = getObjectType();
       if (t == typeid(uint8_t)) {
-	unsigned char *optr = static_cast<unsigned char*>(&object.at(0,allocator));
+	auto *optr = static_cast<unsigned char*>(&object.at(0,allocator));
 	for (size_t i = 0; i < getDimension(); i++) {
 	  os << (int)optr[i] << " ";
 	}
+#ifdef NGT_HALF_FLOAT
+      } else if (t == typeid(float16)) {
+	auto *optr = reinterpret_cast<float16*>(&object.at(0,allocator));
+	for (size_t i = 0; i < getDimension(); i++) {
+	  os << optr[i] << " ";
+	}
+#endif
       } else if (t == typeid(float)) {
-	float *optr = reinterpret_cast<float*>(&object.at(0,allocator));
+	auto *optr = reinterpret_cast<float*>(&object.at(0,allocator));
 	for (size_t i = 0; i < getDimension(); i++) {
 	  os << optr[i] << " ";
 	}
@@ -640,11 +647,13 @@ namespace NGT {
 	for (size_t i = 0; i < getDimension(); i++) {
 	  os << optr[i] << " ";
 	}
+#ifdef NGT_HALF_FLOAT
       } else if (t == typeid(float16)) {
 	float16 *optr = reinterpret_cast<float16*>(&object[0]);
 	for (size_t i = 0; i < getDimension(); i++) {
 	  os << optr[i] << " ";
 	}
+#endif
       } else {
 	os << " not implement for the type.";
       }
