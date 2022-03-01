@@ -400,6 +400,7 @@ public:
     withDistance = true;;
     defaultNumOfSearchObjects = 20;
     defaultEpsilon = 0.02;
+    defaultRadius = FLT_MAX;
     defaultResultExpansion = 3.0;
     defaultEdgeSize = 0; // not used
     if (logDisabled) {
@@ -426,6 +427,7 @@ public:
       resultExpansion	= resultExpansion >= 0.0 ? resultExpansion : defaultResultExpansion;
       edgeSize		= edgeSize >= -2 ? edgeSize : defaultEdgeSize;
       sc.setSize(size);				// the number of resulting objects.
+      sc.setRadius(defaultRadius);			// the radius of search.
       sc.setEpsilon(epsilon);			// set exploration coefficient.
       sc.setResultExpansion(resultExpansion);	// set result expansion.
       sc.setEdgeSize(edgeSize);			// if maxEdge is minus, the specified value in advance is used.
@@ -481,12 +483,14 @@ public:
 
   void set(
    size_t numOfSearchObjects, 		// the number of resultant objects
+   NGT::Distance radius,		// search radius.
    float epsilon,	 		// search parameter epsilon. the adequate range is from 0.0 to 0.05.
    float resultExpansion,		// the number of inner resultant objects
    int edgeSize				// not used
   ) {
     defaultNumOfSearchObjects = numOfSearchObjects > 0 ? numOfSearchObjects : defaultNumOfSearchObjects;
     defaultEpsilon	      = epsilon > -1.0 ? epsilon : defaultEpsilon;
+    defaultRadius	      = radius >= 0.0 ? radius : defaultRadius;
     defaultResultExpansion    = resultExpansion >= 0.0 ? resultExpansion : defaultResultExpansion;
     defaultEdgeSize	      = edgeSize >= -2 ? edgeSize : defaultEdgeSize;
   }
@@ -497,6 +501,7 @@ public:
   bool		withDistance;
   size_t	defaultNumOfSearchObjects; // k
   float		defaultEpsilon;
+  float		defaultRadius;
   float		defaultResultExpansion;
   int64_t	defaultEdgeSize;
 };
@@ -631,12 +636,14 @@ PYBIND11_MODULE(ngtpy, m) {
            py::arg("boolean") = true)
       .def("set", &::QuantizedIndex::set,
            py::arg("num_of_search_objects") = 0,
+	   py::arg("search_radius") = -FLT_MAX,
            py::arg("epsilon") = -FLT_MAX,
            py::arg("result_expansion") = -FLT_MAX,
            py::arg("edge_size") = INT_MIN)
       // set_defaults is deprecated
       .def("set_defaults", &::QuantizedIndex::set,
            py::arg("size") = 0,
+	   py::arg("search_radius") = -FLT_MAX,
            py::arg("epsilon") = -FLT_MAX,
            py::arg("result_expansion") = -FLT_MAX,
            py::arg("edge_size") = INT_MIN);

@@ -102,7 +102,7 @@ Quantize the objects in the ANNG and build the quantized graph:
       ...
       Processed 1000000 objects.
 
-### Search with the quantize graph
+### Search with the quantized graph
 
 Search k nearest neighbors with the quantized graph:
 

@@ -128,36 +128,36 @@ Class Index
 
       set(self: ngtpy.Index, num_of_search_objects: int, search_radius: float)
 
+**Returns**   
+なし。
+
 **num_of_search_objects**    
 検索結果数を指定します。デフォルトは10です。
 
 **search_radius**    
 検索範囲を指定します。デフォルトは無限です。
 
-**Returns**   
-なし。
-
 ### export_index
 インデックスをエクスポートします。
 
       export_index(self: ngtpy.Index, path: str)
 
-**path**    
-エクスポートで保存されるパスを指定します。
-
 **Returns**   
 なし。
+
+**path**    
+エクスポートで保存されるパスを指定します。
 
 ### import_index
 インデックスをインポートします。
 
       import_index(self: ngtpy.Index, path: str)
 
-**path**    
-インポートするパスを指定します。
-
 **Returns**   
 なし。
+
+**path**    
+インポートするパスを指定します。
 
 FUNCTIONS
 =========
@@ -241,3 +241,17 @@ Class Optimizer
 
 **index_path**    
 最適化するインデックスを指定します。
+
+### set
+検索パラメータを指定します。
+
+      set(self: ngtpy.Index, num_of_search_objects: int, search_radius: float)
+
+**Returns**   
+なし。
+
+**num_of_search_objects**    
+検索結果数を指定します。デフォルトは10です。
+
+**search_radius**    
+検索範囲を指定します。デフォルトは無限です。

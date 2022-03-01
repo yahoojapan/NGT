@@ -130,36 +130,36 @@ Specify the search parameters.
 
       set(self: ngtpy.Index, num_of_search_objects: int, search_radius: float)
 
+**Returns**   
+None.
+
 **num_of_search_objects**    
 Specify the number of search objects. The default is 10.
 
 **search_radius**    
 Specify the search radius. The default is infinity.
 
-**Returns**   
-None.
-
 ### export_index
 Exports the index to a file.
 
       export_index(self: ngtpy.Index, path: str)
 
-**path**    
-Path to file in which the exported index will be stored.
-
 **Returns**   
 None.
+
+**path**    
+Path to file in which the exported index will be stored.
 
 ### import_index
 Imports the index from a file
 
       import_index(self: ngtpy.Index, path: str)
 
-**path**    
-Path to file from which to load the index.
-
 **Returns**   
 None.
+
+**path**    
+Path to file from which to load the index.
 
 
 FUNCTIONS
@@ -235,7 +235,6 @@ Reconstruct an index from the specified index with the previously specified para
 **in_index_path**   
 Specify the input index path.
 
-
 **out_index_path**    
 Specify the output index path.
 
@@ -288,4 +287,18 @@ Specify epsilon which defines the explored range for the quantized graph.
 
 **result_expansion**   
 Specify the expansion ratio of the number of approximate inner search objects to the number of search objects. For example, when the ratio is 10 and the number of search objects is 20, the number of the approximate search objects is set to 200 inside the search processing. A larger value brings higher accuracy but slower searching.
+
+### set
+Specify the search parameters.
+
+      set(self: ngtpy.Index, num_of_search_objects: int, search_radius: float)
+
+**Returns**   
+None.
+
+**num_of_search_objects**    
+Specify the number of search objects. The default is 10.
+
+**search_radius**    
+Specify the search radius. The default is infinity.
 

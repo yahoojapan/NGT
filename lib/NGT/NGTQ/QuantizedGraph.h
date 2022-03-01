@@ -216,6 +216,7 @@ namespace NGTQG {
 
       graph.setupDistances(sc, seeds, NGT::PrimitiveComparator::L2Float::compare);
       graph.setupSeeds(sc, seeds, results, unchecked, distanceChecked);
+      auto specifiedRadius = sc.radius;
       NGT::Distance explorationRadius = sc.explorationCoefficient * sc.radius;
       NGT::ObjectDistance result;
       NGT::ObjectDistance target;
@@ -296,9 +297,15 @@ namespace NGTQG {
 	      (*i).distance = comparator(sc.object, obj);
 	    }
 	    std::sort(qresults.begin(), qresults.end());
+	    if (specifiedRadius < std::numeric_limits<float>::max()) {
+	      auto pos = std::upper_bound(qresults.begin(), qresults.end(), NGT::ObjectDistance(0, specifiedRadius));
+	      qresults.resize(distance(qresults.begin(), pos));
+	    }
 	  }
 	  sc.size = sizeBackup;
-	  qresults.resize(sc.size);
+	  if (sc.size < qresults.size()) {
+	    qresults.resize(sc.size);
+	  }
 	}
       } else {
 	if (sc.resultExpansion >= 1.0) {
@@ -314,6 +321,9 @@ namespace NGTQG {
 	    }
 	    sc.size = sizeBackup;
 	    while (sc.workingResult.size() > sc.size) { sc.workingResult.pop(); }
+	    if (specifiedRadius < std::numeric_limits<float>::max()) {
+	      while (sc.workingResult.top().distance > specifiedRadius) { sc.workingResult.pop(); }
+	    }
 	  }
 	} else {
 	  sc.workingResult = std::move(results);
