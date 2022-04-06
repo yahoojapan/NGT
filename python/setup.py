@@ -9,6 +9,7 @@ import pybind11
 
 static_library_option = '--static-library'
 included_library_option = '--included-library'
+shared_library_without_avx_option = '--shared-library-without-avx'
 version_file = 'VERSION'
 
 static_library = False
@@ -23,6 +24,12 @@ if included_library_option in sys.argv:
     sys.argv.remove(included_library_option)
     included_library = True
 
+shared_library_without_avx = False
+if shared_library_without_avx_option in sys.argv:
+    print('use the shared library without avx')
+    sys.argv.remove(shared_library_without_avx_option)
+    shared_library_without_avx = True
+    
 if sys.version_info.major >= 3:
     from setuptools import Extension
 
@@ -52,7 +59,7 @@ args = {
 }
 
 if sys.version_info.major >= 3:
-    if static_library or included_library:
+    if static_library or included_library or shared_library_without_avx:
         params = {
             'include_dirs': ['/usr/local/include',
                              pybind11.get_include(True),
@@ -69,7 +76,7 @@ if sys.version_info.major >= 3:
             'sources': ['src/ngtpy.cpp']
         }
 
-    dynamic_lib_params = {
+    shared_lib_params = {
         'library_dirs': ['/usr/local/lib', '/usr/local/lib64'],
         'libraries': ['ngt', 'gomp']
     }
@@ -79,7 +86,7 @@ if sys.version_info.major >= 3:
         'extra_link_args': ['-static-libstdc++']
     }
     static_lib_params = {
-        'extra_objects': ['../build/lib/NGT/libngt.a'],
+        'extra_objects': ['../build-ngtpy-release/lib/NGT/libngt.a'],
         'libraries': ['gomp']
     }
     if static_library:
@@ -87,7 +94,7 @@ if sys.version_info.major >= 3:
     elif included_library:
         params.update(included_lib_params)
     else:
-        params.update(dynamic_lib_params)
+        params.update(shared_lib_params)
 
     module1 = Extension('ngtpy', **params)
     args['ext_modules'] = [module1]
