@@ -1119,6 +1119,8 @@ NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode, siz
   c5 /= (double)numberOfNodes * 0.05;
   c1 /= (double)numberOfNodes * 0.01;
 
+  std::cerr << "The number of the objects:\t" << outGraph.getNumberOfObjects() << std::endl;
+  std::cerr << "The number of the indexed objects:\t" << outGraph.getNumberOfIndexedObjects() << std::endl;
   std::cerr << "The size of the object repository (not the number of the objects):\t" << repo.size() - 1 << std::endl;
   std::cerr << "The number of the removed objects:\t" << removedObjectCount << "/" << repo.size() - 1 << std::endl;
   std::cerr << "The number of the nodes:\t" << numberOfNodes << std::endl;

@@ -546,6 +546,9 @@ PYBIND11_MODULE(ngtpy, m) {
       .def("build_index", &NGT::Index::createIndex,
            py::arg("num_threads") = 8,
            py::arg("target_size_of_graph") = 0)
+      .def("get_num_of_objects", &::Index::getNumberOfObjects)
+      .def("get_size_of_object_repository", &::Index::getObjectRepositorySize)
+      .def("get_size_of_graph_repository", &::Index::getGraphRepositorySize)
       .def("get_object", &::Index::getObject,
            py::arg("object_id"))
       .def("batch_insert", &::Index::batchInsert,

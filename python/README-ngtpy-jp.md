@@ -100,8 +100,16 @@ Class Index
 **Returns**   
 指定されたオブジェクト
 
+### get_num_of_objects
+登録済みのオブジェクト数を返します。
+
+      int get_num_of_objects()
+
+**Returns**   
+登録済みのオブジェクト数
+
 ### search
-指定されたクエリオブジェクトに対する近傍のオブジェクトを検索する。
+指定されたクエリオブジェクトに対する近傍のオブジェクトを検索します。
 
       object search(self: ngtpy.Index, query: object, size: int, epsilon: float=0.1, edge_size: int=-1, with_distance: bool=True)
 

@@ -442,7 +442,10 @@ namespace NGT {
       }
       redirector.end();
     }
+    virtual size_t getNumberOfObjects() { return getIndex().getNumberOfObjects(); }
+    virtual size_t getNumberOfIndexedObjects() { return getIndex().getNumberOfIndexedObjects(); }
     virtual size_t getObjectRepositorySize() { return getIndex().getObjectRepositorySize(); }
+    virtual size_t getGraphRepositorySize() { return getIndex().getGraphRepositorySize(); }
     virtual void createIndex(size_t threadNumber, size_t sizeOfRepository = 0) {
       redirector.begin();
       try {
@@ -1078,7 +1081,26 @@ namespace NGT {
 
     static bool showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode = '-', size_t edgeSize = UINT_MAX);
 
+    size_t getNumberOfObjects() { return objectSpace->getRepository().count(); }
+    size_t getNumberOfIndexedObjects() {
+      ObjectRepository &repo = objectSpace->getRepository();
+      GraphRepository &graphRepo = repository;
+      size_t count = 0;
+      for (NGT::ObjectID id = 1; id < repo.size() && id < graphRepo.size(); id++) {
+	if (repo[id] != 0 && graphRepo[id] != 0) {
+	  count++;
+	}
+      }
+      return count;
+    }
     size_t getObjectRepositorySize() { return objectSpace->getRepository().size(); }
+    size_t getGraphRepositorySize() {
+#ifdef NGT_GRAPH_READ_ONLY_GRAPH
+      return std::max(repository.size(), searchRepository.size());
+#else
+      return repository.size();
+#endif
+    }
 
     size_t getSizeOfElement() { return objectSpace->getSizeOfElement(); }
 

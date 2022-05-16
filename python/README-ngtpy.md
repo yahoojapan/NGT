@@ -101,6 +101,15 @@ Get the specified object.
 The specified object.
 
 
+### get_num_of_objects
+Get the number of the registered objects.
+
+      int get_num_of_objects()
+
+**Returns**   
+The the number of the registered objects.
+
+
 ### search
 Search the nearest objects to the specified query object.
 
