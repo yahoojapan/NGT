@@ -211,7 +211,7 @@ namespace NGTQG {
 	sc.explorationCoefficient = NGT_EXPLORATION_COEFFICIENT;
       }
       NGT::NeighborhoodGraph::UncheckedSet unchecked;
-      NGT::NeighborhoodGraph::DistanceCheckedSet distanceChecked(graph.repository.size());
+      NGT::NeighborhoodGraph::DistanceCheckedSet distanceChecked(NGT::Index::getObjectSpace().getRepository().size());
       NGT::NeighborhoodGraph::ResultSet results;
 
       graph.setupDistances(sc, seeds, NGT::PrimitiveComparator::L2Float::compare);
