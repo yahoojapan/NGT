@@ -281,6 +281,30 @@ bool ngt_set_property_distance_type_hamming(NGTProperty prop, NGTError error) {
   return true;
 }
 
+bool ngt_set_property_distance_type_poincare(NGTProperty prop, NGTError error) {
+  if(prop == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
+    operate_error_string_(ss, error);
+    return false;
+  }
+
+  (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypePoincare;
+  return true;
+}
+
+bool ngt_set_property_distance_type_lorentz(NGTProperty prop, NGTError error) {
+  if(prop == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
+    operate_error_string_(ss, error);
+    return false;
+  }
+
+  (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeLorentz;
+  return true;
+}
+
 bool ngt_set_property_distance_type_jaccard(NGTProperty prop, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
@@ -290,6 +314,30 @@ bool ngt_set_property_distance_type_jaccard(NGTProperty prop, NGTError error) {
   }
 
   (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeJaccard;
+  return true;
+}
+
+bool ngt_set_property_distance_type_sparse_jaccard(NGTProperty prop, NGTError error) {
+  if(prop == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
+    operate_error_string_(ss, error);
+    return false;
+  }
+
+  (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeSparseJaccard;
+  return true;
+}
+
+bool ngt_set_property_distance_type_normalized_l2(NGTProperty prop, NGTError error) {
+  if(prop == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
+    operate_error_string_(ss, error);
+    return false;
+  }
+
+  (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeNormalizedL2;
   return true;
 }
 

@@ -99,14 +99,22 @@ bool ngt_set_property_distance_type_angle(NGTProperty, NGTError);
 
 bool ngt_set_property_distance_type_hamming(NGTProperty, NGTError);
 
+bool ngt_set_property_distance_type_cosine(NGTProperty, NGTError);
+
+bool ngt_set_property_distance_type_poincare(NGTProperty, NGTError);
+
+bool ngt_set_property_distance_type_lorentz(NGTProperty, NGTError);
+
 bool ngt_set_property_distance_type_jaccard(NGTProperty, NGTError);
 
-bool ngt_set_property_distance_type_cosine(NGTProperty, NGTError);
+bool ngt_set_property_distance_type_sparse_jaccard(NGTProperty, NGTError);
+
+bool ngt_set_property_distance_type_normalized_l2(NGTProperty, NGTError);
 
 bool ngt_set_property_distance_type_normalized_angle(NGTProperty, NGTError);
 
-bool ngt_set_property_distance_type_normalized_cosine(NGTProperty, NGTError);  
-  
+bool ngt_set_property_distance_type_normalized_cosine(NGTProperty, NGTError);
+
 NGTObjectDistances ngt_create_empty_results(NGTError);
 
 bool ngt_search_index(NGTIndex, double*, int32_t, size_t, float, float, NGTObjectDistances, NGTError);
@@ -122,8 +130,8 @@ bool ngt_linear_search_index_as_float(NGTIndex, float*, int32_t, size_t, NGTObje
 bool ngt_linear_search_index_with_query(NGTIndex, NGTQuery, NGTObjectDistances, NGTError);
 
 int32_t ngt_get_size(NGTObjectDistances, NGTError); // deprecated
-  
-uint32_t ngt_get_result_size(NGTObjectDistances, NGTError); 
+
+uint32_t ngt_get_result_size(NGTObjectDistances, NGTError);
 
 NGTObjectDistance ngt_get_result(const NGTObjectDistances, const uint32_t, NGTError);
 
@@ -166,7 +174,7 @@ NGTError ngt_create_error_object();
 const char *ngt_get_error_string(const NGTError);
 
 void ngt_clear_error_string(NGTError);
-  
+
 void ngt_destroy_error_object(NGTError);
 
 NGTOptimizer ngt_create_optimizer(bool logDisabled, NGTError);
@@ -175,12 +183,12 @@ bool ngt_optimizer_adjust_search_coefficients(NGTOptimizer, const char *, NGTErr
 
 bool ngt_optimizer_execute(NGTOptimizer, const char *, const char *, NGTError);
 
-bool ngt_optimizer_set(NGTOptimizer optimizer, int outgoing, int incoming, int nofqs, 
+bool ngt_optimizer_set(NGTOptimizer optimizer, int outgoing, int incoming, int nofqs,
 		       float baseAccuracyFrom, float baseAccuracyTo,
 		       float rateAccuracyFrom, float rateAccuracyTo,
 		       double gte, double m, NGTError error);
 
-bool ngt_optimizer_set_minimum(NGTOptimizer optimizer, int outgoing, int incoming, 
+bool ngt_optimizer_set_minimum(NGTOptimizer optimizer, int outgoing, int incoming,
 			       int nofqs, int nofrs, NGTError error);
 
 bool ngt_optimizer_set_extension(NGTOptimizer optimizer,
@@ -188,16 +196,16 @@ bool ngt_optimizer_set_extension(NGTOptimizer optimizer,
 				 float rateAccuracyFrom, float rateAccuracyTo,
 				 double gte, double m, NGTError error);
 
-bool ngt_optimizer_set_processing_modes(NGTOptimizer optimizer, bool searchParameter, 
+bool ngt_optimizer_set_processing_modes(NGTOptimizer optimizer, bool searchParameter,
 					bool prefetchParameter, bool accuracyTable, NGTError error);
 
 void ngt_destroy_optimizer(NGTOptimizer);
 
 // refine: the specified index by searching each node.
 // epsilon, exepectedAccuracy and edgeSize: the same as the parameters for search. but if edgeSize is INT_MIN, default is used.
-// noOfEdges: if this is not 0, kNNG with k = noOfEdges is build 
+// noOfEdges: if this is not 0, kNNG with k = noOfEdges is build
 // batchSize: batch size for parallelism.
-bool ngt_refine_anng(NGTIndex index, float epsilon, float expectedAccuracy, 
+bool ngt_refine_anng(NGTIndex index, float epsilon, float expectedAccuracy,
 		     int noOfEdges, int edgeSize, size_t batchSize, NGTError error);
 
 // get edges of the node that is specified with id.
