@@ -127,7 +127,8 @@ public:
   void refineANNG(Args &args);
   void repair(Args &args);
   void exportGraph(Args &args);
-
+  void exportObjects(Args &args);
+  
   void info(Args &args);
   void setDebugLevel(int level) { debugLevel = level; }
   int getDebugLevel() { return debugLevel; }

@@ -40,7 +40,7 @@ Index::getVersion()
 }
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-NGT::Index::Index(NGT::Property &prop, const string &database) {
+NGT::Index::Index(NGT::Property &prop, const string &database):redirect(false) {
   if (prop.dimension == 0) {
     NGTThrowException("Index::Index. Dimension is not specified.");
   }
@@ -62,7 +62,7 @@ NGT::Index::Index(NGT::Property &prop, const string &database) {
   path = "";
 }
 #else
-NGT::Index::Index(NGT::Property &prop) {
+NGT::Index::Index(NGT::Property &prop):redirect(false) {
   if (prop.dimension == 0) {
     NGTThrowException("Index::Index. Dimension is not specified.");
   }
@@ -512,6 +512,12 @@ NGT::GraphIndex::constructObjectSpace(NGT::Property &prop) {
   }
 }
 
+void
+NGT::GraphIndex::loadGraph(const string &ifile, NGT::GraphRepository &graph) {
+  ifstream isg(ifile + "/grp");
+  graph.deserialize(isg);
+}
+
 void 
 NGT::GraphIndex::loadIndex(const string &ifile, bool readOnly, bool graphDisabled) {
   objectSpace->deserialize(ifile + "/obj");
@@ -522,12 +528,10 @@ NGT::GraphIndex::loadIndex(const string &ifile, bool readOnly, bool graphDisable
   if (readOnly && property.indexType == NGT::Index::Property::IndexType::Graph) {
     GraphIndex::NeighborhoodGraph::loadSearchGraph(ifile);
   } else {
-    ifstream isg(ifile + "/grp");
-    repository.deserialize(isg);
+    loadGraph(ifile, repository);
   }
 #else
-  ifstream isg(ifile + "/grp");
-  repository.deserialize(isg);
+  loadGraph(ifile, repository);
 #endif
 }
 

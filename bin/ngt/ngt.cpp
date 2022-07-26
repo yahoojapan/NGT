@@ -102,6 +102,8 @@ main(int argc, char **argv)
       ngt.optimizeNumberOfEdgesForANNG(args);
     } else if (command == "export-graph") {
       ngt.exportGraph(args);
+    } else if (command == "export-objects") {
+      ngt.exportObjects(args);
 #ifndef NGT_SHARED_MEMORY_ALLOCATOR
     } else if (command == "extract-query") {
       NGT::Optimizer::extractQueries(args);

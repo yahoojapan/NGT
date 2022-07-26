@@ -191,7 +191,8 @@ namespace NGT {
 
 
     typedef std::priority_queue<ObjectDistance, std::vector<ObjectDistance>, std::less<ObjectDistance> > ResultSet;
-    ObjectSpace(size_t d):dimension(d), distanceType(DistanceTypeNone), comparator(0), normalization(false) {}
+  ObjectSpace(size_t d):dimension(d), distanceType(DistanceTypeNone), comparator(0), normalization(false),
+                        prefetchOffset(-1), prefetchSize(-1) {}
     virtual ~ObjectSpace() { if (comparator != 0) { delete comparator; } }
     
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
@@ -268,21 +269,23 @@ namespace NGT {
         data[i] = static_cast<float>(data[i]) / sum;
       }
     }
-    uint32_t getPrefetchOffset() { return prefetchOffset; }
-    uint32_t setPrefetchOffset(size_t offset) {
-      if (offset == 0) {
-	prefetchOffset = floor(300.0 / (static_cast<float>(getPaddedDimension()) + 30.0) + 1.0);
-      } else {
+    int32_t getPrefetchOffset() { return prefetchOffset; }
+    int32_t setPrefetchOffset(int offset) {
+      if (offset > 0) {
 	prefetchOffset = offset;
+      }
+      if (prefetchOffset <= 0) {
+	prefetchOffset = floor(300.0 / (static_cast<float>(getPaddedDimension()) + 30.0) + 1.0);
       }
       return prefetchOffset;
     }
-    uint32_t getPrefetchSize() { return prefetchSize; }
-    uint32_t setPrefetchSize(size_t size) {
-      if (size == 0) {
-	prefetchSize = getByteSizeOfObject();
-      } else {
+    int32_t getPrefetchSize() { return prefetchSize; }
+    int32_t setPrefetchSize(int size) {
+      if (size > 0) {
 	prefetchSize = size;
+      }
+      if (prefetchSize <= 0) {
+	prefetchSize = getByteSizeOfObject();
       }
       return prefetchSize;
     }
@@ -291,8 +294,8 @@ namespace NGT {
     DistanceType	distanceType;
     Comparator		*comparator;
     bool		normalization;
-    uint32_t		prefetchOffset;
-    uint32_t		prefetchSize;
+    int32_t		prefetchOffset;
+    int32_t		prefetchSize;
   };
 
   class BaseObject {
@@ -369,7 +372,9 @@ namespace NGT {
   class Object : public BaseObject {
   public:
     Object(NGT::ObjectSpace *os = 0):vector(0) {
-      assert(os != 0);
+      if (os == 0) {
+	return;
+      }
       size_t s = os->getByteSizeOfObject();
       construct(s);
     }
@@ -378,6 +383,9 @@ namespace NGT {
       assert(s != 0);
       construct(s);
     }
+
+    void attach(void *ptr) { vector = static_cast<uint8_t*>(ptr); }
+    void detach() { vector = 0; }
 
     void copy(Object &o, size_t s) {
       assert(vector != 0);

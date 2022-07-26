@@ -31,8 +31,8 @@ void * evaluate_responce(void *);
 
 class ThreadTerminationException : public Exception {
  public:
-  ThreadTerminationException(const std::string &file, size_t line, std::stringstream &m) { set(file, line, m.str()); }
-  ThreadTerminationException(const std::string &file, size_t line, const std::string &m) { set(file, line, m); }
+  ThreadTerminationException(const std::string &file, const std::string &function, size_t line, std::stringstream &m) { set(file, function, line, m.str()); }
+  ThreadTerminationException(const std::string &file, const std::string &function, size_t line, const std::string &m) { set(file, function, line, m); }
 };
 
 class ThreadInfo;

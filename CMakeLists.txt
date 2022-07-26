@@ -73,6 +73,8 @@ if(${UNIX})
         set(CMAKE_CXX_STANDARD 11) # for std::unordered_set, std::unique_ptr
         set(CMAKE_CXX_STANDARD_REQUIRED ON)
 	find_package(Threads REQUIRED)
+	find_package(BLAS REQUIRED)
+	find_package(LAPACK REQUIRED)
     endif() 
 
     add_subdirectory("${PROJECT_SOURCE_DIR}/lib")

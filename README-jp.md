@@ -94,7 +94,7 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 ユーティリティ
 -------------
 
-- コマンド : [ngt](/bin/ngt/README-jp.md#command), [ngtq](bin/ngtq/README-jp.md)
+- コマンド : [ngt](/bin/ngt/README-jp.md#command), [qbg](bin/qbg/README.md)
 - サーバ : [ngtd](https://github.com/yahoojapan/ngtd), [vald](https://github.com/vdaas/vald)
 
 対応言語

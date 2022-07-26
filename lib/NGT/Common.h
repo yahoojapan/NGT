@@ -53,17 +53,17 @@ namespace NGT {
   typedef	half_float::half	float16;
 #endif
 
-#define	NGTThrowException(MESSAGE)			throw NGT::Exception(__FILE__, (size_t)__LINE__, MESSAGE)
-#define	NGTThrowSpecificException(MESSAGE, TYPE)	throw NGT::TYPE(__FILE__, (size_t)__LINE__, MESSAGE)
+#define	NGTThrowException(MESSAGE)			throw NGT::Exception(__FILE__, __FUNCTION__, (size_t)__LINE__, MESSAGE)
+#define	NGTThrowSpecificException(MESSAGE, TYPE)	throw NGT::TYPE(__FILE__, __FUNCTION__, (size_t)__LINE__, MESSAGE)
 
   class Exception : public std::exception {
   public:
     Exception():message("No message") {}
-    Exception(const std::string &file, size_t line, std::stringstream &m) { set(file, line, m.str()); }
-    Exception(const std::string &file, size_t line, const std::string &m) { set(file, line, m); }
-    void set(const std::string &file, size_t line, const std::string &m) { 
+    Exception(const std::string &file, const std::string &function, size_t line, std::stringstream &m) { set(file, function, line, m.str()); }
+    Exception(const std::string &file, const std::string &function, size_t line, const std::string &m) { set(file, function, line, m); }
+    void set(const std::string &file, const std::string &function, size_t line, const std::string &m) { 
       std::stringstream ss;
-      ss << file << ":" << line << ": " << m;
+      ss << file << ":" << function << ":" << line << ": " << m;
       message = ss.str(); 
     }
     ~Exception() throw() {}
@@ -106,16 +106,17 @@ namespace NGT {
 	} else if (opt.size() > 1 && opt[0] == '-') {
 	  if (opt.size() == 2) {
 	    key = opt[1];
-	    if (key == "h") {
-	      value = "";
-	    } else {
-	      ++i;
-	      if (i != opts.end()) {
-		value = *i;
-	      } else {
+	    ++i;
+	    if (i != opts.end()) {
+	      if (((*i)[0] == '-') && ((*i)[1] != 0) ) {
 		value = "";
 		--i;
+	      } else {
+		value = *i;
 	      }
+	    } else {
+	      value = "";
+	      --i;
 	    }
 	  } else {
 	    key = opt[1];
@@ -177,6 +178,14 @@ namespace NGT {
       }
       usedOptions.insert(ai->first);
       return ai->second;
+    }
+    bool getBool(const char *s) {
+      try {
+	get(s);
+      } catch(...) {
+	return false;
+      }
+      return true;
     }
     long getl(const char *s, long v) {
       char *e;
@@ -260,6 +269,28 @@ namespace NGT {
     }
 
 
+    template <typename T>
+      static void extractVector(const std::string &textLine, const std::string &sep, T &object) {
+      std::vector<std::string> tokens;
+      NGT::Common::tokenize(textLine, tokens, sep);
+      size_t idx;
+      for (idx = 0; idx < tokens.size(); idx++) {
+	if (tokens[idx].size() == 0) {
+	  std::stringstream msg;
+	  msg << "Common::extractVecotFromText: No data. " << textLine;
+	  NGTThrowException(msg);
+        }
+	char *e;
+	double v = ::strtod(tokens[idx].c_str(), &e);
+	if (*e != 0) {
+	  std::cerr << "ObjectSpace::readText: Warning! Not numerical value. [" << e << "]" << std::endl;
+	  break;
+	}
+	object.push_back(v);
+      }
+    }
+
+
     static std::string getProcessStatus(const std::string &stat) {
       pid_t pid = getpid();
       std::stringstream str;
@@ -287,6 +318,24 @@ namespace NGT {
     static int getProcessVmSize() { return strtol(getProcessStatus("VmSize")); }
     static int getProcessVmPeak() { return strtol(getProcessStatus("VmPeak")); }
     static int getProcessVmRSS() { return strtol(getProcessStatus("VmRSS")); }
+    static std::string sizeToString(float size) {
+      char unit = 'K';
+      if (size > 1024) {
+	size /= 1024;
+	unit = 'M';
+      }
+      if (size > 1024) {
+	size /= 1024;
+	unit = 'G';
+      }
+      size = round(size * 100) / 100;
+      std::stringstream str;
+      str << size << unit;
+      return str.str();
+    }
+    static std::string getProcessVmSizeStr() { return sizeToString(getProcessVmSize()); }
+    static std::string getProcessVmPeakStr() { return sizeToString(getProcessVmPeak()); }
+    static std::string getProcessVmRSSStr() { return sizeToString(getProcessVmRSS()); }
   };
 
   class StdOstreamRedirector {
@@ -302,6 +351,11 @@ namespace NGT {
 
     void enable() { enabled = true; }
     void disable() { enabled = false; }
+    void set(bool e) { enabled = e; }
+    void bgin(bool e) {
+      set(e);
+      begin();
+    }
     void begin() {
       if (!enabled) {
 	return;
@@ -1381,7 +1435,7 @@ namespace NGT {
   template <class TYPE>
     class PersistentRepository {
   public:
-    typedef Vector<off_t> ARRAY;
+    typedef Vector<off_t>	ARRAY;
     typedef TYPE **		iterator;
 
     PersistentRepository():array(0) {}
@@ -1925,6 +1979,7 @@ namespace NGT {
 	}
       }
       this->clear();
+      this->shrink_to_fit();
 #ifdef ADVANCED_USE_REMOVED_LIST
       while(!removedList.empty()){ removedList.pop(); }
 #endif
@@ -2159,7 +2214,23 @@ namespace NGT {
     }
 
     friend std::ostream &operator<<(std::ostream &os, Timer &t) {
-      os << std::setprecision(6) << t.time << " (sec)";
+      auto time = t.time;
+      if (time < 1.0) {
+	time *= 1000.0;
+	os << std::setprecision(6) << time << " (ms)";	
+	return os;
+      }
+      if (time < 60.0) {
+	os << std::setprecision(6) << time << " (s)";	
+	return os;
+      }
+      time /= 60.0;
+      if (time < 60.0) {
+	os << std::setprecision(6) << time << " (m)";
+	return os;
+      }
+      time /= 60.0;
+      os << std::setprecision(6) << time << " (h)";
       return os;
     }
 

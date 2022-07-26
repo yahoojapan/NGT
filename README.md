@@ -6,10 +6,11 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
 [Home](/README.md) / [Installation](/README.md#Installation) / [Command](/bin/ngt/README.md#command) / [License](/README.md#license) / [Publications](/README.md#publications) / [About Us](http://research-lab.yahoo.co.jp/en/) / [日本語](/README-jp.md)
 
-**NGT** provides commands and a library for performing high-speed approximate nearest neighbor searches against a large volume of data (several million to several 10 million items of data) in high dimensional vector data space (several ten to several thousand dimensions).
+**NGT** provides commands and a library for performing high-speed approximate nearest neighbor searches against a large volume of data in high dimensional vector data space (several ten to several thousand dimensions). This repository also includes NGT-based quantized graphs: QBG (Quantized Blob Graph) and QG (Quantized Graph).
 
 News
 ----
+- 07/29/2022 QBG (Quantized Blob Graph) and QG (renewed NGTQG) are now available. The command-line interface ngtq and ngtqg are now obsolete by replacing [qbg](bin/qbg/README.md). (v2.0.0)
 - 02/04/2022 FP16 (half-precision floating point) is now available. (v1.14.0)
 - 03/12/2021 The results for the quantized graph are added to this README.
 - 01/15/2021 NGT v1.13.0 to provide the [quantized graph (NGTQG)](bin/ngtqg/README.md) is released.
@@ -29,7 +30,7 @@ Key Features
 - Data Types: 4 byte floating point number and 1 byte unsigned integer
 - Supported languages: [Python](/python/README.md), [Ruby](https://github.com/ankane/ngt), [Rust](https://crates.io/crates/ngt), [Go](https://github.com/yahoojapan/gongt), C, and C++
 - Distributed servers: [ngtd](https://github.com/yahoojapan/ngtd) and [vald](https://github.com/vdaas/vald)
-- [NGTQ](bin/ngtq/README.md) can handle billions of objects.
+- [QBG](bin/qbg/README.md) can handle billions of objects.
 
 Documents
 ---------
@@ -94,7 +95,7 @@ When you insert more than about 5 million objects, please add the following para
 Utilities
 ---------
 
-- Command : [ngt](/bin/ngt/README.md#command), [ngtq](bin/ngtq/README.md), [ngtqg](bin/ngtqg/README.md)
+- Command : [ngt](/bin/ngt/README.md#command), [qbg](bin/qbg/README.md)
 - Server : [ngtd](https://github.com/yahoojapan/ngtd), [vald](https://github.com/vdaas/vald)
 
 Supported Programming Languages
@@ -110,7 +111,7 @@ Supported Programming Languages
 
 Benchmark Results
 -----------------
-The followings are the results of [ann benchmarks](https://github.com/erikbern/ann-benchmarks) for NGT v1.13.5 where the timeout is 5 hours on an AWS c5.4xlarge instance.
+The followings are the results of [ann benchmarks](https://github.com/erikbern/ann-benchmarks) for NGT v2.0.0 where the timeout is 5 hours on an AWS c5.4xlarge instance.
 
 #### glove-100-angular
 <img src="./tests/ann-benchmarks-results/glove-100-angular.png?raw=true" width="400">
