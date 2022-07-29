@@ -141,6 +141,19 @@ bool ngtqg_quantize(const char *indexPath, NGTQGQuantizationParameters parameter
 
 
 
+uint32_t qbg_get_result_size(QBGObjectDistances results, NGTError error) {
+  return ngt_get_result_size(results, error);
+}
+
+NGTObjectDistance qbg_get_result(const QBGObjectDistances results, const uint32_t idx, NGTError error) {
+  return ngt_get_result(results, idx, error);
+}
+
+void qbg_destroy_results(QBGObjectDistances results) {
+  ngt_destroy_results(results);
+}
+
+
 void qbg_initialize_construction_parameters(QBGConstructionParameters *parameters)
 {
   parameters->extended_dimension = 0;

@@ -60,6 +60,13 @@ extern "C" {
 
   typedef void* QBGIndex;
   typedef NGTError QBGError;
+  typedef NGTObjectDistances QBGObjectDistances;
+
+  uint32_t qbg_get_result_size(QBGObjectDistances results, NGTError error);
+
+  NGTObjectDistance qbg_get_result(const QBGObjectDistances results, const uint32_t idx, NGTError error);
+
+  void qbg_destroy_results(QBGObjectDistances results);
 
   typedef struct {
     size_t	extended_dimension;
