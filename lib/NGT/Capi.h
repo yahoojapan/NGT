@@ -216,6 +216,9 @@ bool ngt_get_edges(NGTIndex index, ObjectID id, NGTObjectDistances edges, NGTErr
 // The size is mostly the largest ID of the objects - 1;
 uint32_t ngt_get_object_repository_size(NGTIndex index, NGTError error);
 
+uint32_t ngt_get_number_of_indexed_objects(NGTIndex index, NGTError error);
+uint32_t ngt_get_number_of_objects(NGTIndex index, NGTError error);
+
 // return parameters for ngt_optimize_number_of_edges. You can customize them before calling ngt_optimize_number_of_edges.
 NGTAnngEdgeOptimizationParameter ngt_get_anng_edge_optimization_parameter();
 

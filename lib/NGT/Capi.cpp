@@ -1104,6 +1104,30 @@ uint32_t ngt_get_object_repository_size(NGTIndex index, NGTError error)
   return pindex.getObjectRepositorySize();
 }
 
+uint32_t ngt_get_number_of_indexed_objects(NGTIndex index, NGTError error)
+{
+  if(index == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index;
+    operate_error_string_(ss, error);
+    return false;
+  }
+  NGT::Index&		pindex = *static_cast<NGT::Index*>(index);
+  return pindex.getNumberOfIndexedObjects();
+}
+
+uint32_t ngt_get_number_of_objects(NGTIndex index, NGTError error)
+{
+  if(index == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index;
+    operate_error_string_(ss, error);
+    return false;
+  }
+  NGT::Index&		pindex = *static_cast<NGT::Index*>(index);
+  return pindex.getNumberOfObjects();
+}
+
 NGTAnngEdgeOptimizationParameter ngt_get_anng_edge_optimization_parameter()
 {
   NGT::GraphOptimizer::ANNGEdgeOptimizationParameter gp;
