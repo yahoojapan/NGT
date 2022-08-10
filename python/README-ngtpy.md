@@ -107,7 +107,7 @@ Get the number of the registered objects.
       int get_num_of_objects()
 
 **Returns**   
-The the number of the registered objects.
+The number of the registered objects.
 
 
 ### search

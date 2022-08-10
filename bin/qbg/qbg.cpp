@@ -14,14 +14,14 @@
 // limitations under the License.
 //
 
-#include	"NGT/NGTQ/NGTQGCommand.h"
+#include	"NGT/NGTQ/QbgCli.h"
 
 int
 main(int argc, char **argv)
 {
   NGT::Args args(argc, argv);
 
-  NGTQG::Command ngt;
+  QBG::CLI ngt;
 
   ngt.execute(args);
 }

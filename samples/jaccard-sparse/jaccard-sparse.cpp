@@ -75,7 +75,6 @@ append(NGT::Args &args)
 	std::cerr << "jaccard-sparse: Empty line or invalid value. " << count << ":" << line << std::endl;
 	continue;
       }
-      NGT::ObjectID id = index.append(index.makeSparseObject(object));
     }
     if (data != "-") {
       delete ifs;

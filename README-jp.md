@@ -10,6 +10,7 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
 ニュース
 -------
+- 2022/08/10 QBG(Quantized Blob Graph)およびQG(NGTQGの改良版)が利用可能となりました。ngtqおよびngtqgは[qbg](https://ghe.corp.yahoo.co.jp/NGT/NGT/blob/qbg/bin/qbg/README.md)で置き換えられました。
 - 2022/02/04 FP16(半精度浮動小数点)が利用可能になりました。(v1.14.0)
 - 2021/03/12 READMEに量子化グラフの結果を追加しました。
 - 2021/01/15 [量子化グラフ (NGTQG)](bin/ngtqg/README.md)を実装した NGT v1.13.0 をリリースしました。
@@ -20,21 +21,12 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 - 2018/12/14 [NGTQ](bin/ngtq/README-jp.md) (NGT with Quantization) が利用可能になりました。(v1.5.0)
 - 2018/08/08 [ONNG](README-jp.md#onng)が利用可能になりました。(v1.4.0)
 
-特徴
-----
-- OS：Linux、macOS
-- データの追加削除が可能
-- [共有メモリ（マップドメモリ）](README-jp.md#共有メモリの利用)のオプションによるNGTではメモリサイズを超えるデータが利用可能
-- データ型：1バイト整数、4バイト単精度浮動小数点
-- 距離関数：L1、L2、コサイン類似度、角度、ハミング、ジャッカード、ポアンカレ、ローレンツ
-- 対応言語：[Python](/python/README-jp.md)、[Ruby](https://github.com/ankane/ngt)、[Go](https://github.com/yahoojapan/gongt)、C、C++
-- 分散サーバ：[ngtd](https://github.com/yahoojapan/ngtd), [vald](https://github.com/vdaas/vald)
-- 量子化版NGT（[NGTQ](bin/ngtq/README-jp.md)）は10億ものデータの検索が可能
-
-ドキュメント
------------
-
-- [NGT チュートリアル](https://github.com/yahoojapan/NGT/wiki)
+手法
+---
+このリポジトリは次の手法を提供します。
+- NGT: Graph and tree-based method
+- QG: Quantized graph-based method
+- QBG: Quantized blob graph-based method
 
 インストール
 -----------
@@ -42,12 +34,6 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 ### ダウンロード
 
 - [Releases](https://github.com/yahoojapan/NGT/releases)
-
-### ビルド済み
-
-#### macOS
-
-      $ brew install ngt
 
 ### ビルド
 
@@ -62,13 +48,35 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
       $ make install
       $ ldconfig /usr/local/lib
 
+#### CentOS
+
+      $ yum install blas-devel lapack-devel
+      $ unzip NGT-x.x.x.zip
+      $ cd NGT-x.x.x
+      $ mkdir build
+      $ cd build
+      $ cmake ..
+      $ make
+      $ make install
+      $ ldconfig /usr/local/lib
+
+#### Ubuntu
+
+      $ apt install libblas-dev liblapack-dev
+      $ unzip NGT-x.x.x.zip
+      $ cd NGT-x.x.x
+      $ mkdir build
+      $ cd build
+      $ cmake ..
+      $ make
+      $ make install
+      $ ldconfig /usr/local/lib
+
 #### macOS
 
       $ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
       $ brew install cmake
-      $ brew install gcc@9
-      $ export CXX=/usr/local/bin/g++-9
-      $ export CC=/usr/local/bin/gcc-9
+      $ brew install openblas
       $ unzip NGT-x.x.x.zip
       $ cd NGT-x.x.x
       $ mkdir build
@@ -87,14 +95,45 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
 #### 大規模データの利用
 
-約500万以上のオブジェクトを登録する場合には、検索速度向上のために以下のパラメータを追加してください。
+約500万以上のオブジェクトをNGTに登録する場合には、検索速度向上のために以下のパラメータを追加してください。
 
       $ cmake -DNGT_LARGE_DATASET=ON ..
+
+#### QG and QBGの無効化
+
+QBおよびQBGはBLASおよびLAPACKライブラリを必要とします。もし、これらのライブラリをインストールしたくなく、かつ、QGやQBGを利用しない場合には、QGおよびQBGを無効化できます。
+
+      $ cmake -DNGT_QBG_DISABLED=ON ..
+
+### ビルド済み
+
+#### macOS
+
+      $ brew install ngt
+
+NGT (Graph and tree-based method)
+=================================
+
+特徴
+----
+- OS：Linux、macOS
+- データの追加削除が可能
+- [共有メモリ（マップドメモリ）](README-jp.md#共有メモリの利用)のオプションによるNGTではメモリサイズを超えるデータが利用可能
+- データ型：1バイト整数、4バイト単精度浮動小数点
+- 距離関数：L1、L2、コサイン類似度、角度、ハミング、ジャッカード、ポアンカレ、ローレンツ
+- 対応言語：[Python](/python/README-jp.md)、[Ruby](https://github.com/ankane/ngt)、[Go](https://github.com/yahoojapan/gongt)、C、C++
+- 分散サーバ：[ngtd](https://github.com/yahoojapan/ngtd), [vald](https://github.com/vdaas/vald)
+
+ドキュメント
+-----------
+
+- [NGT チュートリアル](https://github.com/yahoojapan/NGT/wiki)
+
 
 ユーティリティ
 -------------
 
-- コマンド : [ngt](/bin/ngt/README-jp.md#command), [ngtq](bin/ngtq/README-jp.md)
+- コマンド : [ngt](/bin/ngt/README-jp.md#command)
 - サーバ : [ngtd](https://github.com/yahoojapan/ngtd), [vald](https://github.com/vdaas/vald)
 
 対応言語
@@ -107,6 +146,48 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 - [Go](https://github.com/yahoojapan/gongt)
 - C
 - C++([sample code](samples))
+
+QG (Quantized graph-based method)
+=================================
+
+特徴
+----
+- NGTよりも高性能
+- OS：Linux、macOS
+- 距離関数：L2、コサイン類似度
+- 対応言語：C++, C, Python
+
+ユーティリティ
+-------------
+- コマンド : [qbg](bin/qbg/README.md)
+
+対応言語
+--------
+
+- C++
+- C
+- Python （検索のみ対応）
+
+QBG (Quantized blob graph-based method)
+=======================================
+
+特徴
+----
+- 10億ものオブジェクトの検索が可能
+- OS：Linux、macOS
+- 距離関数：L2
+- 対応言語：C++, C, Python
+
+ユーティリティ
+-------------
+- コマンド : [qbg](bin/qbg/README.md)
+
+対応言語
+--------
+
+- C++
+- C
+- Python （検索のみ対応）
 
 ベンチマーク結果
 ---------------

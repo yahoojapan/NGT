@@ -6,10 +6,11 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
 [Home](/README.md) / [Installation](/README.md#Installation) / [Command](/bin/ngt/README.md#command) / [License](/README.md#license) / [Publications](/README.md#publications) / [About Us](http://research-lab.yahoo.co.jp/en/) / [日本語](/README-jp.md)
 
-**NGT** provides commands and a library for performing high-speed approximate nearest neighbor searches against a large volume of data (several million to several 10 million items of data) in high dimensional vector data space (several ten to several thousand dimensions).
+**NGT** provides commands and a library for performing high-speed approximate nearest neighbor searches against a large volume of data in high dimensional vector data space (several ten to several thousand dimensions).
 
 News
 ----
+- 08/10/2022 QBG (Quantized Blob Graph) and QG (renewed NGTQG) are now available. The command-line interface ngtq and ngtqg are now obsolete by replacing [qbg](bin/qbg/README.md). (v2.0.0)
 - 02/04/2022 FP16 (half-precision floating point) is now available. (v1.14.0)
 - 03/12/2021 The results for the quantized graph are added to this README.
 - 01/15/2021 NGT v1.13.0 to provide the [quantized graph (NGTQG)](bin/ngtqg/README.md) is released.
@@ -20,39 +21,48 @@ News
 - 12/14/2018 [NGTQ](bin/ngtq/README.md) (NGT with Quantization) is now available. (v1.5.0)
 - 08/08/2018 [ONNG](README.md#onng) is now available. (v1.4.0)
 
-Key Features
-------------
-- Supported operating systems: Linux and macOS
-- Object additional registration and removal are available.
-- Objects beyond the memory size can be handled using [the shared memory (memory mapped file) option](README.md#shared-memory-use).
-- Supported distance functions: L1, L2, Cosine similarity, Angular, Hamming, Jaccard, Poincare, and Lorentz
-- Data Types: 4 byte floating point number and 1 byte unsigned integer
-- Supported languages: [Python](/python/README.md), [Ruby](https://github.com/ankane/ngt), [Rust](https://crates.io/crates/ngt), [Go](https://github.com/yahoojapan/gongt), C, and C++
-- Distributed servers: [ngtd](https://github.com/yahoojapan/ngtd) and [vald](https://github.com/vdaas/vald)
-- [NGTQ](bin/ngtq/README.md) can handle billions of objects.
-
-Documents
----------
-
-- [NGT tutorial](https://github.com/yahoojapan/NGT/wiki)
+Methods
+-------
+This repository  the following methods.
+- NGT: Graph and tree-based method
+- QG: Quantized graph-based method
+- QBG: Quantized blob graph-based method
 
 Installation
 ------------
 
-### Downloads
+### Build
+
+#### Downloads
 
 - [Releases](https://github.com/yahoojapan/NGT/releases)
 
-### Pre-Built
-
-#### On macOS
-
-      $ brew install ngt
-
-### Build
-
 #### On Linux
 
+      $ unzip NGT-x.x.x.zip
+      $ cd NGT-x.x.x
+      $ mkdir build
+      $ cd build
+      $ cmake ..
+      $ make
+      $ make install
+      $ ldconfig /usr/local/lib
+
+#### On CentOS
+
+      $ yum install blas-devel lapack-devel
+      $ unzip NGT-x.x.x.zip
+      $ cd NGT-x.x.x
+      $ mkdir build
+      $ cd build
+      $ cmake ..
+      $ make
+      $ make install
+      $ ldconfig /usr/local/lib
+      
+#### On Ubuntu
+
+      $ apt install libblas-dev liblapack-dev
       $ unzip NGT-x.x.x.zip
       $ cd NGT-x.x.x
       $ mkdir build
@@ -66,9 +76,7 @@ Installation
 
       $ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
       $ brew install cmake
-      $ brew install gcc@9
-      $ export CXX=/usr/local/bin/g++-9
-      $ export CC=/usr/local/bin/gcc-9
+      $ brew install openblas
       $ unzip NGT-x.x.x.zip
       $ cd NGT-x.x.x
       $ mkdir build
@@ -87,45 +95,21 @@ Note: Since there is no lock function, the index should be used only for referen
 
 #### Large-scale data use
 
-When you insert more than about 5 million objects, please add the following parameter to improve the search time.
+When you insert more than about 5 million objects for the graph-based method, please add the following parameter to improve the search time.
 
       $ cmake -DNGT_LARGE_DATASET=ON ..
 
-Utilities
----------
+#### Disable QG and QBG
+QB and QBG requires BLAS and LAPACK libraries. If you would not like to install these libraries and do not use QG and QBG, you can disable QG and QBG.
 
-- Command : [ngt](/bin/ngt/README.md#command), [ngtq](bin/ngtq/README.md), [ngtqg](bin/ngtqg/README.md)
-- Server : [ngtd](https://github.com/yahoojapan/ngtd), [vald](https://github.com/vdaas/vald)
+      $ cmake -DNGT_QBG_DISABLED=ON ..
 
-Supported Programming Languages
--------------------------------
+### Pre-Built
 
-- [Python](/python/README.md)
-- [Ruby](https://github.com/ankane/ngt) (Thanks Andrew!)
-- [Rust](https://crates.io/crates/ngt) (Thanks Romain!)
-- JavaScript/NodeJS : [ngt-tool](https://www.npmjs.com/package/ngt-tool), [spatial-db-ngt](https://www.npmjs.com/package/spatial-db-ngt) (Thanks stonkpunk!)
-- [Go](https://github.com/yahoojapan/gongt)
-- C
-- C++([sample code](samples))
+#### On macOS
 
-Benchmark Results
------------------
-The followings are the results of [ann benchmarks](https://github.com/erikbern/ann-benchmarks) for NGT v1.13.5 where the timeout is 5 hours on an AWS c5.4xlarge instance.
+      $ brew install ngt
 
-#### glove-100-angular
-<img src="./tests/ann-benchmarks-results/glove-100-angular.png?raw=true" width="400">
-
-#### gist-960-euclidean
-<img src="./tests/ann-benchmarks-results/gist-960-euclidean.png?raw=true" width="400">
-
-#### fashion-mnist-784-euclidean
-<img src="./tests/ann-benchmarks-results/fashion-mnist-784-euclidean.png?raw=true" width="400">
-
-#### nytimes-256-angular
-<img src="./tests/ann-benchmarks-results/nytimes-256-angular.png?raw=true" width="400">
-
-#### sift-128-euclidean
-<img src="./tests/ann-benchmarks-results/sift-128-euclidean.png?raw=true" width="400">
 
 License
 -------
@@ -145,6 +129,101 @@ Contributor License Agreement
 This project requires contributors to accept the terms in the [Contributor License Agreement (CLA)](https://gist.github.com/yahoojapanoss/9bf8afd6ea67f32d29b4082abf220340).
 
 Please note that contributors to the NGT repository on GitHub (https://github.com/yahoojapan/NGT) shall be deemed to have accepted the CLA without individual written agreements.
+
+NGT (Graph and tree-based method)
+=================================
+
+Key Features
+------------
+- Supported operating systems: Linux and macOS
+- Object additional registration and removal are available.
+- Objects beyond the memory size can be handled using [the shared memory (memory mapped file) option](README.md#shared-memory-use).
+- Supported distance functions: L1, L2, Cosine similarity, Angular, Hamming, Jaccard, Poincare, and Lorentz
+- Data Types: 4 byte floating point number and 1 byte unsigned integer
+- Supported languages: [Python](/python/README.md), [Ruby](https://github.com/ankane/ngt), [Rust](https://crates.io/crates/ngt), [Go](https://github.com/yahoojapan/gongt), C, and C++
+- Distributed servers: [ngtd](https://github.com/yahoojapan/ngtd) and [vald](https://github.com/vdaas/vald)
+
+Documents
+---------
+
+- [NGT tutorial](https://github.com/yahoojapan/NGT/wiki)
+
+Utilities
+---------
+
+- Command : [ngt](/bin/ngt/README.md#command), [qbg](bin/qbg/README.md)
+- Server : [ngtd](https://github.com/yahoojapan/ngtd), [vald](https://github.com/vdaas/vald)
+
+Supported Programming Languages
+-------------------------------
+
+- [Python](/python/README.md)
+- [Ruby](https://github.com/ankane/ngt) (Thanks Andrew!)
+- [Rust](https://crates.io/crates/ngt) (Thanks Romain!)
+- JavaScript/NodeJS : [ngt-tool](https://www.npmjs.com/package/ngt-tool), [spatial-db-ngt](https://www.npmjs.com/package/spatial-db-ngt) (Thanks stonkpunk!)
+- [Go](https://github.com/yahoojapan/gongt)
+- C
+- C++([sample code](samples))
+
+QG (Quantized graph-based method)
+=================================
+
+Key Features
+------------
+- Higher performance than the graph and tree-based method
+- Supported operating systems: Linux and macOS
+- Supported distance functions: L2 and Cosine similarity
+
+Utilities
+---------
+- Command : [qbg](bin/qbg/README.md)
+
+Supported Programming Languages
+-------------------------------
+
+- C++
+- C
+- Python only for search
+
+
+QBG (Quantized blob graph-based method)
+=======================================
+
+Key Features
+------------
+- [QBG](bin/qbg/README.md) can handle billions of objects.
+- Supported operating systems: Linux and macOS
+- Supported distance functions: L2
+
+Utilities
+---------
+- Command : [qbg](bin/qbg/README.md)
+
+Supported Programming Languages
+-------------------------------
+
+- C++
+- C
+- Python only for search
+
+Benchmark Results
+-----------------
+The followings are the results of [ann benchmarks](https://github.com/erikbern/ann-benchmarks) for NGT v2.0.0 where the timeout is 5 hours on an AWS c5.4xlarge instance.
+
+#### glove-100-angular
+<img src="./tests/ann-benchmarks-results/glove-100-angular.png?raw=true" width="400">
+
+#### gist-960-euclidean
+<img src="./tests/ann-benchmarks-results/gist-960-euclidean.png?raw=true" width="400">
+
+#### fashion-mnist-784-euclidean
+<img src="./tests/ann-benchmarks-results/fashion-mnist-784-euclidean.png?raw=true" width="400">
+
+#### nytimes-256-angular
+<img src="./tests/ann-benchmarks-results/nytimes-256-angular.png?raw=true" width="400">
+
+#### sift-128-euclidean
+<img src="./tests/ann-benchmarks-results/sift-128-euclidean.png?raw=true" width="400">
 
 Contact Person
 --------------

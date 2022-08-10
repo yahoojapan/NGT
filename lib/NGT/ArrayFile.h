@@ -31,7 +31,7 @@ namespace NGT {
 
 template <class TYPE>
 class ArrayFile {
- private:
+ protected:
   struct FileHeadStruct {
     size_t recordSize;
     uint64_t extraData; // reserve

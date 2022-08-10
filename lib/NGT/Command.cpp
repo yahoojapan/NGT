@@ -1151,4 +1151,36 @@ using namespace std;
 #endif
   }
 
+  void NGT::Command::exportObjects(Args &args) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+    std::cerr << "ngt: Error: exportObjects is not implemented." << std::endl;
+    abort();
+#else
+    std::string usage = "ngt export-objects index";
+    string indexPath;
+    try {
+      indexPath = args.get("#1");
+    } catch (...) {
+      cerr << "ngt::exportGraph: Index is not specified." << endl;
+      cerr << usage << endl;
+      return;
+    }
+
+    NGT::Index		index(indexPath);
+    auto &objectSpace = index.getObjectSpace();
+    size_t size = objectSpace.getRepository().size();
+
+    for (size_t id = 1; id < size; ++id) {
+      std::vector<float> object;
+      objectSpace.getObject(id, object);
+      for (auto v = object.begin(); v != object.end(); ++v) {
+	std::cout << *v;
+	if (v + 1 != object.end()) {
+	  std::cout << "\t";
+	}
+      }
+      std::cout << std::endl;
+    }
+#endif
+  }
 

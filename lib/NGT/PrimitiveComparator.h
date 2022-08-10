@@ -251,7 +251,6 @@ namespace NGT {
 
       __attribute__((aligned(32))) float f[4];
       _mm_store_ps(f, sum128);
-
       double s = f[0] + f[1] + f[2] + f[3];
       return sqrt(s);
     }

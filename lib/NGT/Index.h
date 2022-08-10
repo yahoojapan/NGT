@@ -74,9 +74,12 @@ namespace NGT {
 	pathAdjustmentInterval = 0;
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
 	databaseType	= DatabaseType::MemoryMappedFile;
-      	graphSharedMemorySize	= 512; // MB
-      	treeSharedMemorySize	= 512; // MB
-      	objectSharedMemorySize	= 512; // MB  512 is up to 50M objects.
+      	//graphSharedMemorySize	= 512; // MB
+      	//treeSharedMemorySize	= 512; // MB
+      	//objectSharedMemorySize	= 512; // MB  512 is up to 50M objects.
+      	graphSharedMemorySize	= 10240; // MB
+      	treeSharedMemorySize	= 10240; // MB
+      	objectSharedMemorySize	= 10240; // MB  512 is up to 50M objects.
 #else
 	databaseType	= DatabaseType::Memory;
 #endif
@@ -368,13 +371,13 @@ namespace NGT {
 
     Index():index(0) {}
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-    Index(NGT::Property &prop, const std::string &database);
+  Index(NGT::Property &prop, const std::string &database);
 #else
-    Index(NGT::Property &prop);
+  Index(NGT::Property &prop);
 #endif
-    Index(const std::string &database, bool rdOnly = false):index(0) { open(database, rdOnly); }
-    Index(const std::string &database, bool rdOnly, bool graphDisabled):index(0) { open(database, rdOnly, graphDisabled); }
-    Index(const std::string &database, NGT::Property &prop):index(0) { open(database, prop);  }
+  Index(const std::string &database, bool rdOnly = false):index(0), redirect(false) { open(database, rdOnly); }
+    Index(const std::string &database, bool rdOnly, bool graphDisabled):index(0), redirect(false) { open(database, rdOnly, graphDisabled); }
+    Index(const std::string &database, NGT::Property &prop):index(0), redirect(false) { open(database, prop);  }
     virtual ~Index() { close(); }
 
     void open(const std::string &database, NGT::Property &prop) {
@@ -423,6 +426,7 @@ namespace NGT {
     virtual void load(const std::string &ifile, size_t dataSize) { getIndex().load(ifile, dataSize); }
     virtual void append(const std::string &ifile, size_t dataSize) { getIndex().append(ifile, dataSize); }
     virtual void append(const float *data, size_t dataSize) { 
+      StdOstreamRedirector redirector(redirect);
       redirector.begin();
       try {
 	getIndex().append(data, dataSize); 
@@ -433,6 +437,7 @@ namespace NGT {
       redirector.end();
     }
     virtual void append(const double *data, size_t dataSize) { 
+      StdOstreamRedirector redirector(redirect);
       redirector.begin();
       try {
 	getIndex().append(data, dataSize); 
@@ -447,6 +452,7 @@ namespace NGT {
     virtual size_t getObjectRepositorySize() { return getIndex().getObjectRepositorySize(); }
     virtual size_t getGraphRepositorySize() { return getIndex().getGraphRepositorySize(); }
     virtual void createIndex(size_t threadNumber, size_t sizeOfRepository = 0) {
+      StdOstreamRedirector redirector(redirect);
       redirector.begin();
       try {
 	getIndex().createIndex(threadNumber, sizeOfRepository); 
@@ -475,6 +481,7 @@ namespace NGT {
     virtual void search(NGT::SearchContainer &sc) { getIndex().search(sc); }
     virtual void search(NGT::SearchQuery &sc) { getIndex().search(sc); }
     virtual void search(NGT::SearchContainer &sc, ObjectDistances &seeds) { getIndex().search(sc, seeds); }
+    virtual void getSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, size_t n) { getIndex().getSeeds(sc, seeds, n); }
     virtual void remove(ObjectID id, bool force = false) { getIndex().remove(id, force); }
     virtual void exportIndex(const std::string &file) { getIndex().exportIndex(file); }
     virtual void importIndex(const std::string &file) { getIndex().importIndex(file); }
@@ -505,8 +512,8 @@ namespace NGT {
       }
       return *index;
     }
-    void enableLog() { redirector.disable(); }
-    void disableLog() { redirector.enable(); }
+    void enableLog() { redirect = true; }
+    void disableLog() { redirect = false; }
 
     static void destroy(const std::string &path) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
@@ -562,7 +569,7 @@ namespace NGT {
 
     Index *index;
     std::string path;
-    StdOstreamRedirector redirector;
+    bool redirect;
   };
 
   class GraphIndex : public Index, 
@@ -722,9 +729,9 @@ namespace NGT {
     }
 
     void saveProperty(const std::string &file);
-
     void exportProperty(const std::string &file);
 
+    static void loadGraph(const std::string &ifile, NGT::GraphRepository &graph);
     virtual void loadIndex(const std::string &ifile, bool readOnly, bool graphDisabled);
 
     virtual void exportIndex(const std::string &ofile) {
@@ -797,7 +804,14 @@ namespace NGT {
       }
       deleteObject(query);
     }
-
+    void getSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, size_t n) {
+      getRandomSeeds(repository, seeds, n);
+      setupDistances(sc, seeds);
+      std::sort(seeds.begin(), seeds.end());
+      if (seeds.size() > n) {
+	seeds.resize(n);
+      }
+    }
     // get randomly nodes as seeds.
     template<class REPOSITORY> void getRandomSeeds(REPOSITORY &repo, ObjectDistances &seeds, size_t seedSize) {
       // clear all distances to find the same object as a randomized object.
@@ -1565,6 +1579,39 @@ namespace NGT {
 		     float range, size_t threadNumber);
 
     void createTreeIndex();
+
+    void getSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, size_t n) {
+      DVPTree::SearchContainer tso(sc.object);
+      tso.mode = DVPTree::SearchContainer::SearchLeaf;
+      tso.radius = 0.0;
+      tso.size = 1;
+      tso.distanceComputationCount = 0;
+      tso.visitCount = 0;
+      try {
+	DVPTree::search(tso);
+      } catch (Exception &err) {
+	std::stringstream msg;
+	msg << "GraphAndTreeIndex::getSeeds: Cannot search for tree.:" << err.what();
+	NGTThrowException(msg);
+      }
+      try {
+	DVPTree::getObjectIDsFromLeaf(tso.nodeID, seeds);
+      } catch (Exception &err) {
+	std::stringstream msg;
+	msg << "GraphAndTreeIndex::getSeeds: Cannot get a leaf.:" << err.what();
+	NGTThrowException(msg);
+      }
+      sc.distanceComputationCount += tso.distanceComputationCount;
+      sc.visitCount += tso.visitCount;
+      if (seeds.size() < n) {
+	GraphIndex::getRandomSeeds(repository, seeds, n);
+      }
+      GraphIndex::setupDistances(sc, seeds);
+      std::sort(seeds.begin(), seeds.end());
+      if (seeds.size() > n) {
+	seeds.resize(n);
+      }
+    }
 
     // GraphAndTreeIndex
     void getSeedsFromTree(NGT::SearchContainer &sc, ObjectDistances &seeds) {

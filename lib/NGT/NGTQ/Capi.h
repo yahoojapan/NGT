@@ -14,85 +14,6 @@
 // limitations under the License.
 //
 
-/***
-  {
-    // simple quantization and search example
-
-    std::string	indexPath = "onng_index";	// ONNG
-    std::string	queryPath = "query.tsv";	// Query file.
-    NGTError err = ngt_create_error_object();
-    
-    // quantize the specified existing index
-    //   build quantized objects and a quantized graph
-    NGTQGQuantizationParameters quantizationParameters;
-    ngtqg_initialize_quantization_parameters(&quantizationParameters);
-    if (!ngtqg_quantize(indexPath.c_str(), quantizationParameters, err)) {
-      std::cerr << ngt_get_error_string(err) << std::endl;
-      return false;
-    }
-
-    // open the index (ANNG or ONNG).
-    index = ngtqg_open_index(indexPath.c_str(), err);
-    if (index == NULL) {
-      std::cerr << ngt_get_error_string(err) << std::endl;
-      return false;
-    }
-
-    std::ifstream is(queryPath);		// open a query file.
-    if (!is) {
-      std::cerr << "Cannot open the specified file. " << queryPath << std::endl;
-      return false;
-    }
-
-    // get the dimension of the index to check the dimension of the query
-    NGTProperty property = ngt_create_property(err);
-    ngt_get_property(index, property, err);
-    size_t dimension = ngt_get_property_dimension(property, err);
-    ngt_destroy_property(property);
-
-    std::string line;
-    float queryVector[dimension];
-    if (!getline(is, line)) {	// read a query object from the query file.
-      std::cerr << "no data" << std::endl;
-    }
-    std::vector<std::string> tokens;
-    NGT::Common::tokenize(line, tokens, " \t");      // split a string into words by the separators.
-    // create a query vector from the tokens.
-    if (tokens.size() != dimension) {
-      std::cerr << "dimension of the query is invalid. dimesion=" << tokens.size() << ":" << dimension << std::endl;
-      return false;
-    }
-    for (std::vector<std::string>::iterator ti = tokens.begin(); ti != tokens.end(); ++ti) {
-      queryVector[distance(tokens.begin(), ti)] = NGT::Common::strtod(*ti);
-    }
-    // set search parameters.
-    NGTObjectDistances result = ngt_create_empty_results(err);
-    NGTQGQuery query;
-    ngtqg_initialize_query(&query);
-    query.query = queryVector;
-    query.size = 20;
-    query.epsilon = 0.03;
-    query.result_expansion = 2;
-
-    // search with the quantized graph
-    bool status = ngtqg_search_index(index, query, result, err);
-    NGTObjectSpace objectSpace = ngt_get_object_space(index, err);
-    auto rsize = ngt_get_result_size(result, err);
-    // show resultant objects.
-    std::cout << "Rank\tID\tDistance\tObject" << std::endl;
-    for (size_t i = 0; i < rsize; i++) {
-      NGTObjectDistance object = ngt_get_result(result, i, err);
-      std::cout << i + 1 << "\t" << object.id << "\t" << object.distance << "\t";
-      float *objectVector = ngt_get_object_as_float(objectSpace, object.id, err);
-      for (size_t i = 0; i < dimension; i++) {
-	std::cout << objectVector[i] << " ";
-      }
-      std::cout << std::endl;
-    }
-    ngt_destroy_results(result);
-    ngtqg_close_index(index);
-  }
-***/
 
 #pragma once
 
@@ -106,34 +27,106 @@ extern "C" {
 
 #include "NGT/Capi.h"
 
-typedef void* NGTQGIndex;
-typedef NGTObjectDistance NGTObjectDistance;
-typedef NGTError NGTQGError;
+  typedef void* NGTQGIndex;
+  typedef NGTObjectDistance NGTObjectDistance;
+  typedef NGTError NGTQGError;
 
-typedef struct {
-  float		*query;
-  size_t	size;		// # of returned objects
-  float		epsilon;
-  float		result_expansion;
-  float		radius;
-} NGTQGQuery;
+  typedef struct {
+    float	*query;
+    size_t	size;		// # of returned objects
+    float	epsilon;
+    float	result_expansion;
+    float	radius;
+  } NGTQGQuery;
 
-typedef struct {
-  float dimension_of_subvector;
-  size_t max_number_of_edges;
-} NGTQGQuantizationParameters;
+  typedef struct {
+    float	dimension_of_subvector;
+    size_t	max_number_of_edges;
+  } NGTQGQuantizationParameters;
 
-NGTQGIndex ngtqg_open_index(const char *, NGTError);
+  NGTQGIndex ngtqg_open_index(const char *, NGTQGError);
 
-void ngtqg_close_index(NGTQGIndex);
+  void ngtqg_close_index(NGTQGIndex);
 
-void ngtqg_initialize_quantization_parameters(NGTQGQuantizationParameters *);
+  void ngtqg_initialize_quantization_parameters(NGTQGQuantizationParameters *);
 
-bool ngtqg_quantize(const char *, NGTQGQuantizationParameters, NGTError);
+  bool ngtqg_quantize(const char *, NGTQGQuantizationParameters, NGTQGError);
 
-void ngtqg_initialize_query(NGTQGQuery *);
+  void ngtqg_initialize_query(NGTQGQuery *);
 
-bool ngtqg_search_index(NGTQGIndex, NGTQGQuery, NGTObjectDistances, NGTError);
+  bool ngtqg_search_index(NGTQGIndex, NGTQGQuery, NGTObjectDistances, NGTQGError);
+
+  // QBG CAPI
+
+  typedef void* QBGIndex;
+  typedef NGTError QBGError;
+  typedef NGTObjectDistances QBGObjectDistances;
+
+  uint32_t qbg_get_result_size(QBGObjectDistances results, NGTError error);
+
+  NGTObjectDistance qbg_get_result(const QBGObjectDistances results, const uint32_t idx, NGTError error);
+
+  void qbg_destroy_results(QBGObjectDistances results);
+
+  typedef struct {
+    size_t	extended_dimension;
+    size_t	dimension;
+    size_t	number_of_subvectors;
+    size_t	number_of_blobs;
+    int		internal_data_type;
+    int		data_type;
+    int		distance_type;
+  } QBGConstructionParameters;
+
+  typedef struct {
+    // hierarchical kmeans
+    int		hierarchical_clustering_init_mode;
+    size_t	number_of_first_objects;
+    size_t	number_of_first_clusters;
+    size_t	number_of_second_objects;
+    size_t	number_of_second_clusters;
+    size_t	number_of_third_clusters;
+    // optimization
+    size_t	number_of_objects;
+    size_t	number_of_subvectors;
+    int		optimization_clustering_init_mode;
+    size_t	rotation_iteration;
+    size_t	subvector_iteration;
+    size_t	number_of_matrices;
+    bool	rotation;
+    bool	repositioning;
+  } QBGBuildParameters;
+
+  typedef struct {
+    float	*query;
+    size_t	number_of_results;
+    float	epsilon;
+    float	blob_epsilon;
+    float	result_expansion;
+    size_t	number_of_explored_blobs;
+    size_t	number_of_edges;
+    float	radius;
+  } QBGQuery;
+
+  void qbg_initialize_construction_parameters(QBGConstructionParameters *parameters);
+
+  bool qbg_create(const char *indexPath, QBGConstructionParameters *parameters, QBGError error);
+
+  QBGIndex qbg_open_index(const char *index_path, QBGError error);
+
+  void qbg_close_index(QBGIndex index);
+
+  bool qbg_save_index(QBGIndex index, QBGError error);
+
+  ObjectID qbg_append_object(QBGIndex index, float *obj, uint32_t obj_dim, QBGError error);
+
+  void qbg_initialize_build_parameters(QBGBuildParameters *parameters);
+
+  bool qbg_build_index(const char *index_path, QBGBuildParameters *parameters, QBGError error);
+
+  void qbg_initialize_query(QBGQuery *parameters);
+
+  bool qbg_search_index(QBGIndex index, QBGQuery query, NGTObjectDistances results, QBGError error);
 
 #ifdef __cplusplus
 }
