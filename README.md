@@ -23,10 +23,12 @@ News
 
 Methods
 -------
-This repository  the following methods.
+This repository provides the following methods.
 - NGT: Graph and tree-based method
 - QG: Quantized graph-based method
 - QBG: Quantized blob graph-based method
+
+Note: Since QG and QBG require BLAS and LAPACK libraries, if you use ony NGT (Graph and tree-based method) without the additional libraries like V1, you can disable QB and QBG with [this option](#disable-qg-and-qbg).
 
 Installation
 ------------
@@ -37,13 +39,13 @@ Installation
 
 - [Releases](https://github.com/yahoojapan/NGT/releases)
 
-#### On Linux
+#### On Linux without QG and QBG
 
       $ unzip NGT-x.x.x.zip
       $ cd NGT-x.x.x
       $ mkdir build
       $ cd build
-      $ cmake ..
+      $ cmake -DNGT_QBG_DISABLED=ON ..
       $ make
       $ make install
       $ ldconfig /usr/local/lib
@@ -100,7 +102,7 @@ When you insert more than about 5 million objects for the graph-based method, pl
       $ cmake -DNGT_LARGE_DATASET=ON ..
 
 #### Disable QG and QBG
-QB and QBG requires BLAS and LAPACK libraries. If you would not like to install these libraries and do not use QG and QBG, you can disable QG and QBG.
+QG and QBG require BLAS and LAPACK libraries. If you would not like to install these libraries and do not use QG and QBG, you can disable QG and QBG.
 
       $ cmake -DNGT_QBG_DISABLED=ON ..
 
@@ -151,8 +153,8 @@ Documents
 Utilities
 ---------
 
-- Command : [ngt](/bin/ngt/README.md#command), [qbg](bin/qbg/README.md)
-- Server : [ngtd](https://github.com/yahoojapan/ngtd), [vald](https://github.com/vdaas/vald)
+- Command : [ngt](/bin/ngt/README.md#command) and [qbg](bin/qbg/README.md)
+- Server : [ngtd](https://github.com/yahoojapan/ngtd) and [vald](https://github.com/vdaas/vald)
 
 Supported Programming Languages
 -------------------------------
@@ -160,7 +162,7 @@ Supported Programming Languages
 - [Python](/python/README.md)
 - [Ruby](https://github.com/ankane/ngt) (Thanks Andrew!)
 - [Rust](https://crates.io/crates/ngt) (Thanks Romain!)
-- JavaScript/NodeJS : [ngt-tool](https://www.npmjs.com/package/ngt-tool), [spatial-db-ngt](https://www.npmjs.com/package/spatial-db-ngt) (Thanks stonkpunk!)
+- JavaScript/NodeJS : [ngt-tool](https://www.npmjs.com/package/ngt-tool) and [spatial-db-ngt](https://www.npmjs.com/package/spatial-db-ngt) (Thanks stonkpunk!)
 - [Go](https://github.com/yahoojapan/gongt)
 - C
 - C++([sample code](samples))

@@ -28,6 +28,8 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 - QG: Quantized graph-based method
 - QBG: Quantized blob graph-based method
 
+注：QGおよびQBGはBLASおよびLAPACKライブラリを必要としますので、もし、V1のようにNGT (Graph and tree-based method)のみしか利用しない場合には、QGおよびQBGを[このオプション](#QGおよびQBGの無効化)により無効化できます。
+
 インストール
 -----------
 
@@ -37,13 +39,13 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
 ### ビルド
 
-#### Linux
+#### Linux （QG QBGの無効化）
 
       $ unzip NGT-x.x.x.zip
       $ cd NGT-x.x.x
       $ mkdir build
       $ cd build
-      $ cmake ..
+      $ cmake -DNGT_QBG_DISABLED=ON ..
       $ make
       $ make install
       $ ldconfig /usr/local/lib
@@ -99,9 +101,9 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
       $ cmake -DNGT_LARGE_DATASET=ON ..
 
-#### QG and QBGの無効化
+#### QGおよびQBGの無効化
 
-QBおよびQBGはBLASおよびLAPACKライブラリを必要とします。もし、これらのライブラリをインストールしたくなく、かつ、QGやQBGを利用しない場合には、QGおよびQBGを無効化できます。
+QGおよびQBGはBLASおよびLAPACKライブラリを必要とします。もし、これらのライブラリをインストールしたくなく、かつ、QGやQBGを利用しない場合には、QGおよびQBGを無効化できます。
 
       $ cmake -DNGT_QBG_DISABLED=ON ..
 
@@ -192,7 +194,7 @@ QBG (Quantized blob graph-based method)
 ベンチマーク結果
 ---------------
 
-以下はAWS c5.4xlargeのインスタンス上で測定したNGT v1.7.5のベンチマーク（[ann benchmarks](https://github.com/erikbern/ann-benchmarks)）の結果です。
+以下はAWS c5.4xlargeのインスタンス上で測定したNGT vのベンチマーク（[ann benchmarks](https://github.com/erikbern/ann-benchmarks)）の結果です。
 
 #### glove-100-angular
 <img src="./tests/ann-benchmarks-results/glove-100-angular.png?raw=true" width="400">
