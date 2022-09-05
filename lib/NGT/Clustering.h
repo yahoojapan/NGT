@@ -683,7 +683,7 @@ namespace NGT {
       NGT::Timer timer;
       timer.start();
       double diff = std::numeric_limits<double>::max();
-      size_t stabilityLimit = 10;
+      size_t stabilityLimit = 2;
       size_t stabilityCount = 0;
       size_t i;
       for (i = 0; i < maximumIteration; i++) {
@@ -700,7 +700,7 @@ namespace NGT {
 	if (d < diff) {
 	  diff = d;
 	}
-	if (diff == 0) {
+	if (diff == 0.0) {
 	  break;
 	}
       }
@@ -736,7 +736,6 @@ namespace NGT {
 
     double kmeansWithNGT(NGT::Index &index, std::vector<std::vector<float> > &vectors, size_t numberOfClusters, std::vector<Cluster> &clusters, float epsilon)
     {
-
       size_t clusterSize = std::numeric_limits<size_t>::max();
       if (clusterSizeConstraint) {
 	clusterSize = ceil((double)vectors.size() / (double)numberOfClusters);

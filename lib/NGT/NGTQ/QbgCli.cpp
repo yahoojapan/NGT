@@ -169,9 +169,12 @@ public:
 };
 
 static void optimizationParameters(NGT::Args &args, NGTQ::Optimizer &optimizer) {
+  args.parse("Zv");
   optimizer.numberOfObjects = args.getl("o", 1000);
   optimizer.numberOfClusters = args.getl("n", 0);
   optimizer.numberOfSubvectors = args.getl("m", 0);
+
+  optimizer.randomizedObjectExtraction = true;
 
 #ifdef NGT_CLUSTERING
   string cType;
@@ -221,15 +224,24 @@ static void optimizationParameters(NGT::Args &args, NGTQ::Optimizer &optimizer) 
 
   optimizer.clusterSizeConstraint = false;
   if (args.getChar("s", 'f') == 't') {
+    optimizer.clusterSizeConstraintCoefficient = 5.0;
     optimizer.clusterSizeConstraint = true;
+  } else if (args.getChar("s", 'f') == 'f') {
+    optimizer.clusterSizeConstraint = false;
+  } else {
+    optimizer.clusterSizeConstraint = true;
+    optimizer.clusterSizeConstraintCoefficient = args.getf("s", 5.0);
   }
-
+  
   optimizer.nOfMatrices = args.getl("M", 2);
   optimizer.seedStartObjectSizeRate = args.getf("S", 0.1);
   optimizer.seedStep = args.getl("X", 2);
   optimizer.reject = args.getf("R", 0.9);
   optimizer.timelimit = args.getf("L", 24 * 1); 
   optimizer.timelimit *= 60.0 * 60.0; 
+  optimizer.showClusterInfo = args.getBool("Z");
+  optimizer.silence = !args.getBool("v");
+
 #ifdef NGTQG_NO_ROTATION
   char positionMode = args.getChar("P", 'n');
 #else
@@ -282,8 +294,7 @@ QBG::CLI::buildQG(NGT::Args &args)
 
   size_t phase = args.getl("p", 0);
   size_t maxNumOfEdges = args.getl("E", 128);
-  bool silence = !args.getBool("v");
-
+  
   const std::string qgPath = indexPath + "/qg";
 
   if (phase == 0 || phase == 1) {
@@ -310,9 +321,7 @@ QBG::CLI::buildQG(NGT::Args &args)
     }
 
     std::cerr << "optimizing..." << std::endl;
-    bool random = true;
-    optimizer.silence = silence;
-    optimizer.optimize(qgPath, random);
+    optimizer.optimize(qgPath);
   }
   if (phase == 0 || phase == 2) {
     std::cerr << "building the inverted index..." << std::endl;
@@ -321,6 +330,7 @@ QBG::CLI::buildQG(NGT::Args &args)
   }
   if (phase == 0 || phase == 3) {
     std::cerr << "building the quantized graph... " << std::endl;
+    bool silence = true;
     NGTQG::Index::quantize(indexPath, maxNumOfEdges, silence);
   }
 }
@@ -445,6 +455,8 @@ QBG::CLI::searchQG(NGT::Args &args) {
   const string usage = "Usage: ngtqg search-qg [-i index-type(g|t|s)] [-n result-size] [-e epsilon] [-E edge-size] "
     "[-o output-mode] [-p result-expansion] index(input) query.tsv(input)";
 
+  args.parse("v");
+
   string indexPath;
   try {
     indexPath = args.get("#1");
@@ -487,6 +499,8 @@ void
 QBG::CLI::createQG(NGT::Args &args)
 {
   const std::string usage = "Usage: qbg create-qbg [-Q dimension-of-subvector] index";
+
+  args.parse("v");
   string indexPath;
   try {
     indexPath = args.get("#1");
@@ -1101,6 +1115,7 @@ void
 QBG::CLI::build(NGT::Args &args)
 {
   const std::string usage = "Usage: qbg build [-Q dimension-of-subvector] [-E max-number-of-edges] index";
+
   string indexPath;
   try {
     indexPath = args.get("#1");
@@ -1109,7 +1124,6 @@ QBG::CLI::build(NGT::Args &args)
     cerr << usage << endl;
     return;
   }
-  bool silence = !args.getBool("v");
 
   HierarchicalKmeans hierarchicalKmeans;
 
@@ -1133,12 +1147,10 @@ QBG::CLI::build(NGT::Args &args)
   }
   
   std::cerr << "optimizing..." << std::endl;
-  bool random = true;
-  optimizer.silence = silence;
-  optimizer.optimize(indexPath, random);
+  optimizer.optimize(indexPath);
 
   std::cerr << "building..." << std::endl;
-  QBG::Index::build(indexPath, silence);
+  QBG::Index::build(indexPath, optimizer.silence);
 }
 
 

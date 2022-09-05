@@ -974,14 +974,16 @@ namespace QBG {
 	struct timeval randTime;
 	gettimeofday(&randTime, 0);
 	srand(randTime.tv_usec);
+	std::unordered_set<uint32_t> pickedObjects;
 	for (size_t cnt = 0; cnt < n; cnt++) {
-	  double random = ((double)rand() + 1.0) / ((double)RAND_MAX + 2.0);
 	  size_t id = 0;
 	  while (true) {
 	    do {
+	      double random = ((double)rand() + 1.0) / ((double)RAND_MAX + 2.0);
 	      id = floor(quantizer.objectList.size() * random);
-	    } while (id >= quantizer.objectList.size());
+	    } while (pickedObjects.count(id) > 0 || id >= quantizer.objectList.size());
 	    if (quantizer.objectList.get(id, object, &quantizer.globalCodebookIndex.getObjectSpace())) {
+	      pickedObjects.insert(id);
 	      break;
 	    } else {
 	      std::cerr << "Cannot get the object. " << id << std::endl;

@@ -30,6 +30,7 @@
 
 #include "Matrix.h"
 
+
 namespace NGTQ {
   class Optimizer {
   public:
@@ -48,11 +49,14 @@ namespace NGTQ {
       iteration = 100;
       clusterIteration = 100;
       clusterSizeConstraint = false;
+      clusterSizeConstraintCoefficient = 10.0;
       iteration = 100;
       repositioning = false;
       rotation = true;
       globalType = GlobalTypeNone;
+      randomizedObjectExtraction = true;
       silence = false;
+      showClusterInfo = false;
     }
 
     static void
@@ -365,6 +369,7 @@ namespace NGTQ {
 				 size_t subvectorSize,
 				 size_t clusterIteration,
 				 bool clusterSizeConstraint,
+				 float clusterSizeConstraintCoefficient,
 				 size_t convergenceLimitTimes,
 				 double &minDistortion,
 				 NGT::Timer &timelimitTimer, float timelimit,
@@ -388,7 +393,7 @@ namespace NGTQ {
 #ifdef ERROR_CALCULATION
 	vector<float> subvectorDistances(numberOfSubvectors);
 #endif
-#pragma omp parallel for
+#pragma omp parallel for 
 	for (size_t m = 0; m < numberOfSubvectors; m++) {
 	  vector<vector<float>> subVectors;
 	  extractSubvector(xp, subVectors, m * subvectorSize, subvectorSize);
@@ -399,7 +404,7 @@ namespace NGTQ {
 #endif
 #ifdef NGT_CLUSTERING
 	  NGT::Clustering clustering(initMode, clusteringType, clusterIteration);
-	  //clustering.setClusterSizeConstraintCoefficient(1.2);
+	  clustering.setClusterSizeConstraintCoefficient(clusterSizeConstraintCoefficient);
 	  clustering.clusterSizeConstraint = clusterSizeConstraint;
 	  clustering.kmeans(subVectors, numberOfClusters, clusters);
 #else
@@ -407,7 +412,7 @@ namespace NGTQ {
 	  if (clusteringType == 'k') {
 	    reassign = kmeansClustering(initMode, subVectors, numberOfClusters, clusters, clusterSizeConstraint, 0);
 	  } else {
-	    reassign = kmeansClusteringWithNGT(initMode, subVectors, numberOfClusters, clusters, clusterSizeConstraint, 0);    
+	    reassign = kmeansClusteringWithNGT(initMode, subVectors, numberOfClusters, clusters, clusterSizeConstraint, 0);
 	  }
 #endif
 	  extractQuantizedVector(subQuantizedVectors[m], clusters);
@@ -501,6 +506,7 @@ namespace NGTQ {
 			 subvectorSize,		
 			 clusterIteration,	
 			 clusterSizeConstraint,
+			 clusterSizeConstraintCoefficient,
 			 convergenceLimitTimes,
 			 errors[ri],
 			 timelimitTimer, timelimit,
@@ -512,7 +518,7 @@ namespace NGTQ {
     }
 
 #ifdef NGTQ_QBG
-    void optimize(const std::string indexPath, bool random, size_t threadSize = 0) {
+    void optimize(const std::string indexPath, size_t threadSize = 0) {
       NGT::StdOstreamRedirector redirector(silence);
       redirector.begin();
       {
@@ -557,7 +563,7 @@ namespace NGTQ {
 	const std::string object = QBG::Index::getTrainObjectFileName(indexPath);
 	std::ofstream ofs;
 	ofs.open(object);
-	index.extract(ofs, numberOfObjects, random);
+	index.extract(ofs, numberOfObjects, randomizedObjectExtraction);
 	if (globalType == GlobalTypeZero) {
 	  assert(index.getQuantizer().objectList.pseudoDimension != 0);
 	  std::vector<std::vector<float>> global(1);
@@ -588,7 +594,7 @@ namespace NGTQ {
 	}
       }
 
-      optimize(indexPath);
+      optimizeWithinIndex(indexPath);
 
       if (globalType == GlobalTypeNone) {
 	QBG::Index::load(indexPath, "", "", "", threadSize);
@@ -600,7 +606,7 @@ namespace NGTQ {
 #endif 
 
 #ifdef NGTQ_QBG
-    void optimize(std::string indexPath) {
+    void optimizeWithinIndex(std::string indexPath) {
       std::string object;
       std::string pq;
       std::string global;
@@ -733,6 +739,39 @@ namespace NGTQ {
       } else {
 	Matrix<float>::save(of + "_R.tsv", minR);
       }
+      if (showClusterInfo) {
+	if (minLocalClusters.size() != numberOfSubvectors) {
+	  std::stringstream msg;
+	  msg << "Fatal error. minLocalClusters.size() != numberOfSubvectors " <<
+	    minLocalClusters.size() << ":" << numberOfSubvectors;
+	  NGTThrowException(msg);
+	}
+	float totalRate = 0.0;
+	for (size_t m = 0; m < minLocalClusters.size(); m++) {
+	  size_t min = std::numeric_limits<size_t>::max();
+	  size_t max = 0;
+	  size_t nOfVectors = 0;
+	  for (size_t i = 0; i < minLocalClusters[m].size(); i++) {
+	    nOfVectors += minLocalClusters[m][i].members.size();
+	    if (minLocalClusters[m][i].members.size() < min) {
+	      min = minLocalClusters[m][i].members.size();
+	    }
+	    if (minLocalClusters[m][i].members.size() > max) {
+	      max = minLocalClusters[m][i].members.size();
+	    }
+	  }
+	  float rate = static_cast<float>(max - min) / static_cast<float>(nOfVectors);
+	  totalRate += rate;
+	  std::cout << "cluster " << m << " " << rate << "," << max - min << "," << min << "," << max << " : ";
+	  for (size_t i = 0; i < minLocalClusters[m].size(); i++) {
+	    std::cout << minLocalClusters[m][i].members.size() << " ";
+	  }
+	  std::cout << std::endl;
+	}
+	totalRate /= minLocalClusters.size();
+	std::cout << "Range rate=" << totalRate << std::endl;
+	std::cout << "Error=" << errors[0] << std::endl;
+      }
       for (size_t m = 0; m < numberOfSubvectors; m++) {
 	stringstream str;
 	str << of << "-" << m << ".tsv";
@@ -753,6 +792,7 @@ namespace NGTQ {
     size_t		iteration;
     size_t		clusterIteration;		
     bool		clusterSizeConstraint;
+    float		clusterSizeConstraintCoefficient;
     size_t		convergenceLimitTimes;		
     size_t		dim;
     size_t		numberOfObjects;
@@ -766,6 +806,8 @@ namespace NGTQ {
     bool		repositioning;
     bool		rotation;
     GlobalType		globalType;
+    bool		randomizedObjectExtraction;
     bool		silence;
+    bool		showClusterInfo;
   };
 } // namespace NGTQ

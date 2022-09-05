@@ -315,7 +315,6 @@ namespace NGTQG {
 	    } 
 	  } 
 	}
-
       } 
 
       if (sc.resultIsAvailable()) { 

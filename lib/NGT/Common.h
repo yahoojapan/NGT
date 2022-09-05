@@ -83,13 +83,27 @@ namespace NGT {
   {
    public:
     Args() {}
-    Args(int argc, char **argv)
+    Args(int argc, char **argv, std::string noVal = "")
     {
+      argC = argc;
+      argV = argv;
+      parse(noVal);
+    }
+
+    void parse(std::string noVal = "")
+    {
+      auto argc = argC;
+      auto argv = argV;
+      clear();
       std::vector<std::string> opts;
       int optcount = 0;
       insert(std::make_pair(std::string("#-"),std::string(argv[0])));
+      noVal += "h";
       for (int i = 1; i < argc; ++i) {
 	opts.push_back(std::string(argv[i]));
+	if ((argv[i][0] == '-') && (noVal.find(argv[i][1]) != std::string::npos)) {
+	  opts.push_back("t");
+	}
       }
       for (auto i = opts.begin(); i != opts.end(); ++i) {
 	std::string &opt = *i;
@@ -108,12 +122,7 @@ namespace NGT {
 	    key = opt[1];
 	    ++i;
 	    if (i != opts.end()) {
-	      if (((*i)[0] == '-') && ((*i)[1] != 0) ) {
-		value = "";
-		--i;
-	      } else {
-		value = *i;
-	      }
+	      value = *i;
 	    } else {
 	      value = "";
 	      --i;
@@ -132,6 +141,7 @@ namespace NGT {
 	}
       }
     }
+    
     std::set<std::string> getUnusedOptions() {
       std::set<std::string> o;
       for (auto i = begin(); i != end(); ++i) {
@@ -220,6 +230,8 @@ namespace NGT {
       return val;
     }
     std::set<std::string> usedOptions;
+    int argC;
+    char **argV;
   };
 
   class Common {

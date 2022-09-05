@@ -46,7 +46,7 @@
 #define NGTQ_SIMD_BLOCK_SIZE	16	
 #define NGTQ_BATCH_SIZE		2	
 #define NGTQ_UINT4_OBJECT  
-#define NGTQ_TOTAL_SCALE_OFFSET_COMPRESSION 
+#define NGTQ_TOTAL_SCALE_OFFSET_COMPRESSION
 #define NGTQG_PREFETCH
 #if defined(NGT_AVX512)
 #define NGTQG_AVX512	
@@ -58,6 +58,7 @@
 #undef NGTQG_PREFETCH
 #warning "SIMD is not available for NGTQG. NGTQG might not work well."
 #endif
+
 
 
 
@@ -1065,12 +1066,17 @@ public:
   inline void createFloatL2DistanceLookup(void *object, size_t sizeOfObject, void *globalCentroid, DistanceLookupTableUint8 &distanceLUT) {
     assert(localCodebookCentroidNoSIMD == 16);
     size_t dim = sizeOfObject  / sizeof(float);
-    size_t localDim = dim  / localDivisionNo;
+    size_t localDim = dim / localDivisionNo;
 #if defined(NGT_AVX512) 
     __m512 flut[dim];
     __m512 *flutptr = &flut[0];
+#ifdef NGTQ_TOTAL_SCALE_OFFSET_COMPRESSION
     __m512 mmin = _mm512_set1_ps(std::numeric_limits<float>::max());
     __m512 mmax = _mm512_set1_ps(-std::numeric_limits<float>::max());
+#else
+    std::pair<float, float> range[localDivisionNo];
+    auto *rangePtr = &range[0];
+#endif
     auto *lcptr = static_cast<float*>(&localCentroidsForSIMD[0]);
     auto *optr = static_cast<float*>(object);
     auto *optrend = optr + dim;
@@ -1092,23 +1098,31 @@ public:
 	rsv = *optr++;
 #else
 	rsv = *optr++ - *gcptr++;
+	
 #endif
 	vtmp = _mm512_sub_ps(_mm512_set1_ps(rsv), _mm512_loadu_ps(lcptr));
 	v = _mm512_add_ps(v, _mm512_mul_ps(vtmp, vtmp));
 	lcptr += 16;
       }
+#ifdef NGTQ_TOTAL_SCALE_OFFSET_COMPRESSION
       mmin = _mm512_min_ps(mmin, v);
       mmax = _mm512_max_ps(mmax, v);
+#else
+      (*rangePtr).first = _mm512_reduce_min_ps(v);
+      (*rangePtr).second = _mm512_reduce_max_ps(v);
+      rangePtr++;
+#endif
       *flutptr = v;
       flutptr++;
     }
+    
+
+#ifdef NGTQ_TOTAL_SCALE_OFFSET_COMPRESSION
     float min = _mm512_reduce_min_ps(mmin);
     float max = _mm512_reduce_max_ps(mmax);
     float offset = min;
     float scale = (max - min) / 255.0;
-
-
-    distanceLUT.totalOffset = offset;
+    distanceLUT.totalOffset = offset * static_cast<float>(localCodebookNo);
     auto *blutptr = distanceLUT.localDistanceLookup;
     flutptr = &flut[0];
     for (size_t li = 0; li < localCodebookNo; li++) {
@@ -1116,14 +1130,30 @@ public:
       __m512i b4v = _mm512_cvtps_epi32(_mm512_roundscale_ps(v, _MM_FROUND_TO_NEAREST_INT));
       __m128i b = _mm512_cvtepi32_epi8(b4v);
       _mm_storeu_si128((__m128i_u*)blutptr, b);
-      //_mm512_storeu_si512(blutptr, b4v);
-      //_mm512_storeu_ps(blutptr, v);
       flutptr++;
       blutptr += 16;
-      distanceLUT.offsets[li] = offset;
+      distanceLUT.offsets[li] = offset; 
       distanceLUT.scales[li] = scale;
     }
-    //std::cerr << "offset=" << distanceLUT.totalOffset << std::endl;
+#else 
+    distanceLUT.totalOffset = 0.0;
+    auto *blutptr = distanceLUT.localDistanceLookup;
+    flutptr = &flut[0];
+    for (size_t li = 0; li < localCodebookNo; li++) {
+      float offset = range[li].first; 
+      float scale = (range[li].second - range[li].first) / 255.0;
+      __m512 v = _mm512_div_ps(_mm512_sub_ps(*flutptr, _mm512_set1_ps(offset)), _mm512_set1_ps(scale));
+      __m512i b4v = _mm512_cvtps_epi32(_mm512_roundscale_ps(v, _MM_FROUND_TO_NEAREST_INT));
+      __m128i b = _mm512_cvtepi32_epi8(b4v);
+      _mm_storeu_si128((__m128i_u*)blutptr, b);
+      flutptr++;
+      blutptr += 16;
+      distanceLUT.offsets[li] = offset; 
+      distanceLUT.scales[li] = scale;
+      distanceLUT.totalOffset += offset; 
+    }
+#endif
+
 #elif defined(NGT_AVX2) 
     __m256 flut[dim * 2];
     __m256 *flutptr = &flut[0];
@@ -1182,7 +1212,7 @@ public:
     float offset = min;
     float scale = (max - min) / 255.0;
 
-    distanceLUT.totalOffset = offset;
+    distanceLUT.totalOffset = offset * static_cast<float>(localCodebookNo);
     //uint8_t blut[dim / 2 * localCodebookCentroidNoSIMD];
     auto *blutptr = distanceLUT.localDistanceLookup;
     flutptr = &flut[0];
@@ -1248,7 +1278,7 @@ public:
     float offset = min;
     float scale = (max - min) / 255.0;
 
-    distanceLUT.totalOffset = offset;
+    distanceLUT.totalOffset = offset * static_cast<float>(localCodebookNo);
     auto *blutptr = distanceLUT.localDistanceLookup;
     flutptr = &flut[0];
     for (size_t li = 0; li < localCodebookNo; li++) {
@@ -1576,15 +1606,18 @@ public:
   }
 
 #if defined(NGTQG_AVX512) || defined(NGTQG_AVX2)
+#if defined(NGTQ_TOTAL_SCALE_OFFSET_COMPRESSION) 
 #ifdef NGTQBG_MIN
   inline float operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT) {
 #else
   inline void operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT) {
 #endif
+
+
     uint8_t *localID = static_cast<uint8_t*>(inv);
     float *d = distances;
-    float *lastd = distances + noOfObjects;
 #ifdef NGTQBG_MIN
+    float *lastd = distances + noOfObjects;
     float min = std::numeric_limits<float>::max();
 #endif
 #if defined(NGTQG_AVX512)
@@ -1639,10 +1672,10 @@ public:
 	lut += (localCodebookCentroidNo - 1) * 2;
 	localID += step256;
       } 
-
 #if defined(NGTQG_AVX512)
       __m512i lo = _mm512_cvtepu16_epi32(_mm512_extracti64x4_epi64(depu16, 0));
       __m512i hi = _mm512_cvtepu16_epi32(_mm512_extracti64x4_epi64(depu16, 1));
+
       __m512 distance = _mm512_cvtepi32_ps(_mm512_add_epi32(lo, hi));
       __m512 scale = _mm512_broadcastss_ps(*reinterpret_cast<__m128*>(&distanceLUT.scales[0]));
       distance = _mm512_mul_ps(distance, scale);
@@ -1706,6 +1739,161 @@ public:
 #endif
   }
 
+#else /// NGTQ_TOTAL_SCALE_OFFSET_COMPRESSION  ////////////////////////////////////////
+#ifndef NGT_AVX512
+#error "AVX512 is *NOT* defined. *INDIVIDUAL* scale offset compression is available only for AVX512!"
+#endif
+#ifdef NGTQBG_MIN
+  inline float operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT) {
+#else
+  inline void operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT) {
+#endif
+
+    uint8_t *localID = static_cast<uint8_t*>(inv);
+    float *d = distances;
+#ifdef NGTQBG_MIN
+    float *lastd = distances + noOfObjects;
+    float min = std::numeric_limits<float>::max();
+#endif
+#if defined(NGTQG_AVX512)
+    __m512i mask512x0F = _mm512_set1_epi16(0x000f);
+    __m512i mask512xF0 = _mm512_set1_epi16(0x00f0);
+    const size_t range512 = distanceLUT.range512;
+    auto step512 = distanceLUT.step512;
+#endif 
+    const __m256i mask256x0F = _mm256_set1_epi16(0x000f);
+    const __m256i mask256xF0 = _mm256_set1_epi16(0x00f0);
+    const size_t range256 = distanceLUT.range256;
+    auto step256 = distanceLUT.step256;
+    auto *last = localID + range256 / NGTQ_SIMD_BLOCK_SIZE * noOfObjects;
+    while (localID < last) {
+      uint8_t *lut = distanceLUT.localDistanceLookup;
+      float *scales = distanceLUT.scales;
+      auto *lastgroup256 = localID + range256;
+      __m512 distance = _mm512_setzero_ps();
+#if defined(NGTQG_AVX512)
+      //__m512i depu16 = _mm512_setzero_si512();
+      auto *lastgroup512 = localID + range512;
+      while (localID < lastgroup512) {
+	__m512i lookupTable = _mm512_loadu_si512((__m512i const*)lut);
+	_mm_prefetch(&localID[0] + 64 * 8, _MM_HINT_T0); 
+	__m512i packedobj = _mm512_cvtepu8_epi16(_mm256_loadu_si256((__m256i const*)&localID[0]));  
+	__m512i lo = _mm512_and_si512(packedobj, mask512x0F);  
+	__m512i hi = _mm512_slli_epi16(_mm512_and_si512(packedobj, mask512xF0), 4);  
+	__m512i obj = _mm512_or_si512(lo, hi);  
+	__m512i vtmp = _mm512_shuffle_epi8(lookupTable, obj);  
+
+	__m512 d = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm512_extracti64x2_epi64(vtmp, 0))); 
+	__m512 scale = _mm512_broadcastss_ps(*reinterpret_cast<__m128*>(&scales[0]));
+	distance = _mm512_add_ps(distance, _mm512_mul_ps(d, scale));
+	d = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm512_extracti64x2_epi64(vtmp, 1))); 
+	scale = _mm512_broadcastss_ps(*reinterpret_cast<__m128*>(&scales[1]));
+	distance = _mm512_add_ps(distance, _mm512_mul_ps(d, scale));
+	d = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm512_extracti64x2_epi64(vtmp, 2))); 
+	scale = _mm512_broadcastss_ps(*reinterpret_cast<__m128*>(&scales[2]));
+	distance = _mm512_add_ps(distance, _mm512_mul_ps(d, scale));
+	d = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm512_extracti64x2_epi64(vtmp, 3))); 
+	scale = _mm512_broadcastss_ps(*reinterpret_cast<__m128*>(&scales[3]));
+	distance = _mm512_add_ps(distance, _mm512_mul_ps(d, scale));
+
+	lut += (localCodebookCentroidNo - 1) * 4;
+	scales += 4;
+	localID += step512;
+      } 
+#else 
+      __m256i depu16l = _mm256_setzero_si256();
+      __m256i depu16h = _mm256_setzero_si256();
+#endif 
+      while (localID < lastgroup256) {
+	__m256i lookupTable = _mm256_loadu_si256((__m256i const*)lut);
+	_mm_prefetch(&localID[0] + 64 * 8, _MM_HINT_T0); 
+	//std::cerr << "obj=" << (int)(localID[0] & 0x0f) << "," << (int)((localID[0] >> 4) & 0x0f) << std::endl; 
+	__m256i packedobj = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)&localID[0]));
+	__m256i lo = _mm256_and_si256(packedobj, mask256x0F);
+	__m256i hi = _mm256_slli_epi16(_mm256_and_si256(packedobj, mask256xF0), 4);
+	__m256i obj = _mm256_or_si256(lo, hi);
+	//std::cerr << "LUT=" << (int)*lut << "," << (int)*(lut+1) << std::endl;
+	__m256i vtmp = _mm256_shuffle_epi8(lookupTable, obj);
+
+#if defined(NGTQG_AVX512)
+	__m512 d = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm256_extracti32x4_epi32(vtmp, 0)));
+	__m512 scale = _mm512_broadcastss_ps(*reinterpret_cast<__m128*>(&scales[0]));
+	distance = _mm512_add_ps(distance, _mm512_mul_ps(d, scale));
+	d = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm256_extracti32x4_epi32(vtmp, 1)));
+	scale = _mm512_broadcastss_ps(*reinterpret_cast<__m128*>(&scales[1]));
+	distance = _mm512_add_ps(distance, _mm512_mul_ps(d, scale));
+	////////////////////
+#else
+	depu16l = _mm256_adds_epu16(depu16l, _mm256_cvtepu8_epi16(_mm256_extractf128_si256(vtmp, 0)));
+	depu16h = _mm256_adds_epu16(depu16h, _mm256_cvtepu8_epi16(_mm256_extractf128_si256(vtmp, 1)));
+#endif
+	lut += (localCodebookCentroidNo - 1) * 2;
+	scales += 2;
+	localID += step256;
+      } 
+
+#if defined(NGTQG_AVX512)
+      //__m512i lo = _mm512_cvtepu16_epi32(_mm512_extracti64x4_epi64(depu16, 0));
+      //__m512i hi = _mm512_cvtepu16_epi32(_mm512_extracti64x4_epi64(depu16, 1));
+      //__m512 scale = _mm512_broadcastss_ps(*reinterpret_cast<__m128*>(&distanceLUT.scales[0]));
+      //distance = _mm512_mul_ps(distance, scale);
+      distance = _mm512_add_ps(distance, _mm512_set1_ps(distanceLUT.totalOffset));
+#if defined(NGTQG_DOT_PRODUCT)
+      float one = 1.0;
+      float two = 2.0;
+      distance = _mm512_mul_ps(_mm512_sub_ps(_mm512_broadcastss_ps(*reinterpret_cast<__m128*>(&one)), distance), _mm512_broadcastss_ps(*reinterpret_cast<__m128*>(&two)));
+#endif
+      distance = _mm512_sqrt_ps(distance);  
+      _mm512_storeu_ps(d, distance);
+#ifdef NGTQBG_MIN
+      {
+	float tmpmin;
+	int rest = 16 - (lastd - d);
+	if (rest > 0) {
+	  __mmask16 mask = 0xffff;
+	  mask >>= rest;
+	  tmpmin = _mm512_mask_reduce_min_ps(mask, distance);
+	} else {
+	  tmpmin = _mm512_reduce_min_ps(distance);
+	}
+	//std::cerr << "tmpmin=" << tmpmin << std::endl;
+	if (min > tmpmin) min = tmpmin;
+      }
+#endif
+#else 
+      __m256i lol = _mm256_cvtepu16_epi32(_mm256_extractf128_si256(depu16l, 0));
+      __m256i loh = _mm256_cvtepu16_epi32(_mm256_extractf128_si256(depu16l, 1));
+      __m256i hil = _mm256_cvtepu16_epi32(_mm256_extractf128_si256(depu16h, 0));
+      __m256i hih = _mm256_cvtepu16_epi32(_mm256_extractf128_si256(depu16h, 1));
+      __m256 distancel = _mm256_cvtepi32_ps(_mm256_add_epi32(lol, hil));
+      __m256 distanceh = _mm256_cvtepi32_ps(_mm256_add_epi32(loh, hih));
+      __attribute__((aligned(32))) float v32[8];
+      _mm256_storeu_ps((float*)&v32, distancel);
+      _mm256_storeu_ps((float*)&v32, distanceh);
+      __m256 scalel = _mm256_broadcastss_ps(*reinterpret_cast<__m128*>(&distanceLUT.scales[0]));
+      __m256 scaleh = _mm256_broadcastss_ps(*reinterpret_cast<__m128*>(&distanceLUT.scales[0]));
+      distancel = _mm256_mul_ps(distancel, scalel);
+      distancel = _mm256_add_ps(distancel, _mm256_set1_ps(distanceLUT.totalOffset));
+      distanceh = _mm256_mul_ps(distanceh, scaleh);
+      distanceh = _mm256_add_ps(distanceh, _mm256_set1_ps(distanceLUT.totalOffset));
+#if defined(NGTQG_DOT_PRODUCT)
+      float one = 1.0;
+      float two = 2.0;
+      distancel = _mm256_mul_ps(_mm256_sub_ps(_mm256_broadcastss_ps(*reinterpret_cast<__m128*>(&one)), distancel), _mm256_broadcastss_ps(*reinterpret_cast<__m128*>(&two)));
+      distanceh = _mm256_mul_ps(_mm256_sub_ps(_mm256_broadcastss_ps(*reinterpret_cast<__m128*>(&one)), distanceh), _mm256_broadcastss_ps(*reinterpret_cast<__m128*>(&two)));
+#endif
+      distancel = _mm256_sqrt_ps(distancel);  
+      distanceh = _mm256_sqrt_ps(distanceh);  
+      _mm256_storeu_ps(d, distancel);
+      _mm256_storeu_ps(d + 8, distanceh);
+#endif 
+      d += 16;
+    } 
+#ifdef NGTQBG_MIN
+    return min;
+#endif
+  }
+#endif /// NGTQ_TOTAL_SCALE_OFFSET_COMPRESSION  //////////////////////////////////////// 
 
 #else 
   inline void operator()(void *inv, float *distances, size_t size, DistanceLookupTableUint8 &distanceLUT) {
