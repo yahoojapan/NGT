@@ -28,7 +28,7 @@ This repository provides the following methods.
 - QG: Quantized graph-based method
 - QBG: Quantized blob graph-based method
 
-Note: Since QG and QBG require BLAS and LAPACK libraries, if you use ony NGT (Graph and tree-based method) without the additional libraries like V1, you can disable QB and QBG with [this option](#disable-qg-and-qbg).
+Note: Since QG and QBG require BLAS and LAPACK libraries, if you use only NGT (Graph and tree-based method) without the additional libraries like V1, you can disable QB and QBG with [this option](#disable-qg-and-qbg).
 
 Installation
 ------------
