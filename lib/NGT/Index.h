@@ -369,7 +369,21 @@ namespace NGT {
       std::vector<std::pair<float, double>> table;
     };
 
-    Index():index(0) {}
+    Index():index(0) {
+#if defined(NGT_AVX2)
+      if (!CpuInfo::isAVX2()) {
+	std::stringstream msg;
+	msg << "NGT::Index: Fatal Error!. Despite that This NGT library is built with AVX2, this CPU doesn't support AVX2. This CPU supoorts " << CpuInfo::getSupportedSimdTypes();
+	NGTThrowException(msg);
+      }
+#elif defined(NGT_AVX512)
+      if (!CpuInfo::isAVX512()) {
+	std::stringstream msg;
+	msg << "NGT::Index: Fatal Error!. Despite that This NGT library is built with AVX512, this CPU doesn't support AVX512. This CPU supoorts " << CpuInfo::getSupportedSimdTypes();
+	NGTThrowException(msg);
+      }
+#endif
+    }
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
   Index(NGT::Property &prop, const std::string &database);
 #else

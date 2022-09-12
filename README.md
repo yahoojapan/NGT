@@ -78,7 +78,7 @@ Installation
 
       $ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
       $ brew install cmake
-      $ brew install openblas
+      $ brew install libomp
       $ unzip NGT-x.x.x.zip
       $ cd NGT-x.x.x
       $ mkdir build

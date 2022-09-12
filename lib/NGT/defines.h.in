@@ -19,7 +19,8 @@
 // Begin of cmake defines
 #cmakedefine NGT_SHARED_MEMORY_ALLOCATOR	// use shared memory for indexes
 #cmakedefine NGT_GRAPH_CHECK_VECTOR		// use vector to check whether accessed
-#cmakedefine NGT_AVX_DISABLED			// not use avx to compare
+#cmakedefine NGT_AVX_DISABLED			// not use avx
+#cmakedefine NGT_AVX2				// not use avx2
 #cmakedefine NGT_LARGE_DATASET			// more than 10M objects 
 #cmakedefine NGT_DISTANCE_COMPUTATION_COUNT	// count # of distance computations
 #cmakedefine NGT_QBG_DISABLED
@@ -50,6 +51,8 @@
 
 #if defined(NGT_AVX_DISABLED) 
 #define NGT_NO_AVX
+#elif defined(NGT_AVX2)
+#undef NGT_AVX512
 #else
 #if defined(__AVX512F__) && defined(__AVX512DQ__)
 #define NGT_AVX512

@@ -6,10 +6,13 @@ import shutil
 import glob
 import setuptools
 import pybind11
+import platform
 
 static_library_option = '--static-library'
+static_library_native_option = '--static-library-native'
 included_library_option = '--included-library'
 shared_library_without_avx_option = '--shared-library-without-avx'
+shared_library_option = '--shared-library'
 version_file = 'VERSION'
 
 static_library = False
@@ -17,6 +20,12 @@ if static_library_option in sys.argv:
     print('use the NGT static library')
     sys.argv.remove(static_library_option)
     static_library = True
+
+static_library_native = False
+if static_library_native_option in sys.argv:
+    print('use the NGT static library with native')
+    sys.argv.remove(static_library_native_option)
+    static_library_native = True
 
 included_library = False
 if included_library_option in sys.argv:
@@ -29,7 +38,13 @@ if shared_library_without_avx_option in sys.argv:
     print('use the shared library without avx')
     sys.argv.remove(shared_library_without_avx_option)
     shared_library_without_avx = True
-    
+
+shared_library = False
+if shared_library_option in sys.argv:
+    print('use the shared library')
+    sys.argv.remove(shared_library_option)
+    shared_library = True
+
 if sys.version_info.major >= 3:
     from setuptools import Extension
 
@@ -40,6 +55,18 @@ with open(version_file, 'r') as fh:
     version = fh.read().rstrip('\n')
 
 basedir = os.path.abspath(os.path.dirname(__file__))
+
+gcc_compiler = True
+if platform.system() == 'Darwin':
+    gcc_compiler = False
+    if 'CC' in os.environ:
+        if 'gcc' in os.environ['CC']:
+            gcc_compiler = True
+
+if gcc_compiler:
+    openmplib = 'gomp'
+else:
+    openmplib = 'omp'
 
 with open('README.md', 'r', encoding='utf-8') as fh:
     long_description = fh.read()
@@ -64,7 +91,7 @@ if sys.version_info.major >= 3:
             'include_dirs': ['/usr/local/include',
                              pybind11.get_include(True),
                              pybind11.get_include(False)],
-            'extra_compile_args': ['-std=c++11', '-Ofast', '-fopenmp', '-lrt', '-DNDEBUG'],
+            'extra_compile_args': ['-std=c++11', '-Ofast', '-DNDEBUG'],
             'sources': ['src/ngtpy.cpp']
         }
     else:
@@ -72,24 +99,31 @@ if sys.version_info.major >= 3:
             'include_dirs': ['/usr/local/include',
                              pybind11.get_include(True),
                              pybind11.get_include(False)],
-            'extra_compile_args': ['-std=c++11', '-Ofast', '-fopenmp', '-march=native', '-lrt', '-DNDEBUG'],
+            'extra_compile_args': ['-std=c++11', '-Ofast', '-march=native', '-DNDEBUG'],
             'sources': ['src/ngtpy.cpp']
         }
+    if gcc_compiler:
+        params['extra_compile_args'].append('-fopenmp')
+        params['extra_compile_args'].append('-lrt')
+    else:
+        params['extra_compile_args'].append('-Xpreprocessor')
+        params['extra_compile_args'].append('-fopenmp')
 
     shared_lib_params = {
         'library_dirs': ['/usr/local/lib', '/usr/local/lib64'],
-        'libraries': ['ngt', 'gomp']
+        'libraries': ['ngt', openmplib, 'blas', 'lapack']
     }
     included_lib_params = {
         'library_dirs': ['/usr/local/lib', '/usr/local/lib64'],
-        'libraries': ['ngt', 'gomp'],
+        'libraries': ['ngt', openmplib, 'blas', 'lapack'],
         'extra_link_args': ['-static-libstdc++']
     }
     static_lib_params = {
+        'library_dirs': ['/usr/local/lib', '/usr/local/lib64'],
         'extra_objects': ['../build-ngtpy-release/lib/NGT/libngt.a'],
-        'libraries': ['gomp']
+        'libraries': [openmplib, 'blas', 'lapack'],
     }
-    if static_library:
+    if static_library or static_library_native:
         params.update(static_lib_params)
     elif included_library:
         params.update(included_lib_params)

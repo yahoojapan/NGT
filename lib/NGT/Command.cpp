@@ -1076,7 +1076,9 @@ using namespace std;
   {
     const string usage = "Usage: ngt info [-E #-of-edges] [-m h|e] index";
 
-    cerr << "NGT version: " << NGT::Index::getVersion() << endl;
+    std::cout << "NGT version: " << NGT::Index::getVersion() << std::endl;
+    std::cout << "CPU SIMD types: ";
+    CpuInfo::showSimdTypes();
 
     string database;
     try {

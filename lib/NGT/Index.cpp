@@ -1125,12 +1125,16 @@ NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode, siz
 
   std::cerr << "The number of the objects:\t" << outGraph.getNumberOfObjects() << std::endl;
   std::cerr << "The number of the indexed objects:\t" << outGraph.getNumberOfIndexedObjects() << std::endl;
-  std::cerr << "The size of the object repository (not the number of the objects):\t" << repo.size() - 1 << std::endl;
-  std::cerr << "The number of the removed objects:\t" << removedObjectCount << "/" << repo.size() - 1 << std::endl;
+  std::cerr << "The size of the object repository (not the number of the objects):\t"
+	    << (repo.size() == 0 ? 0 : repo.size() - 1) << std::endl;
+  std::cerr << "The number of the removed objects:\t" << removedObjectCount << "/"
+	    << (repo.size() == 0 ? 0 : repo.size() - 1) << std::endl;
   std::cerr << "The number of the nodes:\t" << numberOfNodes << std::endl;
   std::cerr << "The number of the edges:\t" << numberOfOutdegree << std::endl;
-  std::cerr << "The mean of the edge lengths:\t" << std::setprecision(10) << distance / (double)numberOfOutdegree << std::endl;
-  std::cerr << "The mean of the number of the edges per node:\t" << (double)numberOfOutdegree / (double)numberOfNodes << std::endl;
+  std::cerr << "The mean of the edge lengths:\t" << std::setprecision(10)
+	    << (numberOfOutdegree != 0.0 ? distance / (double)numberOfOutdegree : 0) << std::endl;
+  std::cerr << "The mean of the number of the edges per node:\t"
+	    << (numberOfNodes != 0.0 ? (double)numberOfOutdegree / (double)numberOfNodes : 0) << std::endl;
   std::cerr << "The number of the nodes without edges:\t" << numberOfNodesWithoutEdges << std::endl;
   std::cerr << "The maximum of the outdegrees:\t" << maxNumberOfOutdegree << std::endl;
   if (minNumberOfOutdegree == SIZE_MAX) {
