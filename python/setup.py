@@ -10,9 +10,11 @@ import platform
 
 static_library_option = '--static-library'
 static_library_native_option = '--static-library-native'
+static_library_avx2_option = '--static-library-avx2'
 included_library_option = '--included-library'
 shared_library_without_avx_option = '--shared-library-without-avx'
 shared_library_option = '--shared-library'
+shared_library_avx2_option = '--shared-library-avx2'
 version_file = 'VERSION'
 
 static_library = False
@@ -26,6 +28,12 @@ if static_library_native_option in sys.argv:
     print('use the NGT static library with native')
     sys.argv.remove(static_library_native_option)
     static_library_native = True
+
+static_library_avx2 = False
+if static_library_avx2_option in sys.argv:
+    print('use the NGT static library with avx2')
+    sys.argv.remove(static_library_avx2_option)
+    static_library_avx2 = True
 
 included_library = False
 if included_library_option in sys.argv:
@@ -44,6 +52,12 @@ if shared_library_option in sys.argv:
     print('use the shared library')
     sys.argv.remove(shared_library_option)
     shared_library = True
+
+shared_library_avx2 = False
+if shared_library_avx2_option in sys.argv:
+    print('use the shared library with avx2')
+    sys.argv.remove(shared_library_avx2_option)
+    shared_library_avx2 = True
 
 if sys.version_info.major >= 3:
     from setuptools import Extension
@@ -94,6 +108,14 @@ if sys.version_info.major >= 3:
             'extra_compile_args': ['-std=c++11', '-Ofast', '-DNDEBUG'],
             'sources': ['src/ngtpy.cpp']
         }
+    elif static_library_avx2 or shared_library_avx2:
+        params = {
+            'include_dirs': ['/usr/local/include',
+                             pybind11.get_include(True),
+                             pybind11.get_include(False)],
+            'extra_compile_args': ['-std=c++11', '-Ofast', '-march=haswell', '-DNDEBUG'],
+            'sources': ['src/ngtpy.cpp']
+        }
     else:
         params = {
             'include_dirs': ['/usr/local/include',
@@ -123,7 +145,7 @@ if sys.version_info.major >= 3:
         'extra_objects': ['../build-ngtpy-release/lib/NGT/libngt.a'],
         'libraries': [openmplib, 'blas', 'lapack'],
     }
-    if static_library or static_library_native:
+    if static_library or static_library_native or static_library_avx2:
         params.update(static_lib_params)
     elif included_library:
         params.update(included_lib_params)
