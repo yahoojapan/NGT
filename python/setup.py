@@ -16,6 +16,8 @@ shared_library_without_avx_option = '--shared-library-without-avx'
 shared_library_option = '--shared-library'
 shared_library_avx2_option = '--shared-library-avx2'
 version_file = 'VERSION'
+package = 'ngt'
+module = 'ngtpy'
 
 static_library = False
 if static_library_option in sys.argv:
@@ -34,6 +36,8 @@ if static_library_avx2_option in sys.argv:
     print('use the NGT static library with avx2')
     sys.argv.remove(static_library_avx2_option)
     static_library_avx2 = True
+    package = 'ngt_qbg'
+    module = 'ngtpy_qbg'
 
 included_library = False
 if included_library_option in sys.argv:
@@ -58,6 +62,8 @@ if shared_library_avx2_option in sys.argv:
     print('use the shared library with avx2')
     sys.argv.remove(shared_library_avx2_option)
     shared_library_avx2 = True
+    package = 'ngt_qbg'
+    module = 'ngtpy_qbg'
 
 if sys.version_info.major >= 3:
     from setuptools import Extension
@@ -86,7 +92,7 @@ with open('README.md', 'r', encoding='utf-8') as fh:
     long_description = fh.read()
 
 args = {
-    'name': 'ngt',
+    'name': package,
     'version': version,
     'author': 'Yahoo! JAPAN research',
     'author_email': 'miwasaki@yahoo-corp.jp',
@@ -95,7 +101,6 @@ args = {
     'long_description': long_description,
     'long_description_content_type': 'text/markdown',
     'license': 'Apache License Version 2.0',
-    'packages': ['ngt'],
     'install_requires': ['numpy', 'pybind11']
 }
 
@@ -114,7 +119,7 @@ if sys.version_info.major >= 3:
                              pybind11.get_include(True),
                              pybind11.get_include(False)],
             'extra_compile_args': ['-std=c++11', '-Ofast', '-march=haswell', '-DNDEBUG'],
-            'sources': ['src/ngtpy.cpp']
+            'sources': ['src/ngtpy_avx2.cpp']
         }
     else:
         params = {
@@ -152,7 +157,7 @@ if sys.version_info.major >= 3:
     else:
         params.update(shared_lib_params)
 
-    module1 = Extension('ngtpy', **params)
+    module1 = Extension(module, **params)
     args['ext_modules'] = [module1]
 
 setup_arguments = args

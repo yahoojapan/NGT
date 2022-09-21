@@ -1584,7 +1584,8 @@ public:
   }
 
 
-  
+
+#if defined(NGTQG_AVX2)
   inline float horizontalMin(__m256 &a, __m256 &b, float noOfObjects) {
     __m256 seq = _mm256_set_ps(8, 7, 6, 5, 4, 3, 2, 1);
     __m256 mask = _mm256_sub_ps(_mm256_set1_ps(noOfObjects), seq);
@@ -1604,7 +1605,8 @@ public:
     //std::cerr << "ret=" << data[0] << std::endl;
     return data[0];
   }
-
+#endif
+  
 #if defined(NGTQG_AVX512) || defined(NGTQG_AVX2)
 #if defined(NGTQ_TOTAL_SCALE_OFFSET_COMPRESSION) 
 #ifdef NGTQBG_MIN
@@ -1896,7 +1898,11 @@ public:
 #endif /// NGTQ_TOTAL_SCALE_OFFSET_COMPRESSION  //////////////////////////////////////// 
 
 #else 
+#ifdef NGTQBG_MIN
+  inline float operator()(void *inv, float *distances, size_t size, DistanceLookupTableUint8 &distanceLUT) {
+#else
   inline void operator()(void *inv, float *distances, size_t size, DistanceLookupTableUint8 &distanceLUT) {
+#endif
     uint8_t *localID = static_cast<uint8_t*>(inv);
     size_t numOfAlignedSubvectors = ((localDivisionNo - 1) / NGTQ_BATCH_SIZE + 1) * NGTQ_BATCH_SIZE;
     size_t alignedSize = ((size - 1) / 2 + 1) * 2;

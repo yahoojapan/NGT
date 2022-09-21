@@ -112,26 +112,6 @@ QG and QBG require BLAS and LAPACK libraries. If you would not like to install t
 
       $ brew install ngt
 
-
-License
--------
-
-Copyright (C) 2015 Yahoo Japan Corporation
-
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use this software except in compliance with the License. You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and limitations under the License.
-
-Contributor License Agreement
------------------------------
-
-This project requires contributors to accept the terms in the [Contributor License Agreement (CLA)](https://gist.github.com/yahoojapanoss/9bf8afd6ea67f32d29b4082abf220340).
-
-Please note that contributors to the NGT repository on GitHub (https://github.com/yahoojapan/NGT) shall be deemed to have accepted the CLA without individual written agreements.
-
 NGT (Graph and tree-based method)
 =================================
 
@@ -226,6 +206,26 @@ The followings are the results of [ann benchmarks](https://github.com/erikbern/a
 
 #### sift-128-euclidean
 <img src="./tests/ann-benchmarks-results/sift-128-euclidean.png?raw=true" width="400">
+
+
+License
+-------
+
+Copyright (C) 2015 Yahoo Japan Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this software except in compliance with the License. You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+
+Contributor License Agreement
+-----------------------------
+
+This project requires contributors to accept the terms in the [Contributor License Agreement (CLA)](https://gist.github.com/yahoojapanoss/9bf8afd6ea67f32d29b4082abf220340).
+
+Please note that contributors to the NGT repository on GitHub (https://github.com/yahoojapan/NGT) shall be deemed to have accepted the CLA without individual written agreements.
 
 Contact Person
 --------------

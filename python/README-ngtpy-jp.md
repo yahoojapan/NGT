@@ -111,7 +111,7 @@ Class Index
 ### search
 指定されたクエリオブジェクトに対する近傍のオブジェクトを検索します。
 
-      object search(self: ngtpy.Index, query: object, size: int, epsilon: float=0.1, edge_size: int=-1, with_distance: bool=True)
+      object search(self: ngtpy.Index, query: object, size: int, epsilon: float, edge_size: int, with_distance: bool=True)
 
 **Returns**   
 検索結果としてタプル（ID、距離）のリスト
@@ -132,18 +132,21 @@ Class Index
 距離付きオブジェクトIDの検索結果を返すことを指定します。Falseは結果がオブジェクトIDののみのリストとなることを意味します。
 
 ### set
-検索パラメータを指定します。
+検索パラメータのデフォルト値を指定します。
 
-      set(self: ngtpy.Index, num_of_search_objects: int, search_radius: float)
+      set(self: ngtpy.Index, num_of_search_objects: int, epsilon: float, search_radius: float)
 
 **Returns**   
 なし。
 
 **num_of_search_objects**    
-検索結果数を指定します。デフォルトは10です。
+検索結果数を指定します。初期デフォルト値は20です。
+
+**epsilon**   
+グラフの探索範囲を決定する変数イプシロンを指定します。初期デフォルト値は0.1です。
 
 **search_radius**    
-検索範囲を指定します。デフォルトは無限です。
+検索範囲を指定します。初期デフォルト値は無限です。
 
 ### export_index
 インデックスをエクスポートします。
@@ -207,7 +210,6 @@ FUNCTIONS
 - __Float16__: 2 バイト浮動小数点
 - __Byte__: 1 バイト符号なし整数
 
-
 Class Optimizer
 ===============
 
@@ -231,7 +233,6 @@ Class Optimizer
 ### execute
 事前に指定されたパラメータを用いて指定されたインデックスから新なインデックスを再構築し、検索時の係数を最適化します。この最適化は*adjust_search_coefficients*を呼び出すのと同じです。
 
-
       execute(self: ngtpy.Optimizer, in_index_path: str, out_index_path: str)
 
 
@@ -250,16 +251,61 @@ Class Optimizer
 **index_path**    
 最適化するインデックスを指定します。
 
-### set
-検索パラメータを指定します。
+Class QuantizedIndex
+===========
 
-      set(self: ngtpy.Index, num_of_search_objects: int, search_radius: float)
+## Member Functions
+
+### \_\_init\_\_
+指定された量子化インデックスをオープンし、そのインデックスのオブジェクトを生成します。
+
+      __init__(self: ngtpy.QuantizedIndex, path: str, zero_based_numbering: bool=True, log_disabled: bool=False)
+
+**Returns**  
+なし
+
+**path**   
+オープンするインデックスのパスを指定します。量子化インデックスは`qbg create-qg`と`qbg build-qg`で事前にONNGやANNGからビルドしてください。pythonでの量子化する関数はまだ利用できません。
+
+**zero_based_numbering**   
+オブジェクトIDが０から始まることを指定します。Falseは１から始まることを意味します。
+
+**log_disabled**    
+処理の進捗に関する標準エラーのメッセージを無効にします。
+
+### search
+指定されたクエリオブジェクトに対する近傍のオブジェクトを検索します。
+
+      object search(self: ngtpy.QuantizedIndex, query: object, size: int=20, epsilon: float, result_expansion: float)
+
+**Returns**   
+検索結果としてタプル（ID、距離）のリスト
+
+**query**   
+クエリオブジェクトを指定します。
+
+**size**   
+検索結果として返るオブジェクトの数を指定します。
+
+**epsilon**   
+グラフの探索範囲を決定する変数イプシロンを指定します。
+
+**result_expansion**   
+検索結果数に対する内部の近似検索結果数の拡張割合を指定します。例えば、この割合が10で検索結果数が20の場合には、検索処理中の近似検索数は200に設定されます。大きな値ほど精度は高くなりますが、検索に時間がかかります。
+
+### set
+検索パラメータのデフォルト値を指定します。
+
+      set(self: ngtpy.QuantizedIndex, num_of_search_objects: int, epsilon: float, result_expansion: float)
 
 **Returns**   
 なし。
 
 **num_of_search_objects**    
-検索結果数を指定します。デフォルトは10です。
+検索結果数を指定します。初期デフォルト値は20です。
 
-**search_radius**    
-検索範囲を指定します。デフォルトは無限です。
+**epsilon**   
+グラフの探索範囲を決定する変数イプシロンを指定します。初期デフォルト値は0.02です。
+
+**result_expansion**   
+検索結果数に対する内部の近似検索結果数の拡張割合を指定します。初期デフォルト値は3.0です。

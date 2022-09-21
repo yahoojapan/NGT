@@ -113,7 +113,7 @@ The number of the registered objects.
 ### search
 Search the nearest objects to the specified query object.
 
-      object search(self: ngtpy.Index, query: object, size: int, epsilon: float=0.1, edge_size: int=-1, with_distance: bool=True)
+      object search(self: ngtpy.Index, query: object, size: int, epsilon: float, edge_size: int, with_distance: bool=True)
 
 **Returns**   
 The list of tuples(object ID, distance) as the search result. 
@@ -135,18 +135,21 @@ Specify object IDs with distances as the result. False means that the result is 
 
 
 ### set
-Specify the search parameters.
+Specify the default search parameters.
 
-      set(self: ngtpy.Index, num_of_search_objects: int, search_radius: float)
+      set(self: ngtpy.Index, num_of_search_objects: int, epsilon: float, search_radius: float)
 
 **Returns**   
 None.
 
 **num_of_search_objects**    
-Specify the number of search objects. The default is 10.
+Specify the number of search objects. The initial default is 20.
+
+**epsilon**   
+Specify the epsilon which defines the explored range for the graph. The initial default is 0.1.
 
 **search_radius**    
-Specify the search radius. The default is infinity.
+Specify the search radius. The initial default is infinity.
 
 ### export_index
 Exports the index to a file.
@@ -213,7 +216,6 @@ Specify the data type of the objects.
 - __Float16__: 2 byte floating point number
 - __Byte__: 1 byte unsigned integer
 
-
 Class Optimizer
 ===============
 
@@ -241,7 +243,7 @@ Reconstruct an index from the specified index with the previously specified para
       execute(self: ngtpy.Optimizer, in_index_path: str, out_index_path: str)
 
 
-**in_index_path**   
+**in_index_path**    
 Specify the input index path.
 
 **out_index_path**    
@@ -252,7 +254,7 @@ Optimize search coefficients.
 
       adjust_search_coefficients(self: ngtpy.Optimizer, index_path: str)
 
-**index_path**   
+**index_path**    
 Specify the index which is optimized.
 
 Class QuantizedIndex
@@ -263,7 +265,7 @@ Class QuantizedIndex
 ### \_\_init\_\_
 Open the specified quantized index and create the index object for the index.
 
-      __init__(self: ngtpy.Index, path: str, zero_based_numbering: bool=True, log_disabled: bool=False)
+      __init__(self: ngtpy.QuantizedIndex, path: str, zero_based_numbering: bool=True, log_disabled: bool=False)
 
 **Returns**  
 None.
@@ -280,7 +282,7 @@ Disable stderr messages about the progression of an operation.
 ### search
 Search the nearest objects to the specified query object.
 
-      object search(self: ngtpy.Index, query: object, size: int=20, epsilon: float=0.02, result_expansion: float=3.0)
+      object search(self: ngtpy.QuantizedIndex, query: object, size: int, epsilon: float, result_expansion: float)
 
 **Returns**   
 The list of tuples(object ID, distance) as the search result. 
@@ -298,16 +300,19 @@ Specify epsilon which defines the explored range for the quantized graph.
 Specify the expansion ratio of the number of approximate inner search objects to the number of search objects. For example, when the ratio is 10 and the number of search objects is 20, the number of the approximate search objects is set to 200 inside the search processing. A larger value brings higher accuracy but slower searching.
 
 ### set
-Specify the search parameters.
+Specify the default search parameters.
 
-      set(self: ngtpy.Index, num_of_search_objects: int, search_radius: float)
+      set(self: ngtpy.QuantizedIndex, num_of_search_objects: int, search_radius: float, result_expansion: float)
 
 **Returns**   
 None.
 
 **num_of_search_objects**    
-Specify the number of search objects. The default is 10.
+Specify the number of search objects. The initial default is 20.
 
-**search_radius**    
-Specify the search radius. The default is infinity.
+**epsilon**   
+Specify epsilon which defines the explored range for the graph. The initial default is 0.02.
+
+**result_expansion**   
+Specify the expansion ratio of the number of approximate inner search objects to the number of search objects. The initial default is 3.0.
 
