@@ -128,6 +128,10 @@ extern "C" {
 
   bool qbg_search_index(QBGIndex index, QBGQuery query, NGTObjectDistances results, QBGError error);
 
+  float* qbg_get_object(QBGIndex index, ObjectID id,  QBGError error);
+
+  size_t qbg_get_dimension(QBGIndex index, QBGError error);
+  
 #ifdef __cplusplus
 }
 #endif

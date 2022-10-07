@@ -283,6 +283,8 @@ QBG::CLI::buildQG(NGT::Args &args)
 {
   const std::string usage = "Usage: qbg build-qg [-Q dimension-of-subvector] [-E max-number-of-edges] index";
 
+  args.parse("Zv");
+
   string indexPath;
   try {
     indexPath = args.get("#1");
@@ -883,6 +885,7 @@ QBG::CLI::append(NGT::Args &args)
 
 static void hierarchicalKmeansParameters(NGT::Args &args, QBG::HierarchicalKmeans &hierarchicalKmeans)
 {
+  args.parse("Zv");
   hierarchicalKmeans.maxSize = args.getl("r", 1000); 
   hierarchicalKmeans.numOfObjects = args.getl("O", 0); 
   hierarchicalKmeans.numOfClusters = args.getl("E", 2); 
@@ -893,6 +896,7 @@ static void hierarchicalKmeansParameters(NGT::Args &args, QBG::HierarchicalKmean
   }
   hierarchicalKmeans.numOfTotalBlobs = args.getl("b", 0);
   hierarchicalKmeans.clusterID = args.getl("c", -1);
+  hierarchicalKmeans.silence = !args.getBool("v");
   
   char iMode = args.getChar("i", '-');
   hierarchicalKmeans.initMode = NGT::Clustering::InitializationModeKmeansPlusPlus;
@@ -970,7 +974,6 @@ static void hierarchicalKmeansParameters(NGT::Args &args, QBG::HierarchicalKmean
     std::cerr << "numOfThirdClusters=" << hierarchicalKmeans.numOfThirdClusters << std::endl;
     std::cerr << "numOfThirdObjects=" << hierarchicalKmeans.numOfObjects << std::endl;
   }
-
 }
 
 void 
@@ -1028,6 +1031,7 @@ QBG::CLI::buildIndex(NGT::Args &args)
 	    quantizerCodebook.push_back(object);
 	  }
 	}
+	std::cerr << "The size of quantizerCodebook is " << quantizerCodebook.size() << std::endl;
       } catch (...) {}
     }
 
@@ -1115,6 +1119,8 @@ void
 QBG::CLI::build(NGT::Args &args)
 {
   const std::string usage = "Usage: qbg build [-Q dimension-of-subvector] [-E max-number-of-edges] index";
+
+  args.parse("Zv");
 
   string indexPath;
   try {
@@ -1551,18 +1557,6 @@ QBG::CLI::optimize(NGT::Args &args)
     std::cerr << err.what() << std::endl;
     cerr << usage << endl;
   }
-
-  if (optimizer.numberOfClusters == 0) {
-    cerr << "-n adequate number-of-clusters should be specified." << endl;
-    cerr << usage << endl;
-    return;
-  };
-
-  if (optimizer.numberOfSubvectors == 0) {
-    cerr << "-m adequate number-of-subspaces should be specified." << endl;
-    cerr << usage << endl;
-    return;
-  };
 
   if (invector.empty() || ofile.empty() || global.empty()) {
     optimizer.optimize(indexPath);

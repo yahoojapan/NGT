@@ -4551,6 +4551,17 @@ public:
      return quantizer->getSharedMemorySize(os, t);
    }
 
+   std::vector<float> getObject(size_t id) {
+     std::vector<float> object;
+     auto &quantizer = getQuantizer();
+     if (!quantizer.objectList.get(id, object, &quantizer.globalCodebookIndex.getObjectSpace())) {
+       std::stringstream msg;
+       msg << "cannot get the specified object. " << id;
+       NGTThrowException(msg);
+     }
+     return object;
+   }
+
  protected:
    static NGTQ::Quantizer *getQuantizer(const string &index, NGT::Property &globalProperty, bool readOnly) {
      NGTQ::Property property;

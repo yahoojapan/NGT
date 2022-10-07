@@ -55,7 +55,7 @@ namespace NGTQ {
       rotation = true;
       globalType = GlobalTypeNone;
       randomizedObjectExtraction = true;
-      silence = false;
+      silence = true;
       showClusterInfo = false;
     }
 
@@ -82,9 +82,7 @@ namespace NGTQ {
       assert(vectors.size() == subvectors.size());
       size_t vsize = vectors.size();
       size_t subvsize = subvectors[0].size();
-      size_t size = vectors[0].size() + subvsize;
       for (size_t vidx = 0; vidx < vsize; vidx++) {
-	subvectors[vidx].reserve(size);
 	for (size_t i = 0; i < subvsize; i++) {
 	  vectors[vidx].push_back(subvectors[vidx][i]);
 	}
@@ -431,6 +429,10 @@ namespace NGTQ {
 	}
 #endif
 	vector<vector<float>> quantizedVectors;
+	quantizedVectors.resize(subQuantizedVectors[0].size());
+	for (size_t i = 0; i < quantizedVectors.size(); i++) {
+	  quantizedVectors[i].reserve(xp[0].size());
+	}
 	for (size_t m = 0; m < numberOfSubvectors; m++) {
 	  catSubvector(quantizedVectors, subQuantizedVectors[m]);
 	}
@@ -596,11 +598,6 @@ namespace NGTQ {
 
       optimizeWithinIndex(indexPath);
 
-      if (globalType == GlobalTypeNone) {
-	QBG::Index::load(indexPath, "", "", "", threadSize);
-      } else {
-	QBG::Index::load(indexPath, QBG::Index::getQuantizerCodebookFileName(indexPath), "", "", threadSize);
-      }
       redirector.end();
     }
 #endif 
@@ -635,8 +632,9 @@ namespace NGTQ {
 #endif
 
       if (vectors.size() == 0) {
-	std::cerr << "Optimizer: error! the specified vetor file is empty. " << invector << ". the size=" << vectors.size() << std::endl;
-	exit(1);
+	std::stringstream msg;
+	msg << "Optimizer: error! the specified vetor file is empty. " << invector << ". the size=" << vectors.size();
+	NGTThrowException(msg);
       }
 
       dim = vectors[0].size();

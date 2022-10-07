@@ -419,5 +419,44 @@ bool qbg_search_index(QBGIndex index, QBGQuery query, NGTObjectDistances results
   return true;
 }
 
+float* qbg_get_object(QBGIndex index, ObjectID id, QBGError error) {
+  if (index == NULL) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index;
+    operate_error_string_(ss, error);
+    return 0;
+  }
+
+  auto *pindex = static_cast<QBG::Index*>(index);
+
+  try {
+    std::vector<float> object = pindex->getObject(id);
+    auto obj = malloc(sizeof(float) * object.size());
+    if (obj == 0) {
+      std::stringstream ss;
+      ss << "Capi : " << __FUNCTION__ << "() : Error: Cannot allocate memory.";
+      operate_error_string_(ss, error);
+      return 0;
+    }
+    memcpy(obj, object.data(), sizeof(float) * object.size());
+    return static_cast<float*>(obj);
+  } catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    return 0;
+  }
+}
+
+size_t qbg_get_dimension(QBGIndex index, QBGError error) {
+  if (index == NULL) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index;
+    operate_error_string_(ss, error);
+    return 0;
+  }
+  auto *pindex = static_cast<QBG::Index*>(index);
+  return pindex->getQuantizer().property.genuineDimension;
+}
 
 #endif 

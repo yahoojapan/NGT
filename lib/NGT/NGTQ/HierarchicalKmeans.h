@@ -42,7 +42,7 @@ namespace QBG {
     };
 
     HierarchicalKmeans() {
-      silence = false;
+      silence = true;
     }
 
     static int32_t searchLeaf(std::vector<HKNode*> &nodes, int32_t rootID, float *object) {
@@ -1015,7 +1015,7 @@ namespace QBG {
 	}
 	if (numOfSecondClusters > numOfThirdClusters) {
 	  std::stringstream msg;
-	  msg << "# of the second clusters should be larger than or equal to # of the second clusters. " << numOfSecondClusters << ":" << numOfThirdClusters;
+	  msg << "# of the third clusters should be larger than or equal to # of the second clusters. " << numOfSecondClusters << ":" << numOfThirdClusters;
 	  NGTThrowException(msg);
 	}
 	if (numOfFirstClusters > numOfSecondClusters) {

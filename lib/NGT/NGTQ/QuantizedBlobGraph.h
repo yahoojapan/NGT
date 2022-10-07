@@ -118,10 +118,12 @@ namespace QBG {
   public:
   Index(const std::string &indexPath, bool readOnly = false, bool silence = false) :
     NGTQ::Index(indexPath, readOnly), path(indexPath), quantizedBlobGraph(*this) {
+      searchable = false;
       NGT::StdOstreamRedirector redirector(silence);
       redirector.begin();
       try {
 	load();
+	searchable = true;
       } catch (NGT::Exception &err) {
 	if (readOnly) {
 	} else {
@@ -133,7 +135,7 @@ namespace QBG {
 
     ~Index() {}
 
-    bool &getSilence() { return silence; };
+    bool &getSilence() { return silence; }
 
     NGT::Object *allocateObject(std::vector<float> &objectVector) {
       auto &globalIndex = getQuantizer().globalCodebookIndex;
@@ -531,6 +533,11 @@ namespace QBG {
      std::cerr << "searchBlobGraph: Not implemented. " << std::endl;
      abort();
 #else
+    if (!searchable) {
+      std::stringstream msg;
+      msg << "The specified index is not now searchable. ";
+      NGTThrowException(msg);
+    }
 
     auto &quantizer = getQuantizer();
     auto &globalIndex = quantizer.globalCodebookIndex;
@@ -784,8 +791,21 @@ namespace QBG {
       }
     }
 
+    static void buildNGTQ(const std::string &indexPath, bool silence = false) {
+      load(indexPath, QBG::Index::getQuantizerCodebookFileName(indexPath), "", "");
+      buildNGTQ(indexPath, "", "-", "-", 1, 0, silence);
+      std::cerr << "NGTQ and NGTQBG indices are completed." << std::endl;
+      std::cerr << "  vmsize=" << NGT::Common::getProcessVmSizeStr() << std::endl;
+      std::cerr << "  peak vmsize=" << NGT::Common::getProcessVmPeakStr() << std::endl;
+    }
+
     static void build(const std::string &indexPath, bool silence = false) {
-      build(indexPath, "", "", "", 1, 0, silence);
+      load(indexPath, "", "", "");
+      buildNGTQ(indexPath, "", "", "", 1, 0, silence);
+      buildQBG(indexPath, silence);
+      std::cerr << "NGTQ and NGTQBG indices are completed." << std::endl;
+      std::cerr << "  vmsize=" << NGT::Common::getProcessVmSizeStr() << std::endl;
+      std::cerr << "  peak vmsize=" << NGT::Common::getProcessVmPeakStr() << std::endl;
     }
 
     static void build(const std::string &indexPath,
@@ -798,7 +818,6 @@ namespace QBG {
       std::cerr << "NGTQ and NGTQBG indices are completed." << std::endl;
       std::cerr << "  vmsize=" << NGT::Common::getProcessVmSizeStr() << std::endl;
       std::cerr << "  peak vmsize=" << NGT::Common::getProcessVmPeakStr() << std::endl;
-
     }
 
     static void build(const std::string &indexPath,
@@ -811,10 +830,6 @@ namespace QBG {
       std::cerr << "NGTQ and NGTQBG indices are completed." << std::endl;
       std::cerr << "  vmsize=" << NGT::Common::getProcessVmSizeStr() << std::endl;
       std::cerr << "  peak vmsize=" << NGT::Common::getProcessVmPeakStr() << std::endl;
-    }
-
-    static void buildNGTQ(const std::string &indexPath, bool silence = false) {
-      buildNGTQ(indexPath, "", "-", "-", 1, 0, silence);
     }
 
     static void buildNGTQ(const std::string &indexPath,
@@ -912,12 +927,12 @@ namespace QBG {
     }
 
     static void buildNGTQ(const std::string &indexPath,
-		      std::vector<std::vector<float>> &quantizerCodebook,
-		      std::vector<uint32_t> &codebookIndex,
-		      std::vector<uint32_t> &objectIndex,
+			  std::vector<std::vector<float>> &quantizerCodebook,
+			  std::vector<uint32_t> &codebookIndex,
+			  std::vector<uint32_t> &objectIndex,
 			  size_t beginID = 1, size_t endID = 0, bool silence = false) {
       NGT::StdOstreamRedirector redirector(silence);
-      //redirector.begin();
+      redirector.begin();
       NGT::Timer timer;
       timer.start();
       NGTQ::Index index(indexPath);
@@ -974,32 +989,69 @@ namespace QBG {
 	struct timeval randTime;
 	gettimeofday(&randTime, 0);
 	srand(randTime.tv_usec);
-	std::unordered_set<uint32_t> pickedObjects;
-	for (size_t cnt = 0; cnt < n; cnt++) {
-	  size_t id = 0;
-	  while (true) {
-	    do {
-	      double random = ((double)rand() + 1.0) / ((double)RAND_MAX + 2.0);
-	      id = floor(quantizer.objectList.size() * random);
-	    } while (pickedObjects.count(id) > 0 || id >= quantizer.objectList.size());
-	    if (quantizer.objectList.get(id, object, &quantizer.globalCodebookIndex.getObjectSpace())) {
-	      pickedObjects.insert(id);
+	if (n > quantizer.objectList.size() / 2) {
+	  if (n > quantizer.objectList.size() - 1) {
+	    n = quantizer.objectList.size() - 1;
+	  }
+	  size_t pickedObjectCount = 0;
+	  for (size_t id = 1; id < quantizer.objectList.size(); id++) {
+	    double random = ((double)rand() + 1.0) / ((double)RAND_MAX + 2.0);
+	    double p = static_cast<double>(n - pickedObjectCount) / static_cast<double>(quantizer.objectList.size() - id);
+	    if (p == 0.0) {
 	      break;
-	    } else {
-	      std::cerr << "Cannot get the object. " << id << std::endl;
+	    }
+	    if (random <= p) {
+	      if (!quantizer.objectList.get(id, object, &quantizer.globalCodebookIndex.getObjectSpace())) {
+		std::cerr << "Cannot get the object. " << id << std::endl;
+		continue;
+	      }
+	      if (dim != 0) {
+		object.resize(dim, 0.0);
+	      }
+	      for (auto v = object.begin(); v != object.end(); ++v) {
+		if (v + 1 != object.end()) {
+		  os << *v << "\t";
+		} else {
+		  os << *v << std::endl;;
+		}
+	      }
+	      pickedObjectCount++;
+	      if (pickedObjectCount == n) {
+		break;
+	      }
+	      if (pickedObjectCount % 100000 == 0) {
+		std::cerr << "loaded " << static_cast<float>(pickedObjectCount + 1) / 1000000.0 << "M objects." << std::endl;
+	      }
 	    }
 	  }
-	  if (cnt + 1 % 100000 == 0) {
-	    std::cerr << "loaded " << static_cast<float>(cnt + 1) / 1000000.0 << "M objects." << std::endl;
-	  }
-	  if (dim != 0) {
-	    object.resize(dim, 0.0);
-	  }
-	  for (auto v = object.begin(); v != object.end(); ++v) {
-	    if (v + 1 != object.end()) {
-	      os << *v << "\t";
-	    } else {
-	      os << *v << std::endl;;
+	} else {
+	  std::unordered_set<uint32_t> pickedObjects;
+	  for (size_t cnt = 0; cnt < n; cnt++) {
+	    size_t id = 0;
+	    while (true) {
+	      do {
+		double random = ((double)rand() + 1.0) / ((double)RAND_MAX + 2.0);
+		id = floor(quantizer.objectList.size() * random);
+	      } while (pickedObjects.count(id) > 0 || id >= quantizer.objectList.size());
+	      if (quantizer.objectList.get(id, object, &quantizer.globalCodebookIndex.getObjectSpace())) {
+		pickedObjects.insert(id);
+		break;
+	      } else {
+		std::cerr << "Cannot get the object. " << id << std::endl;
+	      }
+	    }
+	    if (cnt + 1 % 100000 == 0) {
+	      std::cerr << "loaded " << static_cast<float>(cnt + 1) / 1000000.0 << "M objects." << std::endl;
+	    }
+	    if (dim != 0) {
+	      object.resize(dim, 0.0);
+	    }
+	    for (auto v = object.begin(); v != object.end(); ++v) {
+	      if (v + 1 != object.end()) {
+		os << *v << "\t";
+	      } else {
+		os << *v << std::endl;;
+	      }
 	    }
 	  }
 	}
@@ -1049,7 +1101,6 @@ namespace QBG {
       size_t dataSize = 0;
       NGT::Index::append(indexPath + "/global", blobs, threadSize, dataSize);	
 
-      std::cerr << "qbg: loading the local codebooks..." << std::endl;
       NGTQ::Property property;
       property.load(indexPath);
 
@@ -1104,6 +1155,8 @@ namespace QBG {
     const std::string path;
     
     QuantizedBlobGraphRepository quantizedBlobGraph;
+
+    bool searchable;
 
 
   };
