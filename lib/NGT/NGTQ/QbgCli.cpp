@@ -25,47 +25,42 @@
 typedef NGTQ::Quantizer::ObjectList QBGObjectList;
 
 
-class CreateParameters {
+class QbgCliBuildParameters : public QBG::BuildParameters {
 public:
-  CreateParameters(NGT::Args &args) {
-    try {
-      index = args.get("#1");
-    } catch (...) {
-      std::stringstream msg;
-      msg << "Command::CreateParameters: Error: An index is not specified.";
-      NGTThrowException(msg);
-    }
-    try {
-      objectPath = args.get("#2");
-    } catch (...) {}
+  QbgCliBuildParameters(NGT::Args &a):args(a){
+    args.parse("Zv");
+  }
 
+  void getBuildParameters() {
+    getHierarchicalClustringParameters();
+    getOptimizationParameters();
+  }
+
+  void getCreationParameters() {
     char objectType = args.getChar("o", 'f');
     char distanceType = args.getChar("D", '2');
-    numOfObjects = args.getl("n", 0);
+    creation.numOfObjects = args.getl("n", 0);
 
-    property.threadSize = args.getl("p", 24);
-    property.dimension = args.getl("d", 0);
-    property.globalRange = args.getf("R", 0);
-    property.localRange = args.getf("r", 0);
-    property.globalCentroidLimit = args.getl("C", 0);
+    creation.threadSize = args.getl("p", 24);
+    creation.dimension = args.getl("d", 0);
 #ifdef NGTQ_QBG
-    property.localCentroidLimit = args.getl("c", 16);
+    creation.localCentroidLimit = args.getl("c", 16);
 #else
-    property.localCentroidLimit = args.getl("c", 65000);
+    creation.localCentroidLimit = args.getl("c", 65000);
 #endif
-    property.localDivisionNo = args.getl("N", 8);
-    property.batchSize = args.getl("b", 1000);
-    property.localClusteringSampleCoefficient = args.getl("s", 10);
+    creation.localDivisionNo = args.getl("N", 0);
+    creation.batchSize = args.getl("b", 1000);
+    creation.localClusteringSampleCoefficient = args.getl("s", 10);
     {
       char localCentroidType = args.getChar("T", 'f');
-      property.singleLocalCodebook = localCentroidType == 't' ? true : false;
+      creation.singleLocalCodebook = localCentroidType == 't' ? true : false;
     }
     {
       char centroidCreationMode = args.getChar("M", 'l');
       switch(centroidCreationMode) {
-      case 'd': property.centroidCreationMode = NGTQ::CentroidCreationModeDynamic; break;
-      case 's': property.centroidCreationMode = NGTQ::CentroidCreationModeStatic; break;
-      case 'l': property.centroidCreationMode = NGTQ::CentroidCreationModeStaticLayer; break;
+      case 'd': creation.centroidCreationMode = NGTQ::CentroidCreationModeDynamic; break;
+      case 's': creation.centroidCreationMode = NGTQ::CentroidCreationModeStatic; break;
+      case 'l': creation.centroidCreationMode = NGTQ::CentroidCreationModeStaticLayer; break;
       default:
 	std::stringstream msg;
 	msg << "Command::CreateParameters: Error: Invalid centroid creation mode. " << centroidCreationMode;
@@ -75,9 +70,9 @@ public:
     {
       char localCentroidCreationMode = args.getChar("L", 's');
       switch(localCentroidCreationMode) {
-      case 'd': property.localCentroidCreationMode = NGTQ::CentroidCreationModeDynamic; break;
-      case 's': property.localCentroidCreationMode = NGTQ::CentroidCreationModeStatic; break;
-      case 'k': property.localCentroidCreationMode = NGTQ::CentroidCreationModeDynamicKmeans; break;
+      case 'd': creation.localCentroidCreationMode = NGTQ::CentroidCreationModeDynamic; break;
+      case 's': creation.localCentroidCreationMode = NGTQ::CentroidCreationModeStatic; break;
+      case 'k': creation.localCentroidCreationMode = NGTQ::CentroidCreationModeDynamicKmeans; break;
       default:
 	std::stringstream msg;
 	msg << "Command::CreateParameters: Error: Invalid centroid creation mode. " << localCentroidCreationMode;
@@ -85,26 +80,26 @@ public:
       }
     }
 #ifdef NGTQ_QBG
-    property.localIDByteSize = args.getl("B", 1);
+    creation.localIDByteSize = args.getl("B", 1);
 #endif
       
-    globalProperty.edgeSizeForCreation = args.getl("E", 10);
-    globalProperty.edgeSizeForSearch = args.getl("S", 40);
+    creation.globalEdgeSizeForCreation = args.getl("E", 10);
+    creation.globalEdgeSizeForSearch = args.getl("S", 40);
     {
       char indexType = args.getChar("i", 't');
-      globalProperty.indexType = indexType == 't' ? NGT::Property::GraphAndTree : NGT::Property::Graph;
-      localProperty.indexType = globalProperty.indexType;
+      creation.globalIndexType = indexType == 't' ? NGT::Property::GraphAndTree : NGT::Property::Graph;
+      creation.localIndexType = creation.globalIndexType;
     }
-    globalProperty.insertionRadiusCoefficient = args.getf("e", 0.1) + 1.0;
-    localProperty.insertionRadiusCoefficient = globalProperty.insertionRadiusCoefficient;
+    creation.globalInsertionRadiusCoefficient = args.getf("e", 0.1) + 1.0;
+    creation.localInsertionRadiusCoefficient = creation.globalInsertionRadiusCoefficient;
 
 
     switch (objectType) {
-    case 'f': property.dataType = NGTQ::DataTypeFloat; break;
+    case 'f': creation.dataType = NGTQ::DataTypeFloat; break;
 #ifdef NGT_HALF_FLOAT
-    case 'h': property.dataType = NGTQ::DataTypeFloat16; break;
+    case 'h': creation.dataType = NGTQ::DataTypeFloat16; break;
 #endif
-    case 'c': property.dataType = NGTQ::DataTypeUint8; break;
+    case 'c': creation.dataType = NGTQ::DataTypeUint8; break;
     default:
       std::stringstream msg;
       msg << "Command::CreateParameters: Error: Invalid object type. " << objectType;
@@ -112,27 +107,28 @@ public:
     }
 
     switch (distanceType) {
-    case '2': property.distanceType = NGTQ::DistanceType::DistanceTypeL2; break;
-    case '1': property.distanceType = NGTQ::DistanceType::DistanceTypeL1; break;
-    case 'a': property.distanceType = NGTQ::DistanceType::DistanceTypeAngle; break;
-    case 'C': property.distanceType = NGTQ::DistanceType::DistanceTypeNormalizedCosine; break;
-    case 'E': property.distanceType = NGTQ::DistanceType::DistanceTypeL2; break;
+    case '2': creation.distanceType = NGTQ::DistanceType::DistanceTypeL2; break;
+    case '1': creation.distanceType = NGTQ::DistanceType::DistanceTypeL1; break;
+    case 'a': creation.distanceType = NGTQ::DistanceType::DistanceTypeAngle; break;
+    case 'C': creation.distanceType = NGTQ::DistanceType::DistanceTypeNormalizedCosine; break;
+    case 'E': creation.distanceType = NGTQ::DistanceType::DistanceTypeL2; break;
     default:
       std::stringstream msg;
       msg << "Command::CreateParameters: Error: Invalid distance type. " << distanceType;
       NGTThrowException(msg);
     }
 #ifdef NGTQ_QBG
-    property.genuineDimension = property.dimension;
-    property.dimension = args.getl("P", property.genuineDimension);
+    creation.genuineDimension = creation.dimension;
+    creation.dimension = args.getl("P", creation.genuineDimension);
+    creation.dimensionOfSubvector = args.getl("Q", 0);
     {
       char objectType = args.getChar("O", 'f');
       switch (objectType) {
-      case 'f': property.genuineDataType = ObjectFile::DataTypeFloat; break;
+      case 'f': creation.genuineDataType = ObjectFile::DataTypeFloat; break;
 #ifdef NGT_HALF_FLOAT
-      case 'h': property.genuineDataType = ObjectFile::DataTypeFloat16; break;
+      case 'h': creation.genuineDataType = ObjectFile::DataTypeFloat16; break;
 #endif
-      case 'c': property.genuineDataType = ObjectFile::DataTypeUint8; break;
+      case 'c': creation.genuineDataType = ObjectFile::DataTypeUint8; break;
       default:
 	std::stringstream msg;
 	msg << "Command::CreateParameters: Error: Invalid genuine object type. " << objectType;
@@ -141,16 +137,209 @@ public:
     }
 #endif
 
+
   }
 
-  std::string index;
-  std::string objectPath;
-  size_t numOfObjects;
-  NGTQ::Property property;
-  NGT::Property globalProperty;
-  NGT::Property localProperty;
+  void getHierarchicalClustringParameters() {
+    hierarchicalClustering.maxSize = args.getl("r", 1000); 
+    hierarchicalClustering.numOfObjects = args.getl("O", 0); 
+    hierarchicalClustering.numOfClusters = args.getl("E", 2); 
+    try {
+      hierarchicalClustering.numOfTotalClusters = args.getl("C", 0);
+    } catch (...) {
+      hierarchicalClustering.numOfTotalClusters = 0;
+    }
+    hierarchicalClustering.numOfTotalBlobs = args.getl("b", 0);
+    hierarchicalClustering.clusterID = args.getl("c", -1);
+    silence = !args.getBool("v");
+  
+    char iMode = args.getChar("i", '-');
+    hierarchicalClustering.initMode = NGT::Clustering::InitializationModeKmeansPlusPlus;
+    switch (iMode) {
+    case 'l':
+    case 'h': hierarchicalClustering.initMode = NGT::Clustering::InitializationModeHead; break;
+    case 'r': hierarchicalClustering.initMode = NGT::Clustering::InitializationModeRandom; break;
+    case 'R': hierarchicalClustering.initMode = NGT::Clustering::InitializationModeRandomFixedSeed; break;
+    case 'P': hierarchicalClustering.initMode = NGT::Clustering::InitializationModeKmeansPlusPlusFixedSeed; break;
+    default:
+    case '-':
+    case 'p': hierarchicalClustering.initMode = NGT::Clustering::InitializationModeKmeansPlusPlus; break;
+    }
 
+    hierarchicalClustering.numOfRandomObjects = args.getl("r", 0);
+    char rmode = args.getChar("R", '-');
+    if (rmode == 'c') {
+      hierarchicalClustering.extractCentroid = true;
+    } else {
+      hierarchicalClustering.extractCentroid = false;
+    }
+
+    hierarchicalClustering.numOfFirstObjects = 0;
+    hierarchicalClustering.numOfFirstClusters = 0;
+    hierarchicalClustering.numOfSecondObjects = 0;
+    hierarchicalClustering.numOfSecondClusters = 0;
+    hierarchicalClustering.numOfThirdClusters = 0;
+
+    hierarchicalClustering.threeLayerClustering = true;
+
+    std::string blob = args.getString("B", "");
+    if (blob == "-") {
+      hierarchicalClustering.threeLayerClustering = false;
+    } else {
+      hierarchicalClustering.threeLayerClustering = true;
+    }
+    if (hierarchicalClustering.threeLayerClustering) {
+      std::vector<std::string> tokens;
+      NGT::Common::tokenize(blob, tokens, ",");
+      if (tokens.size() > 0) {
+	std::vector<std::string> ftokens;
+	NGT::Common::tokenize(tokens[0], ftokens, ":");
+	if (ftokens.size() >= 1) {
+	  hierarchicalClustering.numOfFirstObjects = NGT::Common::strtof(ftokens[0]);
+	}
+	if (ftokens.size() >= 2) {
+	  hierarchicalClustering.numOfFirstClusters = NGT::Common::strtof(ftokens[1]);
+	}
+      }
+      if (tokens.size() > 1) {
+	std::vector<std::string> ftokens;
+	NGT::Common::tokenize(tokens[1], ftokens, ":");
+	if (ftokens.size() >= 1) {
+	  hierarchicalClustering.numOfSecondObjects = NGT::Common::strtof(ftokens[0]);
+	}
+	if (ftokens.size() >= 2) {
+	  hierarchicalClustering.numOfSecondClusters = NGT::Common::strtof(ftokens[1]);
+	}
+      }
+      if (tokens.size() > 2) {
+	std::vector<std::string> ftokens;
+	NGT::Common::tokenize(tokens[2], ftokens, ":");
+	if (ftokens.size() >= 1) {
+	  if (ftokens[0] == "" || ftokens[0] == "-") {
+	    hierarchicalClustering.numOfObjects = 0;
+	  } else {
+	    hierarchicalClustering.numOfObjects = NGT::Common::strtof(ftokens[0]);
+	  }
+	}
+	if (ftokens.size() >= 2) {
+	  hierarchicalClustering.numOfThirdClusters = NGT::Common::strtof(ftokens[1]);
+	}
+      }
+    }
+  }
+
+  void getOptimizationParameters() {
+    optimization.numberOfObjects = args.getl("o", 1000);
+    optimization.numberOfClusters = args.getl("n", 0);
+    optimization.numberOfSubvectors = args.getl("m", 0);
+
+    optimization.randomizedObjectExtraction = true;
+
+#ifdef NGT_CLUSTERING
+    string cType;
+    try {
+      cType = args.getString("C", "k");
+    } catch(...) {}
+
+    optimization.clusteringType = NGT::Clustering::ClusteringTypeKmeansWithNGT;
+    if (cType == "k") {
+      optimization.clusteringType = NGT::Clustering::ClusteringTypeKmeansWithoutNGT;
+    } else if (cType == "KS") {
+      optimization.clusteringType = NGT::Clustering::ClusteringTypeKmeansWithNGT;
+    } else if (cType == "i") {
+      optimization.clusteringType = NGT::Clustering::ClusteringTypeKmeansWithIteration;
+    } else {
+      std::stringstream msg;
+      msg << "invalid clustering type. " << cType;
+      NGTThrowException(msg);
+    }
+#else
+    char clusteringType;
+    try {
+      clusteringType = args.getChar("C", 'k');
+    } catch(...) {}
+#endif
+  
+#ifdef NGT_CLUSTERING
+    char iMode = args.getChar("i", '-');
+    optimization.initMode = NGT::Clustering::InitializationModeKmeansPlusPlus;
+    switch (iMode) {
+    case 'h': optimization.initMode = NGT::Clustering::InitializationModeHead; break;
+    case 'r': optimization.initMode = NGT::Clustering::InitializationModeRandom; break;
+    case 'p': optimization.initMode = NGT::Clustering::InitializationModeKmeansPlusPlus; break;
+    case 'R': optimization.initMode = NGT::Clustering::InitializationModeRandomFixedSeed; break;
+    case 'P': optimization.initMode = NGT::Clustering::InitializationModeKmeansPlusPlusFixedSeed; break;
+    default:
+    case '-':
+    case 'b': optimization.initMode = NGT::Clustering::InitializationModeBest; break;
+    }
+#else
+    optimization.initMode = args.getChar("i", '-');
+#endif
+  
+    optimization.convergenceLimitTimes = args.getl("c", 5);
+    optimization.iteration = args.getl("t", 100);
+    optimization.clusterIteration = args.getl("I", 100);
+
+    optimization.clusterSizeConstraint = false;
+    if (args.getChar("s", 'f') == 't') {
+      optimization.clusterSizeConstraintCoefficient = 5.0;
+      optimization.clusterSizeConstraint = true;
+    } else if (args.getChar("s", 'f') == 'f') {
+      optimization.clusterSizeConstraint = false;
+    } else {
+      optimization.clusterSizeConstraint = true;
+      optimization.clusterSizeConstraintCoefficient = args.getf("s", 5.0);
+    }
+  
+    optimization.nOfMatrices = args.getl("M", 2);
+    optimization.seedStartObjectSizeRate = args.getf("S", 0.1);
+    optimization.seedStep = args.getl("X", 2);
+    optimization.reject = args.getf("R", 0.9);
+    optimization.timelimit = args.getf("L", 24 * 1); 
+    optimization.timelimit *= 60.0 * 60.0; 
+    optimization.showClusterInfo = args.getBool("Z");
+    silence = !args.getBool("v");
+
+#ifdef NGTQG_NO_ROTATION
+    char positionMode = args.getChar("P", 'n');
+#else
+    char positionMode = args.getChar("P", 'r');
+#endif
+    switch (positionMode) {
+    case 'r':
+      optimization.rotation = true;
+      optimization.repositioning = false;
+      break;
+    case 'R':
+      optimization.rotation = true;
+      optimization.repositioning = true;
+      break;
+    case 'p':
+      optimization.rotation = false;
+      optimization.repositioning = true;
+      break;
+    case 'n':
+    default:
+      optimization.rotation = false;
+      optimization.repositioning = false;
+    }
+    char globalType = args.getChar("G", '-');
+    switch (globalType) {
+    case 'z':
+      optimization.globalType = QBG::Optimizer::GlobalTypeZero; break;
+    case 'm':
+      optimization.globalType = QBG::Optimizer::GlobalTypeMean; break;
+    default:
+    case 'n':
+      optimization.globalType = QBG::Optimizer::GlobalTypeNone; break;
+      break;
+    }
+  }
+protected:
+  NGT::Args &args;
 };
+
 
 class SearchParameters : public NGT::Command::SearchParameters {
 public:
@@ -168,122 +357,14 @@ public:
   float	stepOfResultExpansion;
 };
 
-static void optimizationParameters(NGT::Args &args, NGTQ::Optimizer &optimizer) {
-  args.parse("Zv");
-  optimizer.numberOfObjects = args.getl("o", 1000);
-  optimizer.numberOfClusters = args.getl("n", 0);
-  optimizer.numberOfSubvectors = args.getl("m", 0);
-
-  optimizer.randomizedObjectExtraction = true;
-
-#ifdef NGT_CLUSTERING
-  string cType;
-  try {
-    cType = args.getString("C", "k");
-  } catch(...) {}
-
-  optimizer.clusteringType = NGT::Clustering::ClusteringTypeKmeansWithNGT;
-  if (cType == "k") {
-    optimizer.clusteringType = NGT::Clustering::ClusteringTypeKmeansWithoutNGT;
-  } else if (cType == "KS") {
-    optimizer.clusteringType = NGT::Clustering::ClusteringTypeKmeansWithNGT;
-  } else if (cType == "i") {
-    optimizer.clusteringType = NGT::Clustering::ClusteringTypeKmeansWithIteration;
-  } else {
-    std::stringstream msg;
-    msg << "invalid clustering type. " << cType;
-    NGTThrowException(msg);
-  }
-#else
-  char clusteringType;
-  try {
-    clusteringType = args.getChar("C", 'k');
-  } catch(...) {}
-#endif
-  
-#ifdef NGT_CLUSTERING
-  char iMode = args.getChar("i", '-');
-  optimizer.initMode = NGT::Clustering::InitializationModeKmeansPlusPlus;
-  switch (iMode) {
-  case 'h': optimizer.initMode = NGT::Clustering::InitializationModeHead; break;
-  case 'r': optimizer.initMode = NGT::Clustering::InitializationModeRandom; break;
-  case 'p': optimizer.initMode = NGT::Clustering::InitializationModeKmeansPlusPlus; break;
-  case 'R': optimizer.initMode = NGT::Clustering::InitializationModeRandomFixedSeed; break;
-  case 'P': optimizer.initMode = NGT::Clustering::InitializationModeKmeansPlusPlusFixedSeed; break;
-  default:
-  case '-':
-  case 'b': optimizer.initMode = NGT::Clustering::InitializationModeBest; break;
-  }
-#else
-  optimizer.initMode = args.getChar("i", '-');
-#endif
-  
-  optimizer.convergenceLimitTimes = args.getl("c", 5);
-  optimizer.iteration = args.getl("t", 100);
-  optimizer.clusterIteration = args.getl("I", 100);
-
-  optimizer.clusterSizeConstraint = false;
-  if (args.getChar("s", 'f') == 't') {
-    optimizer.clusterSizeConstraintCoefficient = 5.0;
-    optimizer.clusterSizeConstraint = true;
-  } else if (args.getChar("s", 'f') == 'f') {
-    optimizer.clusterSizeConstraint = false;
-  } else {
-    optimizer.clusterSizeConstraint = true;
-    optimizer.clusterSizeConstraintCoefficient = args.getf("s", 5.0);
-  }
-  
-  optimizer.nOfMatrices = args.getl("M", 2);
-  optimizer.seedStartObjectSizeRate = args.getf("S", 0.1);
-  optimizer.seedStep = args.getl("X", 2);
-  optimizer.reject = args.getf("R", 0.9);
-  optimizer.timelimit = args.getf("L", 24 * 1); 
-  optimizer.timelimit *= 60.0 * 60.0; 
-  optimizer.showClusterInfo = args.getBool("Z");
-  optimizer.silence = !args.getBool("v");
-
-#ifdef NGTQG_NO_ROTATION
-  char positionMode = args.getChar("P", 'n');
-#else
-  char positionMode = args.getChar("P", 'r');
-#endif
-  switch (positionMode) {
-  case 'r':
-    optimizer.rotation = true;
-    optimizer.repositioning = false;
-    break;
-  case 'R':
-    optimizer.rotation = true;
-    optimizer.repositioning = true;
-    break;
-  case 'p':
-    optimizer.rotation = false;
-    optimizer.repositioning = true;
-    break;
-  case 'n':
-  default:
-    optimizer.rotation = false;
-    optimizer.repositioning = false;
-  }
-  char globalType = args.getChar("G", '-');
-  switch (globalType) {
-  case 'z':
-    optimizer.globalType = NGTQ::Optimizer::GlobalTypeZero; break;
-  case 'm':
-    optimizer.globalType = NGTQ::Optimizer::GlobalTypeMean; break;
-  default:
-  case 'n':
-    optimizer.globalType = NGTQ::Optimizer::GlobalTypeNone; break;
-    break;
-  }
-}
 
 void 
 QBG::CLI::buildQG(NGT::Args &args)
 {
   const std::string usage = "Usage: qbg build-qg [-Q dimension-of-subvector] [-E max-number-of-edges] index";
 
-  args.parse("Zv");
+  QbgCliBuildParameters buildParameters(args);
+  buildParameters.getBuildParameters();
 
   string indexPath;
   try {
@@ -300,14 +381,8 @@ QBG::CLI::buildQG(NGT::Args &args)
   const std::string qgPath = indexPath + "/qg";
 
   if (phase == 0 || phase == 1) {
-    NGTQ::Optimizer optimizer;
-    optimizer.globalType = NGTQ::Optimizer::GlobalTypeZero;
-    try {
-      optimizationParameters(args, optimizer);
-    } catch(NGT::Exception &err) {
-      std::cerr << err.what() << std::endl;
-      cerr << usage << endl;
-    }
+    QBG::Optimizer optimizer(buildParameters);
+    optimizer.globalType = QBG::Optimizer::GlobalTypeZero;
 
 #ifdef NGTQG_NO_ROTATION
     if (optimizer.rotation || optimizer.repositioning) {
@@ -316,11 +391,6 @@ QBG::CLI::buildQG(NGT::Args &args)
       optimizer.repositioning = false;
     }
 #endif
-
-    if (optimizer.globalType == NGTQ::Optimizer::GlobalTypeNone) {
-      std::cerr << "build-qg: Warning! None is unavailable for the global type. Zero is set to the global type." << std::endl;
-      optimizer.globalType = NGTQ::Optimizer::GlobalTypeZero;
-    }
 
     std::cerr << "optimizing..." << std::endl;
     optimizer.optimize(qgPath);
@@ -333,7 +403,7 @@ QBG::CLI::buildQG(NGT::Args &args)
   if (phase == 0 || phase == 3) {
     std::cerr << "building the quantized graph... " << std::endl;
     bool silence = true;
-    NGTQG::Index::quantize(indexPath, maxNumOfEdges, silence);
+    NGTQG::Index::realign(indexPath, maxNumOfEdges, silence);
   }
 }
 
@@ -500,9 +570,11 @@ QBG::CLI::searchQG(NGT::Args &args) {
 void 
 QBG::CLI::createQG(NGT::Args &args)
 {
-  const std::string usage = "Usage: qbg create-qbg [-Q dimension-of-subvector] index";
+  const std::string usage = "Usage: qbg create-qg [-Q dimension-of-subvector] index";
 
-  args.parse("v");
+  QbgCliBuildParameters buildParameters(args);
+  buildParameters.getCreationParameters();
+  
   string indexPath;
   try {
     indexPath = args.get("#1");
@@ -511,18 +583,9 @@ QBG::CLI::createQG(NGT::Args &args)
     cerr << usage << endl;
     return;
   }
-  char mode	= args.getChar("m", '-');
-  size_t dimensionOfSubvector = args.getl("Q", 0);
-  size_t seudoDimension = args.getl("P", 0);
-  bool silence = !args.getBool("v");
-
   std::cerr << "creating..."  << std::endl;
-  NGTQG::Index::create(indexPath, dimensionOfSubvector, seudoDimension);
-
-  if (mode == '-') {
-    std::cerr << "appending..."  << std::endl;
-    QBG::Index::appendFromObjectRepository(indexPath, indexPath + "/qg", silence);
-  }
+  NGTQG::Index::create(indexPath, buildParameters);
+  NGTQG::Index::append(indexPath, buildParameters);
 }
 
 void 
@@ -542,32 +605,6 @@ QBG::CLI::appendQG(NGT::Args &args)
 
 
 void 
-QBG::CLI::quantizeQG(NGT::Args &args)
-{
-#ifdef NGTQ_QBG
-  const std::string usage = "Usage: ngtqg quantize [-E max-number-of-edges] index";
-#else
-  const std::string usage = "Usage: ngtqg quantize [-Q dimension-of-subvector] [-E max-number-of-edges] index";
-#endif
-  string indexPath;
-  try {
-    indexPath = args.get("#1");
-  } catch (...) {
-    cerr << "An index is not specified." << endl;
-    cerr << usage << endl;
-    return;
-  }
-  size_t maxNumOfEdges = args.getl("E", 128);
-
-#ifdef NGTQ_QBG
-  NGTQG::Index::quantize(indexPath, maxNumOfEdges);
-#else
-  size_t dimensionOfSubvector = args.getl("Q", 0);
-  NGTQG::Index::quantize(indexPath, dimensionOfSubvector, maxNumOfEdges);
-#endif
-}
-
-void 
 QBG::CLI::create(NGT::Args &args)
 {
   const string usage = "Usage: qbg create "
@@ -580,10 +617,10 @@ QBG::CLI::create(NGT::Args &args)
     "index(OUT) data.tsv(IN) rotation(IN)";
 
   try {
-    CreateParameters createParameters(args);
-
     cerr << "qbg: Create" << endl;
-#ifdef NGTQ_QBG
+    QbgCliBuildParameters buildParameters(args);
+    buildParameters.getCreationParameters();
+
     std::vector<float> r;
     auto *rotation = &r;
     {
@@ -609,20 +646,13 @@ QBG::CLI::create(NGT::Args &args)
       }
       std::cerr << "rotation matrix size=" << r.size() << std::endl;
     }
-    
-    QBG::Index::create(createParameters.index, createParameters.property, createParameters.globalProperty,
-			  createParameters.localProperty, rotation, createParameters.objectPath);
-#else
-    QBG::Index::create(createParameters.index, createParameters.property, createParameters.globalProperty,
-			  createParameters.localProperty);
-#endif
-    
-#ifndef NGTQ_QBG
-    if (!createParameters.objectPath.empty()) {
-      cerr << "qbg: Append" << endl;
-      QBG::Index::append(createParameters.index, createParameters.objectPath, createParameters.numOfObjects);
-    }
-#endif
+    std::string indexPath = args.get("#1");
+    std::string objectPath;
+    try {
+      objectPath = args.get("#2");
+    } catch(...) {}
+
+    QBG::Index::create(indexPath, buildParameters, rotation, objectPath);
   } catch(NGT::Exception &err) {
     std::cerr << err.what() << std::endl;
     cerr << usage << endl;
@@ -883,98 +913,6 @@ QBG::CLI::append(NGT::Args &args)
   }
 }
 
-static void hierarchicalKmeansParameters(NGT::Args &args, QBG::HierarchicalKmeans &hierarchicalKmeans)
-{
-  args.parse("Zv");
-  hierarchicalKmeans.maxSize = args.getl("r", 1000); 
-  hierarchicalKmeans.numOfObjects = args.getl("O", 0); 
-  hierarchicalKmeans.numOfClusters = args.getl("E", 2); 
-  try {
-    hierarchicalKmeans.numOfTotalClusters = args.getl("C", 0);
-  } catch (...) {
-    hierarchicalKmeans.numOfTotalClusters = 0;
-  }
-  hierarchicalKmeans.numOfTotalBlobs = args.getl("b", 0);
-  hierarchicalKmeans.clusterID = args.getl("c", -1);
-  hierarchicalKmeans.silence = !args.getBool("v");
-  
-  char iMode = args.getChar("i", '-');
-  hierarchicalKmeans.initMode = NGT::Clustering::InitializationModeKmeansPlusPlus;
-  switch (iMode) {
-  case 'l':
-  case 'h': hierarchicalKmeans.initMode = NGT::Clustering::InitializationModeHead; break;
-  case 'r': hierarchicalKmeans.initMode = NGT::Clustering::InitializationModeRandom; break;
-  case 'R': hierarchicalKmeans.initMode = NGT::Clustering::InitializationModeRandomFixedSeed; break;
-  case 'P': hierarchicalKmeans.initMode = NGT::Clustering::InitializationModeKmeansPlusPlusFixedSeed; break;
-  default:
-  case '-':
-  case 'p': hierarchicalKmeans.initMode = NGT::Clustering::InitializationModeKmeansPlusPlus; break;
-  }
-
-  hierarchicalKmeans.numOfRandomObjects = args.getl("r", 0);
-  char rmode = args.getChar("R", '-');
-  if (rmode == 'c') {
-    hierarchicalKmeans.extractCentroid = true;
-  } else {
-    hierarchicalKmeans.extractCentroid = false;
-  }
-
-  hierarchicalKmeans.numOfFirstObjects = 0;
-  hierarchicalKmeans.numOfFirstClusters = 0;
-  hierarchicalKmeans.numOfSecondObjects = 0;
-  hierarchicalKmeans.numOfSecondClusters = 0;
-  hierarchicalKmeans.numOfThirdClusters = 0;
-
-  hierarchicalKmeans.threeLayerClustering = true;
-
-  std::string blob = args.getString("B", "");
-  if (blob == "-") {
-    hierarchicalKmeans.threeLayerClustering = false;
-  } else {
-    hierarchicalKmeans.threeLayerClustering = true;
-  }
-  if (hierarchicalKmeans.threeLayerClustering) {
-    std::vector<std::string> tokens;
-    NGT::Common::tokenize(blob, tokens, ",");
-    if (tokens.size() > 0) {
-      std::vector<std::string> ftokens;
-      NGT::Common::tokenize(tokens[0], ftokens, ":");
-      if (ftokens.size() >= 1) {
-	hierarchicalKmeans.numOfFirstObjects = NGT::Common::strtof(ftokens[0]);
-      }
-      if (ftokens.size() >= 2) {
-	hierarchicalKmeans.numOfFirstClusters = NGT::Common::strtof(ftokens[1]);
-      }
-    }
-    if (tokens.size() > 1) {
-      std::vector<std::string> ftokens;
-      NGT::Common::tokenize(tokens[1], ftokens, ":");
-      if (ftokens.size() >= 1) {
-	hierarchicalKmeans.numOfSecondObjects = NGT::Common::strtof(ftokens[0]);
-      }
-      if (ftokens.size() >= 2) {
-	hierarchicalKmeans.numOfSecondClusters = NGT::Common::strtof(ftokens[1]);
-      }
-    }
-    if (tokens.size() > 2) {
-      std::vector<std::string> ftokens;
-      NGT::Common::tokenize(tokens[2], ftokens, ":");
-      if (ftokens.size() >= 1) {
-	hierarchicalKmeans.numOfObjects = NGT::Common::strtof(ftokens[0]);
-      }
-      if (ftokens.size() >= 2) {
-	hierarchicalKmeans.numOfThirdClusters = NGT::Common::strtof(ftokens[1]);
-      }
-    }
-    std::cerr << "blob param=:" << std::endl;
-    std::cerr << "numOfFirstObjects=" << hierarchicalKmeans.numOfFirstObjects << std::endl;
-    std::cerr << "numOfFirstClusters=" << hierarchicalKmeans.numOfFirstClusters << std::endl;
-    std::cerr << "numOfSecondClusters=" << hierarchicalKmeans.numOfSecondClusters << std::endl;
-    std::cerr << "numOfSecondObjects=" << hierarchicalKmeans.numOfSecondObjects << std::endl;
-    std::cerr << "numOfThirdClusters=" << hierarchicalKmeans.numOfThirdClusters << std::endl;
-    std::cerr << "numOfThirdObjects=" << hierarchicalKmeans.numOfObjects << std::endl;
-  }
-}
 
 void 
 QBG::CLI::buildIndex(NGT::Args &args)
@@ -1120,7 +1058,8 @@ QBG::CLI::build(NGT::Args &args)
 {
   const std::string usage = "Usage: qbg build [-Q dimension-of-subvector] [-E max-number-of-edges] index";
 
-  args.parse("Zv");
+  QbgCliBuildParameters buildParameters(args);
+  buildParameters.getBuildParameters();
 
   string indexPath;
   try {
@@ -1131,32 +1070,25 @@ QBG::CLI::build(NGT::Args &args)
     return;
   }
 
-  HierarchicalKmeans hierarchicalKmeans;
+  size_t phase = args.getl("p", 0);
 
-  try {
-    hierarchicalKmeansParameters(args, hierarchicalKmeans);
-  } catch (NGT::Exception &err) {
-    cerr << "Error " << err.what() << endl;
-    cerr << usage << endl;
-    return;
+  HierarchicalKmeans hierarchicalKmeans(buildParameters);
+
+  if (phase == 0 || phase == 1) {
+    hierarchicalKmeans.clustering(indexPath);
   }
 
-  hierarchicalKmeans.clustering(indexPath);
+  QBG::Optimizer optimizer(buildParameters);
 
-  NGTQ::Optimizer optimizer;
-
-  try {
-    optimizationParameters(args, optimizer);
-  } catch(NGT::Exception &err) {
-    std::cerr << err.what() << std::endl;
-    cerr << usage << endl;
+  if (phase == 0 || phase == 2) {
+    std::cerr << "optimizing..." << std::endl;
+    optimizer.optimize(indexPath);
   }
-  
-  std::cerr << "optimizing..." << std::endl;
-  optimizer.optimize(indexPath);
 
-  std::cerr << "building..." << std::endl;
-  QBG::Index::build(indexPath, optimizer.silence);
+  if (phase == 0 || phase == 3) {
+    std::cerr << "building..." << std::endl;
+    QBG::Index::build(indexPath, optimizer.silence);
+  }
 }
 
 
@@ -1166,6 +1098,8 @@ QBG::CLI::hierarchicalKmeans(NGT::Args &args)
 {
   const std::string usage = "qbg kmeans -O #-of-objects -B x1:y1,x2,y2,x3 index [prefix] [object-ID-file]";
   std::string indexPath;
+
+  QbgCliBuildParameters buildParameters(args);
 
   try {
     indexPath = args.get("#1");
@@ -1191,15 +1125,8 @@ QBG::CLI::hierarchicalKmeans(NGT::Args &args)
     cerr << "Object ID file is not specified" << endl;
   }
 
-  HierarchicalKmeans hierarchicalKmeans;
+  HierarchicalKmeans hierarchicalKmeans(buildParameters);
   
-  try {
-    hierarchicalKmeansParameters(args, hierarchicalKmeans);
-  } catch (NGT::Exception &err) {
-    cerr << "Error " << err.what() << endl;
-    cerr << usage << endl;
-    return;
-  }
 
   hierarchicalKmeans.clustering(indexPath, prefix, objectIDsFile);
 }
@@ -1525,6 +1452,8 @@ QBG::CLI::optimize(NGT::Args &args)
   string usage = "Usage: qbg optimize -n number-of-clusters -m number-of subspaces [-O t|f] [-s t|f] [-I cluster-iteration] [-t R-max-iteration] [-c convergence-limit-times] vector-file [output-file-prefix]\n"
     "       qbg optimize -e E -n number-of-clusters -m number-of index [subspaces] [vector-file] [local-centroid-file] [global-centroid-file]";
 
+  QbgCliBuildParameters buildParameters(args);
+
   std::string indexPath;
   try {
     indexPath = args.get("#1");
@@ -1549,14 +1478,8 @@ QBG::CLI::optimize(NGT::Args &args)
     global = args.get("#4");
   } catch(...) {}
 
-  NGTQ::Optimizer optimizer;
+  QBG::Optimizer optimizer(buildParameters);
 
-  try {
-    optimizationParameters(args, optimizer);
-  } catch(NGT::Exception &err) {
-    std::cerr << err.what() << std::endl;
-    cerr << usage << endl;
-  }
 
   if (invector.empty() || ofile.empty() || global.empty()) {
     optimizer.optimize(indexPath);

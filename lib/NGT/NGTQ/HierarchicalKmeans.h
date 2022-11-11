@@ -45,6 +45,31 @@ namespace QBG {
       silence = true;
     }
 
+    HierarchicalKmeans(QBG::BuildParameters &param) {
+#ifdef NGTQ_QBG
+      maxSize			= param.hierarchicalClustering.maxSize;
+      numOfObjects		= param.hierarchicalClustering.numOfObjects;
+      numOfClusters		= param.hierarchicalClustering.numOfClusters;
+      numOfTotalClusters	= param.hierarchicalClustering.numOfTotalClusters;
+      numOfTotalBlobs		= param.hierarchicalClustering.numOfTotalBlobs;
+      clusterID			= param.hierarchicalClustering.clusterID;
+
+      initMode			= param.hierarchicalClustering.initMode;
+
+      numOfRandomObjects	= param.hierarchicalClustering.numOfRandomObjects;
+
+      numOfFirstObjects		= param.hierarchicalClustering.numOfFirstObjects;
+      numOfFirstClusters	= param.hierarchicalClustering.numOfFirstClusters;
+      numOfSecondObjects	= param.hierarchicalClustering.numOfSecondObjects;
+      numOfSecondClusters	= param.hierarchicalClustering.numOfSecondClusters;
+      numOfThirdClusters	= param.hierarchicalClustering.numOfThirdClusters;
+      extractCentroid		= param.hierarchicalClustering.extractCentroid;
+
+      threeLayerClustering	= param.hierarchicalClustering.threeLayerClustering;
+      silence			= param.silence;
+#endif
+    }
+
     static int32_t searchLeaf(std::vector<HKNode*> &nodes, int32_t rootID, float *object) {
       auto nodeID = rootID;
       while (true) {
@@ -945,7 +970,7 @@ namespace QBG {
 	    abort();
 	  }
 	  {
-	    std::ofstream of(prefix + "_qcentroid.tsv");
+	    std::ofstream of(prefix + QBG::Index::getSecondCentroidSuffix());
 	    extractCentroids(of, nodes);
 	  }
 	  std::vector<uint32_t> qNodeIDs;
@@ -958,7 +983,7 @@ namespace QBG {
 	  hierarchicalKmeansWithNumberOfClustersInParallel(numOfTotalBlobs, numOfObjects, numOfTotalClusters, 
 							   objectList, objectSpace, nodes, initMode);
 	  {
-	    std::ofstream of(prefix + "_btoq_index.tsv");
+	    std::ofstream of(prefix + QBG::Index::get3rdTo2ndSuffix());
 	    extractBtoQIndex(of, nodes, qNodeIDs);
 	  }
 	}
@@ -1067,7 +1092,7 @@ namespace QBG {
 	timer.stop();
 	std::cerr << "subclustering(1) time=" << timer << std::endl;
 	std::cerr << "save quantization centroid" << std::endl;
-	NGT::Clustering::saveClusters(prefix + "_qcentroid.tsv", secondClusters);
+	NGT::Clustering::saveClusters(prefix + QBG::Index::getSecondCentroidSuffix(), secondClusters);
 	timer.start();
 	std::cerr << "Assign for the third. (" << numOfSecondObjects << "-" << numOfObjects << ")..." << std::endl;
 	assignWithNGT(secondClusters, numOfSecondObjects + 1, numOfObjects, objectSpace, objectList);
@@ -1087,14 +1112,14 @@ namespace QBG {
 	    }
 	  }
 	  std::cerr << "save bqindex..." << std::endl;
-	  NGT::Clustering::saveVector(prefix + "_bqindex.tsv", bqindex);
+	  NGT::Clustering::saveVector(prefix + QBG::Index::get3rdTo2ndSuffix(), bqindex);
 	}
 	
 	std::vector<NGT::Clustering::Cluster> thirdFlatClusters;
 	flattenClusters(secondClusters, thirdClusters, numOfThirdClusters, thirdFlatClusters);
 
 	std::cerr << "save centroid..." << std::endl;
-	NGT::Clustering::saveClusters(prefix + "_centroid.tsv", thirdFlatClusters);
+	NGT::Clustering::saveClusters(prefix + QBG::Index::getThirdCentroidSuffix(), thirdFlatClusters);
 
 	{
 	  std::vector<size_t> cindex(numOfObjects);
@@ -1105,7 +1130,7 @@ namespace QBG {
 	    }
 	  }
 	  std::cerr << "save index... " << cindex.size() << std::endl;
-	  NGT::Clustering::saveVector(prefix + "_index.tsv", cindex);
+	  NGT::Clustering::saveVector(prefix + QBG::Index::getObjTo3rdSuffix(), cindex);
 	}
 	std::cerr << "end of clustering" << std::endl;
 	return;
@@ -1117,103 +1142,122 @@ namespace QBG {
       NGT::StdOstreamRedirector redirector(silence);
       redirector.begin();
 
-      QBG::Index index(indexPath, true);
+      bool readOnly = false;
+      QBG::Index index(indexPath, readOnly);
+      index.getQuantizer().objectList.size();
+      std::cerr << "clustering... " << std::endl;
       if (threeLayerClustering) {
-
-	if (prefix.empty()) {
-	  std::cerr << "Prefix is not specified." << std::endl;
-	  prefix = indexPath + "/" + QBG::Index::getWorkspaceName();
-	  try {
-	    NGT::Index::mkdir(prefix);
-	  } catch(...) {}
-	  prefix +="/kmeans-cluster";
-	  std::cerr << prefix << " is used" << std::endl;
+	try {
+	  if (numOfObjects == 0) {
+	    numOfObjects = index.getQuantizer().objectList.size() - 1;
+	  }
+	  if (numOfObjects != index.getQuantizer().objectList.size() - 1) {
+	    std::cerr << "HierarchicalKmeans::clustering: Warning! # of objects is invalid." << std::endl;
+	    std::cerr << "     " << index.getQuantizer().objectList.size() - 1 << " is set to # of object instead of " << numOfObjects << std::endl;
+	    numOfObjects = index.getQuantizer().objectList.size() - 1;
+	  }
+	  if (prefix.empty()) {
+	    std::cerr << "Prefix is not specified." << std::endl;
+	    prefix = indexPath + "/" + QBG::Index::getWorkspaceName();
+	    try {
+	      NGT::Index::mkdir(prefix);
+	    } catch(...) {}
+	    prefix +="/" + QBG::Index::getHierarchicalClusteringPrefix();
+	    std::cerr << prefix << " is used" << std::endl;
+	  }
+	  auto &quantizer = static_cast<NGTQ::QuantizerInstance<uint8_t>&>(index.getQuantizer());
+	  auto &objectSpace = quantizer.globalCodebookIndex.getObjectSpace();
+	  size_t paddedDimension = objectSpace.getPaddedDimension();
+	  size_t dimension = objectSpace.getDimension();
+	  if (paddedDimension != dimension) {
+	    std::cerr << "HierarachicalKmeans: Warning! Dimensions are inconsistent. Dimension=" << paddedDimension << ":" << dimension << std::endl;
+	  }
+	  multilayerClustering(prefix, index);
+	} catch(NGT::Exception &err) {
+	  redirector.end();
+	  throw err;
 	}
-	auto &quantizer = static_cast<NGTQ::QuantizerInstance<uint8_t>&>(index.getQuantizer());
-	auto &objectSpace = quantizer.globalCodebookIndex.getObjectSpace();
-	size_t paddedDimension = objectSpace.getPaddedDimension();
-	size_t dimension = objectSpace.getDimension();
-	if (paddedDimension != dimension) {
-	  std::cerr << "HierarachicalKmeans: Warning! Dimensions are inconsistent. Dimension=" << paddedDimension << ":" << dimension << std::endl;
-	}
-	multilayerClustering(prefix, index);
 	redirector.end();
 	return;
       }
+      try {
+	NGT::Clustering::ClusteringType clusteringType = NGT::Clustering::ClusteringTypeKmeansWithoutNGT;
 
-      NGT::Clustering::ClusteringType clusteringType = NGT::Clustering::ClusteringTypeKmeansWithoutNGT;
+	uint32_t rootID = 0;
+	std::vector<HKNode*> nodes;
+	nodes.push_back(new HKLeafNode);
 
-      uint32_t rootID = 0;
-      std::vector<HKNode*> nodes;
-      nodes.push_back(new HKLeafNode);
-
-      std::vector<float> object;
-      size_t iteration = 1000;
-      NGT::Clustering clustering(initMode, clusteringType, iteration, numOfClusters);
-      auto &quantizer = static_cast<NGTQ::QuantizerInstance<uint8_t>&>(index.getQuantizer());
-      QBGObjectList &objectList = quantizer.objectList;
-      if (objectIDsFile.empty()) {
-	treeBasedTopdownClustering(prefix, index, rootID, object, nodes, clustering);
-      } else {
-	std::cerr << "Cluster ID=" << clusterID << std::endl;
-	if (clusterID < 0) {
-	  std::stringstream msg;
-	  msg << "Any target cluster ID is not specified.";
-	  NGTThrowException(msg);
-	}
-	std::ifstream objectIDs(objectIDsFile);
-	if (!objectIDs) {
-	  std::stringstream msg;
-	  msg << "Cannot open the object id file. " << objectIDsFile;
-	  NGTThrowException(msg);
-	}
-	auto &objectSpace = quantizer.globalCodebookIndex.getObjectSpace();
-	uint32_t id = 1;
-	int32_t cid;
-	size_t ccount = 0;
-	while (objectIDs >> cid) {
-	  std::cerr << cid << std::endl;
-	  if (id % 100000 == 0) {
-	    std::cerr << "# of processed objects=" << id << std::endl;
+	std::vector<float> object;
+	size_t iteration = 1000;
+	NGT::Clustering clustering(initMode, clusteringType, iteration, numOfClusters);
+	auto &quantizer = static_cast<NGTQ::QuantizerInstance<uint8_t>&>(index.getQuantizer());
+	QBGObjectList &objectList = quantizer.objectList;
+	if (objectIDsFile.empty()) {
+	  treeBasedTopdownClustering(prefix, index, rootID, object, nodes, clustering);
+	} else {
+	  std::cerr << "Cluster ID=" << clusterID << std::endl;
+	  if (clusterID < 0) {
+	    std::stringstream msg;
+	    msg << "Any target cluster ID is not specified.";
+	    NGTThrowException(msg);
 	  }
-	  if (cid == -1) {
-	    continue;
+	  std::ifstream objectIDs(objectIDsFile);
+	  if (!objectIDs) {
+	    std::stringstream msg;
+	    msg << "Cannot open the object id file. " << objectIDsFile;
+	    NGTThrowException(msg);
 	  }
-	  if (cid == clusterID) {
-	    ccount++;
-	    hierarchicalKmeans(id, rootID, object, objectList, objectSpace, nodes, clustering, maxSize);
-	  }
-	  id++;
-	}
-      }
-      size_t objectCount = 0;
-      if (prefix.empty()) {
-	objectCount = extractCentroids(std::cout, nodes);
-      } else {
-	{
-	  std::ofstream of(prefix + "_centroid.tsv");
-	  objectCount = extractCentroids(of, nodes);
-	}
-	{
-	  std::ofstream of(prefix + "_index.tsv");
-	  extractIndex(of, nodes, numOfObjects);
-	}
-	if (numOfFirstObjects > 0) {
-	  std::ofstream btoqof(prefix + "_btoq.tsv");
-	  std::ofstream qcof(prefix + "_qcentroid.tsv");
-	  extractBtoQAndQCentroid(btoqof, qcof, nodes, numOfThirdClusters);
-	}
-	if (numOfRandomObjects > 0) {
-	  std::ofstream of(prefix + "_random_object.tsv");
-	  if (extractCentroid) {
-	    extractRandomObjectsFromEachBlob(of, nodes, numOfObjects, numOfRandomObjects - 1, quantizer, extractCentroid);
-	  } else {
-	    extractRandomObjectsFromEachBlob(of, nodes, numOfObjects, numOfRandomObjects, quantizer, extractCentroid);
+	  auto &objectSpace = quantizer.globalCodebookIndex.getObjectSpace();
+	  uint32_t id = 1;
+	  int32_t cid;
+	  size_t ccount = 0;
+	  while (objectIDs >> cid) {
+	    std::cerr << cid << std::endl;
+	    if (id % 100000 == 0) {
+	      std::cerr << "# of processed objects=" << id << std::endl;
+	    }
+	    if (cid == -1) {
+	      continue;
+	    }
+	    if (cid == clusterID) {
+	      ccount++;
+	      hierarchicalKmeans(id, rootID, object, objectList, objectSpace, nodes, clustering, maxSize);
+	    }
+	    id++;
 	  }
 	}
-      }
-      if (objectCount != numOfObjects) {
-	std::cerr << "# of objects is invalid. " << objectCount << ":" << numOfObjects << std::endl;
+	size_t objectCount = 0;
+	if (prefix.empty()) {
+	  objectCount = extractCentroids(std::cout, nodes);
+	} else {
+	  {
+	    std::ofstream of(prefix + QBG::Index::getThirdCentroidSuffix());
+	    objectCount = extractCentroids(of, nodes);
+	  }
+	  {
+	    std::ofstream of(prefix + QBG::Index::getObjTo3rdSuffix());
+	    extractIndex(of, nodes, numOfObjects);
+	  }
+	  if (numOfFirstObjects > 0) {
+	    std::ofstream btoqof(prefix + QBG::Index::get3rdTo2ndSuffix());
+	    std::ofstream qcof(prefix + QBG::Index::getSecondCentroidSuffix());
+	    extractBtoQAndQCentroid(btoqof, qcof, nodes, numOfThirdClusters);
+	  }
+	  if (numOfRandomObjects > 0) {
+	    std::ofstream of(prefix + "_random_object.tsv");
+	    if (extractCentroid) {
+	      extractRandomObjectsFromEachBlob(of, nodes, numOfObjects, numOfRandomObjects - 1, quantizer, extractCentroid);
+	    } else {
+	      extractRandomObjectsFromEachBlob(of, nodes, numOfObjects, numOfRandomObjects, quantizer, extractCentroid);
+	    }
+	  }
+	}
+	if (objectCount != numOfObjects) {
+	  std::cerr << "# of objects is invalid. " << objectCount << ":" << numOfObjects << std::endl;
+	}
+      } catch(NGT::Exception &err) {
+	redirector.end();
+	throw err;
       }
       redirector.end();
     }

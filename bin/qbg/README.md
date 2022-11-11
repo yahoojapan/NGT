@@ -278,9 +278,9 @@ Build the quantized graph:
 
       $ qbg build qbg-index
 
-### Search with the quantized graph
+### Search with the quantized blob graph
 
-Search k nearest neighbors with the quantized graph:
+Search k nearest neighbors with the quantized blob graph:
 
       $ qbg search -n 20 -e 0.02 qbg-index query.tsv
       

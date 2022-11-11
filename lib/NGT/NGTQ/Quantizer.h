@@ -314,7 +314,26 @@ class QuantizationCodebook : public std::vector<T> {
   uint32_t paddedDimension;
   NGT::Index *index;
 };
- 
+
+class GraphNodeToInvertedIndexEntries : public std::vector<uint32_t> {
+  typedef std::vector<uint32_t> PARENT;
+ public:
+  GraphNodeToInvertedIndexEntries() {}
+  ~GraphNodeToInvertedIndexEntries() {}
+  void serialize(std::ofstream &os) {
+    uint32_t v = PARENT::size();
+    NGT::Serializer::write(os, v);
+    os.write(reinterpret_cast<const char*>(PARENT::data()), static_cast<uint64_t>(v) * sizeof(uint32_t));
+  }
+  void deserialize(std::ifstream &is) {
+    uint32_t v;
+    NGT::Serializer::read(is, v);
+    PARENT::resize(v);
+    is.read(reinterpret_cast<char*>(PARENT::data()), static_cast<uint64_t>(v) * sizeof(uint32_t));
+  }
+
+};
+
 template <typename T>
 class InvertedIndexObject {
 public:
@@ -2106,6 +2125,8 @@ public:
 
   virtual QuantizedObjectDistance &getQuantizedObjectDistance() = 0;
 
+  virtual size_t getInvertedIndexSize() = 0;
+
   ObjectList	objectList;
   string	rootDirectory;
 
@@ -2643,8 +2664,10 @@ public:
     }
 #endif // NGT_SHARED_MEMORY_ALLOCATOR
 #ifndef NGTQ_SHARED_INVERTED_INDEX
-    ofstream of(rootDirectory + "/ivt");
-    invertedIndex.serialize(of);
+    {
+      ofstream of(rootDirectory + "/ivt");
+      invertedIndex.serialize(of);
+    }
 #endif
 #ifdef NGTQ_QBG
     {
@@ -3243,7 +3266,7 @@ public:
     for (size_t idx = 0; idx < objects.size(); idx++) {
       if (objects[idx].second - 1 >= objectToBlobIndex.size()) {
 	std::cerr << "Quantizer::insert: Fatal Error! Object ID is invalid. " 
-		  << idx << ":" << objects[idx].second - 1 << ":" << objectToBlobIndex.size() 
+		  << idx << ":" << objects[idx].second - 1 << ":" << objectToBlobIndex.size()
 		  << ":" << objects.size()<< std::endl;
         abort();
       }
@@ -3543,6 +3566,8 @@ public:
 #endif
       invertedIndex.at(gid)->subspaceID = codebookIndex[idx];
     }
+
+
     
     quantizationCodebook.setPaddedDimension(globalCodebookIndex.getObjectSpace().getPaddedDimension());
     quantizationCodebook = qCodebook;
@@ -4311,6 +4336,8 @@ public:
 
   QuantizedObjectDistance &getQuantizedObjectDistance() { return *quantizedObjectDistance; }
 
+  size_t getInvertedIndexSize() { return invertedIndex.size(); }
+
 #ifdef NGTQ_SHARED_INVERTED_INDEX
   NGT::PersistentRepository<IIEntry>	invertedIndex;
 #else
@@ -4546,6 +4573,8 @@ public:
 
    size_t getGlobalCodebookSize() { return quantizer->globalCodebookIndex.getObjectRepositorySize(); }
    size_t getLocalCodebookSize(size_t idx) { return quantizer->getLocalCodebookSize(idx); }
+
+   size_t getInvertedIndexSize() { return quantizer->getInvertedIndexSize(); }
 
    size_t getSharedMemorySize(ostream &os, SharedMemoryAllocator::GetMemorySizeType t = SharedMemoryAllocator::GetTotalMemorySize) {
      return quantizer->getSharedMemorySize(os, t);

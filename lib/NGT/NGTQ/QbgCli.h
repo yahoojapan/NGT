@@ -39,7 +39,6 @@ namespace QBG {
     void gtRange(NGT::Args &args) {};
     void optimize(NGT::Args &args) {};
     void build(NGT::Args &args) {};
-    void quantizeQG(NGT::Args &args) {};
     void createQG(NGT::Args &args) {};
     void buildQG(NGT::Args &args) {};
     void appendQG(NGT::Args &args) {};
@@ -58,7 +57,6 @@ namespace QBG {
     void gtRange(NGT::Args &args);
     void optimize(NGT::Args &args);
     void build(NGT::Args &args);
-    void quantizeQG(NGT::Args &args);
     void createQG(NGT::Args &args);
     void buildQG(NGT::Args &args);
     void appendQG(NGT::Args &args);
@@ -115,8 +113,6 @@ namespace QBG {
 	  build(args);
 	} else if (command == "create-qg") {
 	  createQG(args);
-	} else if (command == "quantize-qg") {
-	  quantizeQG(args);
 	} else if (command == "build-qg") {
 	  buildQG(args);
 	} else if (command == "append-qg") {

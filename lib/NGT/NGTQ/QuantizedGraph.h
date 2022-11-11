@@ -27,6 +27,9 @@
 #undef NGTQG_BLOB_GRAPH
 #endif
 
+namespace QBG {
+  class BuildParameters;
+};
 
 namespace NGTQG {
   class SearchContainer : public NGT::SearchContainer {
@@ -552,6 +555,9 @@ namespace NGTQG {
       NGTQ::Index::create(quantizedIndexPath, property, globalProperty, localProperty);
 
     }
+#ifdef NGTQ_QBG
+    static void create(const std::string indexPath, QBG::BuildParameters &buildParameters);
+#endif
 
     static void create(const std::string indexPath, size_t dimensionOfSubvector, size_t pseudoDimension) {
       NGT::Index	index(indexPath);
@@ -588,15 +594,14 @@ namespace NGTQG {
       return;
     }
 
-#ifdef NGTQ_QBG
-    static void quantize(const std::string indexPath, size_t maxNumOfEdges, bool silence = false) {
-#else
-    static void quantize(const std::string indexPath, float dimensionOfSubvector, size_t maxNumOfEdges, bool silence = false) {
-#endif
-      NGT::StdOstreamRedirector redirector(silence);
-      redirector.begin();
+    static void append(const std::string indexPath, QBG::BuildParameters &buildParameters);
 
 #ifdef NGTQ_QBG
+    static void quantize(const std::string indexPath, size_t dimensionOfSubvector, size_t maxNumOfEdges, bool silence = true);
+
+    static void realign(const std::string indexPath, size_t maxNumOfEdges, bool silence = true) {
+      NGT::StdOstreamRedirector redirector(silence);
+      redirector.begin();
       {
 	std::string quantizedIndexPath = indexPath + "/qg";
 	struct stat st;
@@ -610,7 +615,12 @@ namespace NGTQG {
  	}
 	buildQuantizedGraph(indexPath, maxNumOfEdges);
       }
+      redirector.end();
+    }
 #else 
+    static void quantize(const std::string indexPath, float dimensionOfSubvector, size_t maxNumOfEdges, bool silence = true) {
+      NGT::StdOstreamRedirector redirector(silence);
+      redirector.begin();
       {
 	NGT::Index	index(indexPath);
 	NGT::ObjectSpace &objectSpace = index.getObjectSpace();
@@ -619,7 +629,6 @@ namespace NGTQG {
 	if (stat(quantizedIndexPath.c_str(), &st) != 0) {
 	  NGT::Property ngtProperty;
 	  index.getProperty(ngtProperty);
-	  //NGTQG::Command::CreateParameters createParameters(args, property.dimension);
 	  createQuantizedGraphFrame(quantizedIndexPath, ngtProperty.dimension, dimensionOfSubvector);
 	  buildQuantizedObjects(quantizedIndexPath, objectSpace);
 	  if (maxNumOfEdges != 0) {
@@ -627,9 +636,9 @@ namespace NGTQG {
 	  }
 	}
       }
-#endif
       redirector.end();
     }
+#endif 
 
     const bool readOnly;
     const std::string path;

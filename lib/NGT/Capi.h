@@ -153,6 +153,8 @@ bool ngt_remove_index(NGTIndex, ObjectID, NGTError);
 
 NGTObjectSpace ngt_get_object_space(NGTIndex, NGTError);
 
+void* ngt_get_object(NGTObjectSpace, ObjectID, NGTError);
+
 float* ngt_get_object_as_float(NGTObjectSpace, ObjectID, NGTError);
 
 uint8_t* ngt_get_object_as_integer(NGTObjectSpace, ObjectID, NGTError);

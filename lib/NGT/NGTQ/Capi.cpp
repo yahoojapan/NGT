@@ -125,11 +125,7 @@ void ngtqg_initialize_quantization_parameters(NGTQGQuantizationParameters *param
 
 bool ngtqg_quantize(const char *indexPath, NGTQGQuantizationParameters parameters, NGTError error) {
   try{
-#ifdef NGTQ_QBG
-    NGTQG::Index::quantize(indexPath, parameters.max_number_of_edges);
-#else
-    NGTQG::Index::quantize(indexPath, parameters.dimension_of_subvector, parameters.max_number_of_edges);
-#endif
+    NGTQG::Index::quantize(indexPath, parameters.dimension_of_subvector, parameters.max_number_of_edges, true);
     return true;
   }catch(std::exception &err){
     std::stringstream ss;
@@ -314,7 +310,7 @@ bool qbg_build_index(const char *index_path, QBGBuildParameters *parameters, QBG
     return false;
   }
 
-  NGTQ::Optimizer optimizer;
+  QBG::Optimizer optimizer;
 
   optimizer.numberOfObjects = parameters->number_of_objects;
   optimizer.numberOfClusters = 16;	
@@ -333,7 +329,7 @@ bool qbg_build_index(const char *index_path, QBGBuildParameters *parameters, QBG
   optimizer.timelimit *= 60.0 * 60.0; 
   optimizer.rotation = parameters->rotation;
   optimizer.repositioning = parameters->repositioning;
-  optimizer.globalType = NGTQ::Optimizer::GlobalTypeNone;
+  optimizer.globalType = QBG::Optimizer::GlobalTypeNone;
   optimizer.silence = true;
 
   try {

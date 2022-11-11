@@ -811,7 +811,7 @@ NGTObjectSpace ngt_get_object_space(NGTIndex index, NGTError error) {
   }
 }
 
-float* ngt_get_object_as_float(NGTObjectSpace object_space, ObjectID id, NGTError error) {
+void* ngt_get_object(NGTObjectSpace object_space, ObjectID id, NGTError error) {
   if(object_space == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: object_space = " << object_space;
@@ -819,7 +819,7 @@ float* ngt_get_object_as_float(NGTObjectSpace object_space, ObjectID id, NGTErro
     return NULL;
   }
   try{
-    return static_cast<float*>((static_cast<NGT::ObjectSpace*>(object_space))->getObject(id));
+    return (static_cast<NGT::ObjectSpace*>(object_space))->getObject(id);
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
@@ -828,21 +828,12 @@ float* ngt_get_object_as_float(NGTObjectSpace object_space, ObjectID id, NGTErro
   }
 }
 
+float* ngt_get_object_as_float(NGTObjectSpace object_space, ObjectID id, NGTError error) {
+  return static_cast<float*>(ngt_get_object(object_space, id, error));
+}
+
 uint8_t* ngt_get_object_as_integer(NGTObjectSpace object_space, ObjectID id, NGTError error) {
-  if(object_space == NULL){
-    std::stringstream ss;
-    ss << "Capi : " << __FUNCTION__ << "() : parametor error: object_space = " << object_space;
-    operate_error_string_(ss, error);
-    return NULL;
-  }
-  try{
-    return static_cast<uint8_t*>((static_cast<NGT::ObjectSpace*>(object_space))->getObject(id));
-  }catch(std::exception &err) {
-    std::stringstream ss;
-    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-    operate_error_string_(ss, error);
-    return NULL;
-  }
+  return static_cast<uint8_t*>(ngt_get_object(object_space, id, error));
 }
 
 void ngt_destroy_results(NGTObjectDistances results) {
