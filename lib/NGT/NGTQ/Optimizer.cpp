@@ -45,6 +45,7 @@ QBG::Optimizer::Optimizer(QBG::BuildParameters &param) {
 }
 
 
+#ifdef NGTQ_QBG
 void QBG::Optimizer::evaluate(string global, vector<vector<float>> &vectors, char clusteringType, string &ofile, size_t &numberOfSubvectors, size_t &subvectorSize)
 {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
@@ -176,7 +177,9 @@ void QBG::Optimizer::evaluate(string global, vector<vector<float>> &vectors, cha
   return;
 #endif 
 }
+#endif
 
+#ifdef NGTQ_QBG
 void QBG::Optimizer::evaluate(vector<vector<float>> &vectors, string &ofile, size_t &numberOfSubvectors, size_t &subvectorSize) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
   std::cerr << "evaluate: Not implemented." << std::endl;
@@ -217,6 +220,7 @@ void QBG::Optimizer::evaluate(vector<vector<float>> &vectors, string &ofile, siz
   return;
 #endif 
 }
+#endif
 
 #ifdef NGTQ_QBG
 void QBG::Optimizer::optimize(const std::string indexPath, size_t threadSize) {
@@ -327,6 +331,7 @@ void QBG::Optimizer::optimizeWithinIndex(std::string indexPath) {
 
 
 
+#ifdef NGTQ_QBG
 void QBG::Optimizer::optimize(std::string invector, std::string ofile, std::string global) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
   std::cerr << "optimize: Not implemented." << std::endl;
@@ -491,3 +496,4 @@ void QBG::Optimizer::optimize(std::string invector, std::string ofile, std::stri
   }
 #endif 
 }
+#endif
