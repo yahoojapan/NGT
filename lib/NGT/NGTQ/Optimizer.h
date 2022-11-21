@@ -130,9 +130,11 @@ namespace QBG {
       return distance;
     }
 
+#ifdef NGTQ_QBG
     void evaluate(string global, vector<vector<float>> &vectors, char clusteringType, string &ofile, size_t &numberOfSubvectors, size_t &subvectorSize);
 
     void evaluate(vector<vector<float>> &vectors, string &ofile, size_t &numberOfSubvectors, size_t &subvectorSize);
+#endif
 
     void
       generateResidualObjects(string global, vector<vector<float>> &vectors)
@@ -373,7 +375,9 @@ namespace QBG {
     void optimizeWithinIndex(std::string indexPath);
 #endif 
 
+#ifdef NGTQ_QBG
     void optimize(std::string invector, std::string ofile, std::string global);
+#endif
 
     NGT::Clustering::ClusteringType	clusteringType;
     NGT::Clustering::InitializationMode	initMode;
