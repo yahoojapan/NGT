@@ -123,7 +123,7 @@ NGT (Graph and tree-based method)
 - [共有メモリ（マップドメモリ）](README-jp.md#共有メモリの利用)のオプションによるNGTではメモリサイズを超えるデータが利用可能
 - データ型：1バイト整数、4バイト単精度浮動小数点
 - 距離関数：L1、L2、コサイン類似度、角度、ハミング、ジャッカード、ポアンカレ、ローレンツ
-- 対応言語：[Python](/python/README-jp.md)、[Ruby](https://github.com/ankane/ngt)、[Go](https://github.com/yahoojapan/gongt)、C、C++
+- 対応言語：[Python](/python/README-jp.md)、[Ruby](https://github.com/ankane/ngt)、[PHP](https://github.com/ankane/ngt-php)、[Rust](https://crates.io/crates/ngt)、[Go](https://github.com/yahoojapan/gongt)、C、C++
 - 分散サーバ：[ngtd](https://github.com/yahoojapan/ngtd), [vald](https://github.com/vdaas/vald)
 
 ドキュメント
@@ -143,6 +143,7 @@ NGT (Graph and tree-based method)
 
 - [Python](/python/README-jp.md)
 - [Ruby](https://github.com/ankane/ngt) (Thanks Andrew!)
+- [PHP](https://github.com/ankane/ngt-php) (Thanks Andrew!)
 - [Rust](https://crates.io/crates/ngt) (Thanks Romain!)
 - JavaScript/NodeJS : [ngt-tool](https://www.npmjs.com/package/ngt-tool), [spatial-db-ngt](https://www.npmjs.com/package/spatial-db-ngt) (Thanks stonkpunk!)
 - [Go](https://github.com/yahoojapan/gongt)

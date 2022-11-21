@@ -122,7 +122,7 @@ Key Features
 - Objects beyond the memory size can be handled using [the shared memory (memory mapped file) option](README.md#shared-memory-use).
 - Supported distance functions: L1, L2, Cosine similarity, Angular, Hamming, Jaccard, Poincare, and Lorentz
 - Data Types: 4 byte floating point number and 1 byte unsigned integer
-- Supported languages: [Python](/python/README.md), [Ruby](https://github.com/ankane/ngt), [Rust](https://crates.io/crates/ngt), [Go](https://github.com/yahoojapan/gongt), C, and C++
+- Supported languages: [Python](/python/README.md), [Ruby](https://github.com/ankane/ngt), [PHP](https://github.com/ankane/ngt-php), [Rust](https://crates.io/crates/ngt), [Go](https://github.com/yahoojapan/gongt), C, and C++
 - Distributed servers: [ngtd](https://github.com/yahoojapan/ngtd) and [vald](https://github.com/vdaas/vald)
 
 Documents
@@ -141,6 +141,7 @@ Supported Programming Languages
 
 - [Python](/python/README.md)
 - [Ruby](https://github.com/ankane/ngt) (Thanks Andrew!)
+- [PHP](https://github.com/ankane/ngt-php) (Thanks Andrew!)
 - [Rust](https://crates.io/crates/ngt) (Thanks Romain!)
 - JavaScript/NodeJS : [ngt-tool](https://www.npmjs.com/package/ngt-tool) and [spatial-db-ngt](https://www.npmjs.com/package/spatial-db-ngt) (Thanks stonkpunk!)
 - [Go](https://github.com/yahoojapan/gongt)
