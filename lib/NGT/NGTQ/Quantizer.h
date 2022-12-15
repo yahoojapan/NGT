@@ -3643,7 +3643,6 @@ public:
     lp.treeSharedMemorySize	= 128; // MB
     lp.objectSharedMemorySize	= 128; // MB  128 is for up to 5M objects?
 #endif
-
     gp.set(globalProperty);
     lp.set(localProperty);
 

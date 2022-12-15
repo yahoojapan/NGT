@@ -502,7 +502,7 @@ namespace NGT {
 	  case NeighborhoodGraph::GraphTypeBKNNG: p.set("GraphType", "BKNNG"); break;
 	  case NeighborhoodGraph::GraphTypeONNG: p.set("GraphType", "ONNG"); break;
 	  case NeighborhoodGraph::GraphTypeIANNG: p.set("GraphType", "IANNG"); break;
-	  default: std::cerr << "Graph::exportProperty: Fatal error! Invalid Graph Type." << std::endl; abort();
+	  default: std::cerr << "Graph::exportProperty: Fatal error! Invalid Graph Type. " << graphType << std::endl; abort();
 	  }
 	  switch (seedType) {
 	  case NeighborhoodGraph::SeedTypeRandomNodes: p.set("SeedType", "RandomNodes"); break;
@@ -510,7 +510,7 @@ namespace NGT {
 	  case NeighborhoodGraph::SeedTypeFirstNode: p.set("SeedType", "FirstNode"); break;
 	  case NeighborhoodGraph::SeedTypeNone: p.set("SeedType", "None"); break;
 	  case NeighborhoodGraph::SeedTypeAllLeafNodes: p.set("SeedType", "AllLeafNodes"); break;
-	  default: std::cerr << "Graph::exportProperty: Fatal error! Invalid Seed Type." << std::endl; abort();
+	  default: std::cerr << "Graph::exportProperty: Fatal error! Invalid Seed Type. " << seedType << std::endl; abort();
 	  }
 	}
 	void importProperty(NGT::PropertySet &p) {

@@ -55,8 +55,10 @@ namespace QBG {
       creation.globalEdgeSizeForSearch	= 40;
       creation.globalIndexType	= NGT::Property::GraphAndTree;
       creation.globalInsertionRadiusCoefficient	= 1.1;
+      creation.globalGraphType	= NGT::NeighborhoodGraph::GraphTypeANNG;
       creation.localIndexType	= NGT::Property::GraphAndTree;
       creation.localInsertionRadiusCoefficient = 1.1;
+      creation.localGraphType	= NGT::NeighborhoodGraph::GraphTypeANNG;
       hierarchicalClustering.maxSize	= 1000;
       hierarchicalClustering.numOfObjects	= 0;
       hierarchicalClustering.numOfClusters	= 2;
@@ -336,9 +338,6 @@ namespace QBG {
       buildParameters.setProperties(property, globalProperty, localProperty);
       property.quantizerType = NGTQ::QuantizerTypeQBG;
       NGTQ::Index::create(index, property, globalProperty, localProperty, rotation, objectFile);
-      try {
-	NGT::Index::mkdir(index + getWorkspaceName());
-      } catch(...) {}
     }
 #endif
     
@@ -354,9 +353,6 @@ namespace QBG {
       property.quantizerType = NGTQ::QuantizerTypeQBG;
 #ifdef NGTQ_QBG
       NGTQ::Index::create(index, property, globalProperty, localProperty, rotation, objectFile);
-      try {
-	NGT::Index::mkdir(index + getWorkspaceName());
-      } catch(...) {}
 #else
       NGTQ::Index::create(index, property, globalProperty, localProperty);
 #endif

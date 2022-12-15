@@ -36,6 +36,11 @@ if(${UNIX})
             set(BASE_OPTIONS "${BASE_OPTIONS} -fopenmp")
         endif()
 
+        if(${NGT_ASSERT_DISABLED})
+            message(STATUS "assert() is disabled.")
+            set(BASE_OPTIONS "${BASE_OPTIONS} -DNDEBUG")
+        endif()
+
         set(CMAKE_CXX_FLAGS_DEBUG "-g ${BASE_OPTIONS}")
 
         if(${NGT_MARCH_NATIVE_DISABLED})
