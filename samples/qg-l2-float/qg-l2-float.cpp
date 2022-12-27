@@ -4,6 +4,7 @@
 int
 main(int argc, char **argv)
 {
+#ifdef NGTQ_QBG
   string	indexPath	= "index";
   string	objectFile	= "./data/sift-dataset-5k.tsv";
   string	queryFile	= "./data/sift-query-3.tsv";
@@ -115,7 +116,7 @@ main(int argc, char **argv)
     cerr << "Error" << endl;
     return 1;
   }
-
+#endif
   return 0;
 }
 

@@ -423,8 +423,9 @@ CreateIndexThread::run() {
 	graphIndex.searchForNNGInsertion(obj, *rs);
       }
     } catch(NGT::Exception &err) {
-      cerr << "CreateIndex::search:Fatal error! ID=" << job.id << " " << err.what() << endl;
-      abort();
+      stringstream msg;
+      msg << "CreateIndex::search:Fatal error! ID=" << job.id << " " << err.what();
+      NGTThrowException(msg);
     } 
     job.results = rs;
     poolThread.getOutputJobQueue().pushBack(job);
@@ -730,7 +731,13 @@ insertMultipleSearchResults(GraphIndex &neighborhoodGraph,
       cerr << "  The number of edges for the node=" << gr.results->size() << endl;
       cerr << "  The pruned parameter (edgeSizeForSearch [-S])=" << neighborhoodGraph.NeighborhoodGraph::property.edgeSizeForSearch << endl;
     }
-    neighborhoodGraph.insertNode(gr.id, *gr.results);
+    try {
+      neighborhoodGraph.insertNode(gr.id, *gr.results);
+    } catch(NGT::Exception &err) {
+      std::stringstream msg;
+      msg << " Cannot insert the node. " << gr.id << ". " << err.what();
+      NGTThrowException(msg);
+    }
   }
 }
 
@@ -1403,7 +1410,13 @@ GraphAndTreeIndex::createIndex(const vector<pair<NGT::Object*, size_t> > &object
 	    if (((*job.results).size() == 0) && (job.id != 1)) {
 	      cerr  << "insert warning!! No searched nodes!. If the first time, no problem. " << job.id << endl;
 	    }
-	    GraphIndex::insertNode(job.id, *job.results);
+	    try {
+	      GraphIndex::insertNode(job.id, *job.results);
+	    } catch(NGT::Exception &err) {
+	      std::stringstream msg;
+	      msg << " Cannot insert the node. " << job.id << ". " << err.what();
+	      NGTThrowException(msg);
+	    }
 	  } 
 	  if (job.results != 0) {
 	    delete job.results;

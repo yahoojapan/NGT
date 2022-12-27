@@ -235,6 +235,19 @@ LeafNode::removeObject(size_t id, size_t replaceId) {
 
   size_t fsize = getObjectSize();
   size_t idx;
+  if (replaceId != 0) {
+    for (idx = 0; idx < fsize; idx++) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+      if (getObjectIDs(allocator)[idx].id == replaceId) {
+#else
+      if (getObjectIDs()[idx].id == replaceId) {
+#endif
+	std::cerr << " Warning. found the same ID as the replaced ID." << std::endl;
+	replaceId = 0;
+	break;
+      }
+    }
+  }
   for (idx = 0; idx < fsize; idx++) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
     if (getObjectIDs(allocator)[idx].id == id) {

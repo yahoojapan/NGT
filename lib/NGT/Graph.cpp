@@ -925,7 +925,12 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 	}
 	if (insertionA != insertionB) {
 	  stringstream msg;
-	  msg << "Graph::removeEdgeReliably:Warning. Lost connectivity! Isn't this ANNG? ID=" << id << ".";
+	  msg << "Graph::removeEdgeReliably:Warning. Lost connectivity! Isn't this ANNG? ID=" << id
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	      << ". (" << node.at(i, repository.allocator).id << ":" << node.at(minj, repository.allocator).id << ")";
+#else
+	      << ". (" << node[i].id << ":" << node[minj].id << ")";
+#endif
 #ifdef NGT_FORCED_REMOVE
 	  msg << " Anyway continue...";
 	  cerr << msg.str() << endl;

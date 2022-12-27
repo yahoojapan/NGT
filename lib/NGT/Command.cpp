@@ -861,7 +861,7 @@ using namespace std;
   void
   NGT::Command::repair(Args &args)
   {
-    const string usage = "Usage: ng[ [-m c|r|R] repair index \n"
+    const string usage = "Usage: ngt [-m c|r|R] repair index \n"
       "\t-m mode\n"
       "\t\tc: Check. (default)\n"
       "\t\tr: Repair and save it as [index].repair.\n"

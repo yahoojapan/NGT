@@ -837,13 +837,14 @@ namespace NGT {
 
     template <typename OBJECT_TYPE> 
     inline static double compareCosineSimilarity(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
-      return 1.0 - compareCosine(a, b, size);
+      auto v = 1.0 - compareCosine(a, b, size);
+      return v < 0.0 ? -v : v;
     }
 
     template <typename OBJECT_TYPE> 
     inline static double compareNormalizedCosineSimilarity(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
-      double v = 1.0 - compareDotProduct(a, b, size);
-      return v < 0.0 ? 0.0 : v;
+      auto v = 1.0 - compareDotProduct(a, b, size);
+      return v < 0.0 ? -v : v;
     }
 
     class L1Uint8 {

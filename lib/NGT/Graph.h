@@ -938,7 +938,13 @@ namespace NGT {
       bool addEdge(ObjectID target, ObjectID addID, Distance addDistance, bool identityCheck = true) {
 	size_t minsize = 0;
 	GraphNode &node = property.truncationThreshold == 0 ? *getNode(target) : *getNode(target, minsize);
-	addEdge(node, addID, addDistance, identityCheck);
+	try {
+	  addEdge(node, addID, addDistance, identityCheck);
+	} catch(NGT::Exception &err) {
+	  std::stringstream msg;
+	  msg << " Cannot add the edge. " << target << "->" << addID << ". " << err.what();
+	  NGTThrowException(msg);
+	}
 	if ((size_t)property.truncationThreshold != 0 && node.size() - minsize > 
 	    (size_t)property.truncationThreshold) {
 	  return true;
