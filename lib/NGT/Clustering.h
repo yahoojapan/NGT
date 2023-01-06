@@ -954,8 +954,9 @@ namespace NGT {
 	    break;
 	  }
 	default:
-	  std::cerr << "proper initMode is not specified." << std::endl;
-	  exit(1);
+	  std::stringstream msg;
+	  msg << " kmeans: invalid initialization mode. " << initializationMode;
+	  NGTThrowException(msg);
 	}
       }
     }
@@ -990,9 +991,9 @@ namespace NGT {
 	break;
 #endif
       default:
-	cerr << "kmeans::fatal error!. invalid clustering type. " << clusteringType << endl;
-	abort();
-	break;
+	std::stringstream msg;
+	msg << " kmeans: invalid clustering type. " << clusteringType;
+	NGTThrowException(msg);
       }
     }
 

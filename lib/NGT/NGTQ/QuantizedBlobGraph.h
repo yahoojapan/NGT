@@ -59,6 +59,7 @@ namespace QBG {
       creation.localIndexType	= NGT::Property::GraphAndTree;
       creation.localInsertionRadiusCoefficient = 1.1;
       creation.localGraphType	= NGT::NeighborhoodGraph::GraphTypeANNG;
+
       hierarchicalClustering.maxSize	= 1000;
       hierarchicalClustering.numOfObjects	= 0;
       hierarchicalClustering.numOfClusters	= 2;
@@ -75,6 +76,8 @@ namespace QBG {
       hierarchicalClustering.extractCentroid	= false;
       hierarchicalClustering.threeLayerClustering	= true;
 
+      optimization.clusteringType	= NGT::Clustering::ClusteringTypeKmeansWithoutNGT;
+      optimization.initMode		= NGT::Clustering::InitializationModeHead;
       optimization.timelimit		= 24 * 1 * 60.0 * 60.0;
       optimization.iteration		= 100;
       optimization.clusterIteration	= 100;
@@ -92,6 +95,7 @@ namespace QBG {
       optimization.rotation		= true;
       optimization.globalType		= QBG::Optimizer::GlobalTypeNone;
       optimization.randomizedObjectExtraction	= true;
+      optimization.showClusterInfo	= false;
     }
 
     void setProperties(NGTQ::Property &property, NGT::Property &globalProperty, 
