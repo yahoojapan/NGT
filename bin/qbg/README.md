@@ -187,8 +187,8 @@ Examples of using the quantized graph
 
 ### Setup data
 
-      $ curl -L -O https://github.com/yahoojapan/NGT/raw/master/tests/datasets/ann-benchmarks/sift-128-euclidean.tsv
-      $ curl -L -O https://github.com/yahoojapan/NGT/raw/master/tests/datasets/ann-benchmarks/sift-128-euclidean_query.tsv
+      $ curl -L -O https://github.com/yahoojapan/NGT/raw/main/tests/datasets/ann-benchmarks/sift-128-euclidean.tsv
+      $ curl -L -O https://github.com/yahoojapan/NGT/raw/main/tests/datasets/ann-benchmarks/sift-128-euclidean_query.tsv
       $ head -1 sift-128-euclidean_query.tsv > query.tsv
 
 ### Build the quantized graph
@@ -260,8 +260,8 @@ Examples of using the quantized blob graph
 
 ### Setup data
 
-      $ curl -L -O https://github.com/yahoojapan/NGT/raw/master/tests/datasets/ann-benchmarks/sift-128-euclidean.tsv
-      $ curl -L -O https://github.com/yahoojapan/NGT/raw/master/tests/datasets/ann-benchmarks/sift-128-euclidean_query.tsv
+      $ curl -L -O https://github.com/yahoojapan/NGT/raw/main/tests/datasets/ann-benchmarks/sift-128-euclidean.tsv
+      $ curl -L -O https://github.com/yahoojapan/NGT/raw/main/tests/datasets/ann-benchmarks/sift-128-euclidean_query.tsv
       $ head -1 sift-128-euclidean_query.tsv > query.tsv
 
 ### Build the quantized blob graph
