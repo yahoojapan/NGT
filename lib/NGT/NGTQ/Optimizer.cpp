@@ -233,8 +233,10 @@ void QBG::Optimizer::optimize(const std::string indexPath, size_t threadSize) {
     }
     std::cerr << "optimize: # of objects=" << numberOfObjects << std::endl;
     if (numberOfObjects == 0) {
-      numberOfObjects = index.getQuantizer().objectList.size() - 1;
+      numberOfObjects = 1000;
+      numberOfObjects = index.getQuantizer().objectList.size() - 1 < numberOfObjects ? index.getQuantizer().objectList.size() - 1 : numberOfObjects;
     }
+    std::cerr << "optimize: updated # of objects=" << numberOfObjects << std::endl;
     std::cerr << "optimize: # of clusters=" << index.getQuantizer().property.localCentroidLimit << ":" << numberOfClusters << std::endl;
     if (index.getQuantizer().property.localCentroidLimit == 0 && numberOfClusters == 0) {
       std::stringstream msg;

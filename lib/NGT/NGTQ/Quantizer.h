@@ -2615,8 +2615,6 @@ public:
       if (ifs) {
 	std::cerr << "loading rotation..." << std::endl;
 	rotation.deserialize(ifs);
-      } else {
-	std::cerr << "Warning. Not found the rotation file. " << streamName << std::endl;
       }
     }
     {
@@ -2624,11 +2622,9 @@ public:
       std::string rqcbName(rootDirectory + "/rqcb");
       ifstream irfs(rqcbName);
       if (!irfs) {
-	std::cerr << "Warning. Not found the rqcb file. " << rqcbName << std::endl;
 	std::string qcbName(rootDirectory + "/qcb");
 	ifstream ifs(qcbName);
 	if (!ifs) {
-	  std::cerr << "Warning. Not found the qcb file. " << qcbName << std::endl;
 	} else {
 	  std::cerr << "loading the global codebooks..." << std::endl;
 	  quantizationCodebook.deserialize(ifs, readOnly);

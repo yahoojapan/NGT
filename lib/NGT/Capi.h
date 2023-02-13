@@ -59,6 +59,8 @@ typedef struct {
 
 NGTIndex ngt_open_index(const char *, NGTError);
 
+NGTIndex ngt_open_index_as_read_only(const char *, NGTError);
+
 NGTIndex ngt_create_graph_and_tree(const char *, NGTProperty, NGTError);
 
 NGTIndex ngt_create_graph_and_tree_in_memory(NGTProperty, NGTError);

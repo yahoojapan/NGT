@@ -40,7 +40,23 @@ static bool operate_error_string_(const std::stringstream &ss, NGTError error){
 NGTIndex ngt_open_index(const char *index_path, NGTError error) {
   try{
     std::string index_path_str(index_path);
-    NGT::Index *index = new NGT::Index(index_path_str);
+    auto readOnly = false;
+    NGT::Index *index = new NGT::Index(index_path_str, readOnly);
+    index->disableLog();
+    return static_cast<NGTIndex>(index);
+  }catch(std::exception &err){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    return NULL;
+  }
+}
+
+NGTIndex ngt_open_index_as_read_only(const char *index_path, NGTError error) {
+  try{
+    std::string index_path_str(index_path);
+    auto readOnly = true;
+    NGT::Index *index = new NGT::Index(index_path_str, readOnly);
     index->disableLog();
     return static_cast<NGTIndex>(index);
   }catch(std::exception &err){

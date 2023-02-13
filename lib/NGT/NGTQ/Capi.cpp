@@ -209,10 +209,10 @@ bool qbg_create(const char *indexPath, QBGConstructionParameters *parameters, NG
   return true;
 }
 
-QBGIndex qbg_open_index(const char *index_path, QBGError error) {
+QBGIndex qbg_open_index(const char *index_path, bool read_only, QBGError error) {
   try {
     std::string index_path_str(index_path);
-    auto *index = new QBG::Index(index_path_str, true);
+    auto *index = new QBG::Index(index_path_str, read_only);
     return static_cast<QBGIndex>(index);
   } catch(std::exception &err){
     std::stringstream ss;
@@ -270,7 +270,7 @@ void qbg_initialize_build_parameters(QBGBuildParameters *parameters) {
   parameters->number_of_second_clusters = 0;
   parameters->number_of_third_clusters = 0;
 
-  parameters->number_of_objects = 0;
+  parameters->number_of_objects = 1000;
   parameters->number_of_subvectors = 1;
   parameters->optimization_clustering_init_mode = static_cast<int>(NGT::Clustering::InitializationModeKmeansPlusPlus);
   parameters->rotation_iteration = 2000;
@@ -333,8 +333,8 @@ bool qbg_build_index(const char *index_path, QBGBuildParameters *parameters, QBG
   optimizer.silence = true;
 
   try {
-    bool random = true;
-    optimizer.optimize(index_path, random);
+    auto nthreads = omp_get_max_threads();
+    optimizer.optimize(index_path, nthreads);
   } catch (NGT::Exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();

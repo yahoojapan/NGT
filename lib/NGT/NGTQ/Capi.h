@@ -14,7 +14,6 @@
 // limitations under the License.
 //
 
-
 #pragma once
 
 #ifdef __cplusplus
@@ -112,7 +111,7 @@ extern "C" {
 
   bool qbg_create(const char *indexPath, QBGConstructionParameters *parameters, QBGError error);
 
-  QBGIndex qbg_open_index(const char *index_path, QBGError error);
+  QBGIndex qbg_open_index(const char *index_path, bool read_only, QBGError error);
 
   void qbg_close_index(QBGIndex index);
 

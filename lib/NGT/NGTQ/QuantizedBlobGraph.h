@@ -374,9 +374,7 @@ namespace QBG {
     NGT::ObjectID append(std::vector<float> &object) {
       NGT::ObjectID id = getQuantizer().objectList.size();
       id = id == 0 ? 1 : id;
-      std::cerr << "ID=" << getQuantizer().objectList.size();
       getQuantizer().objectList.put(id, object, &getQuantizer().globalCodebookIndex.getObjectSpace());
-      std::cerr << ":" << getQuantizer().objectList.size() << std::endl;
       return id;
     }
 
