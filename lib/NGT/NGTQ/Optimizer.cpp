@@ -446,7 +446,6 @@ void QBG::Optimizer::optimize(std::string invector, std::string ofile, std::stri
   auto minR = std::move(rs[0]);
   auto minLocalClusters = std::move(localClusters[0]);
   //-/size_t pos = std::distance(std::find(ofile.rbegin(), ofile.rend(), '.'), ofile.rend()) - 1;
-  std::cerr << "pass " << ofile << std::endl;
   if (repositioning) {
     Matrix<float> repositionedR(reposition);
     repositionedR.mul(minR);
