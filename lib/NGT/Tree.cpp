@@ -339,15 +339,14 @@ void
 DVPTree::removeEmptyNodes(InternalNode &inode) {
 
   int csize = internalChildrenSize;
-
-
   InternalNode *target = &inode;
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-  Node::ID *children = target->getChildren(internalNodes.allocator);
-#else
-  Node::ID *children = target->getChildren();
-#endif
+
   for(;;) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+    Node::ID *children = target->getChildren(internalNodes.allocator);
+#else
+    Node::ID *children = target->getChildren();
+#endif
     for (int i = 0; i < csize; i++) {
       if (children[i].getType() == Node::ID::Internal) {
 	return;
