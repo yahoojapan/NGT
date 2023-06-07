@@ -892,7 +892,7 @@ namespace NGT {
       size_t count = 0;
       for (auto cit = clusters.begin(); cit != clusters.end(); ++cit) {    
 	count += (*cit).members.size();
-	double localD= 0.0;
+	double localD = 0.0;
 	for (auto mit = (*cit).members.begin(); mit != (*cit).members.end(); ++mit) {
 	  double distance = distanceL2((*cit).centroid, vectors[(*mit).vectorID]);
 	  d += distance;

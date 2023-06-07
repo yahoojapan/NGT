@@ -737,6 +737,88 @@ ObjectID ngt_append_index_as_float(NGTIndex index, float *obj, uint32_t obj_dim,
   }
 }
 
+ObjectID ngt_insert_index_as_uint8(NGTIndex index, uint8_t *obj, uint32_t obj_dim, NGTError error) {
+  if(index == NULL || obj == NULL || obj_dim == 0){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " obj = " << obj << " obj_dim = " << obj_dim;
+    operate_error_string_(ss, error);
+    return 0;
+  }
+
+  try{
+    NGT::Index* pindex = static_cast<NGT::Index*>(index);
+    std::vector<uint8_t> vobj(&obj[0], &obj[obj_dim]);
+    return pindex->insert(vobj);
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    return 0;
+  }
+}
+
+ObjectID ngt_append_index_as_uint8(NGTIndex index, uint8_t *obj, uint32_t obj_dim, NGTError error) {
+  if(index == NULL || obj == NULL || obj_dim == 0){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " obj = " << obj << " obj_dim = " << obj_dim;
+    operate_error_string_(ss, error);
+    return 0;
+  }
+
+  try{
+    NGT::Index* pindex = static_cast<NGT::Index*>(index);
+    std::vector<uint8_t> vobj(&obj[0], &obj[obj_dim]);
+    return pindex->append(vobj);
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    return 0;
+  }
+}
+
+ObjectID ngt_insert_index_as_float16(NGTIndex index, NGTFloat16 *obj, uint32_t obj_dim, NGTError error) {
+  if(index == NULL || obj == NULL || obj_dim == 0){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " obj = " << obj << " obj_dim = " << obj_dim;
+    operate_error_string_(ss, error);
+    return 0;
+  }
+
+  try{
+    NGT::Index* pindex = static_cast<NGT::Index*>(index);
+    auto o = static_cast<NGT::float16*>(obj);
+    std::vector<NGT::float16> vobj(&o[0], &o[obj_dim]);
+    return pindex->insert(vobj);
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    return 0;
+  }
+}
+
+ObjectID ngt_append_index_as_float16(NGTIndex index, NGTFloat16 *obj, uint32_t obj_dim, NGTError error) {
+  if(index == NULL || obj == NULL || obj_dim == 0){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " obj = " << obj << " obj_dim = " << obj_dim;
+    operate_error_string_(ss, error);
+    return 0;
+  }
+
+  try{
+    NGT::Index* pindex = static_cast<NGT::Index*>(index);
+    auto o = static_cast<NGT::float16*>(obj);
+    std::vector<NGT::float16> vobj(&o[0], &o[obj_dim]);
+    return pindex->append(vobj);
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    return 0;
+  }
+}
+
 bool ngt_batch_append_index(NGTIndex index, float *obj, uint32_t data_count, NGTError error) {
   try{
     NGT::Index* pindex = static_cast<NGT::Index*>(index);
@@ -845,11 +927,62 @@ void* ngt_get_object(NGTObjectSpace object_space, ObjectID id, NGTError error) {
 }
 
 float* ngt_get_object_as_float(NGTObjectSpace object_space, ObjectID id, NGTError error) {
+  auto os = static_cast<NGT::ObjectSpace*>(object_space);
+  if (os->getObjectType() != typeid(float)) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: Not available for the object type of the index. " 
+       << os->getObjectType().name();
+    operate_error_string_(ss, error);
+    return NULL;
+  }
   return static_cast<float*>(ngt_get_object(object_space, id, error));
 }
 
+NGTFloat16* ngt_get_object_as_float16(NGTObjectSpace object_space, ObjectID id, NGTError error) {
+  auto os = static_cast<NGT::ObjectSpace*>(object_space);
+  if (os->getObjectType() != typeid(NGT::float16)) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: Not available for the object type of the index. " 
+       << os->getObjectType().name();
+    operate_error_string_(ss, error);
+    return NULL;
+  }
+  return static_cast<NGTFloat16*>(ngt_get_object(object_space, id, error));
+}
+
 uint8_t* ngt_get_object_as_integer(NGTObjectSpace object_space, ObjectID id, NGTError error) {
+  auto os = static_cast<NGT::ObjectSpace*>(object_space);
+  if (os->getObjectType() != typeid(uint8_t)) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: Not available for the object type of the index. " 
+       << os->getObjectType().name();
+    operate_error_string_(ss, error);
+    return NULL;
+  }
   return static_cast<uint8_t*>(ngt_get_object(object_space, id, error));
+}
+
+float* ngt_get_allocated_object_as_float(NGTObjectSpace object_space, ObjectID id, NGTError error) {
+  auto objectSpace = static_cast<NGT::ObjectSpace*>(object_space);
+  std::vector<float> v;
+  try {
+    objectSpace->getObject(id, v);
+  } catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    return NULL;
+  }
+  auto sizeOfObject = sizeof(float) * v.size();
+  auto fv = static_cast<float*>(malloc(sizeOfObject));  
+  if (fv == NULL) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: Cannot allocate a vector.";
+    operate_error_string_(ss, error);
+    return NULL;
+  }
+  memcpy(fv, v.data(), sizeOfObject);
+  return fv;
 }
 
 void ngt_destroy_results(NGTObjectDistances results) {

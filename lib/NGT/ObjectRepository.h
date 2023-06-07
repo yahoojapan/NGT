@@ -95,6 +95,13 @@ namespace NGT {
       abort();
     }
 
+#ifdef NGT_HALF_FLOAT
+    virtual PersistentObject *allocateNormalizedPersistentObject(const std::vector<float16> &obj) {
+      std::cerr << "ObjectRepository::allocateNormalizedPersistentObject(float): Fatal error! Something wrong!" << std::endl;
+      abort();
+    }
+#endif
+
     virtual PersistentObject *allocateNormalizedPersistentObject(const std::vector<uint8_t> &obj) {
       std::cerr << "ObjectRepository::allocateNormalizedPersistentObject(uint8_t): Fatal error! Something wrong!" << std::endl;
       abort();

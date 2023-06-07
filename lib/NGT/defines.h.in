@@ -49,6 +49,10 @@
  #define	NGT_GRAPH_CHECK_VECTOR
 #endif
 
+#ifdef	NGT_SHARED_MEMORY_ALLOCATOR
+ #define	NGT_QBG_DISABLED
+#endif
+
 #if defined(NGT_AVX_DISABLED) 
 #define NGT_NO_AVX
 #elif defined(NGT_AVX2)

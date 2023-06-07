@@ -31,6 +31,7 @@ typedef void* NGTObjectSpace;
 typedef void* NGTObjectDistances;
 typedef void* NGTError;
 typedef void* NGTOptimizer;
+typedef void NGTFloat16;
 
 typedef struct {
   ObjectID id;
@@ -145,6 +146,14 @@ ObjectID ngt_insert_index_as_float(NGTIndex, float*, uint32_t, NGTError);
 
 ObjectID ngt_append_index_as_float(NGTIndex, float*, uint32_t, NGTError);
 
+ObjectID ngt_insert_index_as_uint8(NGTIndex, uint8_t*, uint32_t, NGTError);
+
+ObjectID ngt_append_index_as_uint8(NGTIndex, uint8_t*, uint32_t, NGTError);
+
+ObjectID ngt_insert_index_as_float16(NGTIndex, NGTFloat16*, uint32_t, NGTError);
+
+ObjectID ngt_append_index_as_float16(NGTIndex, NGTFloat16*, uint32_t, NGTError);
+
 bool ngt_batch_append_index(NGTIndex, float*, uint32_t, NGTError);
 
 bool ngt_batch_insert_index(NGTIndex, float*, uint32_t, uint32_t *, NGTError);
@@ -159,7 +168,12 @@ void* ngt_get_object(NGTObjectSpace, ObjectID, NGTError);
 
 float* ngt_get_object_as_float(NGTObjectSpace, ObjectID, NGTError);
 
+NGTFloat16* ngt_get_object_as_float16(NGTObjectSpace, ObjectID, NGTError);
+
 uint8_t* ngt_get_object_as_integer(NGTObjectSpace, ObjectID, NGTError);
+
+// return an object as a float vector whatever the data type of the object.
+float* ngt_get_allocated_object_as_float(NGTObjectSpace, ObjectID, NGTError);
 
 void ngt_destroy_results(NGTObjectDistances);
 

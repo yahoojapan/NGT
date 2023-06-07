@@ -199,7 +199,7 @@ namespace NGT {
 	usedSize++;
       }
       size_t size() { return usedSize; }
-      size_t resize(size_t s) {
+      void resize(size_t s) {
 	if (s <= usedSize) {
 	  for (size_t i = s; i < usedSize; i++) {
 	    (*this)[i].first = 0;
