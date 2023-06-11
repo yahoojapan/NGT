@@ -87,25 +87,6 @@ Installation
       $ make
       $ make install
 
-#### Shared memory use
-
-The index can be placed in shared memory with memory mapped files. Using shared memory can reduce the amount of memory needed when multiple processes are using the same index. In addition, it can not only handle an index with a large number of objects that cannot be loaded into memory, but also reduce time to open it. Since changes become necessary at build time, please add the following parameter when executing "cmake" in order to use shared memory.
-
-      $ cmake -DNGT_SHARED_MEMORY_ALLOCATOR=ON ..
-
-Note: Since there is no lock function, the index should be used only for reference when multiple processes are using the same index.
-
-#### Large-scale data use
-
-When you insert more than about 5 million objects for the graph-based method, please add the following parameter to improve the search time.
-
-      $ cmake -DNGT_LARGE_DATASET=ON ..
-
-#### Disable QG and QBG
-QG and QBG require BLAS and LAPACK libraries. If you would not like to install these libraries and do not use QG and QBG, you can disable QG and QBG.
-
-      $ cmake -DNGT_QBG_DISABLED=ON ..
-
 ### Pre-Built
 
 #### On macOS
@@ -148,6 +129,31 @@ Supported Programming Languages
 - C
 - C++([sample code](samples))
 
+
+The following build parameters are available
+
+Build parameters
+----------------
+
+#### Shared memory use
+
+The index can be placed in shared memory with memory mapped files. Using shared memory can reduce the amount of memory needed when multiple processes are using the same index. In addition, it can not only handle an index with a large number of objects that cannot be loaded into memory, but also reduce time to open it. Since changes become necessary at build time, please add the following parameter when executing "cmake" in order to use shared memory.
+
+      $ cmake -DNGT_SHARED_MEMORY_ALLOCATOR=ON ..
+
+Note: Since there is no lock function, the index should be used only for reference when multiple processes are using the same index.
+
+#### Large-scale data use
+
+When you insert more than about 5 million objects for the graph-based method, please add the following parameter to improve the search time.
+
+      $ cmake -DNGT_LARGE_DATASET=ON ..
+
+#### Disable QG and QBG
+QG and QBG require BLAS and LAPACK libraries. If you would not like to install these libraries and do not use QG and QBG, you can disable QG and QBG.
+
+      $ cmake -DNGT_QBG_DISABLED=ON ..
+
 QG (Quantized graph-based method)
 =================================
 
@@ -174,6 +180,12 @@ Supported Programming Languages
 - C
 - Python only for search
 
+Build parameters
+----------------
+
+For QG, it is recommended to disable rotation of the vector space and residual vectors to improve performance as follows.
+
+      $ cmake -DNGTQG_NO_ROTATION=ON -DNGTQG_ZERO_GLOBAL=ON ..
 
 QBG (Quantized blob graph-based method)
 =======================================
