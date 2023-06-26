@@ -119,6 +119,8 @@ extern "C" {
 
   ObjectID qbg_append_object(QBGIndex index, float *obj, uint32_t obj_dim, QBGError error);
 
+  ObjectID qbg_append_object_as_uint8(QBGIndex index, uint8_t *obj, uint32_t obj_dim, QBGError error);
+
   void qbg_initialize_build_parameters(QBGBuildParameters *parameters);
 
   bool qbg_build_index(const char *index_path, QBGBuildParameters *parameters, QBGError error);
@@ -128,6 +130,8 @@ extern "C" {
   bool qbg_search_index(QBGIndex index, QBGQuery query, NGTObjectDistances results, QBGError error);
 
   float* qbg_get_object(QBGIndex index, ObjectID id,  QBGError error);
+
+  uint8_t* qbg_get_object_as_uint8(QBGIndex index, ObjectID id,  QBGError error);
 
   size_t qbg_get_dimension(QBGIndex index, QBGError error);
   

@@ -262,6 +262,26 @@ ObjectID qbg_append_object(QBGIndex index, float *obj, uint32_t obj_dim, QBGErro
   }
 }
 
+ObjectID qbg_append_object_as_uint8(QBGIndex index, uint8_t *obj, uint32_t obj_dim, QBGError error) {
+  if (index == NULL || obj == NULL || obj_dim == 0){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " obj = " << obj << " obj_dim = " << obj_dim;
+    operate_error_string_(ss, error);
+    return 0;
+  }
+
+  try {
+    auto *pindex = static_cast<QBG::Index*>(index);
+    std::vector<uint8_t> vobj(&obj[0], &obj[obj_dim]);
+    return pindex->append(vobj);
+  } catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    return 0;
+  }
+}
+
 void qbg_initialize_build_parameters(QBGBuildParameters *parameters) {
   parameters->hierarchical_clustering_init_mode = static_cast<int>(NGT::Clustering::InitializationModeKmeansPlusPlus);
   parameters->number_of_first_objects = 0;
@@ -436,6 +456,37 @@ float* qbg_get_object(QBGIndex index, ObjectID id, QBGError error) {
     }
     memcpy(obj, object.data(), sizeof(float) * object.size());
     return static_cast<float*>(obj);
+  } catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    return 0;
+  }
+}
+
+uint8_t* qbg_get_object_as_uint8(QBGIndex index, ObjectID id, QBGError error) {
+  if (index == NULL) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index;
+    operate_error_string_(ss, error);
+    return 0;
+  }
+
+  auto *pindex = static_cast<QBG::Index*>(index);
+
+  try {
+    auto o = pindex->getObject(id);
+    std::vector<uint8_t> object(o.begin(), o.end());
+    size_t size = sizeof(uint8_t) * object.size();
+    auto obj = malloc(size);
+    if (obj == 0) {
+      std::stringstream ss;
+      ss << "Capi : " << __FUNCTION__ << "() : Error: Cannot allocate memory.";
+      operate_error_string_(ss, error);
+      return 0;
+    }
+    memcpy(obj, object.data(), size);
+    return static_cast<uint8_t*>(obj);
   } catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();

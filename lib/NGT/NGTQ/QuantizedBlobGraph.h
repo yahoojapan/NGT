@@ -370,11 +370,17 @@ namespace QBG {
     void insert(const size_t id, std::vector<float> &object) {
       getQuantizer().objectList.put(id, object, &getQuantizer().globalCodebookIndex.getObjectSpace());
     }
-
-    NGT::ObjectID append(std::vector<float> &object) {
+    template<typename T>
+    NGT::ObjectID append(std::vector<T> &object) {
       NGT::ObjectID id = getQuantizer().objectList.size();
       id = id == 0 ? 1 : id;
-      getQuantizer().objectList.put(id, object, &getQuantizer().globalCodebookIndex.getObjectSpace());
+      if (typeid(T) == typeid(float)) {
+	auto &obj = *reinterpret_cast<std::vector<float>*>(&object);
+	getQuantizer().objectList.put(id, obj, &getQuantizer().globalCodebookIndex.getObjectSpace());
+      } else {
+	std::vector<float> obj(object.begin(), object.end());
+	getQuantizer().objectList.put(id, obj, &getQuantizer().globalCodebookIndex.getObjectSpace());
+      }
       return id;
     }
 
