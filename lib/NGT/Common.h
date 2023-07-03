@@ -494,7 +494,10 @@ namespace NGT {
       }
       std::cerr << std::flush;
       dup2(savedFdNo, fdNo);
+      close(savedFdNo);
       savedFdNo = -1;
+      close(logFD);
+      logFD = -1;
     }
 
     std::string	logFilePath;
