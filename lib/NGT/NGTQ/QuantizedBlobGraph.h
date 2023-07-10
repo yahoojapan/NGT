@@ -785,6 +785,11 @@ namespace QBG {
     std::vector<float> &rotatedQuery = searchContainer.objectVector;
     if (objectSpace.getObjectType() == typeid(float)) {
       memcpy(rotatedQuery.data(), searchContainer.object.getPointer(), rotatedQuery.size() * sizeof(float));
+    } else if (objectSpace.getObjectType() == typeid(uint8_t)) {
+      auto *ptr = static_cast<uint8_t*>(searchContainer.object.getPointer());   
+      for (size_t i = 0; i < rotatedQuery.size(); i++) {
+	rotatedQuery[i] = ptr[i];
+      }
 #ifdef NGT_HALF_FLOAT
     } else if (objectSpace.getObjectType() == typeid(NGT::float16)) {
       auto *ptr = static_cast<NGT::float16*>(searchContainer.object.getPointer());   
@@ -893,10 +898,13 @@ namespace QBG {
 	if (objectSpace.getObjectType() == typeid(float)) {
 	  distance = NGT::PrimitiveComparator::L2Float::compare(searchContainer.object.getPointer(), 
 							        neighborptr->second->getPointer(), dimension);
+	} else if (objectSpace.getObjectType() == typeid(uint8_t)) {
+	  distance = NGT::PrimitiveComparator::L2Uint8::compare(searchContainer.object.getPointer(), 
+							        neighborptr->second->getPointer(), dimension);
 #ifdef NGT_HALF_FLOAT
 	} else if (objectSpace.getObjectType() == typeid(NGT::float16)) { 
 	  distance = NGT::PrimitiveComparator::L2Float16::compare(searchContainer.object.getPointer(), 
-							           neighborptr->second->getPointer(), dimension);
+								  neighborptr->second->getPointer(), dimension);
 #endif
 	} else {
 	  assert(false);
@@ -1158,7 +1166,6 @@ namespace QBG {
       }
 
       const string com = "rm -rf " + indexPath + "/" + getWorkspaceName();
-      std::cerr << "pass com=" << com << std::endl;
       if (system(com.c_str()) == -1) {
 	std::cerr << "Warning. cannot remove the workspace directory. " << std::endl;
       }

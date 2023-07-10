@@ -658,13 +658,15 @@ public:
       dataSize = sizeof(float) * dimension;
 #endif
       break;
+#ifdef NGT_HALF_FLOAT
     case DataTypeFloat16:
 #ifdef NGTQ_QBG
-      dataSize = sizeof(float) * genuineDimension;
+      dataSize = sizeof(NGT::float16) * genuineDimension;
 #else
-      dataSize = sizeof(float) * dimension;
+      dataSize = sizeof(NGT::float16) * dimension;
 #endif
       break;
+#endif
     default:
       NGTThrowException("Quantizer constructor: Inner error. Invalid data type.");
       break;
@@ -2590,11 +2592,21 @@ public:
 	quantizedObjectDistance = new QuantizedObjectDistanceUint8<uint32_t>;
       } else if (property.localIDByteSize == 2) {
 	quantizedObjectDistance = new QuantizedObjectDistanceUint8<uint16_t>;
+#ifdef NGTQ_QBG
+      } else if (property.localIDByteSize == 1) {
+	quantizedObjectDistance = new QuantizedObjectDistanceFloat<uint8_t>;
+#endif
       } else {
+	std::cerr << "Inconsistent localIDByteSize and ObjectType. " << property.localIDByteSize << ":" << globalProperty.objectType << std::endl;
 	abort();
       }
+#ifdef NGTQ_VECTOR_OBJECT
+      generateResidualObject = new GenerateResidualObjectFloat;
+      sizeoftype = sizeof(float);
+#else
       generateResidualObject = new GenerateResidualObjectUint8;
       sizeoftype = sizeof(uint8_t);
+#endif
     } else {
       cerr << "NGTQ::open: Fatal Inner Error: invalid object type. " << globalProperty.objectType << endl;
       cerr << "   check NGT version consistency between the caller and the library." << endl;
