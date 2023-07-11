@@ -114,18 +114,20 @@ class ObjectFile : public ArrayFile<NGT::Object> {
     objectFiles.clear();
   }
 
-  bool get(const size_t streamID, size_t id, std::vector<float> &data, NGT::ObjectSpace *objectSpace) {
+  template<typename T>
+  bool get(const size_t streamID, size_t id, std::vector<T> &data, NGT::ObjectSpace *objectSpace = 0) {
     if (streamID >= objectFiles.size()) {
       std::cerr << "ObjectFile::streamID is invalid. " << streamID << ":" << objectFiles.size() << std::endl;
       return false;
     }
-    if (!objectFiles[streamID]->get(id, data, objectSpace)) {
+    if (!objectFiles[streamID]->get(id, data)) {
       return false;
     }
     return true;
   }
 
-  bool get(const size_t id, std::vector<float> &data, NGT::ObjectSpace *os = 0) {
+  template<typename T>
+  bool get(const size_t id, std::vector<T> &data, NGT::ObjectSpace *os = 0) {
     if (objectSpace == 0) {
       stringstream msg;
       msg << "ObjectFile::Fatal Error. objectSpace is not set." << std::endl;
@@ -138,8 +140,11 @@ class ObjectFile : public ArrayFile<NGT::Object> {
     }
     const std::type_info &otype = objectSpace->getObjectType();
     size_t dim = objectSpace->getDimension();
-    data.resize(pseudoDimension, 0);
-    if (otype == typeid(uint8_t)) {
+    data.resize(pseudoDimension);
+    if (typeid(T) == otype) {
+      auto *v = object->getPointer();
+      memcpy(data.data(), v, sizeof(T) * dim);
+    } else if (otype == typeid(uint8_t)) {
       auto *v = static_cast<uint8_t*>(object->getPointer());
       for (size_t i = 0; i < dim; i++) {
 	data[i] = v[i];
@@ -151,7 +156,12 @@ class ObjectFile : public ArrayFile<NGT::Object> {
       }
     } else if (otype == typeid(float)) {
       auto *v = static_cast<float*>(object->getPointer());
-      memcpy(data.data(), v, sizeof(float) * dim);
+      for (size_t i = 0; i < dim; i++) {
+	data[i] = v[i];
+      }
+    }
+    for (size_t i = dim; i < pseudoDimension; i++) {
+      data[i] = 0;
     }
     objectSpace->deleteObject(object);
     return true;

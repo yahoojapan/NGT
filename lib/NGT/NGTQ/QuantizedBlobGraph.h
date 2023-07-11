@@ -928,24 +928,39 @@ namespace QBG {
 	auto threadid = omp_get_thread_num();
 	auto paddedDimension = getQuantizer().globalCodebookIndex.getObjectSpace().getPaddedDimension();
 	NGT::ResultPriorityQueue	rs;
-	std::vector<float> object;
 	qresults.resize(results.size());
 	size_t idx = results.size();
 	while (!results.empty()) {
 	  auto r = results.top();
 	  results.pop();
-#ifdef MULTIPLE_OBJECT_LISTS
-	  quantizer.objectList.get(threadid, r.id, object, &quantizer.globalCodebookIndex.getObjectSpace());
-#else
-	  quantizer.objectList.get(r.id, object, &quantizer.globalCodebookIndex.getObjectSpace());
-#endif
 	  if (objectSpace.getObjectType() == typeid(float)) {
+	    std::vector<float> object;
+#ifdef MULTIPLE_OBJECT_LISTS
+	    quantizer.objectList.get(threadid, r.id, object);
+#else
+	    quantizer.objectList.get(r.id, object);
+#endif
 	    r.distance = NGT::PrimitiveComparator::compareL2(static_cast<float*>(searchContainer.object.getPointer()),
 	    						     static_cast<float*>(object.data()), paddedDimension);
+	  } else if (objectSpace.getObjectType() == typeid(uint8_t)) {
+	    std::vector<uint8_t> object;
+#ifdef MULTIPLE_OBJECT_LISTS
+	    quantizer.objectList.get(threadid, r.id, object);
+#else
+	    quantizer.objectList.get(r.id, object);
+#endif
+	    r.distance = NGT::PrimitiveComparator::compareL2(static_cast<uint8_t*>(searchContainer.object.getPointer()),
+	    						     static_cast<uint8_t*>(object.data()), paddedDimension);
 #ifdef NGT_HALF_FLOAT
 	  } else if (objectSpace.getObjectType() == typeid(NGT::float16)) {
-	    r.distance = NGT::PrimitiveComparator::compareL2(reinterpret_cast<NGT::float16*>(searchContainer.object.getPointer()),
-	    						     reinterpret_cast<NGT::float16*>(object.data()), paddedDimension);
+	    std::vector<NGT::float16> object;
+#ifdef MULTIPLE_OBJECT_LISTS
+	    quantizer.objectList.get(threadid, r.id, object);
+#else
+	    quantizer.objectList.get(r.id, object);
+#endif
+	    r.distance = NGT::PrimitiveComparator::compareL2(static_cast<NGT::float16*>(searchContainer.object.getPointer()),
+	  						     static_cast<NGT::float16*>(object.data()), paddedDimension);
 #endif
 	  }
 	  qresults[--idx] = r;
@@ -961,20 +976,35 @@ namespace QBG {
 	auto threadid = omp_get_thread_num();
 	auto paddedDimension = getQuantizer().globalCodebookIndex.getObjectSpace().getPaddedDimension();
 	NGT::ResultPriorityQueue	rs;
-	std::vector<float> object;
 	while (!results.empty()) {
 	  auto r = results.top();
 	  results.pop();
-#ifdef MULTIPLE_OBJECT_LISTS
-	  quantizer.objectList.get(threadid, r.id, object, &quantizer.globalCodebookIndex.getObjectSpace());
-#else
-	  quantizer.objectList.get(r.id, object, &quantizer.globalCodebookIndex.getObjectSpace());
-#endif
 	  if (objectSpace.getObjectType() == typeid(float)) {
+	    std::vector<float> object;
+#ifdef MULTIPLE_OBJECT_LISTS
+	    quantizer.objectList.get(threadid, r.id, object);
+#else
+	    quantizer.objectList.get(r.id, object);
+#endif
 	    r.distance = NGT::PrimitiveComparator::compareL2(static_cast<float*>(searchContainer.object.getPointer()),
 	    						     static_cast<float*>(object.data()), paddedDimension);
+	  } else if (objectSpace.getObjectType() == typeid(uint8_t)) {
+	    std::vector<uint8_t> object;
+#ifdef MULTIPLE_OBJECT_LISTS
+	    quantizer.objectList.get(threadid, r.id, object);
+#else
+	    quantizer.objectList.get(r.id, object);
+#endif
+	    r.distance = NGT::PrimitiveComparator::compareL2(reinterpret_cast<uint8_t*>(searchContainer.object.getPointer()),
+	    						     reinterpret_cast<uint8_t*>(object.data()), paddedDimension);
 #ifdef NGT_HALF_FLOAT
 	  } else if (objectSpace.getObjectType() == typeid(NGT::float16)) {
+	    std::vector<NGT::float16> object;
+#ifdef MULTIPLE_OBJECT_LISTS
+	    quantizer.objectList.get(threadid, r.id, object);
+#else
+	    quantizer.objectList.get(r.id, object);
+#endif
 	    r.distance = NGT::PrimitiveComparator::compareL2(reinterpret_cast<NGT::float16*>(searchContainer.object.getPointer()),
 	    						     reinterpret_cast<NGT::float16*>(object.data()), paddedDimension);
 #endif
