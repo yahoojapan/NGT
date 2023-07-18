@@ -461,6 +461,30 @@ namespace NGT {
       }
       redirector.end();
     }
+    virtual void append(const uint8_t *data, size_t dataSize) {
+      StdOstreamRedirector redirector(redirect);
+      redirector.begin();
+      try {
+	getIndex().append(data, dataSize);
+      } catch(Exception &err) {
+	redirector.end();
+	throw err;
+      }
+      redirector.end();
+    }
+#ifdef NGT_HALF_FLOAT
+    virtual void append(const float16 *data, size_t dataSize) {
+      StdOstreamRedirector redirector(redirect);
+      redirector.begin();
+      try {
+	getIndex().append(data, dataSize);
+      } catch(Exception &err) {
+	redirector.end();
+	throw err;
+      }
+      redirector.end();
+    }
+#endif
     virtual size_t getNumberOfObjects() { return getIndex().getNumberOfObjects(); }
     virtual size_t getNumberOfIndexedObjects() { return getIndex().getNumberOfIndexedObjects(); }
     virtual size_t getObjectRepositorySize() { return getIndex().getObjectRepositorySize(); }
@@ -547,7 +571,7 @@ namespace NGT {
       std::remove(std::string(path + "/prf").c_str());
       std::remove(path.c_str());
     }
-    
+
     static void version(std::ostream &os);
     static std::string getVersion();
     std::string getPath(){ return path; }
@@ -1194,7 +1218,7 @@ namespace NGT {
     float getEpsilonFromExpectedAccuracy(double accuracy) { return accuracyTable.getEpsilon(accuracy); }
     Index::Property &getProperty() { return property; }
     bool getReadOnly() { return readOnly; }
-    
+
     template <class REPOSITORY> void getSeedsFromGraph(REPOSITORY &repo, ObjectDistances &seeds) {
       if (repo.size() != 0) {
 	size_t seedSize = repo.size() - 1 < (size_t)NeighborhoodGraph::property.seedSize ?
@@ -1447,7 +1471,7 @@ namespace NGT {
       }
 #endif
     }
-    
+
     void exportIndex(const std::string &ofile) {
       GraphIndex::exportIndex(ofile);
       std::ofstream ost(ofile + "/tre");
@@ -1792,5 +1816,3 @@ size_t NGT::Index::insert(const std::vector<T> &object)
   size_t oid = getObjectSpace().getRepository().insert(dynamic_cast<PersistentObject*>(o));
   return oid;
 }
-
-

@@ -158,6 +158,14 @@ bool ngt_batch_append_index(NGTIndex, float*, uint32_t, NGTError);
 
 bool ngt_batch_insert_index(NGTIndex, float*, uint32_t, uint32_t *, NGTError);
 
+bool ngt_batch_append_index_as_uint8(NGTIndex, uint8_t*, uint32_t, NGTError);
+
+bool ngt_batch_insert_index_as_uint8(NGTIndex, uint8_t*, uint32_t, uint32_t *, NGTError);
+
+bool ngt_batch_append_index_as_float16(NGTIndex, NGTFloat16*, uint32_t, NGTError);
+
+bool ngt_batch_insert_index_as_float16(NGTIndex, NGTFloat16*, uint32_t, uint32_t *, NGTError);
+
 bool ngt_create_index(NGTIndex, uint32_t, NGTError);
 
 bool ngt_remove_index(NGTIndex, ObjectID, NGTError);

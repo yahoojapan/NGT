@@ -853,6 +853,75 @@ bool ngt_batch_insert_index(NGTIndex index, float *obj, uint32_t data_count, uin
   return status;
 }
 
+bool ngt_batch_append_index_as_uint8(NGTIndex index, uint8_t *obj, uint32_t data_count, NGTError error) {
+  try{
+    NGT::Index* pindex = static_cast<NGT::Index*>(index);
+    pindex->append(obj, data_count);
+    return true;
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    return false;
+  }
+}
+
+bool ngt_batch_insert_index_as_uint8(NGTIndex index, uint8_t *obj, uint32_t data_count, uint32_t *ids, NGTError error) {
+  NGT::Index* pindex = static_cast<NGT::Index*>(index);
+  int32_t dim = pindex->getObjectSpace().getDimension();
+
+  bool status = true;
+  uint8_t *objptr = obj;
+  for (size_t idx = 0; idx < data_count; idx++, objptr += dim) {
+    try{
+      std::vector<uint8_t> vobj(objptr, objptr + dim);
+      ids[idx] = pindex->insert(vobj);
+    }catch(std::exception &err) {
+      status = false;
+      ids[idx] = 0;
+      std::stringstream ss;
+      ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+      operate_error_string_(ss, error);
+    }
+  }
+  return status;
+}
+
+bool ngt_batch_append_index_as_float16(NGTIndex index, NGTFloat16 *obj, uint32_t data_count, NGTError error) {
+  try{
+    NGT::Index* pindex = static_cast<NGT::Index*>(index);
+    auto o = static_cast<NGT::float16*>(obj);
+    pindex->append(o, data_count);
+    return true;
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    return false;
+  }
+}
+
+bool ngt_batch_insert_index_as_float16(NGTIndex index, NGTFloat16 *obj, uint32_t data_count, uint32_t *ids, NGTError error) {
+  NGT::Index* pindex = static_cast<NGT::Index*>(index);
+  int32_t dim = pindex->getObjectSpace().getDimension();
+
+  bool status = true;
+  NGT::float16 *objptr = static_cast<NGT::float16*>(obj);
+  for (size_t idx = 0; idx < data_count; idx++, objptr += dim) {
+    try{
+      std::vector<NGT::float16> vobj(objptr, objptr + dim);
+      ids[idx] = pindex->insert(vobj);
+    }catch(std::exception &err) {
+      status = false;
+      ids[idx] = 0;
+      std::stringstream ss;
+      ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+      operate_error_string_(ss, error);
+    }
+  }
+  return status;
+}
+
 bool ngt_create_index(NGTIndex index, uint32_t pool_size, NGTError error) {
   if(index == NULL){
     std::stringstream ss;
