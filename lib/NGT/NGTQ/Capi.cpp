@@ -43,6 +43,13 @@ static bool operate_error_string_(const std::stringstream &ss, NGTError error){
   return true;
 }
 
+void ngtqg_initialize_query_parameters(NGTQGQueryParameters *parameters) {
+  parameters->size = 20;
+  parameters->epsilon = 0.03;
+  parameters->result_expansion = 3.0;
+  parameters->radius = FLT_MAX;
+}
+
 void ngtqg_initialize_query(NGTQGQuery *query) {
   query->query = 0;
   query->size = 20;
@@ -71,17 +78,14 @@ void ngtqg_close_index(NGTQGIndex index) {
     delete static_cast<NGTQG::Index*>(index);
 }
 
-static bool ngtqg_search_index_(NGTQG::Index* pindex, std::vector<float> &query, NGTQGQuery &param, NGTObjectDistances results) {
-  // set search parameters.
-  NGTQG::SearchQuery sq(query);  // Query.
+static bool ngtqg_search_index_(NGTQG::Index* pindex, NGTQG::SearchQuery* sq, NGTQGQueryParameters &params, NGTObjectDistances results) {
+  sq->setResults(static_cast<NGT::ObjectDistances*>(results));          // set the result set.
+  sq->setSize(params.size);                        // the number of resultant objects.
+  sq->setRadius(params.radius);                    // search radius.
+  sq->setEpsilon(params.epsilon);                  // exploration coefficient.
+  sq->setResultExpansion(params.result_expansion); // result expansion.
 
-  sq.setResults(static_cast<NGT::ObjectDistances*>(results));          // set the result set.
-  sq.setSize(param.size);                        // the number of resultant objects.
-  sq.setRadius(param.radius);                    // search radius.
-  sq.setEpsilon(param.epsilon);                  // exploration coefficient.
-  sq.setResultExpansion(param.result_expansion); // result expansion.
-
-  pindex->search(sq);
+  pindex->search(*sq);
 
   return true;
 }
@@ -93,7 +97,7 @@ bool ngtqg_search_index(NGTQGIndex index, NGTQGQuery query, NGTObjectDistances r
     operate_error_string_(ss, error);
     return false;
   }
-  
+
   NGTQG::Index* pindex = static_cast<NGTQG::Index*>(index);
   int32_t dim = pindex->getObjectSpace().getDimension();
 
@@ -105,7 +109,114 @@ bool ngtqg_search_index(NGTQGIndex index, NGTQGQuery query, NGTObjectDistances r
 
   try{
     std::vector<float> vquery(&query.query[0], &query.query[dim]);
-    ngtqg_search_index_(pindex, vquery, query, results);
+    NGTQGQueryParameters qparams = {
+      .size = query.size,
+      .epsilon = query.epsilon,
+      .result_expansion = query.result_expansion,
+      .radius = query.radius,
+    };
+    NGTQG::SearchQuery sq(vquery);
+    ngtqg_search_index_(pindex, &sq, qparams, results);
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    if(ngtquery != NULL){
+      pindex->deleteObject(ngtquery);
+    }
+    return false;
+  }
+  return true;
+}
+
+bool ngtqg_search_index_float(NGTQGIndex index, NGTQGQueryFloat query, NGTObjectDistances results, NGTError error) {
+  if(index == NULL || query.query == NULL || results == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " query = " << query.query << " results = " << results;
+    operate_error_string_(ss, error);
+    return false;
+  }
+
+  NGTQG::Index* pindex = static_cast<NGTQG::Index*>(index);
+  int32_t dim = pindex->getObjectSpace().getDimension();
+
+  NGT::Object *ngtquery = NULL;
+
+  if(query.params.radius < 0.0){
+    query.params.radius = FLT_MAX;
+  }
+
+  try{
+    std::vector<float> vquery(&query.query[0], &query.query[dim]);
+    NGTQG::SearchQuery sq(vquery);
+    ngtqg_search_index_(pindex, &sq, query.params, results);
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    if(ngtquery != NULL){
+      pindex->deleteObject(ngtquery);
+    }
+    return false;
+  }
+  return true;
+}
+
+bool ngtqg_search_index_uint8(NGTQGIndex index, NGTQGQueryUint8 query, NGTObjectDistances results, NGTError error) {
+  if(index == NULL || query.query == NULL || results == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " query = " << query.query << " results = " << results;
+    operate_error_string_(ss, error);
+    return false;
+  }
+
+  NGTQG::Index* pindex = static_cast<NGTQG::Index*>(index);
+  int32_t dim = pindex->getObjectSpace().getDimension();
+
+  NGT::Object *ngtquery = NULL;
+
+  if(query.params.radius < 0.0){
+    query.params.radius = FLT_MAX;
+  }
+
+  try{
+    std::vector<uint8_t> vquery(&query.query[0], &query.query[dim]);
+    NGTQG::SearchQuery sq(vquery);
+    ngtqg_search_index_(pindex, &sq, query.params, results);
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    if(ngtquery != NULL){
+      pindex->deleteObject(ngtquery);
+    }
+    return false;
+  }
+  return true;
+}
+
+bool ngtqg_search_index_float16(NGTQGIndex index, NGTQGQueryFloat16 query, NGTObjectDistances results, NGTError error) {
+  if(index == NULL || query.query == NULL || results == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " query = " << query.query << " results = " << results;
+    operate_error_string_(ss, error);
+    return false;
+  }
+
+  NGTQG::Index* pindex = static_cast<NGTQG::Index*>(index);
+  int32_t dim = pindex->getObjectSpace().getDimension();
+
+  NGT::Object *ngtquery = NULL;
+
+  if(query.params.radius < 0.0){
+    query.params.radius = FLT_MAX;
+  }
+
+  try{
+    auto q = static_cast<NGT::float16*>(query.query);
+    std::vector<NGT::float16> vquery(&q[0], &q[dim]);
+    NGTQG::SearchQuery sq(vquery);
+    ngtqg_search_index_(pindex, &sq, query.params, results);
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
@@ -333,8 +444,8 @@ bool qbg_build_index(const char *index_path, QBGBuildParameters *parameters, QBG
   QBG::Optimizer optimizer;
 
   optimizer.numberOfObjects = parameters->number_of_objects;
-  optimizer.numberOfClusters = 16;	
-  optimizer.numberOfSubvectors = 0;	
+  optimizer.numberOfClusters = 16;
+  optimizer.numberOfSubvectors = 0;
   optimizer.clusteringType = NGT::Clustering::ClusteringTypeKmeansWithNGT;
   optimizer.initMode = static_cast<NGT::Clustering::InitializationMode>(parameters->optimization_clustering_init_mode);
   optimizer.convergenceLimitTimes = 5;

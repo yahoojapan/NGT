@@ -39,6 +39,28 @@ extern "C" {
   } NGTQGQuery;
 
   typedef struct {
+    size_t	size;		// # of returned objects
+    float	epsilon;
+    float	result_expansion;
+    float	radius;
+  } NGTQGQueryParameters;
+
+  typedef struct {
+    float					*query;
+    NGTQGQueryParameters	params;
+  } NGTQGQueryFloat;
+
+  typedef struct {
+    uint8_t					*query;
+    NGTQGQueryParameters	params;
+  } NGTQGQueryUint8;
+
+  typedef struct {
+    NGTFloat16				*query;
+    NGTQGQueryParameters	params;
+  } NGTQGQueryFloat16;
+
+  typedef struct {
     float	dimension_of_subvector;
     size_t	max_number_of_edges;
   } NGTQGQuantizationParameters;
@@ -51,9 +73,17 @@ extern "C" {
 
   bool ngtqg_quantize(const char *, NGTQGQuantizationParameters, NGTQGError);
 
+  void ngtqg_initialize_query_parameters(NGTQGQueryParameters *);
+
   void ngtqg_initialize_query(NGTQGQuery *);
 
   bool ngtqg_search_index(NGTQGIndex, NGTQGQuery, NGTObjectDistances, NGTQGError);
+
+  bool ngtqg_search_index_float(NGTQGIndex, NGTQGQueryFloat, NGTObjectDistances, NGTQGError);
+
+  bool ngtqg_search_index_uint8(NGTQGIndex, NGTQGQueryUint8, NGTObjectDistances, NGTQGError);
+
+  bool ngtqg_search_index_float16(NGTQGIndex, NGTQGQueryFloat16, NGTObjectDistances, NGTQGError);
 
   // QBG CAPI
 
@@ -134,7 +164,7 @@ extern "C" {
   uint8_t* qbg_get_object_as_uint8(QBGIndex index, ObjectID id,  QBGError error);
 
   size_t qbg_get_dimension(QBGIndex index, QBGError error);
-  
+
 #ifdef __cplusplus
 }
 #endif
