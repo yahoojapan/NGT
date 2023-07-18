@@ -48,6 +48,28 @@ typedef struct {
 } NGTQuery;
 
 typedef struct {
+  size_t	size;		// # of returned objects
+  float		epsilon;
+  float		radius;
+  size_t	edge_size;	// # of edges to explore for each node
+} NGTQueryParameters;
+
+typedef struct {
+  float					*query;
+  NGTQueryParameters	params;
+} NGTQueryFloat;
+
+typedef struct {
+  uint8_t				*query;
+  NGTQueryParameters	params;
+} NGTQueryUint8;
+
+typedef struct {
+  NGTFloat16			*query;
+  NGTQueryParameters	params;
+} NGTQueryFloat16;
+
+typedef struct {
   size_t	no_of_queries;
   size_t	no_of_results;
   size_t	no_of_threads;
@@ -124,7 +146,19 @@ bool ngt_search_index(NGTIndex, double*, int32_t, size_t, float, float, NGTObjec
 
 bool ngt_search_index_as_float(NGTIndex, float*, int32_t, size_t, float, float, NGTObjectDistances, NGTError);
 
+bool ngt_search_index_as_uint8(NGTIndex, uint8_t*, int32_t, size_t, float, float, NGTObjectDistances, NGTError);
+
+bool ngt_search_index_as_float16(NGTIndex, NGTFloat16*, int32_t, size_t, float, float, NGTObjectDistances, NGTError);
+
 bool ngt_search_index_with_query(NGTIndex, NGTQuery, NGTObjectDistances, NGTError);
+
+void ngt_initialize_query_parameters(NGTQueryParameters *);
+
+bool ngt_search_index_with_query_float(NGTIndex, NGTQueryFloat, NGTObjectDistances, NGTError);
+
+bool ngt_search_index_with_query_uint8(NGTIndex, NGTQueryUint8, NGTObjectDistances, NGTError);
+
+bool ngt_search_index_with_query_float16(NGTIndex, NGTQueryFloat16, NGTObjectDistances, NGTError);
 
 bool ngt_linear_search_index(NGTIndex, double*, int32_t, size_t, NGTObjectDistances, NGTError);
 

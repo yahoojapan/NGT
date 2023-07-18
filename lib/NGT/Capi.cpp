@@ -485,7 +485,70 @@ bool ngt_search_index_as_float(NGTIndex index, float *query, int32_t query_dim, 
   return true;
 }
 
-bool ngt_search_index_with_query(NGTIndex index,  NGTQuery query, NGTObjectDistances results, NGTError error) {
+bool ngt_search_index_as_uint8(NGTIndex index, uint8_t *query, int32_t query_dim, size_t size, float epsilon, float radius, NGTObjectDistances results, NGTError error) {
+  if(index == NULL || query == NULL || results == NULL || query_dim <= 0){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " query = " << query << " results = " << results << " query_dim = " << query_dim;
+    operate_error_string_(ss, error);
+    return false;
+  }
+
+  NGT::Index* pindex = static_cast<NGT::Index*>(index);
+  NGT::Object *ngtquery = NULL;
+
+  if(radius < 0.0){
+    radius = FLT_MAX;
+  }
+
+  try{
+    std::vector<uint8_t> vquery(&query[0], &query[query_dim]);
+    ngtquery = pindex->allocateObject(vquery);
+    ngt_search_index_(pindex, ngtquery, size, epsilon, radius, results);
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    if(ngtquery != NULL){
+      pindex->deleteObject(ngtquery);
+    }
+    return false;
+  }
+  return true;
+}
+
+bool ngt_search_index_as_float16(NGTIndex index, NGTFloat16 *query, int32_t query_dim, size_t size, float epsilon, float radius, NGTObjectDistances results, NGTError error) {
+  if(index == NULL || query == NULL || results == NULL || query_dim <= 0){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " query = " << query << " results = " << results << " query_dim = " << query_dim;
+    operate_error_string_(ss, error);
+    return false;
+  }
+
+  NGT::Index* pindex = static_cast<NGT::Index*>(index);
+  NGT::Object *ngtquery = NULL;
+
+  if(radius < 0.0){
+    radius = FLT_MAX;
+  }
+
+  try{
+    auto q = static_cast<NGT::float16*>(query);
+    std::vector<NGT::float16> vquery(&q[0], &q[query_dim]);
+    ngtquery = pindex->allocateObject(vquery);
+    ngt_search_index_(pindex, ngtquery, size, epsilon, radius, results);
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    if(ngtquery != NULL){
+      pindex->deleteObject(ngtquery);
+    }
+    return false;
+  }
+  return true;
+}
+
+bool ngt_search_index_with_query(NGTIndex index, NGTQuery query, NGTObjectDistances results, NGTError error) {
   if(index == NULL || query.query == NULL || results == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " query = " << query.query << " results = " << results;
@@ -506,6 +569,113 @@ bool ngt_search_index_with_query(NGTIndex index,  NGTQuery query, NGTObjectDista
     std::vector<float> vquery(&query.query[0], &query.query[dim]);
     ngtquery = pindex->allocateObject(vquery);
     ngt_search_index_(pindex, ngtquery, query.size, query.epsilon, query.radius, results, query.edge_size);
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    if(ngtquery != NULL){
+      pindex->deleteObject(ngtquery);
+    }
+    return false;
+  }
+  return true;
+}
+
+void ngt_initialize_query_parameters(NGTQueryParameters * params) {
+  params->epsilon = 0.1;
+  params->edge_size = INT_MIN;
+  params->radius = -1;
+  params->size = 10;
+}
+
+bool ngt_search_index_with_query_float(NGTIndex index, NGTQueryFloat query, NGTObjectDistances results, NGTError error) {
+  if(index == NULL || query.query == NULL || results == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " query = " << query.query << " results = " << results;
+    operate_error_string_(ss, error);
+    return false;
+  }
+
+  NGT::Index* pindex = static_cast<NGT::Index*>(index);
+  int32_t dim = pindex->getObjectSpace().getDimension();
+
+  NGT::Object *ngtquery = NULL;
+
+  if(query.params.radius < 0.0){
+    query.params.radius = FLT_MAX;
+  }
+
+  try{
+    std::vector<float> vquery(&query.query[0], &query.query[dim]);
+    ngtquery = pindex->allocateObject(vquery);
+    ngt_search_index_(pindex, ngtquery, query.params.size, query.params.epsilon, query.params.radius, results, query.params.edge_size);
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    if(ngtquery != NULL){
+      pindex->deleteObject(ngtquery);
+    }
+    return false;
+  }
+  return true;
+}
+
+bool ngt_search_index_with_query_uint8(NGTIndex index, NGTQueryUint8 query, NGTObjectDistances results, NGTError error) {
+  if(index == NULL || query.query == NULL || results == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " query = " << query.query << " results = " << results;
+    operate_error_string_(ss, error);
+    return false;
+  }
+
+  NGT::Index* pindex = static_cast<NGT::Index*>(index);
+  int32_t dim = pindex->getObjectSpace().getDimension();
+
+  NGT::Object *ngtquery = NULL;
+
+  if(query.params.radius < 0.0){
+    query.params.radius = FLT_MAX;
+  }
+
+  try{
+    std::vector<uint8_t> vquery(&query.query[0], &query.query[dim]);
+    ngtquery = pindex->allocateObject(vquery);
+    ngt_search_index_(pindex, ngtquery, query.params.size, query.params.epsilon, query.params.radius, results, query.params.edge_size);
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    if(ngtquery != NULL){
+      pindex->deleteObject(ngtquery);
+    }
+    return false;
+  }
+  return true;
+}
+
+bool ngt_search_index_with_query_float16(NGTIndex index, NGTQueryFloat16 query, NGTObjectDistances results, NGTError error) {
+  if(index == NULL || query.query == NULL || results == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " query = " << query.query << " results = " << results;
+    operate_error_string_(ss, error);
+    return false;
+  }
+
+  NGT::Index* pindex = static_cast<NGT::Index*>(index);
+  int32_t dim = pindex->getObjectSpace().getDimension();
+
+  NGT::Object *ngtquery = NULL;
+
+  if(query.params.radius < 0.0){
+    query.params.radius = FLT_MAX;
+  }
+
+  try{
+    auto q = static_cast<NGT::float16*>(query.query);
+    std::vector<NGT::float16> vquery(&q[0], &q[dim]);
+    ngtquery = pindex->allocateObject(vquery);
+    ngt_search_index_(pindex, ngtquery, query.params.size, query.params.epsilon, query.params.radius, results, query.params.edge_size);
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
