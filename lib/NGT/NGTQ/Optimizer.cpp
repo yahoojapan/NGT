@@ -17,33 +17,49 @@
 #include "QuantizedBlobGraph.h"
 #include "Optimizer.h"
 
+
 QBG::Optimizer::Optimizer(QBG::BuildParameters &param) {
 #ifdef NGTQ_QBG
-  clusteringType		= param.optimization.clusteringType;
-  initMode			= param.optimization.initMode;
+  setParameters(param.optimization);
+#endif
+}
+QBG::Optimizer::Optimizer(QBG::OptimizationParameters &param) {
+  setParameters(param);
+}
 
-  timelimit			= param.optimization.timelimit;
-  iteration			= param.optimization.iteration;
-  clusterIteration		= param.optimization.clusterIteration;
-  clusterSizeConstraint		= param.optimization.clusterSizeConstraint;
-  clusterSizeConstraintCoefficient	= param.optimization.clusterSizeConstraintCoefficient;
-  convergenceLimitTimes		= param.optimization.convergenceLimitTimes;
-  numberOfObjects		= param.optimization.numberOfObjects;
-  numberOfClusters		= param.optimization.numberOfClusters;
-  numberOfSubvectors		= param.optimization.numberOfSubvectors;
-  nOfMatrices			= param.optimization.nOfMatrices;
-  seedStartObjectSizeRate	= param.optimization.seedStartObjectSizeRate;
-  seedStep			= param.optimization.seedStep;
-  reject			= param.optimization.reject;
-  repositioning			= param.optimization.repositioning;
-  rotation			= param.optimization.rotation;
-  globalType			= param.optimization.globalType;
-  randomizedObjectExtraction	= param.optimization.randomizedObjectExtraction;
-  showClusterInfo		= param.optimization.showClusterInfo;
-  silence			= param.silence;
+void QBG::Optimizer::initialize() {
+#ifdef NGTQ_QBG
+  OptimizationParameters params;
+  setParameters(params);
 #endif
 }
 
+void QBG::Optimizer::setParameters(QBG::OptimizationParameters &param) {
+#ifdef NGTQ_QBG
+  clusteringType		= param.clusteringType;
+  initMode			= param.initMode;
+
+  timelimit			= param.timelimit;
+  iteration			= param.iteration;
+  clusterIteration		= param.clusterIteration;
+  clusterSizeConstraint		= param.clusterSizeConstraint;
+  clusterSizeConstraintCoefficient	= param.clusterSizeConstraintCoefficient;
+  convergenceLimitTimes		= param.convergenceLimitTimes;
+  numberOfObjects		= param.numOfObjects;
+  numberOfClusters		= param.numOfClusters;
+  numberOfSubvectors		= param.numOfSubvectors;
+  numberOfMatrices			= param.numOfMatrices;
+  seedNumberOfSteps		= param.seedNumberOfSteps;
+  seedStep			= param.seedStep;
+  reject			= param.reject;
+  repositioning			= param.repositioning;
+  rotation			= param.rotation;
+  globalType			= param.globalType;
+  randomizedObjectExtraction	= param.randomizedObjectExtraction;
+  showClusterInfo		= param.showClusterInfo;
+  verbose			= param.verbose;
+#endif
+}
 
 #ifdef NGTQ_QBG
 void QBG::Optimizer::evaluate(string global, vector<vector<float>> &vectors, char clusteringType, string &ofile, size_t &numberOfSubvectors, size_t &subvectorSize)
@@ -224,8 +240,11 @@ void QBG::Optimizer::evaluate(vector<vector<float>> &vectors, string &ofile, siz
 
 #ifdef NGTQ_QBG
 void QBG::Optimizer::optimize(const std::string indexPath, size_t threadSize) {
-  NGT::StdOstreamRedirector redirector(silence);
+  NGT::StdOstreamRedirector redirector(!verbose);
   redirector.begin();
+  if (threadSize == 0) {
+    threadSize = omp_get_max_threads();
+  }
   try {
     QBG::Index index(indexPath);
     if (index.getQuantizer().objectList.size() <= 1) {
@@ -245,7 +264,10 @@ void QBG::Optimizer::optimize(const std::string indexPath, size_t threadSize) {
     }
     if (index.getQuantizer().property.localCentroidLimit != 0 && numberOfClusters != 0 && 
 	index.getQuantizer().property.localCentroidLimit != numberOfClusters) {
-      std::cerr << "optimize: warning! # of clusters is already specified. " << index.getQuantizer().property.localCentroidLimit << ":" << numberOfClusters << std::endl;
+      std::stringstream msg;
+      msg << "optimize: # of clusters is already specified. " << index.getQuantizer().property.localCentroidLimit << ":" << numberOfClusters;
+      NGTThrowException(msg);
+
     }
     if (numberOfClusters == 0) {
       numberOfClusters = index.getQuantizer().property.localCentroidLimit;
@@ -277,6 +299,27 @@ void QBG::Optimizer::optimize(const std::string indexPath, size_t threadSize) {
       std::vector<std::vector<float>> global(1);
       global[0].resize(index.getQuantizer().property.dimension, 0.0);
       NGT::Clustering::saveVectors(QBG::Index::getQuantizerCodebookFile(indexPath), global);
+
+      ifstream ifs(QBG::Index::getCodebookIndexFile(indexPath));
+      if (!ifs) {
+	std::stringstream msg;
+	msg << "Cannot open the file. " << QBG::Index::getCodebookIndexFile(indexPath);
+	NGTThrowException(msg);
+      }
+      size_t id;
+      size_t count = 0;
+      while (ifs >> id) {
+	count++;
+      }
+      ofstream ofs(QBG::Index::getCodebookIndexFile(indexPath));
+      if (!ofs) {
+	std::stringstream msg;
+	msg << "Cannot open the file. " << QBG::Index::getCodebookIndexFile(indexPath);
+	NGTThrowException(msg);
+      }
+      for (size_t i = 0; i < count; i++) {
+	ofs << "0" << std::endl;
+      }
     } else if (globalType == GlobalTypeMean) {
       std::vector<std::vector<float>> vectors;
       std::string objects = QBG::Index::getTrainObjectFile(indexPath);
@@ -286,7 +329,7 @@ void QBG::Optimizer::optimize(const std::string indexPath, size_t threadSize) {
       loadVectors(objects, vectors);
 #endif
       if (vectors.size() == 0 || vectors[0].size() == 0) {
-	NGTThrowException("Optimizer::optimize: invalid input vectors");
+	NGTThrowException("optimize::optimize: invalid input vectors");
       }
       std::vector<std::vector<float>> global(1);
       global[0].resize(index.getQuantizer().property.dimension, 0);
@@ -334,33 +377,32 @@ void QBG::Optimizer::optimizeWithinIndex(std::string indexPath) {
 
 
 #ifdef NGTQ_QBG
-void QBG::Optimizer::optimize(std::string invector, std::string ofile, std::string global) {
+void QBG::Optimizer::optimize(vector<vector<float>> &vectors, vector<vector<float>> &globalCentroid, Matrix<float> &r, vector<vector<NGT::Clustering::Cluster>> &localClusters, vector<double> &errors) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
   std::cerr << "optimize: Not implemented." << std::endl;
   abort();
 #else
-  vector<vector<float>> vectors;
-
-
-#ifdef NGT_CLUSTERING
-  NGT::Clustering::loadVectors(invector, vectors);
-#else
-  loadVectors(invector, vectors);
-#endif
 
   if (vectors.size() == 0) {
     std::stringstream msg;
-    msg << "Optimizer: error! the specified vetor file is empty. " << invector << ". the size=" << vectors.size();
+    msg << "optimize: error! the specified vetor is empty. the size=" << vectors.size();
     NGTThrowException(msg);
   }
 
-  dim = vectors[0].size();
+  auto dim = vectors[0].size();
+  if (numberOfSubvectors == 0) {
+    std::stringstream msg;
+    msg << "# of subspaces (m) is zero.";
+    NGTThrowException(msg);
+  }
   subvectorSize = dim / numberOfSubvectors;
   if (dim % numberOfSubvectors != 0) {
     std::stringstream msg;
     msg << "# of subspaces (m) is illegal. " << dim << ":" << numberOfSubvectors;
     NGTThrowException(msg);
   }
+
+  generateResidualObjects(globalCentroid, vectors);
 
 
   timelimitTimer.start();
@@ -378,111 +420,164 @@ void QBG::Optimizer::optimize(std::string invector, std::string ofile, std::stri
 	dstidx++;
       }
     }
-    std::cerr << "Optimizer: Each axis was repositioned." << std::endl;
+    std::cerr << "optimize: Each axis was repositioned." << std::endl;
   }
 
 
-  vector<vector<vector<NGT::Clustering::Cluster>>> localClusters;
-  vector<double> errors;
+  vector<vector<vector<NGT::Clustering::Cluster>>> localClustersSet;
 
-  bool useEye = false;
-  nOfMatrices = nOfMatrices == 0 ? 1 : nOfMatrices;
+  numberOfMatrices = numberOfMatrices == 0 ? 1 : numberOfMatrices;
   if (!rotation) {
     iteration = 1;
-    seedStartObjectSizeRate = 1.0;
+    seedNumberOfSteps = 1;
     seedStep = 2;
+    numberOfMatrices = 1;
   }
-  useEye = !rotation;
-  vector<Matrix<float>> rs(nOfMatrices);
+
+  seedNumberOfSteps = numberOfMatrices == 1 ? 1 : seedNumberOfSteps;
+  seedNumberOfSteps = seedNumberOfSteps < 1 ? 1 : seedNumberOfSteps;
+  if (numberOfMatrices > 100) {
+    std::stringstream msg;
+    msg << "# of matrices is too large. Should be less than 10. " << numberOfMatrices << " was specified.";
+    NGTThrowException(msg);
+  }
+  if (seedStep > 100 || seedStep == 0) {
+    std::stringstream msg;
+    msg << "the seed step is illegal. Should be less than 100. " << seedStep << " was specified.";
+    NGTThrowException(msg);
+  }
+  vector<Matrix<float>> rs(numberOfMatrices);
   for (auto &r: rs) {
-    if (useEye) {
+    if (!rotation) {
       r.eye(dim);
     } else {
       r.randomRotation(dim);
     }
   }
 
-  for (size_t vsize = static_cast<float>(vectors.size()) * seedStartObjectSizeRate; ; vsize *= seedStep) {
+  NGT::Timer timer;
+  timer.start();
+  for (int step = seedNumberOfSteps - 1; ; step--) {
+    size_t vsize = vectors.size() / pow(seedStep, step);
+    std::cerr << "optimize: # of vectors=" << vsize << "/" << vectors.size() 
+	      << ", # of matrices=" << numberOfMatrices << std::endl;
+    if (vsize <= 1) {
+      std::stringstream msg;
+      msg << "# of partial vectors is too small, because # of vectors is too small or seedStep is too large." 
+	  << " # of partial vectors=" << vsize << " # of vectors=" <<  vectors.size() << " seedStep=" << seedStep << std::endl;
+      NGTThrowException(msg);
+    }
     auto partialVectors = vectors;
     if (vsize < vectors.size()) {
       partialVectors.resize(vsize);
     }
 
     optimize(partialVectors,
-	     global,
-	     ofile,
 	     reposition,
 	     rs,
-	     localClusters,
+	     localClustersSet,
 	     errors);
     if (rs.size() > 1) {
-      nOfMatrices = static_cast<float>(nOfMatrices) * (1.0 - reject);
-      nOfMatrices = nOfMatrices == 0 ? 1 : nOfMatrices;
+      numberOfMatrices = static_cast<float>(numberOfMatrices) * (1.0 - reject);
+      numberOfMatrices = numberOfMatrices == 0 ? 1 : numberOfMatrices;
       vector<pair<double, pair<Matrix<float>*, vector<vector<NGT::Clustering::Cluster>>*>>> sortedErrors;
       for (size_t idx = 0; idx < errors.size(); idx++) {
-	sortedErrors.emplace_back(make_pair(errors[idx], make_pair(&rs[idx], &localClusters[idx])));
+	sortedErrors.emplace_back(make_pair(errors[idx], make_pair(&rs[idx], &localClustersSet[idx])));
       }
       sort(sortedErrors.begin(), sortedErrors.end());
       vector<Matrix<float>> tmpMatrix;
       vector<vector<vector<NGT::Clustering::Cluster>>> tmpLocalClusters;
-      for (size_t idx = 0; idx < nOfMatrices; idx++) {
+      for (size_t idx = 0; idx < numberOfMatrices; idx++) {
 	tmpMatrix.emplace_back(*sortedErrors[idx].second.first);
 	tmpLocalClusters.emplace_back(*sortedErrors[idx].second.second);
       }
-      if (tmpMatrix.size() != nOfMatrices) {
-	std::cerr << "something strange. " << tmpMatrix.size() << ":" << nOfMatrices << std::endl;
+      if (tmpMatrix.size() != numberOfMatrices) {
+	std::cerr << "something strange. " << tmpMatrix.size() << ":" << numberOfMatrices << std::endl;
       }
       rs = std::move(tmpMatrix);
-      localClusters = std::move(tmpLocalClusters);
+      localClustersSet = std::move(tmpLocalClusters);
     }
+    timer.stop();
+    std::cerr << "optimize: time=" << timer << std::endl;
+    timer.restart();
     if (vsize >= vectors.size()) {
       break;
     }
   }
 
   if (rs.size() != 1) {
-    std::cerr << "Optimizer: Warning. rs.size=" << rs.size() << std::endl;
+    std::cerr << "optimize: Warning. rs.size=" << rs.size() << std::endl;
   }
-  auto minR = std::move(rs[0]);
-  auto minLocalClusters = std::move(localClusters[0]);
-  //-/size_t pos = std::distance(std::find(ofile.rbegin(), ofile.rend(), '.'), ofile.rend()) - 1;
+
+  localClusters = std::move(localClustersSet[0]);
   if (repositioning) {
     Matrix<float> repositionedR(reposition);
-    repositionedR.mul(minR);
-    Matrix<float>::save(ofile + QBG::Index::getRotationFile(), repositionedR);
+    repositionedR.mul(rs[0]);
+    r = std::move(repositionedR);
   } else {
-    Matrix<float>::save(ofile + QBG::Index::getRotationFile(), minR);
+    r = std::move(rs[0]);
   }
+
+  //-/size_t pos = std::distance(std::find(ofile.rbegin(), ofile.rend(), '.'), ofile.rend()) - 1;
+
+#endif 
+}
+
+void QBG::Optimizer::optimize(std::string invector, std::string ofile, std::string global) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+  std::cerr << "optimize: Not implemented." << std::endl;
+  abort();
+#else
+
+
+  vector<vector<float>> vectors;
+#ifdef NGT_CLUSTERING
+  NGT::Clustering::loadVectors(invector, vectors);
+#else
+  loadVectors(invector, vectors);
+#endif
+
+  vector<vector<float>> globalCentroid;
+  NGT::Clustering::loadVectors(global, globalCentroid);
+
+  Matrix<float> r;
+  vector<vector<NGT::Clustering::Cluster>> localClusters;
+  vector<double> errors;
+
+  optimize(vectors, globalCentroid, r, localClusters, errors);
+
+  Matrix<float>::save(ofile + QBG::Index::getRotationFile(), r);
+
   if (showClusterInfo) {
-    if (minLocalClusters.size() != numberOfSubvectors) {
+    if (localClusters.size() != numberOfSubvectors) {
       std::stringstream msg;
-      msg << "Fatal error. minLocalClusters.size() != numberOfSubvectors " <<
-	minLocalClusters.size() << ":" << numberOfSubvectors;
+      msg << "Fatal error. localClusters.size() != numberOfSubvectors " 
+	  << localClusters.size() << ":" << numberOfSubvectors;
       NGTThrowException(msg);
     }
     float totalRate = 0.0;
-    for (size_t m = 0; m < minLocalClusters.size(); m++) {
+    for (size_t m = 0; m < localClusters.size(); m++) {
       size_t min = std::numeric_limits<size_t>::max();
       size_t max = 0;
       size_t nOfVectors = 0;
-      for (size_t i = 0; i < minLocalClusters[m].size(); i++) {
-	nOfVectors += minLocalClusters[m][i].members.size();
-	if (minLocalClusters[m][i].members.size() < min) {
-	  min = minLocalClusters[m][i].members.size();
+      for (size_t i = 0; i < localClusters[m].size(); i++) {
+	nOfVectors += localClusters[m][i].members.size();
+	if (localClusters[m][i].members.size() < min) {
+	  min = localClusters[m][i].members.size();
 	}
-	if (minLocalClusters[m][i].members.size() > max) {
-	  max = minLocalClusters[m][i].members.size();
+	if (localClusters[m][i].members.size() > max) {
+	  max = localClusters[m][i].members.size();
 	}
       }
       float rate = static_cast<float>(max - min) / static_cast<float>(nOfVectors);
       totalRate += rate;
       std::cout << "cluster " << m << " " << rate << "," << max - min << "," << min << "," << max << " : ";
-      for (size_t i = 0; i < minLocalClusters[m].size(); i++) {
-	std::cout << minLocalClusters[m][i].members.size() << " ";
+      for (size_t i = 0; i < localClusters[m].size(); i++) {
+	std::cout << localClusters[m][i].members.size() << " ";
       }
       std::cout << std::endl;
     }
-    totalRate /= minLocalClusters.size();
+    totalRate /= localClusters.size();
     std::cout << "Range rate=" << totalRate << std::endl;
     std::cout << "Error=" << errors[0] << std::endl;
   }
@@ -490,9 +585,9 @@ void QBG::Optimizer::optimize(std::string invector, std::string ofile, std::stri
     stringstream str;
     str << ofile << QBG::Index::getSubvectorPrefix() << "-" << m;
 #ifdef NGT_CLUSTERING
-    NGT::Clustering::saveClusters(str.str(), minLocalClusters[m]);
+    NGT::Clustering::saveClusters(str.str(), localClusters[m]);
 #else
-    saveClusters(str.str(), minLocalClusters[m]);
+    saveClusters(str.str(), localClusters[m]);
 #endif
   }
 #endif 

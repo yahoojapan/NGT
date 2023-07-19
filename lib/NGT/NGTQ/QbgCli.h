@@ -27,23 +27,23 @@ namespace QBG {
     int debugLevel;
 
 #if !defined(NGTQ_QBG) || defined(NGTQ_SHARED_INVERTED_INDEX)
-    void create(NGT::Args &args) {};
-    void load(NGT::Args &args) {};
-    void append(NGT::Args &args) {};
-    void buildIndex(NGT::Args &args) {};
-    void hierarchicalKmeans(NGT::Args &args) {};
-    void search(NGT::Args &args) {};
-    void assign(NGT::Args &args) {};
-    void extract(NGT::Args &args) {};
-    void gt(NGT::Args &args) {};
-    void gtRange(NGT::Args &args) {};
-    void optimize(NGT::Args &args) {};
-    void build(NGT::Args &args) {};
-    void createQG(NGT::Args &args) {};
-    void buildQG(NGT::Args &args) {};
-    void appendQG(NGT::Args &args) {};
-    void searchQG(NGT::Args &args) {};
-    void info(NGT::Args &args) {};
+    void create(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
+    void load(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
+    void append(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
+    void buildIndex(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
+    void hierarchicalKmeans(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
+    void search(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
+    void assign(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
+    void extract(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
+    void gt(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
+    void gtRange(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
+    void optimize(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
+    void build(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
+    void createQG(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
+    void buildQG(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
+    void appendQG(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
+    void searchQG(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
+    void info(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
 #else
     void create(NGT::Args &args);
     void load(NGT::Args &args);
@@ -119,6 +119,8 @@ namespace QBG {
 	  appendQG(args);
 	} else if (command == "search-qg") {
 	  searchQG(args);
+	} else if (command == "info") {
+	  info(args);
 	} else {
 	  cerr << "Illegal command. " << command << endl;
 	}

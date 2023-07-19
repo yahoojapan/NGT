@@ -136,7 +136,7 @@ namespace NGT {
 	}
 	std::vector<double> object;
 	try {
-	  extractObjectFromText(line, "\t ", object);
+	  extractObjectFromText(line, "\t, ", object);
 	  PersistentObject *obj = 0;
 	  try {
 	    obj = allocateNormalizedPersistentObject(object);

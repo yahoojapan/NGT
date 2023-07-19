@@ -19,7 +19,7 @@
 #include	"NGT/NGTQ/Optimizer.h"
 
 #ifdef NGTQ_QBG
-void NGTQG::Index::quantize(const std::string indexPath, size_t dimensionOfSubvector, size_t maxNumOfEdges, bool silence) {
+void NGTQG::Index::quantize(const std::string indexPath, size_t dimensionOfSubvector, size_t maxNumOfEdges, bool verbose) {
   {
     NGT::Index	index(indexPath);
     const std::string quantizedIndexPath = indexPath + "/qg";
@@ -29,7 +29,7 @@ void NGTQG::Index::quantize(const std::string indexPath, size_t dimensionOfSubve
       index.getProperty(ngtProperty);
       QBG::BuildParameters buildParameters;
       buildParameters.creation.dimensionOfSubvector = dimensionOfSubvector;
-      buildParameters.silence = silence;
+      buildParameters.setVerbose(verbose);
  
       NGTQG::Index::create(indexPath, buildParameters);
 
@@ -51,9 +51,9 @@ void NGTQG::Index::quantize(const std::string indexPath, size_t dimensionOfSubve
 
       optimizer.optimize(quantizedIndexPath);
 
-      QBG::Index::buildNGTQ(quantizedIndexPath, silence);
+      QBG::Index::buildNGTQ(quantizedIndexPath, verbose);
 
-      NGTQG::Index::realign(indexPath, maxNumOfEdges, silence);
+      NGTQG::Index::realign(indexPath, maxNumOfEdges, verbose);
     }
   }
 
@@ -62,19 +62,19 @@ void NGTQG::Index::quantize(const std::string indexPath, size_t dimensionOfSubve
 void NGTQG::Index::create(const std::string indexPath, QBG::BuildParameters &buildParameters) {
   auto dimensionOfSubvector = buildParameters.creation.dimensionOfSubvector;
   auto dimension = buildParameters.creation.dimension;
-  if (dimension != 0 && buildParameters.creation.localDivisionNo != 0) {
-    if (dimension % buildParameters.creation.localDivisionNo != 0) {
+  if (dimension != 0 && buildParameters.creation.numOfSubvectors != 0) {
+    if (dimension % buildParameters.creation.numOfSubvectors != 0) {
       std::stringstream msg;
-      msg << "NGTQBG:Index::create: Invalid dimension and local division No. " << dimension << ":" << buildParameters.creation.localDivisionNo;
+      msg << "NGTQBG:Index::create: Invalid dimension and local division No. " << dimension << ":" << buildParameters.creation.numOfSubvectors;
       NGTThrowException(msg);
     }
-    dimensionOfSubvector = dimension / buildParameters.creation.localDivisionNo;
+    dimensionOfSubvector = dimension / buildParameters.creation.numOfSubvectors;
   }
   create(indexPath, dimensionOfSubvector, dimension);
 }
 
 
 void NGTQG::Index::append(const std::string indexPath, QBG::BuildParameters &buildParameters) {
-  QBG::Index::appendFromObjectRepository(indexPath, indexPath + "/qg", buildParameters.silence);
+  QBG::Index::appendFromObjectRepository(indexPath, indexPath + "/qg", buildParameters.verbose);
 }
 #endif 

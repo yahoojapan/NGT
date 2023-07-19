@@ -4,6 +4,7 @@
 int
 main(int argc, char **argv)
 {
+#if !defined(NGT_SHARED_MEMORY_ALLOCATOR)
   std::string indexPath  = "index";
   std::string objectFile = "sift-128-euclidean.tsv";
   std::string queryFile  = "query.tsv";
@@ -133,6 +134,6 @@ main(int argc, char **argv)
 
   qbg_close_index(index);
   ngt_destroy_error_object(err);
-
+#endif
   return 0;
 }

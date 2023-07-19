@@ -399,12 +399,12 @@ namespace NGT {
 		    }
 		    double accuracy = (double)relevantCount / (double)resultDataSize;
 		    double key;
-		    if (epsilon != "") {
-		      key = NGT::Common::strtod(epsilon);
-		      keyValue = "Factor (Epsilon)";
-		    } else if (expansion != "") {
+		    if (expansion != "") {
 		      key = NGT::Common::strtod(expansion);
 		      keyValue = "Expansion";
+		    } else if (epsilon != "") {
+		      key = NGT::Common::strtod(epsilon);
+		      keyValue = "Factor (Epsilon)";
 		    } else {
 		      std::stringstream msg;
 		      msg << "check: inner error! " << epsilon;

@@ -234,6 +234,69 @@ namespace NGT {
     char **argV;
   };
 
+  class Timer {
+  public:
+  Timer():time(0) {}
+    void reset() { time = 0; ntime = 0; }
+
+    void start() {
+      struct timespec res;
+      clock_getres(CLOCK_REALTIME, &res);
+      reset();
+      clock_gettime(CLOCK_REALTIME, &startTime);
+    }
+
+    void restart() {
+      clock_gettime(CLOCK_REALTIME, &startTime);
+    }
+
+    void stop() {
+      clock_gettime(CLOCK_REALTIME, &stopTime);
+      sec = stopTime.tv_sec - startTime.tv_sec;
+      nsec = stopTime.tv_nsec - startTime.tv_nsec;
+      if (nsec < 0) {
+	sec -= 1;
+	nsec += 1000000000L;
+      }
+      time += (double)sec + (double)nsec / 1000000000.0;
+      ntime += sec * 1000000000L + nsec;
+    }
+
+    void add(Timer &t) {
+      time += t.time;
+      ntime += t.ntime;
+    }
+
+    friend std::ostream &operator<<(std::ostream &os, Timer &t) {
+      auto time = t.time;
+      if (time < 1.0) {
+	time *= 1000.0;
+	os << std::setprecision(6) << time << " (ms)";	
+	return os;
+      }
+      if (time < 60.0) {
+	os << std::setprecision(6) << time << " (s)";	
+	return os;
+      }
+      time /= 60.0;
+      if (time < 60.0) {
+	os << std::setprecision(6) << time << " (m)";
+	return os;
+      }
+      time /= 60.0;
+      os << std::setprecision(6) << time << " (h)";
+      return os;
+    }
+
+    struct timespec startTime;
+    struct timespec stopTime;
+
+    int64_t	sec;
+    int64_t	nsec;
+    int64_t	ntime;	// nano second
+    double      time;	// second
+  };
+
   class Common {
   public:
     static void tokenize(const std::string &str, std::vector<std::string> &token, const std::string seps) {
@@ -289,13 +352,13 @@ namespace NGT {
       for (idx = 0; idx < tokens.size(); idx++) {
 	if (tokens[idx].size() == 0) {
 	  std::stringstream msg;
-	  msg << "Common::extractVecotFromText: No data. " << textLine;
+	  msg << "Common::extractVecot: No data. " << textLine;
 	  NGTThrowException(msg);
         }
 	char *e;
 	double v = ::strtod(tokens[idx].c_str(), &e);
 	if (*e != 0) {
-	  std::cerr << "ObjectSpace::readText: Warning! Not numerical value. [" << e << "]" << std::endl;
+	  std::cerr << "Common::extractVector: Warning! Not numerical value. [" << e << "] " << std::endl;
 	  break;
 	}
 	object.push_back(v);
@@ -342,7 +405,7 @@ namespace NGT {
       }
       size = round(size * 100) / 100;
       std::stringstream str;
-      str << size << unit;
+      str << size << " " << unit;
       return str.str();
     }
     static std::string getProcessVmSizeStr() { return sizeToString(getProcessVmSize()); }
@@ -1319,7 +1382,7 @@ namespace NGT {
     }
 
 
-    size_t size() { return vectorSize; }
+    size_t size() const { return vectorSize; }
 
   public:
     void extend(SharedMemoryAllocator &allocator) {
@@ -2176,6 +2239,7 @@ namespace NGT {
   public:
     Container(Object &o, ObjectID i):object(o), id(i) {}
     Container(Container &c):object(c.object), id(c.id) {}
+    bool isEmptyObject() { return &object == 0; }
     Object		&object;
     ObjectID		id;
   };
@@ -2213,7 +2277,7 @@ namespace NGT {
       useAllNodesInLeaf = false;
       expectedAccuracy = -1.0;
     }
-    void setSize(size_t s) { size = s; };
+    void setSize(size_t s) { size = s; }
     void setResults(ObjectDistances *r) { result = r; }
     void setRadius(Distance r) { radius = r; }
     void setEpsilon(float e) { explorationCoefficient = e + 1.0; }
@@ -2240,7 +2304,6 @@ namespace NGT {
     bool		useAllNodesInLeaf;
     size_t		visitCount;
     float		expectedAccuracy;
-
   private:
     ObjectDistances	*result;
   };
@@ -2298,65 +2361,6 @@ namespace NGT {
   class InsertContainer : public Container {
   public:
     InsertContainer(Object &f, ObjectID i):Container(f, i) {}
-  };
-
-  class Timer {
-  public:
-  Timer():time(0) {}
-
-    void reset() { time = 0; ntime = 0; }
-
-    void start() {
-      struct timespec res;
-      clock_getres(CLOCK_REALTIME, &res);
-      reset();
-      clock_gettime(CLOCK_REALTIME, &startTime);
-    }
-
-    void restart() {
-      clock_gettime(CLOCK_REALTIME, &startTime);
-    }
-
-    void stop() {
-      clock_gettime(CLOCK_REALTIME, &stopTime);
-      sec = stopTime.tv_sec - startTime.tv_sec;
-      nsec = stopTime.tv_nsec - startTime.tv_nsec;
-      if (nsec < 0) {
-	sec -= 1;
-	nsec += 1000000000L;
-      }
-      time += (double)sec + (double)nsec / 1000000000.0;
-      ntime += sec * 1000000000L + nsec;
-    }
-
-    friend std::ostream &operator<<(std::ostream &os, Timer &t) {
-      auto time = t.time;
-      if (time < 1.0) {
-	time *= 1000.0;
-	os << std::setprecision(6) << time << " (ms)";	
-	return os;
-      }
-      if (time < 60.0) {
-	os << std::setprecision(6) << time << " (s)";	
-	return os;
-      }
-      time /= 60.0;
-      if (time < 60.0) {
-	os << std::setprecision(6) << time << " (m)";
-	return os;
-      }
-      time /= 60.0;
-      os << std::setprecision(6) << time << " (h)";
-      return os;
-    }
-
-    struct timespec startTime;
-    struct timespec stopTime;
-
-    int64_t	sec;
-    int64_t	nsec;
-    int64_t	ntime;	// nano second
-    double      time;	// second
   };
 
 } // namespace NGT

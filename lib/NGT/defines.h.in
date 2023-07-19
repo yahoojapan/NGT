@@ -32,6 +32,7 @@
 // Release Definitions for OSS
 
 //#define		NGT_DISTANCE_COMPUTATION_COUNT
+//#define		NGT_SEARCH_TIMER
 
 #define		NGT_CREATION_EDGE_SIZE			10
 #define		NGT_EXPLORATION_COEFFICIENT		1.1

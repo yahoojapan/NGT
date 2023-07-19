@@ -81,6 +81,7 @@ namespace NGT {
 
     class Cluster {
     public:
+    Cluster():radius(0.0) {}
     Cluster(std::vector<float> &c):centroid(c), radius(0.0) {}
       Cluster(const Cluster &c) { *this = c; }
       Cluster &operator=(const Cluster &c) {
@@ -95,8 +96,8 @@ namespace NGT {
       double radius;
     };
 
-    Clustering(InitializationMode im = InitializationModeHead, ClusteringType ct = ClusteringTypeKmeansWithNGT, size_t mi = 10000, size_t nc = 0):
-      clusteringType(ct), initializationMode(im), numberOfClusters(nc), maximumIteration(mi) { initialize(); }
+    Clustering(InitializationMode im = InitializationModeHead, ClusteringType ct = ClusteringTypeKmeansWithNGT, size_t mi = 10000, size_t nc = 0, bool s = true):
+      clusteringType(ct), initializationMode(im), numberOfClusters(nc), maximumIteration(mi), silence(s) { initialize(); }
 
     void initialize() {
       epsilonFrom		= 0.12;
@@ -208,8 +209,9 @@ namespace NGT {
 	}
       }
       if ((numberOfClusters != 0) && (clusters.size() < numberOfClusters)) {
-	std::cerr << "initial cluster data are not enough. " << clusters.size() << ":" << numberOfClusters << std::endl;
-	exit(1);
+	std::stringstream msg;
+	msg << "initial cluster data are not enough. " << clusters.size() << ":" << numberOfClusters;
+	NGTThrowException(msg);
       }
     }
 #if !defined(NGT_CLUSTER_NO_AVX)
@@ -246,6 +248,33 @@ namespace NGT {
       return csum;
     }
 #endif // !defined(NGT_AVX_DISABLED) && defined(__AVX__)
+
+    static void
+      clearMembers(std::vector<Cluster> &clusters) {
+      for (auto &cluster : clusters) {
+	cluster.members.clear();
+      }
+    }
+
+    static size_t
+      removeEmptyClusters(std::vector<Cluster> &clusters) {
+      size_t count = 0;
+      auto dst = clusters.begin();
+      for (auto src = clusters.begin(); src != clusters.end(); ++src) {
+	if ((*src).members.size() == 0) {
+	  count++;
+	  continue;
+	}
+	if (dst != src) {
+	  *dst = std::move(*src);
+	}
+	++dst;
+      }
+      if (count != 0) {
+	clusters.resize(clusters.size() - count);
+      }
+      return count;
+    }
 
     static double
       distanceL2(std::vector<float> &vector1, std::vector<float> &vector2) {
@@ -661,10 +690,13 @@ namespace NGT {
     }
 
     static void
-      saveClusters(const std::string &file, std::vector<Cluster> &clusters)
+      saveClusters(const std::string &file, std::vector<Cluster> &clusters, bool skipEmptyClusters = false)
     {
       std::ofstream os(file);
       for (auto cit = clusters.begin(); cit != clusters.end(); ++cit) {
+	if (skipEmptyClusters && (*cit).members.size() == 0) {
+	  continue;
+	}
 	std::vector<float> &v = (*cit).centroid;
 	for (auto it = v.begin(); it != v.end(); ++it) {
 	  os << std::setprecision(9) << (*it);
@@ -1042,6 +1074,7 @@ namespace NGT {
     float		epsilonStep;
     size_t		resultSizeCoefficient;
     vector<double>	diffHistory;
+    bool		silence;
   };
 
 }

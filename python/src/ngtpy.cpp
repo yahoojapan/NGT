@@ -628,8 +628,9 @@ public:
    size_t maxNoOfEdges,			// the maximum number of quantized graph edges.
    bool   zeroBasedNumbering,		// object ID numbering.
    bool   treeDisabled,			// not use the tree index.
-   bool   logDisabled			// stderr log is disabled.
-  ):QBG::Index(path, true) {
+   bool   logDisabled,			// stderr log is disabled.
+   bool   readOnly			// open mode
+  ):QBG::Index(path, readOnly) {
     zeroNumbering = zeroBasedNumbering;
     numOfDistanceComputations = 0;
     treeIndex = !treeDisabled;
@@ -644,7 +645,30 @@ public:
     defaultNumOfProbes = 0;
   }
 
-py::array_t<uint32_t> batchSearchTmp(
+  void batchInsert(
+   py::array_t<double> objects, 
+   bool debug = false
+  ) {
+    py::buffer_info info = objects.request();
+    if (debug) {
+      std::cerr << info.shape.size() << ":" << info.shape[0] << ":" << info.shape[1] << std::endl;
+    }
+    auto ptr = static_cast<double *>(info.ptr);
+    assert(info.shape.size() == 2);
+    for (int idx = 0; idx < info.shape[0]; idx++) {
+      if (debug) {
+        for (int i = 0; i < info.shape[1]; i++) {
+          std::cerr << *(ptr + i) << " ";
+        }
+        std::cerr << std::endl;
+      }
+      std::vector<float> v(ptr, ptr + info.shape[1]);
+      ptr += info.shape[1];
+      QBG::Index::append(v);
+    }
+  }
+
+  py::array_t<uint32_t> batchSearchTmp(
    py::array_t<float> queries,
    size_t size	 		
   ) {
@@ -670,7 +694,7 @@ py::array_t<uint32_t> batchSearchTmp(
       sc.setBlobEpsilon(defaultBlobEpsilon);
       sc.setEdgeSize(defaultEdgeSize);
       sc.setGraphExplorationSize(defaultExplorationSize);
-      QBG::Index::searchBlobGraph(sc);
+      QBG::Index::search(sc);
       NGT::ResultPriorityQueue &r = sc.getWorkingResult();
       if (r.size() != size) {
 	std::cerr << "result size is invalid? " << r.size() << ":" << size << std::endl;
@@ -685,45 +709,7 @@ py::array_t<uint32_t> batchSearchTmp(
     return results;
   }
 
-  void batchApproximateSearchWithoutGraph(
-    py::array_t<float> queries,
-    BatchResults &results,
-    size_t size
-  ) {
-    const py::buffer_info &qinfo = queries.request();
-    const std::vector<long int> &qshape = qinfo.shape;
-    auto nOfQueries = qshape[0];
-    size_t dimension = qshape[1];
-    size_t psedoDimension = QBG::Index::getQuantizer().globalCodebookIndex.getObjectSpace().getPaddedDimension();
-    auto *queryPtr = static_cast<float*>(qinfo.ptr);
-
-    size	= size > 0 ? size : defaultNumOfSearchObjects;
-
-    results.results.clear();
-    results.resultList.clear();
-    results.results.resize(nOfQueries);
-
-#pragma omp parallel for schedule(dynamic)
-    for (int idx = 0; idx < nOfQueries; idx++) {
-      NGT::Object queryObject(psedoDimension * sizeof(float));
-      float *qptr = queryPtr + idx * dimension;
-      if (psedoDimension > dimension) {
-	memset(queryObject.getPointer(), 0, psedoDimension * sizeof(float));
-      }
-      memcpy(queryObject.getPointer(), qptr, dimension * sizeof(float));
-      QBG::SearchContainer sc(queryObject);
-      sc.setSize(size);
-      sc.setEpsilon(defaultEpsilon);
-      sc.setEdgeSize(defaultEdgeSize);
-      sc.setNumOfProbes(defaultNumOfProbes);
-      QBG::Index::searchBlobNaively(sc);
-      results.results[idx] = std::move(sc.getWorkingResult());
-    }
-    results.size = results.results.size();
-    return;
-  }
-
-  void batchApproximateSearch(
+  void batchSearchInTwoSteps(
     py::array_t<float> queries,
     BatchResults &results,
     size_t size
@@ -752,16 +738,18 @@ py::array_t<uint32_t> batchSearchTmp(
       sc.setEpsilon(defaultEpsilon);
       sc.setBlobEpsilon(defaultBlobEpsilon);
       sc.setEdgeSize(defaultEdgeSize);
-      sc.setGraphExplorationSize(defaultExplorationSize);
-      QBG::Index::searchBlobGraph(sc);
+      sc.setNumOfProbes(defaultNumOfProbes);
+#ifdef NGTQBG_FUNCTION_SELECTOR
+      sc.functionSelector = defaultFunctionSelector;	/////////////////
+#endif
+      QBG::Index::searchInTwoSteps(sc);
       results.results[idx] = std::move(sc.getWorkingResult());
-      //QBG::Index::getQuantizer().globalCodebookIndex.deleteObject(queryObject);
     }
     results.size = results.results.size();
     return;
   }
 
-  void batchExactSearch(
+  void batchSearchInOneStep(
     py::array_t<float> queries,
     BatchResults &results,
     size_t size
@@ -777,29 +765,32 @@ py::array_t<uint32_t> batchSearchTmp(
 
     results.results.clear();
     results.resultList.clear();
-    results.resultList.resize(nOfQueries);
+    results.results.resize(nOfQueries);
 
+    size_t searchSize = size;
+    size_t searchExactResultSize = 0;
+    if (defaultExactResultExpansion >= 1.0) {
+      searchSize = static_cast<float>(size) * defaultExactResultExpansion;
+      searchExactResultSize = size;
+    }
 #pragma omp parallel for schedule(dynamic)
     for (int idx = 0; idx < nOfQueries; idx++) {
-      NGT::Object queryObject(psedoDimension * sizeof(float));
       float *qptr = queryPtr + idx * dimension;
-      if (psedoDimension > dimension) {
-	memset(queryObject.getPointer(), 0, psedoDimension * sizeof(float));
-      }
-      memcpy(queryObject.getPointer(), qptr, dimension * sizeof(float));
-      NGT::ObjectDistances rs;
-      QBG::SearchContainer sc(queryObject);
-      sc.setResults(&rs);
-      sc.setSize(static_cast<float>(size) * defaultExactResultExpansion);
-      sc.setExactResultSize(size);
+      vector<float> query(psedoDimension, 0);
+      memcpy(query.data(), qptr, dimension * sizeof(float));
+      QBG::SearchContainer sc;
+      sc.setObjectVector(query);
+      sc.setSize(searchSize);
+      sc.setExactResultSize(searchExactResultSize);
       sc.setEpsilon(defaultEpsilon);
       sc.setBlobEpsilon(defaultBlobEpsilon);
       sc.setEdgeSize(defaultEdgeSize);
       sc.setGraphExplorationSize(defaultExplorationSize);
-      QBG::Index::searchBlobGraph(sc);
-      results.resultList[idx] = std::move(rs);
+      QBG::Index::search(sc);
+      results.results[idx] = std::move(sc.getWorkingResult());
+      //QBG::Index::getQuantizer().globalCodebookIndex.deleteObject(queryObject);
     }
-    results.size = results.resultList.size();
+    results.size = results.results.size();
     return;
   }
 
@@ -809,13 +800,9 @@ py::array_t<uint32_t> batchSearchTmp(
     size_t size
   ) {
     if (defaultNumOfProbes == 0) {
-      if (defaultExactResultExpansion > 1.0) {
-	batchExactSearch(queries, results, size);
-      } else {
-	batchApproximateSearch(queries, results, size);
-      }
+      batchSearchInOneStep(queries, results, size);
     } else {
-      batchApproximateSearchWithoutGraph(queries, results, size);
+      batchSearchInTwoSteps(queries, results, size);
     }
     return;
   }
@@ -840,20 +827,18 @@ py::array_t<uint32_t> batchSearchTmp(
 
 #pragma omp parallel for schedule(dynamic)
     for (int idx = 0; idx < nOfQueries; idx++) {
-      NGT::Object queryObject(dimension * sizeof(float));
       float *qptr = queryPtr + idx * dimension;
-      if (psedoDimension > dimension) {
-	memset(queryObject.getPointer(), 0, psedoDimension * sizeof(float));
-      }
-      memcpy(queryObject.getPointer(), qptr, dimension * sizeof(float));
-      QBG::SearchContainer sc(queryObject);
+      vector<float> query(psedoDimension, 0);
+      memcpy(query.data(), qptr, dimension * sizeof(float));
+      QBG::SearchContainer sc;
+      sc.setObjectVector(query);
       sc.setSize(std::numeric_limits<uint32_t>::max());
       sc.setRadius(radius);
       sc.setEpsilon(defaultEpsilon);
       sc.setBlobEpsilon(defaultBlobEpsilon);
       sc.setEdgeSize(defaultEdgeSize);
       sc.setGraphExplorationSize(defaultExplorationSize);
-      QBG::Index::searchBlobGraph(sc);
+      QBG::Index::search(sc);
       results.results[idx] = std::move(sc.getWorkingResult());
     }
     results.size = results.results.size();
@@ -863,31 +848,37 @@ py::array_t<uint32_t> batchSearchTmp(
   py::object search(
     py::object query,
     size_t size, 		// the number of resultant objects
-    float epsilon, 		// search parameter epsilon. the adequate range is from 0.0 to 0.05.
-    float resultExpansion,	// the number of inner resultant objects
-    int edgeSize		// the number of used edges for each node during the exploration of the graph.
+    float epsilon 		// search parameter epsilon. the adequate range is from 0.0 to 0.05.
   ) {
     py::array_t<float> qobject(query);
     py::buffer_info qinfo = qobject.request();
     std::vector<float> qvector(static_cast<float*>(qinfo.ptr), static_cast<float*>(qinfo.ptr) + qinfo.size);
     try {
-      NGT::Object *qobject = QBG::Index::getQuantizer().globalCodebookIndex.allocateObject(qvector);
-      QBG::SearchContainer sc(*qobject);
+      QBG::SearchContainer sc;
+      sc.setObjectVector(qvector);
       size		= size > 0 ? size : defaultNumOfSearchObjects;
       epsilon		= epsilon > -1.0 ? epsilon : defaultEpsilon;
-      sc.setSize(size);				// the number of resulting objects.
+      if (defaultExactResultExpansion >= 1.0) {
+	sc.setSize(static_cast<float>(size) * defaultExactResultExpansion);
+	sc.setExactResultSize(size);
+      } else {
+	sc.setSize(size);				// the number of resulting objects.
+      }
       sc.setEpsilon(epsilon);			// set exploration coefficient.
       sc.setBlobEpsilon(defaultBlobEpsilon);
-      std::cerr << "ngtpy search" << std::endl;
-      QBG::Index::searchBlobGraph(sc);
+      sc.setEdgeSize(defaultEdgeSize);
+      sc.setGraphExplorationSize(defaultExplorationSize);
+      sc.setNumOfProbes(defaultNumOfProbes);
+#ifdef NGTQBG_FUNCTION_SELECTOR
+      sc.functionSelector = defaultFunctionSelector;	/////////////////
+#endif
+      QBG::Index::searchInTwoSteps(sc);
 
-      QBG::Index::getQuantizer().globalCodebookIndex.deleteObject(qobject);
       numOfDistanceComputations += sc.distanceComputationCount;
 
       if (!withDistance) {
-	std::cerr << "without distances" << std::endl;
+	//-/std::cerr << "without distances" << std::endl;
 	NGT::ResultPriorityQueue &r = sc.getWorkingResult();
-	std::cerr << "size=" << r.size() << std::endl;
 	py::array_t<int> ids(r.size());
 	py::buffer_info idsinfo = ids.request();
 	int *endptr = reinterpret_cast<int*>(idsinfo.ptr); 
@@ -906,20 +897,16 @@ py::array_t<uint32_t> batchSearchTmp(
 
 	return ids;
       }
-      std::cerr << "with distances" << std::endl;
       py::list results;
       NGT::ObjectDistances r;
       r.moveFrom(sc.getWorkingResult());
-      std::cerr << "size=" << r.size() << std::endl;
       if (zeroNumbering) {
 	for (auto ri = r.begin(); ri != r.end(); ++ri) {
 	  results.append(py::make_tuple((*ri).id - 1, (*ri).distance));
-	  std::cerr << "ID(1)=" << (*ri).id << std::endl;
 	}
       } else {
 	for (auto ri = r.begin(); ri != r.end(); ++ri) {
 	  results.append(py::make_tuple((*ri).id, (*ri).distance));
-	  std::cerr << "ID(2)=" << (*ri).id << std::endl;
 	}
       }
       return results;
@@ -945,6 +932,9 @@ py::array_t<uint32_t> batchSearchTmp(
    int explorationSize,			// the maximum number of nodes that are searched
    float exactResultExpansion,
    int numOfProbes
+#ifdef NGTQBG_FUNCTION_SELECTOR
+   , size_t functionSelector ///////////////////
+#endif
   ) {
     defaultNumOfSearchObjects = numOfSearchObjects > 0 ? numOfSearchObjects : defaultNumOfSearchObjects;
     defaultEpsilon	      = epsilon > -1.0 ? epsilon : defaultEpsilon;
@@ -955,6 +945,9 @@ py::array_t<uint32_t> batchSearchTmp(
     defaultRadius	      = radius >= 0.0 ? radius : defaultRadius;
     defaultExactResultExpansion = exactResultExpansion > 0.0 ? exactResultExpansion : defaultExactResultExpansion;
     defaultNumOfProbes	      = numOfProbes > 0 ? numOfProbes : defaultNumOfProbes;
+#ifdef NGTQBG_FUNCTION_SELECTOR
+    defaultFunctionSelector   = functionSelector; ////////////////
+#endif
   }
 
   bool		zeroNumbering;	    // for object ID numbering. zero-based or one-based numbering.
@@ -963,6 +956,7 @@ py::array_t<uint32_t> batchSearchTmp(
   bool		withDistance;
   size_t	defaultNumOfSearchObjects; // k
   float		defaultEpsilon;
+
   float		defaultBlobEpsilon;
   float		defaultResultExpansion;
   int64_t	defaultEdgeSize;
@@ -970,6 +964,9 @@ py::array_t<uint32_t> batchSearchTmp(
   float		defaultRadius;
   float		defaultExactResultExpansion;
   size_t	defaultNumOfProbes;
+#ifdef NGTQBG_FUNCTION_SELECTOR
+  size_t	defaultFunctionSelector; //////////////////////////
+#endif
 };
 
 PYBIND11_MODULE(ngtpy, m) {
@@ -1118,29 +1115,32 @@ PYBIND11_MODULE(ngtpy, m) {
 
 
     py::class_<QuantizedBlobIndex>(m, "QuantizedBlobIndex")
-      .def(py::init<const std::string &, size_t, bool, bool, bool>(), 
+      .def(py::init<const std::string &, size_t, bool, bool, bool, bool>(), 
            py::arg("path"),
 	   py::arg("max_no_of_edges") = 128,
            py::arg("zero_based_numbering") = true,
 	   py::arg("tree_disabled") = false,
-           py::arg("log_disabled") = false)
-      .def("batchSearchTmp", &::QuantizedBlobIndex::batchSearchTmp,
+           py::arg("log_disabled") = false,
+           py::arg("read_only") = true)
+      .def("save", (void (QBG::Index::*)()) &QBG::Index::save)
+      .def("batch_insert", &::QuantizedBlobIndex::batchInsert,
+           py::arg("objects"),
+           py::arg("debug") = false)
+      .def("batch_search_tmp", &::QuantizedBlobIndex::batchSearchTmp,
     	   py::arg("query"),
            py::arg("size") = 0)
-      .def("batchSearch", &::QuantizedBlobIndex::batchSearch,
+      .def("batch_search", &::QuantizedBlobIndex::batchSearch,
     	   py::arg("query"),
 	   py::arg("results"),
            py::arg("size") = 0)
-      .def("batchRangeSearch", &::QuantizedBlobIndex::batchRangeSearch,
+      .def("batch_range_search", &::QuantizedBlobIndex::batchRangeSearch,
     	   py::arg("query"),
 	   py::arg("results"),
            py::arg("radius") = -FLT_MAX)
       .def("search", &::QuantizedBlobIndex::search,
            py::arg("query"),
            py::arg("size") = 0,
-           py::arg("epsilon") = -FLT_MAX,
-           py::arg("result_expansion") = -FLT_MAX,
-           py::arg("edge_size") = INT_MIN)
+           py::arg("epsilon") = -FLT_MAX)
       .def("set_with_distance", &::QuantizedBlobIndex::setWithDistance,
            py::arg("boolean") = true)
       .def("set", &::QuantizedBlobIndex::set,
@@ -1152,16 +1152,20 @@ PYBIND11_MODULE(ngtpy, m) {
 	   py::arg("edge_size") = INT_MIN,
            py::arg("exploration_size") = 0,
            py::arg("exact_result_expansion") = 0.0,
-           py::arg("num_of_probes") = INT_MIN);
+           py::arg("num_of_probes") = INT_MIN
+#ifdef NGTQBG_FUNCTION_SELECTOR
+	   , py::arg("function_selector") = 0 ///////////
+#endif
+	   );
 
     py::class_<BatchResults>(m, "BatchResults")
       .def(py::init<>())
       .def("get", &::BatchResults::get,
 	   py::arg("position"))
-      .def("getIDs", &::BatchResults::getIDs)
-      .def("getIndexedIDs", &::BatchResults::getIndexedIDs)
-      .def("getIndexedDistances", &::BatchResults::getIndexedDistances)
-      .def("getIndex", &::BatchResults::getIndex)
-      .def("getSize", &::BatchResults::getSize);
+      .def("get_ids", &::BatchResults::getIDs)
+      .def("get_indexed_ids", &::BatchResults::getIndexedIDs)
+      .def("get_indexed_distances", &::BatchResults::getIndexedDistances)
+      .def("get_index", &::BatchResults::getIndex)
+      .def("get_size", &::BatchResults::getSize);
 
 }

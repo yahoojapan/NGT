@@ -366,7 +366,46 @@ namespace NGT {
 	assert(0);
       }
     }
-
+    template<typename T>
+    void set(std::vector<T> &v, ObjectSpace &objectspace) {
+      const std::type_info &t = objectspace.getObjectType();
+      size_t dimension = objectspace.getDimension();
+      void *ref = (void*)&(*this)[0];
+      if (ref == 0) {
+	NGTThrowException("BaseObject::set: vector is null");
+      }
+      if (t == typeid(uint8_t)) {
+	for (size_t d = 0; d < dimension; d++) {
+	  *(static_cast<uint8_t*>(ref) + d) = v[d];
+	}
+      } else if (t == typeid(float)) {
+	for (size_t d = 0; d < dimension; d++) {
+	  *(static_cast<float*>(ref) + d) = v[d];
+	}
+#ifdef NGT_HALF_FLOAT
+      } else if (t == typeid(float16)) {
+	for (size_t d = 0; d < dimension; d++) {
+	  *(static_cast<float16*>(ref) + d) = v[d];
+	}
+#endif
+      } else if (t == typeid(double)) {
+	for (size_t d = 0; d < dimension; d++) {
+	  *(static_cast<double*>(ref) + d) = v[d];
+	}
+      } else if (t == typeid(uint16_t)) {
+	for (size_t d = 0; d < dimension; d++) {
+	  *(static_cast<uint16_t*>(ref) + d) = v[d];
+	}
+      } else if (t == typeid(uint32_t)) {
+	for (size_t d = 0; d < dimension; d++) {
+	  *(static_cast<uint32_t*>(ref) + d) = v[d];
+	}
+      } else {
+	std::stringstream msg;
+	msg << "BaseObject::set: not supported data type. [" << t.name() << "]";
+	NGTThrowException(msg);
+      }
+    }
   };
 
   class Object : public BaseObject {
@@ -379,10 +418,19 @@ namespace NGT {
       construct(s);
     }
 
+    template<typename T>
+    Object(std::vector<T> v, NGT::ObjectSpace &os):vector(0) {
+      size_t s = os.getByteSizeOfObject();
+      construct(s);
+      set(v, os);
+    }
+
     Object(size_t s):vector(0) {
       assert(s != 0);
       construct(s);
     }
+
+    virtual ~Object() { clear(); }
 
     void attach(void *ptr) { vector = static_cast<uint8_t*>(ptr); }
     void detach() { vector = 0; }
@@ -394,11 +442,11 @@ namespace NGT {
       }
     }
 
-    virtual ~Object() { clear(); }
-
     uint8_t &operator[](size_t idx) const { return vector[idx]; }
 
     void *getPointer(size_t idx = 0) const { return vector + idx; }
+
+    bool isEmpty() { return vector == 0; }
 
     static Object *allocate(ObjectSpace &objectspace) { return new Object(&objectspace); }
   private:

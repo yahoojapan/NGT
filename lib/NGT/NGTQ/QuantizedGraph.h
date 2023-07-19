@@ -55,6 +55,8 @@ namespace NGTQG {
     std::vector<uint32_t> ids;
     void *objects;
   };
+
+  typedef QuantizedNode RearrangedQuantizedObjectSet;
   
   class QuantizedGraphRepository : public std::vector<QuantizedNode> {
     typedef std::vector<QuantizedNode> PARENT;
@@ -91,7 +93,7 @@ namespace NGTQG {
 	NGT::GraphNode &node = *graphRepository.VECTOR::get(id);
 	size_t numOfEdges = node.size() < maxNoOfEdges ? node.size() : maxNoOfEdges;
 	(*this)[id].ids.reserve(numOfEdges);
-	NGTQ::QuantizedObjectProcessingStream quantizedStream(quantizedIndex.getQuantizer(), numOfEdges);
+	NGTQ::QuantizedObjectProcessingStream quantizedStream(quantizedIndex.getQuantizer().divisionNo, numOfEdges);
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
 	for (auto i = node.begin(graphRepository.allocator); i != node.end(graphRepository.allocator); ++i) {
 	  if (distance(node.begin(graphRepository.allocator), i) >= static_cast<int64_t>(numOfEdges)) {
@@ -597,10 +599,10 @@ namespace NGTQG {
     static void append(const std::string indexPath, QBG::BuildParameters &buildParameters);
 
 #ifdef NGTQ_QBG
-    static void quantize(const std::string indexPath, size_t dimensionOfSubvector, size_t maxNumOfEdges, bool silence = true);
+    static void quantize(const std::string indexPath, size_t dimensionOfSubvector, size_t maxNumOfEdges, bool verbose = false);
 
-    static void realign(const std::string indexPath, size_t maxNumOfEdges, bool silence = true) {
-      NGT::StdOstreamRedirector redirector(silence);
+    static void realign(const std::string indexPath, size_t maxNumOfEdges, bool verbose = false) {
+      NGT::StdOstreamRedirector redirector(!verbose);
       redirector.begin();
       {
 	std::string quantizedIndexPath = indexPath + "/qg";
@@ -618,8 +620,8 @@ namespace NGTQG {
       redirector.end();
     }
 #else 
-    static void quantize(const std::string indexPath, float dimensionOfSubvector, size_t maxNumOfEdges, bool silence = true) {
-      NGT::StdOstreamRedirector redirector(silence);
+    static void quantize(const std::string indexPath, float dimensionOfSubvector, size_t maxNumOfEdges, bool verbose = false) {
+      NGT::StdOstreamRedirector redirector(!verbose);
       redirector.begin();
       {
 	NGT::Index	index(indexPath);

@@ -44,11 +44,11 @@ public:
     creation.threadSize = args.getl("p", 24);
     creation.dimension = args.getl("d", 0);
 #ifdef NGTQ_QBG
-    creation.localCentroidLimit = args.getl("c", 16);
+    creation.numOfLocalClusters = args.getl("c", 16);
 #else
-    creation.localCentroidLimit = args.getl("c", 65000);
+    creation.numOfLocalClusters = args.getl("c", 65000);
 #endif
-    creation.localDivisionNo = args.getl("N", 0);
+    creation.numOfSubvectors = args.getl("N", 0);
     creation.batchSize = args.getl("b", 1000);
     creation.localClusteringSampleCoefficient = args.getl("s", 10);
     {
@@ -136,13 +136,16 @@ public:
       }
     }
 #endif
-
+    {
+      char objectListOnMemory = args.getChar("R", 'f');
+      creation.objectListOnMemory = (objectListOnMemory == 't' || objectListOnMemory == 'T');
+    }
 
   }
 
   void getHierarchicalClustringParameters() {
     hierarchicalClustering.maxSize = args.getl("r", 1000); 
-    hierarchicalClustering.numOfObjects = args.getl("O", 0); 
+    hierarchicalClustering.numOfObjects = args.getl("O", 0);
     hierarchicalClustering.numOfClusters = args.getl("E", 2); 
     try {
       hierarchicalClustering.numOfTotalClusters = args.getl("C", 0);
@@ -151,7 +154,7 @@ public:
     }
     hierarchicalClustering.numOfTotalBlobs = args.getl("b", 0);
     hierarchicalClustering.clusterID = args.getl("c", -1);
-    silence = !args.getBool("v");
+    hierarchicalClustering.verbose = args.getBool("v");
   
     char iMode = args.getChar("i", '-');
     hierarchicalClustering.initMode = NGT::Clustering::InitializationModeKmeansPlusPlus;
@@ -174,51 +177,69 @@ public:
       hierarchicalClustering.extractCentroid = false;
     }
 
+    hierarchicalClustering.expectedRecall = args.getf("A", 0.98);
+
     hierarchicalClustering.numOfFirstObjects = 0;
     hierarchicalClustering.numOfFirstClusters = 0;
     hierarchicalClustering.numOfSecondObjects = 0;
     hierarchicalClustering.numOfSecondClusters = 0;
     hierarchicalClustering.numOfThirdClusters = 0;
+    hierarchicalClustering.numOfThirdObjects = 0;
 
-    hierarchicalClustering.threeLayerClustering = true;
+    std::string blob = args.getString("B", "-");
 
-    std::string blob = args.getString("B", "");
-    if (blob == "-") {
-      hierarchicalClustering.threeLayerClustering = false;
-    } else {
-      hierarchicalClustering.threeLayerClustering = true;
-    }
-    if (hierarchicalClustering.threeLayerClustering) {
+    if (blob != "-") {
       std::vector<std::string> tokens;
       NGT::Common::tokenize(blob, tokens, ",");
-      if (tokens.size() > 0) {
+      size_t idx = 0;
+      if (tokens.size() > 3) {
+	if (tokens[idx] == "3") {
+	  hierarchicalClustering.clusteringType = QBG::HierarchicalKmeans::ClusteringTypeThreeLayer;
+	} else if (tokens[idx] == "21") {
+	  hierarchicalClustering.clusteringType = QBG::HierarchicalKmeans::ClusteringTypeTwoPlusOneLayer;
+	} else if (tokens[idx] == "21N") {
+	  hierarchicalClustering.clusteringType = QBG::HierarchicalKmeans::ClusteringTypeTwoPlusOneLayerWithNGT;
+	} else if (tokens[idx] == "22") {
+	  hierarchicalClustering.clusteringType = QBG::HierarchicalKmeans::ClusteringTypeTwoPlusTwoLayer;
+	} else {
+	  std::stringstream msg;
+	  msg << "invalid clustering type. " << tokens[idx];
+	  NGTThrowException(msg);
+	}
+	idx++;
+      } else {
+	hierarchicalClustering.clusteringType = QBG::HierarchicalKmeans::ClusteringTypeThreeLayer;
+      }
+      if (tokens.size() > idx) {
 	std::vector<std::string> ftokens;
-	NGT::Common::tokenize(tokens[0], ftokens, ":");
+	NGT::Common::tokenize(tokens[idx], ftokens, ":");
 	if (ftokens.size() >= 1) {
 	  hierarchicalClustering.numOfFirstObjects = NGT::Common::strtof(ftokens[0]);
 	}
 	if (ftokens.size() >= 2) {
 	  hierarchicalClustering.numOfFirstClusters = NGT::Common::strtof(ftokens[1]);
 	}
+	idx++;
       }
-      if (tokens.size() > 1) {
+      if (tokens.size() > idx) {
 	std::vector<std::string> ftokens;
-	NGT::Common::tokenize(tokens[1], ftokens, ":");
+	NGT::Common::tokenize(tokens[idx], ftokens, ":");
 	if (ftokens.size() >= 1) {
 	  hierarchicalClustering.numOfSecondObjects = NGT::Common::strtof(ftokens[0]);
 	}
 	if (ftokens.size() >= 2) {
 	  hierarchicalClustering.numOfSecondClusters = NGT::Common::strtof(ftokens[1]);
 	}
+	idx++;
       }
-      if (tokens.size() > 2) {
+      if (tokens.size() > idx) {
 	std::vector<std::string> ftokens;
-	NGT::Common::tokenize(tokens[2], ftokens, ":");
+	NGT::Common::tokenize(tokens[idx], ftokens, ":");
 	if (ftokens.size() >= 1) {
 	  if (ftokens[0] == "" || ftokens[0] == "-") {
-	    hierarchicalClustering.numOfObjects = 0;
+	    hierarchicalClustering.numOfThirdObjects = 0;
 	  } else {
-	    hierarchicalClustering.numOfObjects = NGT::Common::strtof(ftokens[0]);
+	    hierarchicalClustering.numOfThirdObjects = NGT::Common::strtof(ftokens[0]);
 	  }
 	}
 	if (ftokens.size() >= 2) {
@@ -229,9 +250,9 @@ public:
   }
 
   void getOptimizationParameters() {
-    optimization.numberOfObjects = args.getl("o", 1000);
-    optimization.numberOfClusters = args.getl("n", 0);
-    optimization.numberOfSubvectors = args.getl("m", 0);
+    optimization.numOfObjects = args.getl("o", 1000);
+    optimization.numOfClusters = args.getl("n", 0);
+    optimization.numOfSubvectors = args.getl("m", 0);
 
     optimization.randomizedObjectExtraction = true;
 
@@ -292,14 +313,14 @@ public:
       optimization.clusterSizeConstraintCoefficient = args.getf("s", 5.0);
     }
   
-    optimization.nOfMatrices = args.getl("M", 2);
-    optimization.seedStartObjectSizeRate = args.getf("S", 0.1);
-    optimization.seedStep = args.getl("X", 2);
+    optimization.numOfMatrices = args.getl("M", 2);
+    optimization.seedNumberOfSteps = args.getf("S", 2);
+    optimization.seedStep = args.getl("X", 10);
     optimization.reject = args.getf("R", 0.9);
     optimization.timelimit = args.getf("L", 24 * 1); 
     optimization.timelimit *= 60.0 * 60.0; 
     optimization.showClusterInfo = args.getBool("Z");
-    silence = !args.getBool("v");
+    optimization.verbose = args.getBool("v");
 
 #ifdef NGTQG_NO_ROTATION
     char positionMode = args.getChar("P", 'n');
@@ -397,13 +418,13 @@ QBG::CLI::buildQG(NGT::Args &args)
   }
   if (phase == 0 || phase == 2) {
     std::cerr << "building the inverted index..." << std::endl;
-    bool silence = true;
-    QBG::Index::buildNGTQ(qgPath, silence);
+    bool verbose = false;
+    QBG::Index::buildNGTQ(qgPath, !verbose);
   }
   if (phase == 0 || phase == 3) {
     std::cerr << "building the quantized graph... " << std::endl;
-    bool silence = true;
-    NGTQG::Index::realign(indexPath, maxNumOfEdges, silence);
+    bool verbose = false;
+    NGTQG::Index::realign(indexPath, maxNumOfEdges, !verbose);
   }
 }
 
@@ -605,6 +626,46 @@ QBG::CLI::appendQG(NGT::Args &args)
 
 
 void 
+QBG::CLI::info(NGT::Args &args)
+{
+  const string usage = "Usage: qbg index";
+
+  std::string indexPath;
+  try {
+    indexPath = args.get("#1");
+  } catch (...) {
+    cerr << "Index is not specified" << endl;
+    cerr << usage << endl;
+    return;
+  }
+
+  try { 
+    bool readOnly = true;
+    try {
+      QBG::Index index(indexPath, readOnly);
+    } catch(NGT::Exception &err) {
+      readOnly = false;
+    }
+    QBG::Index index(indexPath, readOnly);
+    auto &quantizer = index.getQuantizer();
+    std::cout << "The index type: QBG" << std::endl;
+    std::cout << "# of the dimensions: " << quantizer.globalCodebookIndex.getObjectSpace().getDimension() << std::endl;
+    std::cout << "# of the padded dimensions: " << quantizer.globalCodebookIndex.getObjectSpace().getPaddedDimension() << std::endl;
+    std::cout << "# of the stored objects: " << (quantizer.objectList.size() == 0 ? 0 : quantizer.objectList.size() - 1) << std::endl;
+  } catch(NGT::Exception &err) {
+    bool readOnly = true;
+    try {
+      NGTQG::Index index(indexPath, 128, readOnly);
+      std::cout << "The index type: QG" << std::endl;
+    } catch (...) {
+      cerr << "qbg: The specified index is neither QBG nor QG." << std::endl;
+      cerr << usage << endl;
+    }
+  }
+
+}
+
+void 
 QBG::CLI::create(NGT::Args &args)
 {
   const string usage = "Usage: qbg create "
@@ -687,13 +748,18 @@ QBG::CLI::load(NGT::Args &args)
     localCodebooks = args.get("#3");
   } catch (...) {}
 
+  std::string quantizerCodebooks;
+  try {
+    quantizerCodebooks = args.get("#4");
+  } catch (...) {}
+
   std::string rotationPath;
   try {
-    rotationPath = args.get("#4");
+    rotationPath = args.get("#5");
   } catch (...) {}
   cerr << "rotation is " << rotationPath << "." << endl;
 
-  QBG::Index::load(indexPath, blobs, localCodebooks, rotationPath, threadSize);
+  QBG::Index::load(indexPath, blobs, localCodebooks, quantizerCodebooks, rotationPath, threadSize);
 }
 
 void
@@ -707,7 +773,7 @@ QBG::CLI::search(NGT::Args &args)
   try {
     indexPath = args.get("#1");
   } catch (...) {
-    cerr << "DB is not specified" << endl;
+    cerr << "Index is not specified" << endl;
     cerr << usage << endl;
     return;
   }
@@ -725,18 +791,23 @@ QBG::CLI::search(NGT::Args &args)
   char outputMode	= args.getChar("o", '-');
   float epsilon	= 0.1;
 
-  char searchMode	= args.getChar("M", 'g');
+  char searchMode	= args.getChar("M", 'n');
   if (args.getString("e", "none") == "-") {
     // linear search
     epsilon = FLT_MAX;
   } else {
     epsilon = args.getf("e", 0.1);
   }
-  float blobEpsilon = args.getf("B", 0.0);
+  float blobEpsilon = args.getf("B", 0.05);
   size_t edgeSize = args.getl("E", 0);
   float cutback = args.getf("C", 0.0);
   size_t explorationSize = args.getf("N", 256);
   size_t nOfProbes = args.getl("P", 10);
+  size_t nOfTrials = args.getl("T", 1);
+  if (nOfTrials != 1) {
+    std::cerr << "# of trials=" << nOfTrials << std::endl;
+  }
+  std::vector<double> queryTimes;
 
   float beginOfResultExpansion, endOfResultExpansion, stepOfResultExpansion;
   bool mulStep = false;
@@ -768,107 +839,107 @@ QBG::CLI::search(NGT::Args &args)
 
   QBG::Index index(indexPath, true);
   std::cerr << "qbg::The index is open." << std::endl;
-  std::cerr << "  vmsize==" << NGT::Common::getProcessVmSizeStr() << std::endl;
-  std::cerr << "  peak vmsize==" << NGT::Common::getProcessVmPeakStr() << std::endl;
+  std::cerr << "  vmsize=" << NGT::Common::getProcessVmSizeStr() << std::endl;
+  std::cerr << "  peak vmsize=" << NGT::Common::getProcessVmPeakStr() << std::endl;
   auto dimension = index.getQuantizer().globalCodebookIndex.getObjectSpace().getDimension();
   try {
-    ifstream		is(query);
-    if (!is) {
-      cerr << "Cannot open the specified file. " << query << endl;
-      return;
-    }
-    if (outputMode == 's') { cout << "# Beginning of Evaluation" << endl; }
-    string line;
-    double totalTime = 0;
-    int queryCount = 0;
-    while(getline(is, line)) {
-      vector<float>	queryVector;
-      stringstream	linestream(line);
-      while (!linestream.eof()) {
-	float value;
-	linestream >> value;
-	queryVector.push_back(value);
+    for (size_t trial = 0; trial < nOfTrials; trial++) {
+      ifstream		is(query);
+      if (!is) {
+	cerr << "Cannot open the specified file. " << query << endl;
+	return;
       }
-      queryVector.resize(dimension);
-      queryCount++;
-      for (auto resultExpansion = beginOfResultExpansion; 
-	   resultExpansion <= endOfResultExpansion; 
-	   resultExpansion = mulStep ? resultExpansion * stepOfResultExpansion : 
-			     resultExpansion + stepOfResultExpansion) {
-	NGT::ObjectDistances objects;
-	NGT::Timer timer;
-	timer.start();
-	QBG::SearchContainer searchContainer;
-	auto query = queryVector;
-	searchContainer.setObjectVector(query);
-	searchContainer.setResults(&objects);
-	if (resultExpansion >= 1.0) {
-	  searchContainer.setSize(static_cast<float>(size) * resultExpansion);
-	  searchContainer.setExactResultSize(size);
-	} else {
-	  searchContainer.setSize(size);
-	  searchContainer.setExactResultSize(0);
+      if (outputMode == 's') { cout << "# Beginning of Evaluation" << endl; }
+      string line;
+      double totalTime = 0;
+      int queryCount = 0;
+      while(getline(is, line)) {
+	vector<float>	queryVector;
+	stringstream	linestream(line);
+	while (!linestream.eof()) {
+	  float value;
+	  linestream >> value;
+	  queryVector.push_back(value);
 	}
-	searchContainer.setEpsilon(epsilon);
-	searchContainer.setBlobEpsilon(blobEpsilon);
-	searchContainer.setEdgeSize(edgeSize);
-	searchContainer.setCutback(cutback);
-	searchContainer.setGraphExplorationSize(explorationSize);
-	searchContainer.setNumOfProbes(nOfProbes);
-	switch (searchMode) {
-	case 'b':
-	  index.searchBlobGraphNaively(searchContainer);
-	  break;
-	case 'n':
-	  index.searchBlobNaively(searchContainer);
-	  break;
-	case 'g':
-	default:
-	  index.searchBlobGraph(searchContainer);
-	  break;
-	}
-	if (objects.size() > size) {
-	  objects.resize(size);
-	}
-	timer.stop();
-	totalTime += timer.time;
-	if (outputMode == 'e') {
-	  cout << "# Query No.=" << queryCount << endl;
-	  cout << "# Query=" << line.substr(0, 20) + " ..." << endl;
-	  cout << "# Index Type=" << "----" << endl;
-	  cout << "# Size=" << size << endl;
-	  cout << "# Epsilon=" << epsilon << endl;
-	  cout << "# Result expansion=" << resultExpansion << endl;
-	  cout << "# Distance Computation=" << index.getQuantizer().distanceComputationCount << endl;
-	  cout << "# Query Time (msec)=" << timer.time * 1000.0 << endl;
-	} else {
-	  cout << "Query No." << queryCount << endl;
-	  cout << "Rank\tIN-ID\tID\tDistance" << endl;
-	}
+	queryVector.resize(dimension);
+	queryCount++;
+	for (auto resultExpansion = beginOfResultExpansion; 
+	     resultExpansion <= endOfResultExpansion; 
+	     resultExpansion = mulStep ? resultExpansion * stepOfResultExpansion : 
+	       resultExpansion + stepOfResultExpansion) {
+	  NGT::ObjectDistances objects;
+	  QBG::SearchContainer searchContainer;
+	  auto query = queryVector;
+	  searchContainer.setObjectVector(query);
+	  searchContainer.setResults(&objects);
+	  if (resultExpansion >= 1.0) {
+	    searchContainer.setSize(static_cast<float>(size) * resultExpansion);
+	    searchContainer.setExactResultSize(size);
+	  } else {
+	    searchContainer.setSize(size);
+	    searchContainer.setExactResultSize(0);
+	  }
+	  searchContainer.setEpsilon(epsilon);
+	  searchContainer.setBlobEpsilon(blobEpsilon);
+	  searchContainer.setEdgeSize(edgeSize);
+	  searchContainer.setCutback(cutback);
+	  searchContainer.setGraphExplorationSize(explorationSize);
+	  searchContainer.setNumOfProbes(nOfProbes);
+	  NGT::Timer timer;
+	  timer.start();
+	  switch (searchMode) {
+	  case 'n':
+	    index.searchInTwoSteps(searchContainer);
+	    break;
+	  case 'g':
+	  default:
+	    index.searchInOneStep(searchContainer);
+	    break;
+	  }
+	  if (objects.size() > size) {
+	    objects.resize(size);
+	  }
+	  timer.stop();
+	  totalTime += timer.time;
+	  if (outputMode == 'e') {
+	    cout << "# Query No.=" << queryCount << endl;
+	    cout << "# Query=" << line.substr(0, 20) + " ..." << endl;
+	    cout << "# Index Type=" << "----" << endl;
+	    cout << "# Size=" << size << endl;
+	    cout << "# Epsilon=" << epsilon << endl;
+	    cout << "# Result expansion=" << resultExpansion << endl;
+	    cout << "# Distance Computation=" << index.getQuantizer().distanceComputationCount << endl;
+	    cout << "# Query Time (msec)=" << timer.time * 1000.0 << endl;
+	  } else {
+	    cout << "Query No." << queryCount << endl;
+	    cout << "Rank\tIN-ID\tID\tDistance" << endl;
+	  }
 
-	for (size_t i = 0; i < objects.size(); i++) {
-	  cout << i + 1 << "\t" << objects[i].id << "\t";
-	  cout << objects[i].distance << endl;
-	}
+	  for (size_t i = 0; i < objects.size(); i++) {
+	    cout << i + 1 << "\t" << objects[i].id << "\t";
+	    cout << objects[i].distance << endl;
+	  }
 
+	  if (outputMode == 'e') {
+	    cout << "# End of Search" << endl;
+	  } else {
+	    cout << "Query Time= " << timer.time << " (sec), " << timer.time * 1000.0 << " (msec)" << endl;
+	  }
+	} 
 	if (outputMode == 'e') {
-	  cout << "# End of Search" << endl;
-	} else {
-	  cout << "Query Time= " << timer.time << " (sec), " << timer.time * 1000.0 << " (msec)" << endl;
+	  cout << "# End of Query" << endl;
 	}
       } 
+      queryTimes.push_back(totalTime * 1000.0 / static_cast<double>(queryCount));
       if (outputMode == 'e') {
-	cout << "# End of Query" << endl;
+	cout << "# Average Query Time (msec)=" << queryTimes.back() << endl;
+	cout << "# Number of queries=" << queryCount << endl;
+	cout << "# End of Evaluation" << endl;
+      } else {
+	cout << "Average Query Time= " << totalTime / (double)queryCount  << " (sec), " 
+	     << totalTime * 1000.0 / (double)queryCount << " (msec), (" 
+	     << totalTime << "/" << queryCount << ")" << endl;
       }
-    } 
-    if (outputMode == 'e') {
-      cout << "# Average Query Time (msec)=" << totalTime * 1000.0 / (double)queryCount << endl;
-      cout << "# Number of queries=" << queryCount << endl;
-      cout << "# End of Evaluation" << endl;
-    } else {
-      cout << "Average Query Time= " << totalTime / (double)queryCount  << " (sec), " 
-	   << totalTime * 1000.0 / (double)queryCount << " (msec), (" 
-	   << totalTime << "/" << queryCount << ")" << endl;
     }
   } catch (NGT::Exception &err) {
     cerr << "Error " << err.what() << endl;
@@ -877,9 +948,15 @@ QBG::CLI::search(NGT::Args &args)
     cerr << "Error" << endl;
     cerr << usage << endl;
   }
-  std::cerr << "qbg::The end of search" << std::endl;
-  std::cerr << "  vmsize==" << NGT::Common::getProcessVmSizeStr() << std::endl;
-  std::cerr << "  peak vmsize==" << NGT::Common::getProcessVmPeakStr() << std::endl;
+  if (outputMode == 'e') {
+    if (nOfTrials >= 1) {
+      std::cout << "# Total minimum query time (msec)=" << *std::min_element(queryTimes.begin(), queryTimes.end())
+		<< "/" << nOfTrials << " (msec)" << std::endl;
+    }
+    std::cout << "# qbg: the end of search" << std::endl;
+    std::cout << "#   vmsize=" << NGT::Common::getProcessVmSizeStr() << std::endl;
+    std::cout << "#   peak vmsize=" << NGT::Common::getProcessVmPeakStr() << std::endl;
+  }
   index.close();
 }
 
@@ -887,12 +964,13 @@ QBG::CLI::search(NGT::Args &args)
 void 
 QBG::CLI::append(NGT::Args &args)
 {
-  const string usage = "Usage: qbg append [-n data-size] index(output) data.tsv(input)";
-  string index;
+  const string usage = "Usage: qbg append [-n data-size] [-m b|e] [-v] index(output) data.tsv(input)";
+  args.parse("v");
+  string indexPath;
   try {
-    index = args.get("#1");
+    indexPath = args.get("#1");
   } catch (...) {
-    cerr << "DB is not specified." << endl;
+    cerr << "Index is not specified." << endl;
     cerr << usage << endl;
     return;
   }
@@ -900,17 +978,37 @@ QBG::CLI::append(NGT::Args &args)
   try {
     data = args.get("#2");
   } catch (...) {
+    cerr << usage << endl;
     cerr << "Data is not specified." << endl;
   }
 
   size_t dataSize = args.getl("n", 0);
-  char mode = args.getChar("m", '-');
+  std::string mode = args.getString("m", "");
+  bool verbose = args.getBool("v");
 
-  if (mode == 'b') {
-    QBG::Index::appendBinary(index, data, dataSize);
-  } else {
-    QBG::Index::append(index, data, dataSize);
+  if (mode.find_first_of('e') != std::string::npos) {
+    QBG::Index index(indexPath, false);
+    std::cerr << "size=" << index.getQuantizer().objectList.size() << std::endl;
+    if (index.getQuantizer().objectList.size() > 1) {
+      if (verbose) {
+	std::cerr << "QBG: Error. The index is not empty." << std::endl;
+	cerr << usage << endl;
+      }
+      return;
+    }
   }
+
+  std::cerr << "qbg: appending..." << std::endl;
+  NGT::Timer timer;
+  timer.start();
+  if (mode.find_first_of('b') != std::string::npos) {
+    QBG::Index::appendBinary(indexPath, data, dataSize, !verbose);
+  } else {
+    QBG::Index::append(indexPath, data, dataSize, !verbose);
+  }
+  timer.stop();
+  std::cerr << "qbg: appending time=" << timer << std::endl;
+
 }
 
 
@@ -1070,24 +1168,78 @@ QBG::CLI::build(NGT::Args &args)
     return;
   }
 
-  size_t phase = args.getl("p", 0);
+
+  std::string phaseString = args.getString("p", "1-3");
+  bool phase[3];
+  if (phaseString.empty()) {
+    phase[0] = phase[1] = phase[2] = true;
+  } else {
+    vector<string> tokens;
+    NGT::Common::tokenize(phaseString, tokens, "-");
+    int beginOfPhase, endOfPhase;
+    if (tokens.size() >= 1) { 
+      if (tokens[0].empty()) {
+	beginOfPhase = endOfPhase = 0;
+      } else {
+	beginOfPhase = endOfPhase = NGT::Common::strtod(tokens[0]) - 1;
+      }
+    }
+    if (tokens.size() >= 2) { endOfPhase = NGT::Common::strtod(tokens[1]) - 1;}
+    if (tokens.size() >= 3 || tokens.size() == 0) {
+      cerr << "The specified phases are invalid! " << phaseString << endl;
+      cerr << usage << endl;
+      return;
+    }
+    phase[0] = phase[1] = phase[2] = false;
+    for (int p = beginOfPhase; p <= endOfPhase; p++) {
+      phase[p] = true;
+    }
+  }
 
   HierarchicalKmeans hierarchicalKmeans(buildParameters);
 
-  if (phase == 0 || phase == 1) {
+  if (phase[0]) {
+    std::cerr << "qbg: hierarchical clustering..." << std::endl;
+    NGT::Timer timer;
+    timer.start();
     hierarchicalKmeans.clustering(indexPath);
+    timer.stop();
+    if (buildParameters.verbose) {
+      std::cerr << "qbg: hierarchical clustering successfully completed." << std::endl;;
+      std::cerr << "  ph0 time=" << timer << std::endl;
+      std::cerr << "  ph0 vmsize=" << NGT::Common::getProcessVmSizeStr() << std::endl;
+      std::cerr << "  ph0 peak vmsize=" << NGT::Common::getProcessVmPeakStr() << std::endl;
+    }
   }
 
   QBG::Optimizer optimizer(buildParameters);
 
-  if (phase == 0 || phase == 2) {
-    std::cerr << "optimizing..." << std::endl;
+  if (phase[1]) {
+    std::cerr << "qbg: optimizing..." << std::endl;
+    NGT::Timer timer;
+    timer.start();
     optimizer.optimize(indexPath);
+    timer.stop();
+    if (buildParameters.verbose) {
+      std::cerr << "qbg: optimization successfully completed." << std::endl;;
+      std::cerr << "  ph1 time=" << timer << std::endl;
+      std::cerr << "  ph1 vmsize=" << NGT::Common::getProcessVmSizeStr() << std::endl;
+      std::cerr << "  ph1 peak vmsize=" << NGT::Common::getProcessVmPeakStr() << std::endl;
+    }
   }
 
-  if (phase == 0 || phase == 3) {
-    std::cerr << "building..." << std::endl;
-    QBG::Index::build(indexPath, optimizer.silence);
+  if (phase[2]) {
+    std::cerr << "qbg: building..." << std::endl;
+    NGT::Timer timer;
+    timer.start();
+    QBG::Index::build(indexPath, optimizer.verbose);
+    timer.stop();
+    if (buildParameters.verbose) {
+      std::cerr << "qbg: index build successfully completed." << std::endl;;
+      std::cerr << "  ph2 time=" << timer << std::endl;
+      std::cerr << "  ph2 vmsize=" << NGT::Common::getProcessVmSizeStr() << std::endl;
+      std::cerr << "  ph2 peak vmsize=" << NGT::Common::getProcessVmPeakStr() << std::endl;
+    }
   }
 }
 
@@ -1129,6 +1281,13 @@ QBG::CLI::hierarchicalKmeans(NGT::Args &args)
   
 
   hierarchicalKmeans.clustering(indexPath, prefix, objectIDsFile);
+
+  if (buildParameters.verbose) {
+    std::cerr << "qbg: the end of clustering" << std::endl;
+    std::cerr << "  vmsize=" << NGT::Common::getProcessVmSizeStr() << std::endl;
+    std::cerr << "  peak vmsize=" << NGT::Common::getProcessVmPeakStr() << std::endl;
+  }
+
 }
 
 void
@@ -1408,7 +1567,6 @@ QBG::CLI::gtRange(NGT::Args &args)
   for (size_t qidx = 0; qidx < numQueries; qidx++) {
     uint32_t v;
     stream.read(reinterpret_cast<char*>(&v), sizeof(v));
-    //std::cerr << qidx << ":" << v << std::endl;
     numResultsPerQuery[qidx] = v;
   }
   {

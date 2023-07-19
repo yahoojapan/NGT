@@ -17,11 +17,25 @@
 #pragma once
 
 #include "Quantizer.h"
+#include "NGT/GraphOptimizer.h"
 
 namespace QBG {
+  class Index;
+  class BuildParameters;
+  class HierarchicalClusteringParameters;
+  class OptimizationParameters;
+
   class HierarchicalKmeans {
   public:
     typedef NGTQ::Quantizer::ObjectList QBGObjectList;
+
+    enum ClusteringType {
+      ClusteringTypeMultiLayer			= 0,
+      ClusteringTypeThreeLayer			= 1,
+      ClusteringTypeTwoPlusOneLayer		= 2,
+      ClusteringTypeTwoPlusOneLayerWithNGT	= 3,
+      ClusteringTypeTwoPlusTwoLayer		= 4
+    };
 
     class HKNode {
     public:
@@ -41,34 +55,12 @@ namespace QBG {
       std::vector<std::pair<uint32_t, std::vector<float>>> children;
     };
 
-    HierarchicalKmeans() {
-      silence = true;
-    }
+    HierarchicalKmeans() { initialize(); }
+    HierarchicalKmeans(QBG::BuildParameters &param);
+    HierarchicalKmeans(QBG::HierarchicalClusteringParameters &hierarchicalClustering);
 
-    HierarchicalKmeans(QBG::BuildParameters &param) {
-#ifdef NGTQ_QBG
-      maxSize			= param.hierarchicalClustering.maxSize;
-      numOfObjects		= param.hierarchicalClustering.numOfObjects;
-      numOfClusters		= param.hierarchicalClustering.numOfClusters;
-      numOfTotalClusters	= param.hierarchicalClustering.numOfTotalClusters;
-      numOfTotalBlobs		= param.hierarchicalClustering.numOfTotalBlobs;
-      clusterID			= param.hierarchicalClustering.clusterID;
-
-      initMode			= param.hierarchicalClustering.initMode;
-
-      numOfRandomObjects	= param.hierarchicalClustering.numOfRandomObjects;
-
-      numOfFirstObjects		= param.hierarchicalClustering.numOfFirstObjects;
-      numOfFirstClusters	= param.hierarchicalClustering.numOfFirstClusters;
-      numOfSecondObjects	= param.hierarchicalClustering.numOfSecondObjects;
-      numOfSecondClusters	= param.hierarchicalClustering.numOfSecondClusters;
-      numOfThirdClusters	= param.hierarchicalClustering.numOfThirdClusters;
-      extractCentroid		= param.hierarchicalClustering.extractCentroid;
-
-      threeLayerClustering	= param.hierarchicalClustering.threeLayerClustering;
-      silence			= param.silence;
-#endif
-    }
+    void setParameters(QBG::HierarchicalClusteringParameters &hierarchicalClustering);
+    void initialize();
 
     static int32_t searchLeaf(std::vector<HKNode*> &nodes, int32_t rootID, float *object) {
       auto nodeID = rootID;
@@ -403,7 +395,7 @@ namespace QBG {
 	  leafID++;
 	}
       }
-}
+    }
 
 
     static void hierarchicalKmeans(uint32_t id, int32_t rootID, std::vector<float> &object,
@@ -643,7 +635,9 @@ namespace QBG {
 #ifndef MULTIPLE_OBJECT_LISTS
     void subclustering(std::vector<NGT::Clustering::Cluster> &upperClusters, size_t numOfLowerClusters, size_t numOfObjects,
 		       NGT::ObjectSpace &objectSpace, QBGObjectList &objectList, 
-		       NGT::Clustering::InitializationMode initMode, std::vector<std::vector<NGT::Clustering::Cluster>> &lowerClusters) {
+		       NGT::Clustering::InitializationMode initMode,
+		       std::vector<std::vector<NGT::Clustering::Cluster>> &lowerClusters,
+		       size_t maximumIteration = 1000) {
       std::vector<uint32_t> nPartialClusters(upperClusters.size());
       auto numOfRemainingClusters = numOfLowerClusters;
       auto numOfRemainingVectors = numOfObjects;
@@ -685,7 +679,7 @@ namespace QBG {
 	  std::cerr << "the sizes of members are not consistent" << std::endl;
 	  abort();
 	}
-	NGT::Clustering lowerClustering(initMode, NGT::Clustering::ClusteringTypeKmeansWithoutNGT, 1000);
+	NGT::Clustering lowerClustering(initMode, NGT::Clustering::ClusteringTypeKmeansWithoutNGT, maximumIteration);
 	lowerClustering.kmeans(partialVectors, nPartialClusters[idx], lowerClusters[idx]);
 	if (nPartialClusters[idx] != lowerClusters[idx].size()) {
 	  std::cerr << "the sizes of cluster members are not consistent" << std::endl;	    
@@ -704,8 +698,9 @@ namespace QBG {
     }
     void subclustering(std::vector<NGT::Clustering::Cluster> &upperClusters, size_t numOfLowerClusters, size_t numOfObjects,
 		       NGT::ObjectSpace &objectSpace, QBGObjectList &objectList, 
-		       NGT::Clustering::InitializationMode initMode, std::vector<NGT::Clustering::Cluster> &flatLowerClusters) {
-
+		       NGT::Clustering::InitializationMode initMode,
+		       std::vector<NGT::Clustering::Cluster> &flatLowerClusters,
+		       size_t maximumIteration = 1000) {
       std::vector<std::vector<NGT::Clustering::Cluster>> lowerClusters;
       subclustering(upperClusters, numOfLowerClusters, numOfObjects, objectSpace, objectList, initMode, lowerClusters);
 
@@ -716,18 +711,27 @@ namespace QBG {
 #else 
     static void subclustering(std::vector<NGT::Clustering::Cluster> &upperClusters, size_t numOfLowerClusters, size_t numOfObjects,
 			      NGT::ObjectSpace &objectSpace, QBGObjectList &objectList, 
-			      NGT::Clustering::InitializationMode initMode, std::vector<std::vector<NGT::Clustering::Cluster>> &lowerClusters) {
+			      NGT::Clustering::InitializationMode initMode,
+			      std::vector<std::vector<NGT::Clustering::Cluster>> &lowerClusters,
+			      size_t maximumIteration = 1000) {
+      NGT::Timer timer;
+      timer.start();
       std::vector<uint32_t> nPartialClusters(upperClusters.size());
-      auto numOfRemainingClusters = numOfLowerClusters;
-      auto numOfRemainingVectors = numOfObjects;
+      int numOfRemainingClusters = numOfLowerClusters;
+      int numOfRemainingVectors = numOfObjects;
       size_t ts = 0;
       for (size_t idx = 0; idx < upperClusters.size(); idx++) {
-	size_t ncs = round(static_cast<float>(upperClusters[idx].members.size()) / numOfRemainingVectors * 
-			   numOfRemainingClusters);
-	ncs = ncs == 0 ? 1 : ncs;
+	float ncsf = static_cast<float>(upperClusters[idx].members.size()) /
+	  	     numOfRemainingVectors *
+		     (numOfRemainingClusters - (upperClusters.size() - idx));
+	ncsf += 1.0; 
+	int ncs = round(ncsf);
 	numOfRemainingVectors -= upperClusters[idx].members.size();
-	if (numOfRemainingClusters >= ncs) {
-	  numOfRemainingClusters -= ncs;
+	numOfRemainingClusters -= ncs;
+	if (numOfRemainingClusters < 0) {
+	  std::stringstream msg;
+	  msg << " subclustering: Internal error! " << numOfRemainingClusters << ":" << idx;
+	  NGTThrowException(msg);
 	}
 	nPartialClusters[idx] = ncs;
 	ts += ncs;
@@ -737,47 +741,69 @@ namespace QBG {
       std::cerr << "numOfRemainingVectors=" << numOfRemainingVectors << std::endl;
       std::cerr << "upperClusters=" << upperClusters.size() << std::endl;
       std::cerr << "total=" << ts << ":" << numOfLowerClusters << std::endl;
-      if (ts < numOfLowerClusters || numOfRemainingClusters != 0) {
-	std::cerr << "subclustering: Internal error! " << std::endl;
-	exit(1);
+      std::cerr << "max iteration=" << maximumIteration << std::endl;
+      timer.stop();
+      std::cerr << "time=" << timer << std::endl;
+      timer.restart();
+      if (ts != numOfLowerClusters || numOfRemainingClusters != 0) {
+	std::stringstream msg;
+	msg << "subclustering: Internal error! " << ts << ":" << numOfLowerClusters
+	    << ":" << numOfRemainingClusters << std::endl;
+	NGTThrowException(msg);
       }
 
       auto nthreads = omp_get_max_threads();
       if (!objectList.openMultipleStreams(nthreads)) {
-	std::cerr << "Cannot open multiple streams." << std::endl;
-	abort();
+	std::stringstream msg;
+	msg << "subclustering: Internal error! Cannot open multiple streams. " << nthreads;
+	NGTThrowException(msg);
       }
 
       lowerClusters.resize(upperClusters.size());
+      std::vector<size_t> counters(nthreads, 0);
 #pragma omp parallel for schedule(dynamic)
       for (size_t idx = 0; idx < upperClusters.size(); idx++) {
 	std::vector<std::vector<float>> partialVectors;
 	partialVectors.reserve(upperClusters[idx].members.size());
 	std::vector<float> obj;
 	auto threadid = omp_get_thread_num();
-	//#pragma omp critical
 	{
 	  for (auto &m : upperClusters[idx].members) {
 	    if (threadid >= nthreads) {
-	      std::cerr << "inner fatal error. # of threads=" << nthreads << ":" << threadid << std::endl;
-	      exit(1);
+	      std::stringstream msg;
+	      msg << "subclustering: inner fatal error. # of threads=" << nthreads << ":" << threadid;
+	      NGTThrowException(msg);
 	    }
 	    if (!objectList.get(threadid, m.vectorID + 1, obj, &objectSpace)) {
-	      std::cerr << "subclustering: Fatal error! cannot get!!!! " << m.vectorID + 1 << std::endl;
-	      abort();
+	      std::stringstream msg;
+	      msg << "subclustering: Fatal error! cannot get!!!! " << m.vectorID + 1;
+	      NGTThrowException(msg);
 	    }
 	    partialVectors.push_back(obj);
 	  }
 	}
 	if (upperClusters[idx].members.size() != partialVectors.size()) {
-	  std::cerr << "the sizes of members are not consistent" << std::endl;
-	  abort();
+	  std::stringstream msg;
+	  msg << "inner fatal error. the sizes of members are inconsistent. " << upperClusters[idx].members.size() << ":" << partialVectors.size() << ":" << idx;
+	  NGTThrowException(msg);
 	}
-	NGT::Clustering lowerClustering(initMode, NGT::Clustering::ClusteringTypeKmeansWithoutNGT, 1000);
+	NGT::Clustering lowerClustering(initMode, NGT::Clustering::ClusteringTypeKmeansWithoutNGT, maximumIteration);
 	lowerClustering.kmeans(partialVectors, nPartialClusters[idx], lowerClusters[idx]);
 	if (nPartialClusters[idx] != lowerClusters[idx].size()) {
-	  std::cerr << "the sizes of cluster members are not consistent" << std::endl;	    
-	  abort();
+	  std::cerr << "Warning: the sizes of cluster members are inconsistent. " << nPartialClusters[idx] << ":" << lowerClusters[idx].size() << ":" << idx << std::endl;
+	}
+	counters[threadid]++;
+	{
+	  size_t cnt = 0;
+	  for (auto c : counters) {
+	    cnt += c;
+	  }
+	  if (cnt % ((upperClusters.size() < 20 ? 20 : upperClusters.size()) / 20) == 0) {
+	    timer.stop();
+	    std::cerr << "subclustering: " << cnt << " clusters (" 
+		      << (cnt * 100 / upperClusters.size()) << "%) have been processed. time=" << timer << std::endl;
+	    timer.restart();
+	  }
 	}
       }
       size_t nc = 0;
@@ -793,8 +819,9 @@ namespace QBG {
 
     static void subclustering(std::vector<NGT::Clustering::Cluster> &upperClusters, size_t numOfLowerClusters, size_t numOfObjects,
 			      NGT::ObjectSpace &objectSpace, QBGObjectList &objectList,
-			      NGT::Clustering::InitializationMode initMode, std::vector<NGT::Clustering::Cluster> &flatLowerClusters) {
-
+			      NGT::Clustering::InitializationMode initMode,
+			      std::vector<NGT::Clustering::Cluster> &flatLowerClusters,
+			      size_t maximumIteration = 1000) {
       std::vector<std::vector<NGT::Clustering::Cluster>> lowerClusters;
       subclustering(upperClusters, numOfLowerClusters, numOfObjects, objectSpace, objectList, initMode, lowerClusters);
 
@@ -804,6 +831,125 @@ namespace QBG {
 
 #endif 
 
+    static void subclustering(std::vector<NGT::Clustering::Cluster> &upperClusters, size_t numOfLowerClusters, size_t numOfObjects,
+			      NGT::Clustering::InitializationMode initMode,
+			      std::vector<std::vector<NGT::Clustering::Cluster>> &lowerClusters,
+			      std::vector<std::vector<float>> &vectors,
+			      size_t maximumIteration = 1000) {
+      std::vector<uint32_t> nPartialClusters(upperClusters.size());
+      int numOfRemainingClusters = numOfLowerClusters;
+      int numOfRemainingVectors = numOfObjects;
+      size_t ts = 0;
+      for (size_t idx = 0; idx < upperClusters.size(); idx++) {
+	float ncsf = static_cast<float>(upperClusters[idx].members.size()) /
+	  	     numOfRemainingVectors *
+		     (numOfRemainingClusters - (upperClusters.size() - idx));
+	ncsf += 1.0; 
+	int ncs = round(ncsf);
+	numOfRemainingVectors -= upperClusters[idx].members.size();
+	numOfRemainingClusters -= ncs;
+	if (numOfRemainingClusters < 0) {
+	  std::stringstream msg;
+	  msg << "subclustering: Internal error! " << numOfRemainingClusters << idx;
+	  NGTThrowException(msg);
+	}
+	nPartialClusters[idx] = ncs;
+	ts += ncs;
+      }
+
+      std::cerr << "numOfRemainingClusters=" << numOfRemainingClusters << std::endl;
+      std::cerr << "numOfRemainingVectors=" << numOfRemainingVectors << std::endl;
+      std::cerr << "upperClusters=" << upperClusters.size() << std::endl;
+      std::cerr << "total=" << ts << ":" << numOfLowerClusters << std::endl;
+      if (ts < numOfLowerClusters || numOfRemainingClusters != 0) {
+	std::stringstream msg;
+	msg << "subclustering: Internal error! " << ts << ":" << numOfLowerClusters
+	    << ":" << numOfRemainingClusters << std::endl;
+	NGTThrowException(msg);
+      }
+
+      auto nthreads = omp_get_max_threads();
+
+      lowerClusters.resize(upperClusters.size());
+#pragma omp parallel for schedule(dynamic)
+      for (size_t idx = 0; idx < upperClusters.size(); idx++) {
+	std::vector<std::vector<float>> partialVectors;
+	partialVectors.reserve(upperClusters[idx].members.size());
+	auto threadid = omp_get_thread_num();
+	{
+	  for (auto &m : upperClusters[idx].members) {
+	    if (threadid >= nthreads) {
+	      std::cerr << "inner fatal error. # of threads=" << nthreads << ":" << threadid << std::endl;
+	      exit(1);
+	    }
+	    std::vector<float> &obj = vectors[m.vectorID];
+	    partialVectors.push_back(obj);
+	  }
+	}
+	if (upperClusters[idx].members.size() != partialVectors.size()) {
+	  std::stringstream msg;
+	  msg << "the sizes of members are inconsistent. " << upperClusters[idx].members.size() << ":" << partialVectors.size() << ":" << idx;
+	  NGTThrowException(msg);
+	}
+	NGT::Clustering lowerClustering(initMode, NGT::Clustering::ClusteringTypeKmeansWithoutNGT, maximumIteration);
+	lowerClustering.kmeans(partialVectors, nPartialClusters[idx], lowerClusters[idx]);
+	if (nPartialClusters[idx] != lowerClusters[idx].size()) {
+	  std::cerr << "Warning: the sizes of cluster members are inconsistent. " << nPartialClusters[idx] << ":" << lowerClusters[idx].size() << ":" << idx << std::endl;
+	}
+      }
+      size_t nc = 0;
+      size_t mc = 0;
+      for (auto &cs : lowerClusters) {
+	nc += cs.size();
+	for (auto &c : cs) {
+	  mc += c.members.size();
+	}
+      }
+      std::cerr << "# of clusters=" << nc << " # of members=" << mc << std::endl;
+    }
+
+    static void subclustering(std::vector<NGT::Clustering::Cluster> &upperClusters, size_t numOfLowerClusters, size_t numOfObjects,
+			      NGT::Clustering::InitializationMode initMode,
+			      std::vector<NGT::Clustering::Cluster> &flatLowerClusters,
+			      std::vector<std::vector<float>> &vectors,
+			      size_t maximumIteration = 1000) {
+      std::vector<std::vector<NGT::Clustering::Cluster>> lowerClusters;
+      subclustering(upperClusters, numOfLowerClusters, numOfObjects, initMode, lowerClusters, vectors);
+
+      flattenClusters(upperClusters, lowerClusters, numOfLowerClusters, flatLowerClusters);
+
+    }
+
+    static void assign(std::vector<NGT::Clustering::Cluster> &clusters, size_t beginID, size_t endID, std::vector<std::vector<float>> &vectors) {
+
+      size_t count = 0;
+#pragma omp parallel for
+      for (size_t id = beginID; id <= endID; id++) {
+	std::vector<float> &obj = vectors[id];
+	float min = std::numeric_limits<float>::max();
+	int minidx = -1;
+	for (size_t cidx = 0; cidx != clusters.size(); cidx++) {
+	  auto d = NGT::PrimitiveComparator::compareL2(reinterpret_cast<float*>(obj.data()),
+						       clusters[cidx].centroid.data(), obj.size());
+	  if (d < min) {
+	    min = d;
+	    minidx = cidx;
+	  }
+	}
+	if (minidx < 0) {
+	  std::cerr << "assign: Fatal error!" << std::endl;
+	  abort();
+	}
+#pragma omp critical
+	{
+	  clusters[minidx].members.push_back(NGT::Clustering::Entry(id, minidx, min));
+	  count++;
+	  if (count % 1000000 == 0) {
+	    std::cerr << "# of assigned objects=" << count << std::endl;
+	  }
+	}
+      }
+    }
 
     static void assign(std::vector<NGT::Clustering::Cluster> &clusters, size_t beginID, size_t endID,
 		       NGT::ObjectSpace &objectSpace, QBGObjectList &objectList) {
@@ -851,8 +997,80 @@ namespace QBG {
 
     }
 
+    static float optimizeEpsilon(NGT::Index &index, size_t beginID, size_t endID,
+				size_t nOfObjects, 
+				QBGObjectList &objectList, float expectedRecall,
+				NGT::ObjectSpace &objectSpace) {
+      std::cerr << "optimizeEpsilon: expectedRecall=" << expectedRecall << std::endl;
+      NGT::ObjectDistances groundTruth[endID - beginID];
+#pragma omp parallel for
+      for (size_t id = beginID; id < endID; id++) {
+	std::vector<float> obj;
+#ifdef MULTIPLE_OBJECT_LISTS
+	objectList.get(omp_get_thread_num(), id, obj, &objectSpace);
+#else
+	objectList.get(id, obj, &objectSpace);
+#endif
+	NGT::SearchQuery	sc(obj);
+	sc.setResults(&groundTruth[id - beginID]);
+	sc.setSize(nOfObjects);
+	index.linearSearch(sc);
+      }
+
+      float startEpsilon = 0.12;
+      float epsilon;
+      std::vector<float> recall(endID - beginID, 0.0);
+      for (epsilon = startEpsilon; epsilon < 1.0; epsilon += 0.01) {
+	float totalRecall = 0.0;
+	NGT::ObjectDistances results[endID - beginID];
+#pragma omp parallel for
+	for (size_t id = beginID; id < endID; id++) {
+	  if (recall[id - beginID] == 1.0) {
+	    continue;
+	  }
+	  std::vector<float> obj;
+#ifdef MULTIPLE_OBJECT_LISTS
+	  objectList.get(omp_get_thread_num(), id, obj, &objectSpace);
+#else
+	  objectList.get(id, obj, &objectSpace);
+#endif
+	  NGT::SearchQuery	sc(obj);
+	  sc.setResults(&results[id - beginID]);
+	  sc.setSize(nOfObjects);
+	  sc.setEpsilon(epsilon);
+	  index.search(sc);
+	}
+	size_t notExactResultCount = 0;
+	for (size_t id = beginID; id < endID; id++) {
+	  if (recall[id - beginID] == 1.0) {
+	    totalRecall += 1.0;
+	    continue;
+	  }
+	  notExactResultCount++;
+	  size_t count = 0;
+	  NGT::ObjectDistances &gt = groundTruth[id - beginID];
+	  for (auto &r : results[id - beginID]) {
+	    if (std::find(gt.begin(), gt.end(), r) != gt.end()) {
+	      count++;
+	    }
+	  }
+	  recall[id - beginID] = static_cast<float>(count) / static_cast<float>(results[id - beginID].size());
+	  totalRecall += recall[id - beginID];
+	}
+	totalRecall /= endID - beginID;
+	std::cerr << "Info: # of not exact results=" << notExactResultCount << " start epsilon=" << startEpsilon 
+		  << " current epsilon=" << epsilon << " total recall=" << totalRecall << std::endl;
+	if (totalRecall >= expectedRecall) {
+	  break;
+	}
+      }
+      return epsilon;
+    }
+
     static void assignWithNGT(std::vector<NGT::Clustering::Cluster> &clusters, size_t beginID, size_t endID,
-			      NGT::ObjectSpace &objectSpace, QBGObjectList &objectList) {
+			      NGT::ObjectSpace &objectSpace, QBGObjectList &objectList,
+			      size_t epsilonExplorationSize = 100,
+			      float expectedRecall = 0.98) {
       if (beginID > endID) {
 	std::cerr << "assignWithNGT::Warning. beginID:" << beginID << " > endID:" << endID << std::endl;
 	return;
@@ -866,19 +1084,58 @@ namespace QBG {
       prop.edgeSizeForSearch = 40;
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-      NGT::Index index(prop, "dummy");
+      NGT::Index anngIndex(prop, "dummy");
 #else
-      NGT::Index index(prop);
+      NGT::Index anngIndex(prop);
 #endif
       for (size_t cidx = 0; cidx < clusters.size(); cidx++) {
 	if (cidx % 100000 == 0) {
 	  std::cerr << "# of appended cluster objects=" << cidx << std::endl;
 	}
-	index.append(clusters[cidx].centroid);
+	anngIndex.append(clusters[cidx].centroid);
       }
       std::cerr << "createIndex..." << std::endl;
-      index.createIndex(500);
-
+      anngIndex.createIndex(500);
+#ifdef NGTQ_USING_ONNG
+      std::string onng;
+      std::string tmpDir;
+      {
+	NGT::Timer timer;
+	timer.start();
+	const char *ngtDirString = "/tmp/ngt-XXXXXX";
+	char ngtDir[strlen(ngtDirString) + 1];
+	strcpy(ngtDir, ngtDirString);
+	tmpDir = mkdtemp(ngtDir);
+	std::string anng = tmpDir + "/anng";
+	onng = tmpDir + "/onng";
+#ifndef NGT_SHARED_MEMORY_ALLOCATOR
+	anngIndex.save(anng);
+#endif
+	auto unlog = false;
+	NGT::GraphOptimizer graphOptimizer(unlog);
+	graphOptimizer.searchParameterOptimization = false;
+	graphOptimizer.prefetchParameterOptimization = false;
+	graphOptimizer.accuracyTableGeneration = false;
+	int numOfOutgoingEdges = 10;
+	int numOfIncomingEdges = 120;
+	int numOfQueries = 200;
+	int numOfResultantObjects = 20;
+	graphOptimizer.set(numOfOutgoingEdges, numOfIncomingEdges, numOfQueries, numOfResultantObjects);
+	graphOptimizer.execute(anng, onng);
+      }
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+      NGT::Index onngIndex(onng, "dummy");
+#else
+      NGT::Index onngIndex(onng);
+#endif
+      NGT::Index &index = onngIndex;
+      const string com = "rm -rf " + tmpDir;
+      if (system(com.c_str()) == -1) {
+	std::cerr << "Warning. remove is failed. " << com << std::endl;
+      }
+#else
+      NGT::Index &index = anngIndex;
+#endif
       std::cerr << "assign with NGT..." << std::endl;
       endID++;
 #ifdef MULTIPLE_OBJECT_LISTS
@@ -887,7 +1144,18 @@ namespace QBG {
 	abort();
       }
 #endif
-      std::vector<pair<uint32_t, float>> clusterIDs(endID - beginID);
+      std::vector<std::pair<uint32_t, float>> clusterIDs(endID - beginID);
+      std::vector<std::pair<size_t, float>> distances(omp_get_max_threads(), std::make_pair(0, 0.0));
+      size_t endOfEval = beginID + epsilonExplorationSize;
+      endOfEval = endOfEval > endID ? endID : endOfEval;
+      size_t nOfObjects = 20;
+      NGT::Timer timer;
+      timer.start();
+      auto epsilon = optimizeEpsilon(index, beginID, endOfEval, nOfObjects, 
+				     objectList, expectedRecall, objectSpace);
+      timer.stop();
+      std::cerr << "assignWithNGT: exploring epsilon. time=" << timer << " epsilon=" << epsilon << std::endl;
+      timer.start();
 #pragma omp parallel for
       for (size_t id = beginID; id < endID; id++) {
 	std::vector<float> obj;
@@ -896,371 +1164,120 @@ namespace QBG {
 #else
 	objectList.get(id, obj, &objectSpace);
 #endif
-	NGT::SearchQuery sc(obj);
+	NGT::SearchQuery	sc(obj);
 	NGT::ObjectDistances	objects;
 	sc.setResults(&objects);
-	sc.setSize(10);
-	sc.setEpsilon(0.12);
+	sc.setSize(nOfObjects);
+	sc.setEpsilon(epsilon);
 	index.search(sc);
-	//index.linearSearch(sc);
 	clusterIDs[id - beginID] = make_pair(objects[0].id - 1, objects[0].distance);
-      }
+	auto threadID = omp_get_thread_num();
+	distances[threadID].first++;
+	distances[threadID].second += objects[0].distance;
+	{
+	  size_t cnt = 0;
+	  for (auto d : distances) {
+	    cnt += d.first;
+	  }
+	  if (cnt % ((endID - beginID) / 100) == 0) {
+	    timer.stop();
+	    std::cerr << "assignWithNGT: " << cnt << " objects (" 
+		      << (cnt * 100 / (endID - beginID)) << "%) have been assigned. time=" << timer << std::endl;
+	    timer.restart();
+	  }
+	}
+      } 
       std::cerr << "pushing..." << std::endl;
       for (size_t id = beginID; id < endID; id++) {
 	auto cid = clusterIDs[id - beginID].first;
 	auto cdistance = clusterIDs[id - beginID].second;
 	clusters[cid].members.push_back(NGT::Clustering::Entry(id - 1, cid, cdistance));
       }
+      {
+	size_t n = 0;
+	float err = 0;
+	for (auto t : distances) {
+	  n += t.first;
+	  err += t.second;
+	}
+	if (n != 0) {
+	  err /= static_cast<float>(n);
+	  std::cerr << "assign. quantization error=" << err << "/" << n << std::endl;
+	} else {
+	  std::cerr << "assign. no assigned vectors." << std::endl;
+	}
+      }
     }
 
 #ifdef NGTQ_QBG
-    void treeBasedTopdownClustering(std::string prefix, QBG::Index &index, uint32_t rootID, std::vector<float> &object, std::vector<HKNode*> &nodes, NGT::Clustering &clustering) {
-      auto &quantizer = static_cast<NGTQ::QuantizerInstance<uint8_t>&>(index.getQuantizer());
-      auto &objectSpace = quantizer.globalCodebookIndex.getObjectSpace();
-      QBGObjectList &objectList = quantizer.objectList;
+    void treeBasedTopdownClustering(std::string prefix, QBG::Index &index, uint32_t rootID, std::vector<float> &object, std::vector<HKNode*> &nodes, NGT::Clustering &clustering);
+
+    static void twoLayerClustering(std::vector<std::vector<float>> vectors,
+					size_t numOfClusters,
+					std::vector<NGT::Clustering::Cluster> &clusters,
+					size_t numOfObjectsForEachFirstCluster = 0,
+					size_t numOfObjectsForEachSecondCluster = 0,
+					size_t maximumIteration = 300,
+					NGT::Clustering::InitializationMode initMode = NGT::Clustering::InitializationModeKmeansPlusPlus) {
+      std::cerr << "clustering with two layers... # of clusters=" << numOfClusters << std::endl;
+      if (numOfClusters == 0) {
+	NGTThrowException("HierachicalKmeans:: # of clusters is zero.");
+      }
+      size_t numOfFirstClusters = sqrt(numOfClusters);
+      size_t numOfFirstObjects = sqrt(vectors.size());
+      numOfFirstObjects = numOfObjectsForEachFirstCluster == 0 ?
+	numOfFirstObjects : numOfFirstClusters * numOfObjectsForEachFirstCluster;
+      size_t numOfSecondClusters = numOfClusters;
+      size_t numOfSecondObjects = vectors.size();
+      numOfSecondObjects = numOfObjectsForEachSecondCluster == 0 ?
+	numOfSecondObjects : numOfSecondClusters * numOfObjectsForEachSecondCluster;
+      //auto &quantizer = static_cast<NGTQ::QuantizerInstance<uint8_t>&>(index.getQuantizer());
+      //auto &objectSpace = quantizer.globalCodebookIndex.getObjectSpace();
+      size_t numOfObjects = vectors.size();
+      if (numOfSecondObjects > numOfObjects) {
+	numOfSecondObjects = numOfObjects;
+      }
+
+
+      NGT::Clustering firstClustering(initMode, NGT::Clustering::ClusteringTypeKmeansWithoutNGT, maximumIteration);
+      //NGT::Clustering firstClustering(initMode, NGT::Clustering::ClusteringTypeKmeansWithNGT, maximumIteration);
+      firstClustering.setClusterSizeConstraintCoefficient(false);
+      std::vector<NGT::Clustering::Cluster> firstClusters;
       NGT::Timer timer;
-      timer.start();
-      std::vector<uint32_t> batch;
-      std::vector<pair<uint32_t, uint32_t>> exceededLeaves;
-      size_t nleaves = 1;
-      size_t nOfThreads = 32;
-      for (size_t id = 1; id <= numOfObjects; id++) {
-	if (id % (numOfObjects / 100) == 0) {
-	  timer.stop();
-	  std::cerr << "# of processed objects=" << id << " " << id * 100 / numOfObjects << "% " << timer << " # of leaves=" << nleaves << std::endl;
-	  timer.start();
-	}
-	batch.push_back(id);
-	if (batch.size() > 100000) {
-	  size_t kmeansBatchSize = nleaves < nOfThreads ? nleaves : nOfThreads;
-	  hierarchicalKmeansBatch(batch, exceededLeaves, rootID, object, objectList, objectSpace, nodes, 
-				  clustering, maxSize, nleaves, kmeansBatchSize);
-
-	}
-      }
-      hierarchicalKmeansBatch(batch, exceededLeaves, rootID, object, objectList, objectSpace, nodes,
-			      clustering, maxSize, nleaves, 0);
-
-      if (numOfTotalClusters != 0) {
-	NGT::Timer timer;
-	timer.start();
-	size_t numOfLeaves = 0;
-	for (auto node : nodes) {
-	  if (node->leaf) {
-	    numOfLeaves++;
-	  }
-	}
-	std::cerr << "# of nodes=" << nodes.size() << std::endl;
-	std::cerr << "# of leaves=" << numOfLeaves << std::endl;
-	std::cerr << "clustering for quantization." << std::endl;
-	hierarchicalKmeansWithNumberOfClustersInParallel(numOfTotalClusters, numOfObjects, numOfLeaves, 
-							 objectList, objectSpace, nodes, initMode);
-	if (numOfTotalBlobs != 0) {
-	  NGT::Timer timer;
-	  timer.start();
-	  size_t numOfLeaves = 0;
-	  for (auto node : nodes) {
-	    if (node->leaf) {
-	      numOfLeaves++;
-	    }
-	  }
-	  std::cerr << "# of leaves=" << numOfLeaves << ":" << numOfTotalClusters << std::endl;
-	  if (numOfLeaves != numOfTotalClusters) {
-	    std::cerr << "# of leaves is invalid " << numOfLeaves << ":" << numOfTotalClusters << std::endl;
-	    abort();
-	  }
-	  {
-	    std::ofstream of(prefix + QBG::Index::getSecondCentroidSuffix());
-	    extractCentroids(of, nodes);
-	  }
-	  std::vector<uint32_t> qNodeIDs;
-	  for (uint32_t nid = 0; nid < nodes.size(); nid++) {
-	    if (nodes[nid]->leaf) {
-	      qNodeIDs.push_back(nid);
-	    }
-	  }
-	  std::cerr << "clustering to make blobs." << std::endl;
-	  hierarchicalKmeansWithNumberOfClustersInParallel(numOfTotalBlobs, numOfObjects, numOfTotalClusters, 
-							   objectList, objectSpace, nodes, initMode);
-	  {
-	    std::ofstream of(prefix + QBG::Index::get3rdTo2ndSuffix());
-	    extractBtoQIndex(of, nodes, qNodeIDs);
-	  }
-	}
-      } 
-
-    }
-
-    void multilayerClustering(std::string prefix, QBG::Index &index) {
-      auto &quantizer = static_cast<NGTQ::QuantizerInstance<uint8_t>&>(index.getQuantizer());
-      auto &objectSpace = quantizer.globalCodebookIndex.getObjectSpace();
       {
-	std::cerr << "Three layer clustering..." << std::endl;
-	std::cerr << "HiearchicalKmeans::clustering: # of clusters=" << numOfThirdClusters << ":" << index.getQuantizer().property.globalCentroidLimit << std::endl;
-	if (index.getQuantizer().objectList.size() <= 1) {
-	  NGTThrowException("optimize: No objects");
+	std::vector<std::vector<float>> firstVectors;
+	firstVectors.reserve(numOfFirstObjects);
+	for (size_t c = 0; c < numOfFirstObjects; c++) {
+	  firstVectors.push_back(vectors[c]);
 	}
-	if (numOfThirdClusters == 0) {
-	  if (index.getQuantizer().property.globalCentroidLimit == 0) {
-	    numOfThirdClusters = index.getQuantizer().objectList.size() / 1000;
-	    numOfThirdClusters = numOfThirdClusters == 0 ? 1 : numOfThirdClusters;
-	    numOfThirdClusters = numOfThirdClusters > 1000000 ? 1000000 : numOfThirdClusters;
-	  } else {
-	    numOfThirdClusters = index.getQuantizer().property.globalCentroidLimit;
-	  }
-	}
-	if (numOfThirdClusters != 0 && index.getQuantizer().property.globalCentroidLimit != 0 &&
-	    numOfThirdClusters != index.getQuantizer().property.globalCentroidLimit) {
-	}
-	auto &quantizer = static_cast<NGTQ::QuantizerInstance<uint8_t>&>(index.getQuantizer());
-	QBGObjectList &objectList = quantizer.objectList;
-	if (numOfObjects == 0) {
-	  numOfObjects = objectList.size() - 1;
-	}
-
-	std::cerr << "The first layer. " << numOfFirstClusters << ":" << numOfFirstObjects << std::endl;
-	if (numOfThirdClusters == 0 || numOfObjects == 0) {
-	  NGTThrowException("numOfThirdClusters or numOfObjects are zero");
-	}
-	numOfSecondClusters = numOfSecondClusters == 0 ? numOfThirdClusters : numOfSecondClusters;
-	numOfFirstClusters = numOfFirstClusters == 0 ? static_cast<size_t>(sqrt(numOfSecondClusters)) : numOfFirstClusters;
-	numOfSecondObjects = numOfSecondClusters * 100;
-	numOfSecondObjects = numOfSecondObjects > numOfObjects ? numOfObjects : numOfSecondObjects;
-	numOfFirstObjects = numOfFirstClusters * 2000;
-	numOfFirstObjects = numOfFirstObjects > numOfSecondObjects ? numOfSecondObjects : numOfFirstObjects;
-	if (numOfFirstObjects < numOfFirstClusters) {
-	  std::stringstream msg;
-	  msg << "# of objects for the first should be larger than # of the first clusters. " << numOfFirstObjects << ":" << numOfFirstClusters;
-	  NGTThrowException(msg);
-	}
-	if (numOfFirstClusters > numOfSecondClusters) {
-	  std::stringstream msg;
-	  msg << "# of the first clusters should be larger than or equal to # of the second clusters. " << numOfFirstClusters << ":" << numOfSecondClusters;
-	  NGTThrowException(msg);
-	}
-	if (numOfSecondClusters > numOfThirdClusters) {
-	  std::stringstream msg;
-	  msg << "# of the third clusters should be larger than or equal to # of the second clusters. " << numOfSecondClusters << ":" << numOfThirdClusters;
-	  NGTThrowException(msg);
-	}
-	if (numOfFirstClusters > numOfSecondClusters) {
-	  std::stringstream msg;
-	  msg << "# of the second clusters should be larger than # of the first clusters. " << numOfFirstClusters << ":" << numOfSecondClusters;
-	  NGTThrowException(msg);
-	}
-
-	std::cerr << "Three layer clustering:" << numOfFirstClusters << ":" << numOfFirstObjects << "," << numOfSecondClusters << ":" << numOfSecondObjects << "," << numOfThirdClusters << ":" << numOfObjects << std::endl;
-
-	NGT::Clustering firstClustering(initMode, NGT::Clustering::ClusteringTypeKmeansWithoutNGT, 300);
-	float clusterSizeConstraint = 5.0;
-	firstClustering.setClusterSizeConstraintCoefficient(clusterSizeConstraint);
-	std::cerr << "size constraint=" << clusterSizeConstraint << std::endl;
-	std::vector<std::vector<float>> vectors;
-	vectors.reserve(numOfFirstObjects);
-	std::vector<float> obj;
-	for (size_t id = 1; id <= numOfFirstObjects; id++) {
-	  if (id % 1000000 == 0) {
-	    std::cerr << "# of prcessed objects is " << id << std::endl;
-	  }
-	  if (!objectList.get(id, obj, &objectSpace)) {
-	    std::stringstream msg;
-	    msg << "qbg: Cannot get object. ID=" << id;
-	    NGTThrowException(msg);
-	  }
-	  vectors.push_back(obj);
-	}
-	std::cerr << "Kmeans... " << vectors.size() << " to " << numOfFirstClusters << std::endl;
-	std::vector<NGT::Clustering::Cluster> firstClusters;
-	NGT::Timer timer;
-
+	std::cerr << "clustering for the first...." << std::endl;
 	timer.start();
-	firstClustering.kmeans(vectors, numOfFirstClusters, firstClusters);
+	firstClustering.kmeans(firstVectors, numOfFirstClusters, firstClusters);
 	timer.stop();
-	std::cerr << "# of clusters=" << firstClusters.size() << " time=" << timer << std::endl;
-
-	std::vector<std::vector<float>> otherVectors;
-	timer.start();
-	std::cerr << "Assign for the second. (" << numOfFirstObjects << "-" << numOfSecondObjects << ")..." << std::endl;
-	assign(firstClusters, numOfFirstObjects + 1, numOfSecondObjects, objectSpace, objectList);
-	timer.stop();
-	std::cerr << "Assign(1) time=" << timer << std::endl;
-
-	std::cerr << "subclustering for the second." << std::endl;
-	std::vector<NGT::Clustering::Cluster> secondClusters;
-	timer.start();
-	subclustering(firstClusters, numOfSecondClusters, numOfSecondObjects, objectSpace, objectList, initMode, secondClusters);
-	timer.stop();
-	std::cerr << "subclustering(1) time=" << timer << std::endl;
-	std::cerr << "save quantization centroid" << std::endl;
-	NGT::Clustering::saveClusters(prefix + QBG::Index::getSecondCentroidSuffix(), secondClusters);
-	timer.start();
-	std::cerr << "Assign for the third. (" << numOfSecondObjects << "-" << numOfObjects << ")..." << std::endl;
-	assignWithNGT(secondClusters, numOfSecondObjects + 1, numOfObjects, objectSpace, objectList);
-	timer.stop();
-	std::cerr << "Assign(2) time=" << timer << std::endl;
-	std::cerr << "subclustering for the third." << std::endl;
-	std::vector<std::vector<NGT::Clustering::Cluster>> thirdClusters;
-	timer.start();
-	subclustering(secondClusters, numOfThirdClusters, numOfObjects, objectSpace, objectList, initMode, thirdClusters);
-	timer.stop();
-	std::cerr << "subclustering(2) time=" << timer << std::endl;
-	{
-	  std::vector<size_t> bqindex;
-	  for (size_t idx1 = 0; idx1 < thirdClusters.size(); idx1++) {
-	    for (size_t idx2 = 0; idx2 < thirdClusters[idx1].size(); idx2++) {
-	      bqindex.push_back(idx1);
-	    }
-	  }
-	  std::cerr << "save bqindex..." << std::endl;
-	  NGT::Clustering::saveVector(prefix + QBG::Index::get3rdTo2ndSuffix(), bqindex);
-	}
-	
-	std::vector<NGT::Clustering::Cluster> thirdFlatClusters;
-	flattenClusters(secondClusters, thirdClusters, numOfThirdClusters, thirdFlatClusters);
-
-	std::cerr << "save centroid..." << std::endl;
-	NGT::Clustering::saveClusters(prefix + QBG::Index::getThirdCentroidSuffix(), thirdFlatClusters);
-
-	{
-	  std::vector<size_t> cindex(numOfObjects);
-	  for (size_t cidx = 0; cidx < thirdFlatClusters.size(); cidx++) {
-	    for (auto mit = thirdFlatClusters[cidx].members.begin(); mit != thirdFlatClusters[cidx].members.end(); ++mit) {
-	      size_t vid = (*mit).vectorID;
-	      cindex[vid] = cidx;
-	    }
-	  }
-	  std::cerr << "save index... " << cindex.size() << std::endl;
-	  NGT::Clustering::saveVector(prefix + QBG::Index::getObjTo3rdSuffix(), cindex);
-	}
-	std::cerr << "end of clustering" << std::endl;
-	return;
+	std::cerr << "clustering for the first. # of clusters=" << firstClusters.size() << " time=" << timer << std::endl;
       }
 
+      timer.start();
+      std::cerr << "assign for the second. (" << numOfFirstObjects << "-" << numOfSecondObjects << ")..." << std::endl;
+      assign(firstClusters, numOfFirstObjects, numOfSecondObjects - 1, vectors);
+      timer.stop();
+      std::cerr << "assign for the second. time=" << timer << std::endl;
+
+      std::cerr << "subclustering for the second..." << std::endl;
+      std::vector<NGT::Clustering::Cluster> &secondClusters = clusters;
+      timer.start();
+      subclustering(firstClusters, numOfSecondClusters, numOfSecondObjects, initMode, secondClusters, vectors, maximumIteration);
+      timer.stop();
+      std::cerr << "subclustering for the second. time=" << timer << std::endl;
     }
 
-    void clustering(std::string indexPath, std::string prefix = "", std::string objectIDsFile = "") {
-      NGT::StdOstreamRedirector redirector(silence);
-      redirector.begin();
+    void threeLayerClustering(std::string prefix, QBG::Index &index);
 
-      bool readOnly = false;
-      QBG::Index index(indexPath, readOnly);
-      index.getQuantizer().objectList.size();
-      std::cerr << "clustering... " << std::endl;
-      if (threeLayerClustering) {
-	try {
-	  if (numOfObjects == 0) {
-	    numOfObjects = index.getQuantizer().objectList.size() - 1;
-	  }
-	  if (numOfObjects != index.getQuantizer().objectList.size() - 1) {
-	    std::cerr << "HierarchicalKmeans::clustering: Warning! # of objects is invalid." << std::endl;
-	    std::cerr << "     " << index.getQuantizer().objectList.size() - 1 << " is set to # of object instead of " << numOfObjects << std::endl;
-	    numOfObjects = index.getQuantizer().objectList.size() - 1;
-	  }
-	  if (prefix.empty()) {
-	    std::cerr << "Prefix is not specified." << std::endl;
-	    prefix = indexPath + "/" + QBG::Index::getWorkspaceName();
-	    try {
-	      NGT::Index::mkdir(prefix);
-	    } catch(...) {}
-	    prefix +="/" + QBG::Index::getHierarchicalClusteringPrefix();
-	    std::cerr << prefix << " is used" << std::endl;
-	  }
-	  auto &quantizer = static_cast<NGTQ::QuantizerInstance<uint8_t>&>(index.getQuantizer());
-	  auto &objectSpace = quantizer.globalCodebookIndex.getObjectSpace();
-	  size_t paddedDimension = objectSpace.getPaddedDimension();
-	  size_t dimension = objectSpace.getDimension();
-	  if (paddedDimension != dimension) {
-	    std::cerr << "HierarachicalKmeans: Warning! Dimensions are inconsistent. Dimension=" << paddedDimension << ":" << dimension << std::endl;
-	  }
-	  multilayerClustering(prefix, index);
-	} catch(NGT::Exception &err) {
-	  redirector.end();
-	  throw err;
-	}
-	redirector.end();
-	return;
-      }
-      try {
-	NGT::Clustering::ClusteringType clusteringType = NGT::Clustering::ClusteringTypeKmeansWithoutNGT;
+    void twoPlusLayerClustering(std::string prefix, QBG::Index &index);
 
-	uint32_t rootID = 0;
-	std::vector<HKNode*> nodes;
-	nodes.push_back(new HKLeafNode);
+    void multiLayerClustering(QBG::Index &index, std::string prefix, std::string objectIDsFile);
 
-	std::vector<float> object;
-	size_t iteration = 1000;
-	NGT::Clustering clustering(initMode, clusteringType, iteration, numOfClusters);
-	auto &quantizer = static_cast<NGTQ::QuantizerInstance<uint8_t>&>(index.getQuantizer());
-	QBGObjectList &objectList = quantizer.objectList;
-	if (objectIDsFile.empty()) {
-	  treeBasedTopdownClustering(prefix, index, rootID, object, nodes, clustering);
-	} else {
-	  std::cerr << "Cluster ID=" << clusterID << std::endl;
-	  if (clusterID < 0) {
-	    std::stringstream msg;
-	    msg << "Any target cluster ID is not specified.";
-	    NGTThrowException(msg);
-	  }
-	  std::ifstream objectIDs(objectIDsFile);
-	  if (!objectIDs) {
-	    std::stringstream msg;
-	    msg << "Cannot open the object id file. " << objectIDsFile;
-	    NGTThrowException(msg);
-	  }
-	  auto &objectSpace = quantizer.globalCodebookIndex.getObjectSpace();
-	  uint32_t id = 1;
-	  int32_t cid;
-	  size_t ccount = 0;
-	  while (objectIDs >> cid) {
-	    std::cerr << cid << std::endl;
-	    if (id % 100000 == 0) {
-	      std::cerr << "# of processed objects=" << id << std::endl;
-	    }
-	    if (cid == -1) {
-	      continue;
-	    }
-	    if (cid == clusterID) {
-	      ccount++;
-	      hierarchicalKmeans(id, rootID, object, objectList, objectSpace, nodes, clustering, maxSize);
-	    }
-	    id++;
-	  }
-	}
-	size_t objectCount = 0;
-	if (prefix.empty()) {
-	  objectCount = extractCentroids(std::cout, nodes);
-	} else {
-	  {
-	    std::ofstream of(prefix + QBG::Index::getThirdCentroidSuffix());
-	    objectCount = extractCentroids(of, nodes);
-	  }
-	  {
-	    std::ofstream of(prefix + QBG::Index::getObjTo3rdSuffix());
-	    extractIndex(of, nodes, numOfObjects);
-	  }
-	  if (numOfFirstObjects > 0) {
-	    std::ofstream btoqof(prefix + QBG::Index::get3rdTo2ndSuffix());
-	    std::ofstream qcof(prefix + QBG::Index::getSecondCentroidSuffix());
-	    extractBtoQAndQCentroid(btoqof, qcof, nodes, numOfThirdClusters);
-	  }
-	  if (numOfRandomObjects > 0) {
-	    std::ofstream of(prefix + "_random_object.tsv");
-	    if (extractCentroid) {
-	      extractRandomObjectsFromEachBlob(of, nodes, numOfObjects, numOfRandomObjects - 1, quantizer, extractCentroid);
-	    } else {
-	      extractRandomObjectsFromEachBlob(of, nodes, numOfObjects, numOfRandomObjects, quantizer, extractCentroid);
-	    }
-	  }
-	}
-	if (objectCount != numOfObjects) {
-	  std::cerr << "# of objects is invalid. " << objectCount << ":" << numOfObjects << std::endl;
-	}
-      } catch(NGT::Exception &err) {
-	redirector.end();
-	throw err;
-      }
-      redirector.end();
-    }
+    void clustering(std::string indexPath, std::string prefix = "", std::string objectIDsFile = "");
 #endif 
 
     size_t	maxSize;
@@ -1278,10 +1295,12 @@ namespace QBG {
     size_t	numOfFirstClusters;
     size_t	numOfSecondObjects;
     size_t	numOfSecondClusters;
+    size_t	numOfThirdObjects;
     size_t	numOfThirdClusters;
     bool	extractCentroid;
-
-    bool	threeLayerClustering;
-    bool	silence;
+    ClusteringType clusteringType;
+    size_t	epsilonExplorationSize;
+    float	expectedRecall;
+    bool	verbose;
   };
 } 

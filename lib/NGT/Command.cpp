@@ -280,7 +280,7 @@ using namespace std;
       if (searchParameters.querySize > 0 && queryCount >= searchParameters.querySize) {
 	break;
       }
-      NGT::Object *object = index.allocateObject(line, " \t");
+      NGT::Object *object = index.allocateObject(line, " \t,");
       queryCount++;
       size_t step = searchParameters.step == 0 ? UINT_MAX : searchParameters.step;
       for (size_t n = 0; n <= step; n++) {
@@ -373,6 +373,8 @@ using namespace std;
     if (searchParameters.outputMode[0] == 'e') {
       stream << "# Average Query Time (msec)=" << totalTime * 1000.0 / (double)queryCount << endl;
       stream << "# Number of queries=" << queryCount << endl;
+      stream << "# VM size=" << NGT::Common::getProcessVmSizeStr() << std::endl;
+      stream << "# Peak VM size=" << NGT::Common::getProcessVmPeakStr() << std::endl;
       stream << "# End of Evaluation" << endl;
 
       if (searchParameters.outputMode == "e+") {
@@ -510,7 +512,7 @@ using namespace std;
 	while(getline(is, line)) {
 	  count++;
 	  vector<string> tokens;
-	  NGT::Common::tokenize(line, tokens, "\t ");
+	  NGT::Common::tokenize(line, tokens, "\t, ");
 	  if (tokens.size() == 0 || tokens[0].size() == 0) {
 	    continue;
 	  }

@@ -32,6 +32,7 @@
 
 namespace QBG {
   class BuildParameters;
+  class OptimizationParameters;
 
   class Optimizer {
   public:
@@ -41,28 +42,14 @@ namespace QBG {
       GlobalTypeMean = 2
     };
 
-    Optimizer() {
-      clusteringType = NGT::Clustering::ClusteringTypeKmeansWithNGT;
-      initMode = NGT::Clustering::InitializationModeRandom;
-
-      iteration = 100;
-      clusterIteration = 100;
-      clusterSizeConstraint = false;
-      clusterSizeConstraintCoefficient = 10.0;
-      convergenceLimitTimes = 5;
-
-      numberOfClusters = 0;
-      numberOfSubvectors = 0;
-
-      repositioning = false;
-      rotation = true;
-      globalType = GlobalTypeNone;
-      randomizedObjectExtraction = true;
-      silence = true;
-      showClusterInfo = false;
-    }
+    Optimizer() { initialize(); }
 
     Optimizer(QBG::BuildParameters &param);
+    Optimizer(QBG::OptimizationParameters &param);
+
+    void setParameters(QBG::OptimizationParameters &param);
+
+    void initialize();
 
     static void
       extractSubvector(vector<vector<float>> &vectors, vector<vector<float>> &subvectors, size_t start , size_t size)
@@ -137,24 +124,13 @@ namespace QBG {
 #endif
 
     void
-      generateResidualObjects(string global, vector<vector<float>> &vectors)
+      generateResidualObjects(vector<vector<float>> &globalCentroid, vector<vector<float>> &vectors)
     {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
       std::cerr << "generateResidualObjects: Not implemented." << std::endl;
       abort();
 #else
-      if (global.empty()) {
-	NGTThrowException("A global codebook is not specified!");
-      }
       vector<vector<float>> residualVectors;
-      vector<vector<float>> globalCentroid;
-      try {
-	NGT::Clustering::loadVectors(global, globalCentroid);
-      } catch (...) {
-	std::stringstream msg;
-	msg << "Optimizer::generateResidualObjects: Cannot load global vectors. " << global;
-	NGTThrowException(msg);
-      }
 
       NGT::Property property;
       property.objectType = NGT::Index::Property::ObjectType::Float;
@@ -201,6 +177,23 @@ namespace QBG {
 #endif 
     }
 
+    void
+      generateResidualObjects(string global, vector<vector<float>> &vectors)
+    {
+      if (global.empty()) {
+	NGTThrowException("A global codebook is not specified!");
+      }
+      vector<vector<float>> globalCentroid;
+      try {
+	NGT::Clustering::loadVectors(global, globalCentroid);
+      } catch (...) {
+	std::stringstream msg;
+	msg << "Optimizer::generateResidualObjects: Cannot load global vectors. " << global;
+	NGTThrowException(msg);
+      }
+      generateResidualObjects(globalCentroid, vectors);
+    }
+
     static void optimizeRotation(
 				 size_t iteration,
 				 vector<vector<float>> &vectors,
@@ -222,8 +215,12 @@ namespace QBG {
 				 bool rotation
 				 ) {
 
+      if (numberOfClusters <= 1) {
+	std::stringstream msg;
+	msg << "Optimizer::optimize: # of clusters is zero or one. " << numberOfClusters;
+	NGTThrowException(msg);
+      }
       minDistortion = DBL_MAX;
-
       int minIt = 0;
       for (size_t it = 0; it < iteration; it++) {
 	vector<vector<float>> xp = vectors;
@@ -313,9 +310,7 @@ namespace QBG {
       }
     }
 
-    void optimize(vector<vector<float>> &vectors,
-		  string global,
-		  string ofile,
+    void optimize(vector<vector<float>> &vectors, 
 		  Matrix<float> &reposition,
 		  vector<Matrix<float>> &rs,
 		  vector<vector<vector<NGT::Clustering::Cluster>>> &localClusters,
@@ -324,7 +319,6 @@ namespace QBG {
       if (vectors.size() == 0) {
 	NGTThrowException("the vector is empty");
       }
-      generateResidualObjects(global, vectors);
       if (!reposition.isEmpty()) {
 	Matrix<float>::mulSquare(vectors, reposition);
       }
@@ -369,40 +363,33 @@ namespace QBG {
 
 #ifdef NGTQ_QBG
     void optimize(const std::string indexPath, size_t threadSize = 0);
-#endif 
-
-#ifdef NGTQ_QBG
     void optimizeWithinIndex(std::string indexPath);
-#endif 
-
-#ifdef NGTQ_QBG
     void optimize(std::string invector, std::string ofile, std::string global);
-#endif
+    void optimize(vector<vector<float>> &vectors, vector<vector<float>> &globalCentroid, Matrix<float> &r, vector<vector<NGT::Clustering::Cluster>> &localClusters, vector<double> &errors);
+#endif 
+    NGT::Timer		timelimitTimer;
+    size_t		subvectorSize;
 
     NGT::Clustering::ClusteringType	clusteringType;
     NGT::Clustering::InitializationMode	initMode;
-
-    NGT::Timer		timelimitTimer;
-    float		timelimit;
     size_t		iteration;
     size_t		clusterIteration;		
     bool		clusterSizeConstraint;
     float		clusterSizeConstraintCoefficient;
     size_t		convergenceLimitTimes;		
-    size_t		dim;
     size_t		numberOfObjects;
     size_t		numberOfClusters;
     size_t		numberOfSubvectors;
-    size_t		subvectorSize;
-    size_t		nOfMatrices;
-    float		seedStartObjectSizeRate;
+    size_t		numberOfMatrices;
+    size_t		seedNumberOfSteps;
     size_t		seedStep;
     float		reject;
     bool		repositioning;
     bool		rotation;
     GlobalType		globalType;
     bool		randomizedObjectExtraction;
-    bool		silence;
+    bool		verbose;
     bool		showClusterInfo;
+    float		timelimit;
   };
 } // namespace QBG

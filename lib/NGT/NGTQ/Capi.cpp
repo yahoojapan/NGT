@@ -318,8 +318,9 @@ bool qbg_build_index(const char *index_path, QBGBuildParameters *parameters, QBG
   hierarchicalKmeans.numOfSecondClusters = parameters->number_of_second_clusters;
   hierarchicalKmeans.numOfThirdClusters = parameters->number_of_third_clusters;
   hierarchicalKmeans.numOfObjects = 0; 
-  hierarchicalKmeans.threeLayerClustering = true;
-  hierarchicalKmeans.silence = true;
+  //-/hierarchicalKmeans.threeLayerClustering = true;
+  hierarchicalKmeans.clusteringType = QBG::HierarchicalKmeans::ClusteringTypeThreeLayer;
+  hierarchicalKmeans.verbose = false;
 
   try {
     hierarchicalKmeans.clustering(index_path);
@@ -341,16 +342,16 @@ bool qbg_build_index(const char *index_path, QBGBuildParameters *parameters, QBG
   optimizer.iteration = parameters->rotation_iteration;
   optimizer.clusterIteration = parameters->subvector_iteration;
   optimizer.clusterSizeConstraint = false;
-  optimizer.nOfMatrices = parameters->number_of_matrices;
-  optimizer.seedStartObjectSizeRate = 0.1;
-  optimizer.seedStep = 2;
+  optimizer.numberOfMatrices = parameters->number_of_matrices;
+  optimizer.seedNumberOfSteps = 2;
+  optimizer.seedStep = 10;
   optimizer.reject = 0.9;
   optimizer.timelimit = 24 * 2; 
   optimizer.timelimit *= 60.0 * 60.0; 
   optimizer.rotation = parameters->rotation;
   optimizer.repositioning = parameters->repositioning;
   optimizer.globalType = QBG::Optimizer::GlobalTypeNone;
-  optimizer.silence = true;
+  optimizer.verbose = false;
 
   try {
     auto nthreads = omp_get_max_threads();
@@ -363,8 +364,8 @@ bool qbg_build_index(const char *index_path, QBGBuildParameters *parameters, QBG
   }
 
   try {
-    auto silence = true;
-    QBG::Index::build(index_path, silence);
+    auto verbose = false;
+    QBG::Index::build(index_path, verbose);
   } catch (NGT::Exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
@@ -406,7 +407,7 @@ static bool qbg_search_index_(QBG::Index* pindex, std::vector<float> &query, QBG
   sc.setEdgeSize(param.number_of_edges);
   sc.setGraphExplorationSize(param.number_of_explored_blobs);
 
-  pindex->searchBlobGraph(sc);
+  pindex->search(sc);
 
   return true;
 }
