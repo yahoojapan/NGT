@@ -20,7 +20,7 @@
 
 using namespace std;
 
-#if defined(NGT_AVX_DISABLED) 
+#if defined(NGT_AVX_DISABLED)
 #define NGT_CLUSTER_NO_AVX
 #else
 #if defined(__AVX2__)
@@ -120,7 +120,7 @@ namespace NGT {
       extractVector(const std::string &str, std::vector<float> &vec)
     {
       std::vector<std::string> tokens;
-      NGT::Common::tokenize(str, tokens, " \t");  
+      NGT::Common::tokenize(str, tokens, " \t");
       convert(tokens, vec);
     }
 
@@ -215,7 +215,7 @@ namespace NGT {
       }
     }
 #if !defined(NGT_CLUSTER_NO_AVX)
-    static double 
+    static double
       sumOfSquares(float *a, float *b, size_t size) {
       __m256 sum = _mm256_setzero_ps();
       float *last = a + size;
@@ -236,7 +236,7 @@ namespace NGT {
       return s;
     }
 #else // !defined(NGT_AVX_DISABLED) && defined(__AVX__)
-    static double 
+    static double
     sumOfSquares(float *a, float *b, size_t size) {
       double csum = 0.0;
       float *x = a;
@@ -297,7 +297,7 @@ namespace NGT {
       return sumOfSquares(&vector1[0], &vector2[0], vector1.size()) / (double)vector1.size();
     }
 
-    static void 
+    static void
       subtract(std::vector<float> &a, std::vector<float> &b) {
       if (a.size() != b.size()) {
 	std::stringstream msg;
@@ -326,7 +326,7 @@ namespace NGT {
       size = size > vectors.size() ? vectors.size() : size;
       clusters.clear();
       if (seed == 0) {
-	std::random_device rnd;     
+	std::random_device rnd;
 	seed = rnd();
       }
       std::mt19937 mt(seed);
@@ -345,7 +345,7 @@ namespace NGT {
       size = size > vectors.size() ? vectors.size() : size;
       clusters.clear();
       if (seed == 0) {
-	std::random_device rnd;     
+	std::random_device rnd;
 	seed = rnd();
       }
       std::mt19937 mt(seed);
@@ -362,7 +362,7 @@ namespace NGT {
 	for (size_t vi = 0; vi < vectors.size(); vi++) {
 	  auto vit = vectors.begin() + vi;
 	  double mind = DBL_MAX;
-	  for (auto cit = clusters.begin(); cit != clusters.end(); ++cit) {    
+	  for (auto cit = clusters.begin(); cit != clusters.end(); ++cit) {
 	    double d = distanceL2(*vit, (*cit).centroid);
 	    d *= d;
 	    if (d < mind) {
@@ -390,7 +390,7 @@ namespace NGT {
 
 
     static void
-      assign(std::vector<std::vector<float>> &vectors, std::vector<Cluster> &clusters, 
+      assign(std::vector<std::vector<float>> &vectors, std::vector<Cluster> &clusters,
              size_t clusterSize = std::numeric_limits<size_t>::max(), bool clear = true) {
       // compute distances to the nearest clusters, and construct heap by the distances.
       NGT::Timer timer;
@@ -404,13 +404,13 @@ namespace NGT {
       }
 
       std::vector<Entry> sortedObjects(vectors.size());	
-#pragma omp parallel for  
+#pragma omp parallel for
       for (size_t vi = 0; vi < vectors.size(); vi++) {
 	auto vit = vectors.begin() + vi;
 	{
 	  double mind = DBL_MAX;
 	  int mincidx = -1;
-	  for (auto cit = clusters.begin(); cit != clusters.end(); ++cit) {    
+	  for (auto cit = clusters.begin(); cit != clusters.end(); ++cit) {
 	    double d = distanceL2(*vit, (*cit).centroid);
 	    if (d < mind) {
 	      mind = d;
@@ -429,7 +429,7 @@ namespace NGT {
       
       // clear
       if (clear) {
-	for (auto cit = clusters.begin(); cit != clusters.end(); ++cit) {    
+	for (auto cit = clusters.begin(); cit != clusters.end(); ++cit) {
 	  (*cit).members.clear();
 	}
       }
@@ -448,7 +448,7 @@ namespace NGT {
 #if 0
 	  double mind = DBL_MAX;
 	  size_t mincidx = -1;
-	  for (auto cit = clusters.begin(); cit != clusters.end(); ++cit) {    
+	  for (auto cit = clusters.begin(); cit != clusters.end(); ++cit) {
 	    if ((*cit).members.size() >= clusterSize) {
 	      continue;
 	    }
@@ -492,12 +492,12 @@ namespace NGT {
 
     static void moveFartherObjectsToEmptyClusters(std::vector<Cluster> &clusters) {
       size_t emptyClusterCount = 0;
-      for (auto cit = clusters.begin(); cit != clusters.end(); ++cit) {    
+      for (auto cit = clusters.begin(); cit != clusters.end(); ++cit) {
 	if ((*cit).members.size() == 0) {
 	  emptyClusterCount++;
 	  double max = -DBL_MAX;
 	  auto maxit = clusters.begin();
-	  for (auto scit = clusters.begin(); scit != clusters.end(); ++scit) {    	
+	  for (auto scit = clusters.begin(); scit != clusters.end(); ++scit) {
 	    if ((*scit).members.size() >= 2 && (*scit).members.back().distance > max) {
 	      maxit = scit;
 	      max = (*scit).members.back().distance;
@@ -525,7 +525,7 @@ namespace NGT {
     }
 
     static void
-      assignWithNGT(NGT::Index &index, std::vector<std::vector<float> > &vectors, std::vector<Cluster> &clusters, 
+      assignWithNGT(NGT::Index &index, std::vector<std::vector<float> > &vectors, std::vector<Cluster> &clusters,
 		    size_t &resultSize, float epsilon = 0.12,
 		    size_t clusterSize = std::numeric_limits<size_t>::max()) {
       size_t dataSize = vectors.size();
@@ -563,7 +563,7 @@ namespace NGT {
       
       sort(sortedDistances.begin(), sortedDistances.end());
 
-      for (auto cit = clusters.begin(); cit != clusters.end(); ++cit) {    
+      for (auto cit = clusters.begin(); cit != clusters.end(); ++cit) {
 	(*cit).members.clear();
       }
 
@@ -593,7 +593,7 @@ namespace NGT {
       if (clusterSize < std::numeric_limits<size_t>::max()) {
 	do {
 	  vector<vector<Entry>> notAssignedObjects(notAssignedObjectIDs.size());
-	  size_t nOfClosestClusters = 1 * 1024 * 1024 * 1024 / 16 / (notAssignedObjectIDs.size() == 0 ? 1 : notAssignedObjectIDs.size()); 
+	  size_t nOfClosestClusters = 1 * 1024 * 1024 * 1024 / 16 / (notAssignedObjectIDs.size() == 0 ? 1 : notAssignedObjectIDs.size());
 #pragma omp parallel for
 	  for (size_t vi = 0; vi < notAssignedObjectIDs.size(); vi++) {
 	    auto vit = notAssignedObjectIDs.begin() + vi;
@@ -686,7 +686,7 @@ namespace NGT {
 	  abort();
 	}
       }
-      return distance; 
+      return distance;
     }
 
     static void
@@ -738,7 +738,7 @@ namespace NGT {
       }
       return diff;
     }
-    double kmeansWithoutNGT(std::vector<std::vector<float> > &vectors, size_t numberOfClusters, 
+    double kmeansWithoutNGT(std::vector<std::vector<float> > &vectors, size_t numberOfClusters,
 			    std::vector<Cluster> &clusters)
     {
       size_t clusterSize = std::numeric_limits<size_t>::max();
@@ -789,7 +789,7 @@ namespace NGT {
 	// diff is distance between the current centroids and the previous centroids.
 	double prevDiff = diff;
 	std::vector<Cluster> prevClusters = clusters;
-	diff = calculateCentroid(vectors, clusters);  
+	diff = calculateCentroid(vectors, clusters);
 	if (prevDiff == diff) {
 	  std::cerr << "epsilon=" << epsilon << "->" << epsilon * 1.1 << std::endl;
 	  epsilon *= 1.1;
@@ -922,7 +922,7 @@ namespace NGT {
     {
       double d = 0.0;
       size_t count = 0;
-      for (auto cit = clusters.begin(); cit != clusters.end(); ++cit) {    
+      for (auto cit = clusters.begin(); cit != clusters.end(); ++cit) {
 	count += (*cit).members.size();
 	double localD = 0.0;
 	for (auto mit = (*cit).members.begin(); mit != (*cit).members.end(); ++mit) {
@@ -939,12 +939,12 @@ namespace NGT {
     }
 
     static double
-      calculateML2FromSpecifiedCentroids(std::vector<std::vector<float> > &vectors, std::vector<Cluster> &clusters, 
+      calculateML2FromSpecifiedCentroids(std::vector<std::vector<float> > &vectors, std::vector<Cluster> &clusters,
 					 std::vector<size_t> &centroidIds)
     {
       double d = 0.0;
       size_t count = 0;
-      for (auto it = centroidIds.begin(); it != centroidIds.end(); ++it) {    
+      for (auto it = centroidIds.begin(); it != centroidIds.end(); ++it) {
 	Cluster &cluster = clusters[(*it)];
 	count += cluster.members.size();
 	for (auto mit = cluster.members.begin(); mit != cluster.members.end(); ++mit) {
@@ -1014,11 +1014,11 @@ namespace NGT {
 
       setupInitialClusters(vectors, numberOfClusters, clusters);
       switch (clusteringType) {
-      case ClusteringTypeKmeansWithoutNGT: 
+      case ClusteringTypeKmeansWithoutNGT:
 	return kmeansWithoutNGT(vectors, numberOfClusters, clusters);
 	break;
 #ifndef NGT_SHARED_MEMORY_ALLOCATOR
-      case ClusteringTypeKmeansWithNGT: 
+      case ClusteringTypeKmeansWithNGT:
 	return kmeansWithNGT(vectors, numberOfClusters, clusters);
 	break;
 #endif
@@ -1031,7 +1031,7 @@ namespace NGT {
 
 
     static void
-      evaluate(std::vector<std::vector<float> > &vectors, std::vector<Cluster> &clusters, char mode, 
+      evaluate(std::vector<std::vector<float> > &vectors, std::vector<Cluster> &clusters, char mode,
 	       std::vector<size_t> centroidIds = std::vector<size_t>())
     {
       size_t clusterSize = std::numeric_limits<size_t>::max();

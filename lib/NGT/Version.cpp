@@ -17,7 +17,7 @@
 #include	"NGT/Version.h"
 
 void
-NGT::Version::get(std::ostream &os) 
+NGT::Version::get(std::ostream &os)
 {
   os << "  Version:" << NGT::Version::getVersion() << std::endl;
   os << "  Built date:" << NGT::Version::getBuildDate() << std::endl;
@@ -26,33 +26,33 @@ NGT::Version::get(std::ostream &os)
   os << "  The last git commit date:" << Version::getGitDate() << std::endl;
 }
 
-const std::string 
-NGT::Version::getVersion() 
+const std::string
+NGT::Version::getVersion()
 {
-  return NGT_VERSION; 
+  return NGT_VERSION;
 }
 
-const std::string 
-NGT::Version::getBuildDate() 
+const std::string
+NGT::Version::getBuildDate()
 {
-  return NGT_BUILD_DATE; 
+  return NGT_BUILD_DATE;
 }
 
-const std::string 
-NGT::Version::getGitHash() 
-{ 
-  return NGT_GIT_HASH; 
+const std::string
+NGT::Version::getGitHash()
+{
+  return NGT_GIT_HASH;
 }
 
-const std::string 
-NGT::Version::getGitDate() 
-{ 
+const std::string
+NGT::Version::getGitDate()
+{
   return NGT_GIT_DATE;
 }
 
-const std::string 
+const std::string
 NGT::Version::getGitTag()
-{ 
-  return NGT_GIT_TAG; 
+{
+  return NGT_GIT_TAG;
 }
 

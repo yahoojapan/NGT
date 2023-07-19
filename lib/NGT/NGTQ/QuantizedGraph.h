@@ -112,7 +112,7 @@ namespace NGTQG {
 	  for (size_t idx = 0; idx < numOfSubspaces; idx++) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
 #else
-            size_t dataNo = distance(node.begin(), i);  
+            size_t dataNo = distance(node.begin(), i);
 #endif
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
 	    abort();
@@ -124,7 +124,7 @@ namespace NGTQG {
 	    quantizedStream.arrangeQuantizedObject(dataNo, idx, invertedIndexObjects[(*i).id].localID[idx] - 1);
 #endif
 	  }
-	} 
+	}
 
 
 	(*this)[id].objects = quantizedStream.compressIntoUint4();
@@ -139,7 +139,7 @@ namespace NGTQG {
       NGT::Serializer::write(os, n);
       for (auto i = PARENT::begin(); i != PARENT::end(); ++i) {
         uint32_t sid = (*i).subspaceID;
-        NGT::Serializer::write(os, sid);      
+        NGT::Serializer::write(os, sid);
 	NGT::Serializer::write(os, (*i).ids);
 	size_t streamSize = quantizedObjectProcessingStream.getUint4StreamSize((*i).ids.size());
 	NGT::Serializer::write(os, static_cast<uint8_t*>((*i).objects), streamSize);
@@ -204,7 +204,7 @@ namespace NGTQG {
       readOnly(rdOnly),
       path(indexPath),
       quantizedIndex(indexPath + "/qg", rdOnly),
-      quantizedGraph(quantizedIndex)  
+      quantizedGraph(quantizedIndex)
       {
 	{
 	  struct stat st;
@@ -284,11 +284,11 @@ namespace NGTQG {
 	  uint8_t *lid = static_cast<uint8_t*>(quantizedGraph.get(target.id));
 	  size_t size = ((neighborSize - 1) / (NGTQ_SIMD_BLOCK_SIZE * NGTQ_BATCH_SIZE) + 1) * (NGTQ_SIMD_BLOCK_SIZE * NGTQ_BATCH_SIZE);
 	  size /= 2;
-	  size *= quantizedIndex.getQuantizer().divisionNo; 
+	  size *= quantizedIndex.getQuantizer().divisionNo;
 
 	  NGT::MemoryCache::prefetch(lid, size);
 	}
-#endif  
+#endif
 #ifdef NGTQ_QBG
 	quantizedObjectDistance(quantizedGraph.get(target.id), ds, neighborSize, cache[0]);
 #else
@@ -317,12 +317,12 @@ namespace NGTQG {
 		sc.radius = results.top().distance;
 		explorationRadius = sc.explorationCoefficient * sc.radius;
 	      }
-	    } 
-	  } 
+	    }
+	  }
 	}
-      } 
+      }
 
-      if (sc.resultIsAvailable()) { 
+      if (sc.resultIsAvailable()) {
 	NGT::ObjectDistances &qresults = sc.getResult();
 	qresults.moveFrom(results);
 	if (sc.resultExpansion >= 1.0) {
@@ -332,7 +332,7 @@ namespace NGTQG {
 	    for (auto i = qresults.begin(); i != qresults.end(); ++i) {
 #ifdef NGTQG_PREFETCH
 	      if (static_cast<size_t>(distance(qresults.begin(), i + 10)) < qresults.size()) {
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)    
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
 		NGT::PersistentObject &o = *objectRepository.get((*(i + 10)).id);
 #else
 		NGT::Object &o = *objectRepository[(*(i + 10)).id];
@@ -507,7 +507,7 @@ namespace NGTQG {
       quantizedIndex.save();
       quantizedIndex.close();
     }
-#endif 
+#endif
 
 #ifdef NGTQ_QBG
     static void createQuantizedGraphFrame(const std::string quantizedIndexPath, size_t dimension, size_t pseudoDimension, size_t dimensionOfSubvector) {
@@ -525,16 +525,16 @@ namespace NGTQG {
       property.distanceType = NGTQ::DistanceType::DistanceTypeL2;
       property.singleLocalCodebook = false;
       property.batchSize = 1000;
-      property.centroidCreationMode = NGTQ::CentroidCreationModeStatic; 
+      property.centroidCreationMode = NGTQ::CentroidCreationModeStatic;
 #ifdef NGTQ_QBG
-      property.localCentroidCreationMode = NGTQ::CentroidCreationModeStatic; 
+      property.localCentroidCreationMode = NGTQ::CentroidCreationModeStatic;
 #else
-      property.localCentroidCreationMode = NGTQ::CentroidCreationModeDynamicKmeans; 
+      property.localCentroidCreationMode = NGTQ::CentroidCreationModeDynamicKmeans;
 #endif
 
-      property.globalCentroidLimit = 1; 
-      property.localCentroidLimit = 16; 
-      property.localClusteringSampleCoefficient = 100; 
+      property.globalCentroidLimit = 1;
+      property.localCentroidLimit = 16;
+      property.localClusteringSampleCoefficient = 100;
 #ifdef NGTQ_QBG
       property.genuineDimension = dimension;
       if (pseudoDimension == 0) {
@@ -579,13 +579,13 @@ namespace NGTQG {
       }
       if (ngtProperty.dimension > static_cast<int>(pseudoDimension)) {
 	std::stringstream msg;
-	msg << "QuantizedGraph::quantize: the specified pseudo dimension is smaller than the genuine dimension. " 
+	msg << "QuantizedGraph::quantize: the specified pseudo dimension is smaller than the genuine dimension. "
 	    << ngtProperty.dimension << ":" << pseudoDimension << std::endl;
 	NGTThrowException(msg);
       }
       if (pseudoDimension % 4 != 0) {
 	std::stringstream msg;
-	msg << "QuantizedGraph::quantize: the specified pseudo dimension should be a multiple of 4. " 
+	msg << "QuantizedGraph::quantize: the specified pseudo dimension should be a multiple of 4. "
 	    << pseudoDimension << std::endl;
 	NGTThrowException(msg);
       }
@@ -619,7 +619,7 @@ namespace NGTQG {
       }
       redirector.end();
     }
-#else 
+#else
     static void quantize(const std::string indexPath, float dimensionOfSubvector, size_t maxNumOfEdges, bool verbose = false) {
       NGT::StdOstreamRedirector redirector(!verbose);
       redirector.begin();
@@ -640,7 +640,7 @@ namespace NGTQG {
       }
       redirector.end();
     }
-#endif 
+#endif
 
     const bool readOnly;
     const std::string path;
@@ -649,8 +649,8 @@ namespace NGTQG {
 
     QuantizedGraphRepository quantizedGraph;
 
-  }; 
+  };
 
-} 
+}
 
-#endif 
+#endif

@@ -18,11 +18,11 @@
 
 namespace NGT {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-  class ObjectRepository : 
+  class ObjectRepository :
   public PersistentRepository<PersistentObject> {
   public:
     typedef PersistentRepository<PersistentObject>	Parent;
-    void open(const std::string &smfile, size_t sharedMemorySize) { 
+    void open(const std::string &smfile, size_t sharedMemorySize) {
       std::string file = smfile;
       file.append("po");
       Parent::open(file, sharedMemorySize);
@@ -39,17 +39,17 @@ namespace NGT {
       Parent::push_back((PersistentObject*)0);
     }
 
-    void serialize(const std::string &ofile, ObjectSpace *ospace) { 
+    void serialize(const std::string &ofile, ObjectSpace *ospace) {
       std::ofstream objs(ofile);
       if (!objs.is_open()) {
 	std::stringstream msg;
 	msg << "NGT::ObjectSpace: Cannot open the specified file " << ofile << ".";
 	NGTThrowException(msg);
       }
-      Parent::serialize(objs, ospace); 
+      Parent::serialize(objs, ospace);
     }
 
-    void deserialize(const std::string &ifile, ObjectSpace *ospace) { 
+    void deserialize(const std::string &ifile, ObjectSpace *ospace) {
       assert(ospace != 0);
       std::ifstream objs(ifile);
       if (!objs.is_open()) {
@@ -60,24 +60,24 @@ namespace NGT {
       Parent::deserialize(objs, ospace);
     }
 
-    void serializeAsText(const std::string &ofile, ObjectSpace *ospace) { 
+    void serializeAsText(const std::string &ofile, ObjectSpace *ospace) {
       std::ofstream objs(ofile);
       if (!objs.is_open()) {
 	std::stringstream msg;
 	msg << "NGT::ObjectSpace: Cannot open the specified file " << ofile << ".";
 	NGTThrowException(msg);
       }
-      Parent::serializeAsText(objs, ospace); 
+      Parent::serializeAsText(objs, ospace);
     }
 
-    void deserializeAsText(const std::string &ifile, ObjectSpace *ospace) { 
+    void deserializeAsText(const std::string &ifile, ObjectSpace *ospace) {
       std::ifstream objs(ifile);
       if (!objs.is_open()) {
 	std::stringstream msg;
 	msg << "NGT::ObjectSpace: Cannot open the specified file " << ifile << ".";
 	NGTThrowException(msg);
       }
-      Parent::deserializeAsText(objs, ospace); 
+      Parent::deserializeAsText(objs, ospace);
     }
 
     void readText(std::istream &is, size_t dataSize = 0) {
@@ -130,7 +130,7 @@ namespace NGT {
       while (getline(is, line)) {
 	lineNo++;
 	if (dataSize > 0 && (dataSize <= size() - prevDataSize)) {
-	  std::cerr << "The size of data reached the specified size. The remaining data in the file are not inserted. " 
+	  std::cerr << "The size of data reached the specified size. The remaining data in the file are not inserted. "
 	       << dataSize << std::endl;
 	  break;
 	}
@@ -206,7 +206,7 @@ namespace NGT {
       NGT::Common::tokenize(textLine, tokens, sep);
       if (dimension > tokens.size()) {
 	std::stringstream msg;
-	msg << "ObjectSpace::allocate: too few dimension. " << tokens.size() << ":" << dimension << ". " 
+	msg << "ObjectSpace::allocate: too few dimension. " << tokens.size() << ":" << dimension << ". "
 	    << textLine;
 	NGTThrowException(msg);
       }
@@ -214,7 +214,7 @@ namespace NGT {
       for (idx = 0; idx < dimension; idx++) {
 	if (tokens[idx].size() == 0) {
 	  std::stringstream msg;
-	  msg << "ObjectSpace::allocate: an empty value string. " << idx << ":" << tokens.size() << ":" 
+	  msg << "ObjectSpace::allocate: an empty value string. " << idx << ":" << tokens.size() << ":"
 	      << dimension << ". "  << textLine;
 	  NGTThrowException(msg);
         }
@@ -236,7 +236,7 @@ namespace NGT {
       } else {
 	if (dimension != size) {
 	  std::stringstream msg;
-	  msg << "ObjectSpace::allocateObject: Fatal error! The specified dimension is invalid. The indexed objects=" 
+	  msg << "ObjectSpace::allocateObject: Fatal error! The specified dimension is invalid. The indexed objects="
 	      << dimension << " The specified object=" << size;
 	  NGTThrowException(msg);
 	}
@@ -301,7 +301,7 @@ namespace NGT {
       PersistentObject *po = new (objectAllocator) PersistentObject(objectAllocator, paddedByteSize);
       if (size != 0 && dimension != size) {
 	std::stringstream msg;
-	msg << "ObjectSpace::allocatePersistentObject: Fatal error! The dimensionality is invalid. The specified dimensionality=" 
+	msg << "ObjectSpace::allocatePersistentObject: Fatal error! The dimensionality is invalid. The specified dimensionality="
 	    << (sparse ? dimension - 1 : dimension) << ". The specified object=" << (sparse ? size - 1 : size) << ".";
 	NGTThrowException(msg);
       }
@@ -340,7 +340,7 @@ namespace NGT {
       PersistentObject *allocatePersistentObject(T *o, size_t size) {
       if (size != 0 && dimension != size) {
 	std::stringstream msg;
-	msg << "ObjectSpace::allocatePersistentObject: Fatal error! The dimensionality is invalid. The specified dimensionality=" 
+	msg << "ObjectSpace::allocatePersistentObject: Fatal error! The dimensionality is invalid. The specified dimensionality="
 	    << (sparse ? dimension - 1 : dimension) << ". The specified object=" << (sparse ? size - 1 : size) << ".";
 	NGTThrowException(msg);
       }

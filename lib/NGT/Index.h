@@ -132,7 +132,7 @@ namespace NGT {
 	case DistanceType::DistanceTypeLorentz:			p.set("DistanceType", "Lorentz"); break;  // added by Nyapicom
 	default : std::cerr << "Fatal error. Invalid distance type. " << distanceType << std::endl; abort();
 	}
-	switch (indexType) {      
+	switch (indexType) {
 	case IndexType::GraphAndTree:	p.set("IndexType", "GraphAndTree"); break;
 	case IndexType::Graph:		p.set("IndexType", "Graph"); break;
 	default : std::cerr << "Fatal error. Invalid index type. " << indexType << std::endl; abort();
@@ -402,15 +402,15 @@ namespace NGT {
     void open(const std::string &database, bool rdOnly, bool graphDisabled);
 
     void close() {
-      if (index != 0) { 
+      if (index != 0) {
 	delete index;
 	index = 0;
-      } 
+      }
       path.clear();
     }
     void save() {
       if (path.empty()) {
-	NGTThrowException("NGT::Index::saveIndex: path is empty");	
+	NGTThrowException("NGT::Index::saveIndex: path is empty");
       }
       saveIndex(path);
     }
@@ -419,11 +419,11 @@ namespace NGT {
       saveIndex(indexPath);
     }
 #endif
-    static void mkdir(const std::string &dir) { 
+    static void mkdir(const std::string &dir) {
       if (::mkdir(dir.c_str(), S_IRWXU | S_IRGRP | S_IXGRP |  S_IROTH | S_IXOTH) != 0) {
 	std::stringstream msg;
 	msg << "NGT::Index::mkdir: Cannot make the specified directory. " << dir;
-	NGTThrowException(msg);	
+	NGTThrowException(msg);
       }
     }
     static void create(const std::string &database, NGT::Property &prop, bool redirect = false) { createGraphAndTree(database, prop, redirect); }
@@ -432,29 +432,29 @@ namespace NGT {
     static void createGraph(const std::string &database, NGT::Property &prop, const std::string &dataFile, size_t dataSize = 0, bool redirect = false);
     template<typename T> size_t insert(const std::vector<T> &object);
     template<typename T> size_t append(const std::vector<T> &object);
-    static void append(const std::string &database, const std::string &dataFile, size_t threadSize, size_t dataSize); 
+    static void append(const std::string &database, const std::string &dataFile, size_t threadSize, size_t dataSize);
     static void append(const std::string &database, const float *data, size_t dataSize, size_t threadSize);
     static void remove(const std::string &database, std::vector<ObjectID> &objects, bool force = false);
     static void exportIndex(const std::string &database, const std::string &file);
     static void importIndex(const std::string &database, const std::string &file);
     virtual void load(const std::string &ifile, size_t dataSize) { getIndex().load(ifile, dataSize); }
     virtual void append(const std::string &ifile, size_t dataSize) { getIndex().append(ifile, dataSize); }
-    virtual void append(const float *data, size_t dataSize) { 
+    virtual void append(const float *data, size_t dataSize) {
       StdOstreamRedirector redirector(redirect);
       redirector.begin();
       try {
-	getIndex().append(data, dataSize); 
+	getIndex().append(data, dataSize);
       } catch(Exception &err) {
 	redirector.end();
 	throw err;
       }
       redirector.end();
     }
-    virtual void append(const double *data, size_t dataSize) { 
+    virtual void append(const double *data, size_t dataSize) {
       StdOstreamRedirector redirector(redirect);
       redirector.begin();
       try {
-	getIndex().append(data, dataSize); 
+	getIndex().append(data, dataSize);
       } catch(Exception &err) {
 	redirector.end();
 	throw err;
@@ -469,7 +469,7 @@ namespace NGT {
       StdOstreamRedirector redirector(redirect);
       redirector.begin();
       try {
-	getIndex().createIndex(threadNumber, sizeOfRepository); 
+	getIndex().createIndex(threadNumber, sizeOfRepository);
       } catch(Exception &err) {
 	redirector.end();
 	throw err;
@@ -508,21 +508,21 @@ namespace NGT {
       size_t osize = 0;
 #endif
       os << "object=" << osize << std::endl;
-      size_t isize = getIndex().getSharedMemorySize(os, t); 
+      size_t isize = getIndex().getSharedMemorySize(os, t);
       return osize + isize;
     }
     float getEpsilonFromExpectedAccuracy(double accuracy);
-    void searchUsingOnlyGraph(NGT::SearchContainer &sc) { 
+    void searchUsingOnlyGraph(NGT::SearchContainer &sc) {
       sc.distanceComputationCount = 0;
       sc.visitCount = 0;
-      ObjectDistances seeds; 
-      getIndex().search(sc, seeds); 
+      ObjectDistances seeds;
+      getIndex().search(sc, seeds);
     }
     std::vector<float> makeSparseObject(std::vector<uint32_t> &object);
     Index &getIndex() {
       if (index == 0) {
 	assert(index != 0);
-	NGTThrowException("NGT::Index::getIndex: Index is unavailable.");	
+	NGTThrowException("NGT::Index::getIndex: Index is unavailable.");
       }
       return *index;
     }
@@ -557,7 +557,7 @@ namespace NGT {
       if (vec == 0) {
 	std::stringstream msg;
 	msg << "NGT::Index::allocateObject: Object is not set. ";
-	NGTThrowException(msg);	
+	NGTThrowException(msg);
       }
       Object *object = 0;
       if (objectType == typeid(float)) {
@@ -573,7 +573,7 @@ namespace NGT {
       } else {
 	std::stringstream msg;
 	msg << "NGT::Index::allocateObject: Unavailable object type.";
-	NGTThrowException(msg);	
+	NGTThrowException(msg);
       }
       return object;
     }
@@ -586,7 +586,7 @@ namespace NGT {
     bool redirect;
   };
 
-  class GraphIndex : public Index, 
+  class GraphIndex : public Index,
     public NeighborhoodGraph {
   public:
 
@@ -878,7 +878,7 @@ namespace NGT {
       } catch(Exception &err) {
 	throw err;
       }
-      if (static_cast<int>(result.size()) < NeighborhoodGraph::property.edgeSizeForCreation && 
+      if (static_cast<int>(result.size()) < NeighborhoodGraph::property.edgeSizeForCreation &&
 	  result.size() < repository.size()) {
 	if (sc.edgeSize != 0) {
 	  sc.edgeSize = 0;	// not prune edges.
@@ -901,7 +901,7 @@ namespace NGT {
       objectSpace->linearSearch(po, radius, size, rs);
       result.moveFrom(rs, id);
       if ((size_t)NeighborhoodGraph::property.edgeSizeForCreation != result.size()) {
-	std::cerr << "searchForKNNGInsert::Warning! inconsistency of the sizes. ID=" << id 
+	std::cerr << "searchForKNNGInsert::Warning! inconsistency of the sizes. ID=" << id
 	     << " " << NeighborhoodGraph::property.edgeSizeForCreation << ":" << result.size() << std::endl;
 	for (size_t i = 0; i < result.size(); i++) {
 	  std::cerr << result[i].id << ":" << result[i].distance << " ";
@@ -968,7 +968,7 @@ namespace NGT {
 	  std::cerr << "Cannot get the specified number of the results. " << rs.size() << ":" << objects->size() << std::endl;
 	}
 	size_t count = 0;
-	ObjectDistances::iterator rsi = rs.begin(); 
+	ObjectDistances::iterator rsi = rs.begin();
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
 	for (GraphNode::iterator ri = objects->begin(repo.allocator);
 	     ri != objects->end(repo.allocator) && rsi != rs.end();) {
@@ -1066,15 +1066,15 @@ namespace NGT {
 	      for (GraphNode::iterator rj = objects->begin(repo.allocator) + std::distance(objects->begin(repo.allocator), ri);
 		   rj != objects->end(repo.allocator); ++rj) {
 		if ((*ri).id == (*rj).id && std::distance(objects->begin(repo.allocator), ri) != std::distance(objects->begin(repo.allocator), rj)) {
-		  std::cerr << "Error! More than two identical objects! ID=" << (*rj).id << " idx=" 
-		       << std::distance(objects->begin(repo.allocator), ri) << ":" << std::distance(objects->begin(repo.allocator), rj) 
+		  std::cerr << "Error! More than two identical objects! ID=" << (*rj).id << " idx="
+		       << std::distance(objects->begin(repo.allocator), ri) << ":" << std::distance(objects->begin(repo.allocator), rj)
 		       << " disntace=" << (*ri).distance << ":" << (*rj).distance << std::endl;
 #else
 	      for (GraphNode::iterator rj = objects->begin() + std::distance(objects->begin(), ri);
 		   rj != objects->end(); ++rj) {
 		if ((*ri).id == (*rj).id && std::distance(objects->begin(), ri) != std::distance(objects->begin(), rj)) {
-		  std::cerr << "Error! More than two identical objects! ID=" << (*rj).id << " idx=" 
-		       << std::distance(objects->begin(), ri) << ":" << std::distance(objects->begin(), rj) 
+		  std::cerr << "Error! More than two identical objects! ID=" << (*rj).id << " idx="
+		       << std::distance(objects->begin(), ri) << ":" << std::distance(objects->begin(), rj)
 		       << " disntace=" << (*ri).distance << ":" << (*rj).distance << std::endl;
 #endif
 		  valid = false;
@@ -1135,16 +1135,16 @@ namespace NGT {
     Object *allocateObject(const std::string &textLine, const std::string &sep) {
       return objectSpace->allocateNormalizedObject(textLine, sep);
     }
-    Object *allocateObject(const std::vector<double> &obj) { 
+    Object *allocateObject(const std::vector<double> &obj) {
       return objectSpace->allocateNormalizedObject(obj);
     }
     Object *allocateObject(const std::vector<float> &obj) {
       return objectSpace->allocateNormalizedObject(obj);
     }
-    Object *allocateObject(const std::vector<uint8_t> &obj) { 
+    Object *allocateObject(const std::vector<uint8_t> &obj) {
       return objectSpace->allocateNormalizedObject(obj);
     }
-    Object *allocateObject(const float *obj, size_t size) { 
+    Object *allocateObject(const float *obj, size_t size) {
       return objectSpace->allocateNormalizedObject(obj, size);
     }
 
@@ -1188,7 +1188,7 @@ namespace NGT {
     
     template <class REPOSITORY> void getSeedsFromGraph(REPOSITORY &repo, ObjectDistances &seeds) {
       if (repo.size() != 0) {
-	size_t seedSize = repo.size() - 1 < (size_t)NeighborhoodGraph::property.seedSize ? 
+	size_t seedSize = repo.size() - 1 < (size_t)NeighborhoodGraph::property.seedSize ?
 	  repo.size() - 1 : (size_t)NeighborhoodGraph::property.seedSize;
 	if (NeighborhoodGraph::property.seedType == NeighborhoodGraph::SeedTypeRandomNodes ||
 	    NeighborhoodGraph::property.seedType == NeighborhoodGraph::SeedTypeNone) {
@@ -1291,7 +1291,7 @@ namespace NGT {
     void alignObjects()
     {
     }
-#else 
+#else
     void alignObjects()
     {
       NGT::ObjectSpace &space = getObjectSpace();
@@ -1309,7 +1309,7 @@ namespace NGT {
 	  objectCount++;
 	}
       }
-      std::multimap<uint32_t, uint32_t> notexist; 
+      std::multimap<uint32_t, uint32_t> notexist;
       if (objectCount != repo.size()) {
         for (size_t id = 1; id < exist.size(); id++) {
 	  if (!exist[id]) {
@@ -1332,7 +1332,7 @@ namespace NGT {
       assert(objectCount == repo.size() - 1);
 
       objectCount = 1;
-      std::vector<std::pair<uint32_t, uint32_t> > order;  
+      std::vector<std::pair<uint32_t, uint32_t> > order;
       for (size_t i = 0; i < leafNodeIDs.size(); i++) {
 	ObjectDistances objects;
 	DVPTree::getObjectIDsFromLeaf(leafNodeIDs[i], objects);
@@ -1362,7 +1362,7 @@ namespace NGT {
 	}
 	size_t id = startID;
 	space.copy(*tmp, *object[id]);
-	uncopiedObjects.erase(id);    
+	uncopiedObjects.erase(id);
 	do {
 	  space.copy(*object[id], *object[order[id - 1].first]);
 	  copycount++;
@@ -1392,7 +1392,7 @@ namespace NGT {
 	}
 	size_t id = startID;
 	tmpPtr = object[id];
-	uncopiedObjects.erase(id);    
+	uncopiedObjects.erase(id);
 	do {
 	  object[id] = object[order[id - 1].second];
 	  copycount++;
@@ -1516,7 +1516,7 @@ namespace NGT {
 	} catch(Exception &err) {
 	  std::stringstream msg;
 	  msg << "remove:: cannot remove from tree. id=" << id << " " << err.what();
-	  NGTThrowException(msg);	
+	  NGTThrowException(msg);
 	}
       } else {
 	ObjectID replaceID = id == results[0].id ? results[1].id : results[0].id;
@@ -1540,7 +1540,7 @@ namespace NGT {
       } catch(Exception &err) {
 	throw err;
       }
-      if (static_cast<int>(result.size()) < NeighborhoodGraph::property.edgeSizeForCreation && 
+      if (static_cast<int>(result.size()) < NeighborhoodGraph::property.edgeSizeForCreation &&
 	  result.size() < repository.size()) {
 	if (sc.edgeSize != 0) {
 	  try {
@@ -1760,7 +1760,7 @@ namespace NGT {
 } // namespace NGT
 
 template<typename T>
-size_t NGT::Index::append(const std::vector<T> &object) 
+size_t NGT::Index::append(const std::vector<T> &object)
 {
   if (getObjectSpace().getRepository().size() == 0) {
     getObjectSpace().getRepository().initialize();
@@ -1773,7 +1773,7 @@ size_t NGT::Index::append(const std::vector<T> &object)
 }
 
 template<typename T>
-size_t NGT::Index::insert(const std::vector<T> &object) 
+size_t NGT::Index::insert(const std::vector<T> &object)
 {
   if (getObjectSpace().getRepository().size() == 0) {
     getObjectSpace().getRepository().initialize();

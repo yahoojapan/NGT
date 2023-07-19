@@ -43,7 +43,7 @@ DVPTree::insert(InsertContainer &iobj) {
 }
 
 void
-DVPTree::insert(InsertContainer &iobj,  LeafNode *leafNode) 
+DVPTree::insert(InsertContainer &iobj,  LeafNode *leafNode)
 {
   LeafNode &leaf = *leafNode;
   size_t fsize = leaf.getObjectSize();
@@ -94,7 +94,7 @@ DVPTree::insert(InsertContainer &iobj,  LeafNode *leafNode)
 
   return;
 }
-Node::ID 
+Node::ID
 DVPTree::split(InsertContainer &iobj, LeafNode &leaf)
 {
   Node::Objects *fs = getObjects(leaf, iobj);
@@ -527,7 +527,7 @@ DVPTree::search(SearchContainer &so, LeafNode &node, UncheckedNode &uncheckedNod
   }
 }
 
-void 
+void
 DVPTree::search(SearchContainer &sc) {
   ((SearchContainer&)sc).vptree = this;
   Node *root = getRootNode();

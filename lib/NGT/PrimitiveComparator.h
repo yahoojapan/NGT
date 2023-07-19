@@ -109,7 +109,7 @@ namespace NGT {
     static int absolute(int v) { return abs(v); }
 
 #if defined(NGT_NO_AVX)
-    template <typename OBJECT_TYPE, typename COMPARE_TYPE> 
+    template <typename OBJECT_TYPE, typename COMPARE_TYPE>
     inline static double compareL2(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       const OBJECT_TYPE *last = a + size;
       const OBJECT_TYPE *lastgroup = last - 3;
@@ -207,7 +207,7 @@ namespace NGT {
 #if defined(NGT_AVX512)
       __m512 sum512 = _mm512_setzero_ps();
       while (a < last) {
-	__m512 v = _mm512_sub_ps(_mm512_cvtph_ps(_mm256_loadu_si256(reinterpret_cast<const __m256i*>(a))), 
+	__m512 v = _mm512_sub_ps(_mm512_cvtph_ps(_mm256_loadu_si256(reinterpret_cast<const __m256i*>(a))),
 				 _mm512_cvtph_ps(_mm256_loadu_si256(reinterpret_cast<const __m256i*>(b))));
 	sum512 = _mm512_add_ps(sum512, _mm512_mul_ps(v, v));
 	a += 16;
@@ -220,12 +220,12 @@ namespace NGT {
       __m256 sum256 = _mm256_setzero_ps();
       __m256 v;
       while (a < last) {
-	v = _mm256_sub_ps(_mm256_cvtph_ps(_mm_loadu_si128(reinterpret_cast<const __m128i*>(a))), 
+	v = _mm256_sub_ps(_mm256_cvtph_ps(_mm_loadu_si128(reinterpret_cast<const __m128i*>(a))),
 			  _mm256_cvtph_ps(_mm_loadu_si128(reinterpret_cast<const __m128i*>(b))));
 	sum256 = _mm256_add_ps(sum256, _mm256_mul_ps(v, v));
 	a += 8;
 	b += 8;
-	v = _mm256_sub_ps(_mm256_cvtph_ps(_mm_loadu_si128(reinterpret_cast<const __m128i*>(a))), 
+	v = _mm256_sub_ps(_mm256_cvtph_ps(_mm_loadu_si128(reinterpret_cast<const __m128i*>(a))),
 			  _mm256_cvtph_ps(_mm_loadu_si128(reinterpret_cast<const __m128i*>(b))));
 	sum256 = _mm256_add_ps(sum256, _mm256_mul_ps(v, v));
 	a += 8;
@@ -254,7 +254,7 @@ namespace NGT {
       double s = f[0] + f[1] + f[2] + f[3];
       return sqrt(s);
     }
-#endif 
+#endif
 
     inline static double compareL2(const unsigned char *a, const unsigned char *b, size_t size) {
       __m128 sum = _mm_setzero_ps();
@@ -282,7 +282,7 @@ namespace NGT {
     }
 #endif
 
-    template <typename OBJECT_TYPE> 
+    template <typename OBJECT_TYPE>
     inline static double compareNormalizedL2(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       double v = 2.0 - 2.0 * compareDotProduct(a, b, size);
       if (v < 0.0) {
@@ -294,7 +294,7 @@ namespace NGT {
 
 
 #if defined(NGT_NO_AVX)
-    template <typename OBJECT_TYPE, typename COMPARE_TYPE> 
+    template <typename OBJECT_TYPE, typename COMPARE_TYPE>
     static double compareL1(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       const OBJECT_TYPE *last = a + size;
       const OBJECT_TYPE *lastgroup = last - 3;
@@ -356,7 +356,7 @@ namespace NGT {
       const float16 *last = a + size;
       const float16 *lastgroup = last - 7;
       while (a < lastgroup) {
-	__m256 x1 = _mm256_sub_ps(_mm256_cvtph_ps(_mm_loadu_si128(reinterpret_cast<const __m128i*>(a))), 
+	__m256 x1 = _mm256_sub_ps(_mm256_cvtph_ps(_mm_loadu_si128(reinterpret_cast<const __m128i*>(a))),
 				  _mm256_cvtph_ps(_mm_loadu_si128(reinterpret_cast<const __m128i*>(b))));
 	const __m256 mask = _mm256_set1_ps(-0.0f);
 	__m256 v = _mm256_andnot_ps(mask, x1);
@@ -401,7 +401,7 @@ namespace NGT {
     }
 #endif
 
-#if defined(NGT_NO_AVX) || !defined(__POPCNT__)    
+#if defined(NGT_NO_AVX) || !defined(__POPCNT__)
     inline static double popCount(uint32_t x) {
       x = (x & 0x55555555) + (x >> 1 & 0x55555555);
       x = (x & 0x33333333) + (x >> 2 & 0x33333333);
@@ -411,7 +411,7 @@ namespace NGT {
       return x;
     }
 
-    template <typename OBJECT_TYPE> 
+    template <typename OBJECT_TYPE>
     inline static double compareHammingDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       const uint32_t *last = reinterpret_cast<const uint32_t*>(a + size);
       
@@ -441,7 +441,7 @@ namespace NGT {
     }
 #endif
 
-#if defined(NGT_NO_AVX) || !defined(__POPCNT__)    
+#if defined(NGT_NO_AVX) || !defined(__POPCNT__)
     template <typename OBJECT_TYPE>
       inline static double compareJaccardDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       const uint32_t *last = reinterpret_cast<const uint32_t*>(a + size);
@@ -510,11 +510,11 @@ namespace NGT {
       while (locb < size && bi[locb] != 0) {
 	locb++;
       }
-      return 1.0 - static_cast<double>(count) / static_cast<double>(loca + locb - count);	
+      return 1.0 - static_cast<double>(count) / static_cast<double>(loca + locb - count);
     }
 
 #if defined(NGT_NO_AVX)
-   template <typename OBJECT_TYPE> 
+   template <typename OBJECT_TYPE>
     inline static double compareDotProduct(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       double sum = 0.0;
       for (size_t loc = 0; loc < size; loc++) {
@@ -523,7 +523,7 @@ namespace NGT {
       return sum;
     }
 
-    template <typename OBJECT_TYPE> 
+    template <typename OBJECT_TYPE>
     inline static double compareCosine(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       double normA = 0.0;
       double normB = 0.0;
@@ -538,7 +538,7 @@ namespace NGT {
 
       return cosine;
     }
-#else 
+#else
     inline static double compareDotProduct(const float *a, const float *b, size_t size) {
       const float *last = a + size;
 #if defined(NGT_AVX512)
@@ -613,7 +613,7 @@ namespace NGT {
       double s = static_cast<double>(f[0]) + static_cast<double>(f[1]) + static_cast<double>(f[2]) + static_cast<double>(f[3]);
       return s;
     }
-#endif 
+#endif
 
     inline static double compareDotProduct(const unsigned char *a, const unsigned char *b, size_t size) {
       double sum = 0.0;
@@ -768,7 +768,7 @@ namespace NGT {
       double cosine = s / sqrt(na * nb);
       return cosine;
     }
-#endif 
+#endif
 
     inline static double compareCosine(const unsigned char *a, const unsigned char *b, size_t size) {
       double normA = 0.0;
@@ -786,7 +786,7 @@ namespace NGT {
     }
 #endif    // #if defined(NGT_NO_AVX)
 
-    template <typename OBJECT_TYPE> 
+    template <typename OBJECT_TYPE>
     inline static double compareAngleDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       double cosine = compareCosine(a, b, size);
       if (cosine >= 1.0) {
@@ -798,7 +798,7 @@ namespace NGT {
       }
     }
 
-    template <typename OBJECT_TYPE> 
+    template <typename OBJECT_TYPE>
     inline static double compareNormalizedAngleDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       double cosine = compareDotProduct(a, b, size);
       if (cosine >= 1.0) {
@@ -811,7 +811,7 @@ namespace NGT {
     }
 
     // added by Nyapicom
-    template <typename OBJECT_TYPE> 
+    template <typename OBJECT_TYPE>
     inline static double comparePoincareDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       // Unlike the other distance functions, this is not optimized...
       double a2 = 0.0;
@@ -825,7 +825,7 @@ namespace NGT {
     }
 
     // added by Nyapicom
-    template <typename OBJECT_TYPE> 
+    template <typename OBJECT_TYPE>
     inline static double compareLorentzDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       // Unlike the other distance functions, this is not optimized...
       double sum = static_cast<double>(a[0]) * static_cast<double>(b[0]);
@@ -835,13 +835,13 @@ namespace NGT {
       return std::acosh(sum);
     }
 
-    template <typename OBJECT_TYPE> 
+    template <typename OBJECT_TYPE>
     inline static double compareCosineSimilarity(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       auto v = 1.0 - compareCosine(a, b, size);
       return v < 0.0 ? -v : v;
     }
 
-    template <typename OBJECT_TYPE> 
+    template <typename OBJECT_TYPE>
     inline static double compareNormalizedCosineSimilarity(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       auto v = 1.0 - compareDotProduct(a, b, size);
       return v < 0.0 ? -v : v;
@@ -1019,7 +1019,7 @@ namespace NGT {
 	return PrimitiveComparator::compareLorentzDistance((const float16*)a, (const float16*)b, size);
       }
     };
-#endif 
+#endif
 };
 
 

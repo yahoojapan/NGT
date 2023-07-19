@@ -97,7 +97,7 @@ namespace NGT {
       } catch(NGT::Exception &err) {
 	std::stringstream msg;
 	msg << "Optimizer::adjustSearchCoefficients: Cannot adjust the search coefficients. " << err.what();
-	NGTThrowException(msg);      
+	NGTThrowException(msg);
       }
       graph.saveIndex(indexPath);
     }
@@ -150,7 +150,7 @@ namespace NGT {
       return timer.time * 1000.0;
     }
 
-    static std::pair<size_t, double> searchMinimumQueryTime(NGT::Index &index, size_t prefetchOffset, 
+    static std::pair<size_t, double> searchMinimumQueryTime(NGT::Index &index, size_t prefetchOffset,
 							    int maxPrefetchSize, size_t seedID) {
       NGT::ObjectSpace &objectSpace = index.getObjectSpace();
       int step = 256;
@@ -192,7 +192,7 @@ namespace NGT {
       std::vector<std::pair<size_t, size_t>> mins;
       NGT::ObjectSpace &objectSpace = index.getObjectSpace();
       int maxSize = objectSpace.getByteSizeOfObject() * 4;
-      maxSize = maxSize < 64 * 28 ? maxSize : 64 * 28; 
+      maxSize = maxSize < 64 * 28 ? maxSize : 64 * 28;
       for (int trial = 0; trial < 10; trial++) {
 	size_t minps = 0;
 	size_t minpo = 0;
@@ -326,7 +326,7 @@ namespace NGT {
 	} catch(NGT::Exception &err) {
 	  std::stringstream msg;
 	  msg << "Optimizer::execute: Cannot adjust the search coefficients. " << err.what();
-	  NGTThrowException(msg);      
+	  NGTThrowException(msg);
 	}
       }
 
@@ -404,7 +404,7 @@ namespace NGT {
       {
 	std::vector<NGT::ObjectDistances> graph;
 	NGT::GraphReconstructor::extractGraph(graph, static_cast<NGT::GraphIndex&>(index.getIndex()));
-	float epsilon = 0.0;  
+	float epsilon = 0.0;
 	for (size_t edgeSize = 5; edgeSize <= maxNoOfEdges; edgeSize += (edgeSize >= 10 ? 10 : 5) ) {
 	  NGT::GraphReconstructor::reconstructANNGFromANNG(graph, index, edgeSize);
 	  NGT::Command::SearchParameters searchParameters;
@@ -461,7 +461,7 @@ namespace NGT {
       prop.edgeSizeForCreation = parameter.maxNoOfEdges;
       std::vector<std::pair<size_t, std::tuple<size_t, double, double>>> transition;
       size_t targetNo = 12500;
-      for (;targetNo <= objectRepository.size() && targetNo <= parameter.noOfSampleObjects; 
+      for (;targetNo <= objectRepository.size() && targetNo <= parameter.noOfSampleObjects;
 	   targetNo *= 2) {
 	ObjectID id = 0;
 	size_t noOfObjects = 0;
@@ -502,7 +502,7 @@ namespace NGT {
 
       if (estimatedEdge == 0) {
       	std::stringstream msg;
-	msg << "Optimizer::optimizeNumberOfEdgesForANNG: Cannot optimize the number of edges. " 
+	msg << "Optimizer::optimizeNumberOfEdgesForANNG: Cannot optimize the number of edges. "
 	    << estimatedEdge << ":" << estimatedAccuracy << " # of objects=" << objectRepository.size();
 	NGTThrowException(msg);
       }
@@ -593,7 +593,7 @@ namespace NGT {
     }
 
     // obsolete because of a lack of a parameter
-    void set(int outgoing, int incoming, int nofqs, 
+    void set(int outgoing, int incoming, int nofqs,
 	     float baseAccuracyFrom, float baseAccuracyTo,
 	     float rateAccuracyFrom, float rateAccuracyTo,
 	     double gte, double m
@@ -627,7 +627,7 @@ namespace NGT {
       }
     }
 
-    void setProcessingModes(bool shortcut = true, bool searchParameter = true, bool prefetchParameter = true, 
+    void setProcessingModes(bool shortcut = true, bool searchParameter = true, bool prefetchParameter = true,
 			    bool accuracyTable = true) {
       shortcutReduction = shortcut;
       searchParameterOptimization = searchParameter;

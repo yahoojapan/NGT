@@ -58,8 +58,8 @@ public:
 
   ~Matrix() { delete[] matrix; }
 
-  Matrix<T> &operator=(const Matrix<T> &m) { 
-    allocate(m.row, m.col); 
+  Matrix<T> &operator=(const Matrix<T> &m) {
+    allocate(m.row, m.col);
     std::memcpy(matrix, m.matrix, row * col * sizeof(T));
     return *this;
   }
@@ -98,7 +98,7 @@ public:
 
   bool isEmpty() { return (col == 0) && (row == 0); }
 
-  static void 
+  static void
     tokenize(const std::string &str, std::vector<std::string> &token, const std::string seps) {
     std::string::size_type current = 0;
     std::string::size_type next;
@@ -181,7 +181,7 @@ public:
       }
     }
     put(0, col, m);
-    col = nc;    
+    col = nc;
     delete[] matrix;
     matrix = mtx;
   }
@@ -200,7 +200,7 @@ public:
       }
     }
     put(row, 0, m);
-    row = nr;    
+    row = nr;
     delete[] matrix;
     matrix = mtx;
   }
@@ -276,12 +276,12 @@ public:
     mulBlas(m, true);
   }
 
-  
+
   void mul(const Matrix<T> &mtx) {
     mulBlas(mtx);
   }
 
-  
+
   void mulBlas(const Matrix<T> &mtx, bool transpose = false) {
     char transa = 'N';
     char transb = 'N';
@@ -294,7 +294,7 @@ public:
 	std::cerr << "mul:" << row << "x" << mtx.row << std::endl;
       }
       assert(row == mtx.row);
-      n = mtx.row; 
+      n = mtx.row;
       row = m;
       col = mtx.row;
     } else {
@@ -317,13 +317,13 @@ public:
     delete[] matrix;
     matrix = tmpmtx;
   }
-#else 
+#else
   void mul(const Matrix<T> &mtx) {
     mulNaive(mtx);
   }
-#endif 
+#endif
 
-  
+
   void mulNaive(const Matrix<T> &mtx) {
 #ifdef MATRIX_TRACE
     cerr << row << "x" << col << " mtx=" << mtx.row << "x" << mtx.col << std::endl;
@@ -508,7 +508,7 @@ public:
     int v1 = 3 * min + max;
     int v2 = 5 * min;
     int lwork = v1 > v2 ? v1 : v2;
-    T work[lwork];  
+    T work[lwork];
 
     Matrix<T> sd;
     sd.allocate(m, 1);
@@ -559,10 +559,10 @@ public:
         mtmp = matrix[i + j * col];
         printf("%5.2e", mtmp);
         if (j < col - 1) printf(", ");
-      } 
+      }
       if (i < row - 1) printf("]; ");
       else printf("] ");
-    } 
+    }
     printf("]");
     std::cout << std::endl;
   }
@@ -600,23 +600,23 @@ public:
     extractVector(const std::string &str, std::vector<T> &vec)
   {
     std::vector<std::string> tokens;
-    tokenize(str, tokens, " \t");  
+    tokenize(str, tokens, " \t");
     convert(tokens, vec);
   }
 
 #if !defined(NGT_DISABLE_BLAS)
-  static 
-    void load(const std::string &file, Matrix<T> &m) 
+  static
+    void load(const std::string &file, Matrix<T> &m)
   {
     loadVectors(file, m);
     m.transpose();
   }
 
-  static 
-    void loadVectors(const std::string &file, Matrix<T> &m) 
+  static
+    void loadVectors(const std::string &file, Matrix<T> &m)
 #else
-  static 
-    void load(const std::string &file, Matrix<T> &m) 
+  static
+    void load(const std::string &file, Matrix<T> &m)
 #endif
   {
     std::ifstream is(file);
@@ -630,7 +630,7 @@ public:
     std::vector<T> tmpv;
     while (getline(is, line)) {
       std::vector<T> v;
-      extractVector(line, v);  
+      extractVector(line, v);
 #if !defined(NGT_DISABLE_BLAS)
       if (row == 0) {
 	row = v.size();

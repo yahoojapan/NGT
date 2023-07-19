@@ -153,7 +153,7 @@ namespace NGT {
       Serializer::write(os, *prevsize);
     }
     void deserialize(std::ifstream &is) {
-      VECTOR::deserialize(is);      
+      VECTOR::deserialize(is);
       Serializer::read(is, *prevsize);
     }
     void show() {
@@ -290,7 +290,7 @@ namespace NGT {
 	static void (*getMethod(NGT::ObjectSpace::DistanceType dtype, NGT::ObjectSpace::ObjectType otype, size_t size))(NGT::NeighborhoodGraph&, NGT::SearchContainer&, NGT::ObjectDistances&)  {
 	  if (size < 5000000) {
 	    switch (otype) {
-	    case NGT::ObjectSpace::Float:	    
+	    case NGT::ObjectSpace::Float:
 	      switch (dtype) {
 	      case NGT::ObjectSpace::DistanceTypeNormalizedCosine : return normalizedCosineSimilarityFloat;
 	      case NGT::ObjectSpace::DistanceTypeCosine : 	    return cosineSimilarityFloat;
@@ -338,7 +338,7 @@ namespace NGT {
 	    return l1Uint8;
 	  } else {
 	    switch (otype) {
-	    case NGT::ObjectSpace::Float:	    
+	    case NGT::ObjectSpace::Float:
 	      switch (dtype) {
 	      case NGT::ObjectSpace::DistanceTypeNormalizedCosine : return normalizedCosineSimilarityFloatForLargeDataset;
 	      case NGT::ObjectSpace::DistanceTypeCosine : 	    return cosineSimilarityFloatForLargeDataset;
@@ -599,13 +599,13 @@ namespace NGT {
       void insertNode(ObjectID id,  ObjectDistances &objects) {
 	switch (property.graphType) {
 	case GraphTypeANNG:
-	  insertANNGNode(id, objects);	
+	  insertANNGNode(id, objects);
 	  break;
 	case GraphTypeIANNG:
-	  insertIANNGNode(id, objects);	
+	  insertIANNGNode(id, objects);
 	  break;
 	case GraphTypeONNG:
-	  insertONNGNode(id, objects);	
+	  insertONNGNode(id, objects);
 	  break;
 	case GraphTypeKNNG:
 	  insertKNNGNode(id, objects);
@@ -707,7 +707,7 @@ namespace NGT {
 	  if (count >= property.incomingEdge) {
 	    break;
 	  }
-	  addEdge((*ri).id, id, (*ri).distance); 
+	  addEdge((*ri).id, id, (*ri).distance);
 	}
 	if (static_cast<int>(results.size()) > property.outgoingEdge) {
 	  results.resize(property.outgoingEdge);
@@ -861,11 +861,11 @@ namespace NGT {
       void setupDistances(NGT::SearchContainer &sc, ObjectDistances &seeds);
       void setupDistances(NGT::SearchContainer &sc, ObjectDistances &seeds, double (&comparator)(const void*, const void*, size_t));
 
-      void setupSeeds(SearchContainer &sc, ObjectDistances &seeds, ResultSet &results, 
+      void setupSeeds(SearchContainer &sc, ObjectDistances &seeds, ResultSet &results,
 		      UncheckedSet &unchecked, DistanceCheckedSet &distanceChecked);
 
 #if !defined(NGT_GRAPH_CHECK_HASH_BASED_BOOLEAN_SET)
-      void setupSeeds(SearchContainer &sc, ObjectDistances &seeds, ResultSet &results, 
+      void setupSeeds(SearchContainer &sc, ObjectDistances &seeds, ResultSet &results,
 		      UncheckedSet &unchecked, DistanceCheckedSetForLargeDataset &distanceChecked);
 #endif
 
@@ -945,7 +945,7 @@ namespace NGT {
 	  msg << " Cannot add the edge. " << target << "->" << addID << ". " << err.what();
 	  NGTThrowException(msg);
 	}
-	if ((size_t)property.truncationThreshold != 0 && node.size() - minsize > 
+	if ((size_t)property.truncationThreshold != 0 && node.size() - minsize >
 	    (size_t)property.truncationThreshold) {
 	  return true;
 	}
@@ -959,7 +959,7 @@ namespace NGT {
 	if (node.size() > kEdge && node.at(kEdge, repository.allocator).distance >= addDistance) {
 	  GraphNode &linkedNode = *getNode(node.at(kEdge, repository.allocator).id);
 	  ObjectDistance linkedNodeEdge(target, node.at(kEdge, repository.allocator).distance);
-	  if ((linkedNode.size() > kEdge) && node.at(kEdge, repository.allocator).distance >= 
+	  if ((linkedNode.size() > kEdge) && node.at(kEdge, repository.allocator).distance >=
 	    linkedNode.at(kEdge, repository.allocator).distance) {
 #else
 	if (node.size() > kEdge && node[kEdge].distance >= addDistance) {
@@ -1015,7 +1015,7 @@ namespace NGT {
 
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
       SearchGraphRepository searchRepository;
-#endif      
+#endif
 
       NeighborhoodGraph::Property		property;
 

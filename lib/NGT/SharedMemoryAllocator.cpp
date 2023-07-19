@@ -18,8 +18,8 @@
 
 
 
-void* operator 
-new(size_t size, SharedMemoryAllocator &allocator) 
+void* operator
+new(size_t size, SharedMemoryAllocator &allocator)
 {
   void *addr = allocator.allocate(size);
 #ifdef MEMORY_ALLOCATOR_INFO
@@ -28,8 +28,8 @@ new(size_t size, SharedMemoryAllocator &allocator)
   return addr;
 }
 
-void* operator 
-new[](size_t size, SharedMemoryAllocator &allocator) 
+void* operator
+new[](size_t size, SharedMemoryAllocator &allocator)
 {
 
   void *addr = allocator.allocate(size);

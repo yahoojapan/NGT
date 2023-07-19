@@ -25,7 +25,7 @@ namespace NGT {
   class Optimizer {
   public:
 
-    Optimizer(NGT::Index &i, size_t n = 10):index(i), nOfResults(n) { 
+    Optimizer(NGT::Index &i, size_t n = 10):index(i), nOfResults(n) {
     }
     ~Optimizer() {}
 
@@ -113,12 +113,12 @@ namespace NGT {
       resultStream.seekg(0, std::ios_base::beg);
       std::string type;
       size_t actualResultSize = 0;
-      gtStream.seekg(0, std::ios_base::end);      
+      gtStream.seekg(0, std::ios_base::end);
       auto pos = gtStream.tellg();
       if (pos == 0) {
 	acc = evaluate(resultStream, type, actualResultSize);
       } else {
-	SumupValues sumupValues(true); 
+	SumupValues sumupValues(true);
 	gtStream.clear();
 	gtStream.seekg(0, std::ios_base::beg);
 	acc = evaluate(gtStream, resultStream, sumupValues, type, actualResultSize);
@@ -128,7 +128,7 @@ namespace NGT {
     }
 
     static std::vector<MeasuredValue>
-      evaluate(std::istream &resultStream, std::string &type, 
+      evaluate(std::istream &resultStream, std::string &type,
 	       size_t &resultDataSize, size_t specifiedResultSize = 0, size_t groundTruthSize = 0, bool recall = false)
     {
 
@@ -165,7 +165,7 @@ namespace NGT {
     }
 
     static std::vector<MeasuredValue>
-      evaluate(std::istream &gtStream, std::istream &resultStream, std::string &type, 
+      evaluate(std::istream &gtStream, std::istream &resultStream, std::string &type,
 	       size_t &resultDataSize, size_t specifiedResultSize = 0, size_t groundTruthSize = 0, bool recall = false, bool approximateDistance = false)
     {
       SumupValues sumupValues;
@@ -173,7 +173,7 @@ namespace NGT {
     }
 
     static std::vector<MeasuredValue>
-      evaluate(std::istream &gtStream, std::istream &resultStream, SumupValues &sumupValues, std::string &type, 
+      evaluate(std::istream &gtStream, std::istream &resultStream, SumupValues &sumupValues, std::string &type,
 	       size_t &resultDataSize, size_t specifiedResultSize = 0, size_t groundTruthSize = 0, bool recall = false, bool approximateDistance = false)
     {
       resultDataSize = 0;
@@ -258,7 +258,7 @@ namespace NGT {
 	if (dataCount > resultDataSize) {
 	  continue;
 	}
-	std::vector<std::string> result;      
+	std::vector<std::string> result;
 	NGT::Common::tokenize(line, result, " \t");
 	if (result.size() < 3) {
 	  std::stringstream msg;
@@ -274,7 +274,7 @@ namespace NGT {
 	  msg << "Cannot insert id into the gt. " << id;
 	  NGTThrowException(msg);
 	}
-      } 
+      }
     }
 
     static void checkAndGetSize(std::istream &resultStream, size_t &resultDataSize)
@@ -316,7 +316,7 @@ namespace NGT {
 		continue;
 	      }
 	      lastDataLine = line;
-	      std::vector<std::string> result;      
+	      std::vector<std::string> result;
 	      NGT::Common::tokenize(line, result, " \t");
 	      if (result.size() < 3) {
 		std::stringstream msg;
@@ -342,8 +342,8 @@ namespace NGT {
       }
     }
 
-    static void sumup(std::istream &resultStream, 
-		      size_t queryNo, 
+    static void sumup(std::istream &resultStream,
+		      size_t queryNo,
 		      SumupValues &sumupValues,
 		      std::unordered_set<size_t> &gt,
 		      const size_t resultDataSize,
@@ -364,7 +364,7 @@ namespace NGT {
 	      size_t relevantCount = 0;
 	      size_t dataCount = 0;
 	      std::string epsilon;
-	      std::string expansion;  
+	      std::string expansion;
 	      double queryTime = 0.0;
 	      size_t distanceCount = 0;
 	      size_t visitCount = 0;
@@ -480,10 +480,10 @@ namespace NGT {
 		    totalDistance = 0.0;
 		    relevantCount = 0;
 		    dataCount = 0;
-		  } 
+		  }
 		  continue;
-		} 
-		std::vector<std::string> result;      
+		}
+		std::vector<std::string> result;
 		NGT::Common::tokenize(line, result, " \t");
 		if (result.size() < 3) {
 		  std::cerr << "result format is wrong. " << std::endl;
@@ -510,18 +510,18 @@ namespace NGT {
 		  std::cerr << "inner error! $rank $dataCount !!" << std::endl;;
 		  abort();
 		}
-	      } 
-	    } else { 
+	      }
+	    } else {
 	      std::cerr << "Fatal error! : Cannot find query No. " << queryNo << std::endl;
 	      abort();
-	    } 
-	  } 
-	} 
-      } 
+	    }
+	  }
+	}
+      }
     }
 
-    static void exploreEpsilonForAccuracy(NGT::Index &index, std::istream &queries, std::istream &gtStream, 
-					  Command::SearchParameters &sp, std::pair<float, float> accuracyRange, double margin) 
+    static void exploreEpsilonForAccuracy(NGT::Index &index, std::istream &queries, std::istream &gtStream,
+					  Command::SearchParameters &sp, std::pair<float, float> accuracyRange, double margin)
     {
       double fromUnder = 0.0;
       double fromOver = 1.0;
@@ -544,7 +544,7 @@ namespace NGT {
 	float epsilonStep = 0.02;
 	size_t count;
 	for (count = 0;; count++) {
-	  float epsilon = round((startEpsilon + epsilonStep * count) * 100.0F) / 100.0F; 
+	  float epsilon = round((startEpsilon + epsilonStep * count) * 100.0F) / 100.0F;
 	  if (epsilon > 0.25F) {
 	    std::stringstream msg;
 	    msg << "exploreEpsilonForAccuracy:" << std::endl;
@@ -571,7 +571,7 @@ namespace NGT {
 	if (fromOver < accuracyRangeTo) {
 	  startEpsilon = fromOverEpsilon;
 	  for (count = 0;; count++) {
-	    float epsilon = round((startEpsilon + epsilonStep * count) * 100.0F) / 100.0F; 
+	    float epsilon = round((startEpsilon + epsilonStep * count) * 100.0F) / 100.0F;
 	    sp.beginOfEpsilon = sp.endOfEpsilon = toOverEpsilon = epsilon;
 	    if (epsilon > 0.25F) {
 	      std::stringstream msg;
@@ -728,11 +728,11 @@ namespace NGT {
 			err.getMessage().find("is too large") != std::string::npos) {
 		      std::cerr << "Warning: Cannot adjust the base edge size." << err.what() << std::endl;
 		      std::cerr << "Try again with the next base" << std::endl;
-		      NGTThrowException("**Retry**"); 
+		      NGTThrowException("**Retry**");
 		    }
 		    if (margin > 0.4) {
 		      std::cerr << "Warning: Cannot adjust the base even for the widest margin " << margin << ". " << err.what();
-		      NGTThrowException("**Retry**"); 
+		      NGTThrowException("**Retry**");
 		    } else {
 		      std::cerr << "Warning: Cannot adjust the base edge size for margin " << margin << ". " << err.what() << std::endl;
 		      std::cerr << "Try again for the next margin." << std::endl;
@@ -832,7 +832,7 @@ namespace NGT {
 		    }
 		    if (margin > 0.4) {
 		      std::cerr << "Error: Cannot adjust the rate even for the widest margin " << margin << ". " << err.what();
-		      NGTThrowException("**Retry**"); 
+		      NGTThrowException("**Retry**");
 		    } else {
 		      std::cerr << "Warning: Cannot adjust the rate of edge size for margin " << margin << ". " << err.what() << std::endl;
 		      std::cerr << "Try again for the next margin." << std::endl;
@@ -974,7 +974,7 @@ namespace NGT {
       size_t querySize = args.getl("q", 100);
       size_t nOfResults = args.getl("n", 10);
 
-      std::cerr << "adjustRateSearchEdgeSize: range= " << baseAccuracyRange.first << "-" << baseAccuracyRange.second 
+      std::cerr << "adjustRateSearchEdgeSize: range= " << baseAccuracyRange.first << "-" << baseAccuracyRange.second
 	   << "," << rateAccuracyRange.first << "-" << rateAccuracyRange.second << std::endl;
       std::cerr << "adjustRateSearchEdgeSize: # of queries=" << querySize << std::endl;
 
@@ -1254,8 +1254,8 @@ namespace NGT {
       NGT::Command::search(index, searchParameters, queries, gtStream);
     }
 
-    static int 
-      calculateMeanValues(std::vector<MeasuredValue> &accuracies, double accuracyRangeFrom, double accuracyRangeTo, 
+    static int
+      calculateMeanValues(std::vector<MeasuredValue> &accuracies, double accuracyRangeFrom, double accuracyRangeTo,
 			  size_t &size, double &meanDistanceCount, double &meanVisitCount, double &meanTime) {
       int stat = 0;
       size = 0;
@@ -1302,11 +1302,11 @@ namespace NGT {
       }
       {
 	size_t last = distance.size() - 1;
-	double xfrom = (distance[1].second * distance[0].first - distance[0].second * distance[1].first + 
-			accuracyRangeFrom * (distance[1].first - distance[0].first)) / 
+	double xfrom = (distance[1].second * distance[0].first - distance[0].second * distance[1].first +
+			accuracyRangeFrom * (distance[1].first - distance[0].first)) /
 	  (distance[1].second - distance[0].second);
-	double xto = (distance[last].second * distance[last - 1].first - distance[last - 1].second * distance[last].first + 
-		      accuracyRangeTo * (distance[last].first - distance[last - 1].first)) / 
+	double xto = (distance[last].second * distance[last - 1].first - distance[last - 1].second * distance[last].first +
+		      accuracyRangeTo * (distance[last].first - distance[last - 1].first)) /
 	  (distance[last].second - distance[last - 1].second);
 	distance[0].first = xfrom;
 	distance[0].second = accuracyRangeFrom;
@@ -1320,11 +1320,11 @@ namespace NGT {
       }
       {
 	size_t last = visit.size() - 1;
-	double xfrom = (visit[1].second * visit[0].first - visit[0].second * visit[1].first + 
-			accuracyRangeFrom * (visit[1].first - visit[0].first)) / 
+	double xfrom = (visit[1].second * visit[0].first - visit[0].second * visit[1].first +
+			accuracyRangeFrom * (visit[1].first - visit[0].first)) /
 	  (visit[1].second - visit[0].second);
-	double xto = (visit[last].second * visit[last - 1].first - visit[last - 1].second * visit[last].first + 
-		      accuracyRangeTo * (visit[last].first - visit[last - 1].first)) / 
+	double xto = (visit[last].second * visit[last - 1].first - visit[last - 1].second * visit[last].first +
+		      accuracyRangeTo * (visit[last].first - visit[last - 1].first)) /
 	  (visit[last].second - visit[last - 1].second);
 	visit[0].first = xfrom;
 	visit[0].second = accuracyRangeFrom;
@@ -1338,11 +1338,11 @@ namespace NGT {
       }
       {
 	size_t last = time.size() - 1;
-	double xfrom = (time[1].second * time[0].first - time[0].second * time[1].first + 
-			accuracyRangeFrom * (time[1].first - time[0].first)) / 
+	double xfrom = (time[1].second * time[0].first - time[0].second * time[1].first +
+			accuracyRangeFrom * (time[1].first - time[0].first)) /
 	  (time[1].second - time[0].second);
-	double xto = (time[last].second * time[last - 1].first - time[last - 1].second * time[last].first + 
-		      accuracyRangeTo * (time[last].first - time[last - 1].first)) / 
+	double xto = (time[last].second * time[last - 1].first - time[last - 1].second * time[last].first +
+		      accuracyRangeTo * (time[last].first - time[last - 1].first)) /
 	  (time[last].second - time[last - 1].second);
 	time[0].first = xfrom;
 	time[0].second = accuracyRangeFrom;
@@ -1428,13 +1428,13 @@ namespace NGT {
       if (omode == 'd') {
 	std::cout << "# of computations\t# of visted nodes" << std::endl;
 	for (auto it = accuracies.begin(); it != accuracies.end(); ++it) {
-	  std::cout << (*it).keyValue << "\t" << (*it).totalCount << "\t" << (*it).meanAccuracy << "\t" 
+	  std::cout << (*it).keyValue << "\t" << (*it).totalCount << "\t" << (*it).meanAccuracy << "\t"
 	       << (*it).meanDistanceCount << "\t" << (*it).meanVisitCount << std::endl;
 	}
       } else {
 	std::cout << "Time(msec)\t# of computations\t# of visted nodes" << std::endl;
 	for (auto it = accuracies.begin(); it != accuracies.end(); ++it) {
-	  std::cout << (*it).keyValue << "\t" << (*it).totalCount << "\t" << (*it).meanAccuracy << "\t" << (*it).meanTime << "\t" 
+	  std::cout << (*it).keyValue << "\t" << (*it).totalCount << "\t" << (*it).meanAccuracy << "\t" << (*it).meanTime << "\t"
 	       << (*it).meanDistanceCount << "\t" << (*it).meanVisitCount << std::endl;
 	}
       }
@@ -1488,21 +1488,21 @@ namespace NGT {
 	  if (e == 0.0) {
 	    time = timer.time;
 	  }
-	  if (timer.time > time * 40.0) { 
+	  if (timer.time > time * 40.0) {
 	    maxEpsilon = e;
 	    break;
 	  }
 	  if (identity) {
 	    identityCount++;
 	    step *= 1.2;
-	    if (identityCount > 5) { 
+	    if (identityCount > 5) {
 	      maxEpsilon = e;
 	      break;
 	    }
 	  } else {
 	    identityCount = 0;
 	  }
-	}      
+	}
 
 	for (auto i = queryObjects.begin(); i != queryObjects.end(); ++i) {
 	  index.deleteObject(*i);
@@ -1522,7 +1522,7 @@ namespace NGT {
       }
     }
 
-    static std::vector<std::pair<float, double>> 
+    static std::vector<std::pair<float, double>>
       generateAccuracyTable(NGT::Index &index, size_t nOfResults = 50, size_t querySize = 100) {
 
       NGT::Property prop;
@@ -1569,7 +1569,7 @@ namespace NGT {
 	    if (accuracy - prev < 0.02) {
 	      interval *= 2.0;
 	    } else if (accuracy - prev > 0.05 && interval > 0.0001) {
-	      
+	
 	      epsilon -= interval;
 	      interval /= 2.0;
 	      accuracy = prev;

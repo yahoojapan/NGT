@@ -17,7 +17,7 @@
 #include "MmapManagerImpl.hpp"
 
 namespace MemoryManager{
-  // static method --- 
+  // static method ---
   void MmapManager::setDefaultOptionValue(init_option_st &optionst)
   {
     optionst.use_expand = MMAP_DEFAULT_ALLOW_EXPAND;
@@ -28,10 +28,10 @@ namespace MemoryManager{
     if((size % MMAP_MEMORY_ALIGN) == 0){
       return size;
     }else{
-      return ( (size >> MMAP_MEMORY_ALIGN_EXP ) + 1 ) * MMAP_MEMORY_ALIGN;	
+      return ( (size >> MMAP_MEMORY_ALIGN_EXP ) + 1 ) * MMAP_MEMORY_ALIGN;
     }
   }
-  // static method --- 
+  // static method ---
   
 
   MmapManager::MmapManager():_impl(new MmapManager::Impl(*this))
@@ -105,8 +105,8 @@ namespace MemoryManager{
       
       boot_st bootStruct = {0};
       control_st controlStruct = {0};
-      _impl->initBootStruct(bootStruct, size);  
-      _impl->initControlStruct(controlStruct, size); 
+      _impl->initBootStruct(bootStruct, size);
+      _impl->initControlStruct(controlStruct, size);
       
       char *cntl_head = cntl_p;
       cntl_head += sizeof(boot_st);
@@ -138,7 +138,7 @@ namespace MemoryManager{
       }
       
       const std::string controlFile = filePath + MMAP_CNTL_FILE_SUFFIX;
-      _impl->filePath = filePath; 
+      _impl->filePath = filePath;
       
       int32_t fd;
       
@@ -161,7 +161,7 @@ namespace MemoryManager{
         std::cerr << "[WARN] : version error" << std::endl;
         errno = 0;
         if(munmap(boot_p, MMAP_CNTL_FILE_SIZE) == -1) throw MmapManagerException("munmap error : " + getErrorStr(errno));
-        throw MmapManagerException("MemoryManager version error");	
+        throw MmapManagerException("MemoryManager version error");
       }
       
       errno = 0;
@@ -172,7 +172,7 @@ namespace MemoryManager{
         throw MmapManagerException("file open error = " + std::string(filePath.c_str())  + err_str);
       }
       
-      _impl->mmapCntlHead = (control_st*)( (char *)boot_p + sizeof(boot_st)); 
+      _impl->mmapCntlHead = (control_st*)( (char *)boot_p + sizeof(boot_st));
       _impl->mmapCntlAddr = (void *)boot_p;
 
       for(uint64_t i = 0; i < _impl->mmapCntlHead->unit_num; i++){
@@ -188,7 +188,7 @@ namespace MemoryManager{
 	  }
           const std::string err_str = getErrorStr(errno);
           if(close(fd) == -1) std::cerr << controlFile << "[WARN] : filedescript cannot close" << std::endl;
-          closeMemory(true); 
+          closeMemory(true);
           throw MmapManagerException(err_str);
         }
       }
@@ -257,9 +257,9 @@ namespace MemoryManager{
       }
 
       if(!not_reuse_flag){
-        if(  _impl->mmapCntlHead->reuse_type == REUSE_DATA_CLASSIFY 
+        if(  _impl->mmapCntlHead->reuse_type == REUSE_DATA_CLASSIFY
 	    || _impl->mmapCntlHead->reuse_type == REUSE_DATA_QUEUE
-	    || _impl->mmapCntlHead->reuse_type == REUSE_DATA_QUEUE_PLUS){	  
+	    || _impl->mmapCntlHead->reuse_type == REUSE_DATA_QUEUE_PLUS){
           off_t ret_offset;
           reuse_state_t reuse_state = REUSE_STATE_OK;
           ret_offset = reuse(alloc_size, reuse_state);
@@ -338,7 +338,7 @@ namespace MemoryManager{
     return ret_off;
   }
 
-  void *MmapManager::getAbsAddr(off_t p) const 
+  void *MmapManager::getAbsAddr(off_t p) const
   {
     if(p < 0){
       return NULL;
@@ -350,7 +350,7 @@ namespace MemoryManager{
     return ABS_ADDR(ret_p, _impl->mmapDataAddr[unit_id]);
   }
   
-  off_t MmapManager::getRelAddr(const void *p) const 
+  off_t MmapManager::getRelAddr(const void *p) const
   {
     const chunk_head_st *chunk_head = (chunk_head_st *)((char *)p - sizeof(chunk_head_st));
     const uint16_t unit_id = chunk_head->unit_id;

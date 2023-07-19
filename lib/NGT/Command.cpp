@@ -67,7 +67,7 @@ using namespace std;
       std::stringstream msg;
       msg << "Command::CreateParameter: Error: Invalid graph type. " << graphType;
       NGTThrowException(msg);
-    }    
+    }
 
     if (property.graphType == NGT::Property::GraphType::GraphTypeONNG) {
       property.outgoingEdge = 10;
@@ -103,7 +103,7 @@ using namespace std;
     indexType = args.getChar("i", 't');
 
     switch (objectType) {
-    case 'f': 
+    case 'f':
       property.objectType = NGT::Index::Property::ObjectType::Float;
       break;
     case 'c':
@@ -121,7 +121,7 @@ using namespace std;
     }
 
     switch (distanceType) {
-    case '1': 
+    case '1':
       property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeL1;
       break;
     case '2':
@@ -167,14 +167,14 @@ using namespace std;
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
     size_t maxNoOfObjects = args.getl("N", 0);
     if (maxNoOfObjects > 0) {
-      property.graphSharedMemorySize 
+      property.graphSharedMemorySize
 	= property.treeSharedMemorySize
 	= property.objectSharedMemorySize = 512 * ceil(maxNoOfObjects / 50000000);
     }
 #endif
   }
 
-  void 
+  void
   NGT::Command::create(Args &args)
   {
     const string usage = "Usage: ngt create "
@@ -223,7 +223,7 @@ using namespace std;
     }
   }
 
-  void 
+  void
   NGT::Command::append(Args &args)
   {
     const string usage = "Usage: ngt append [-p #-of-thread] [-d dimension] [-n data-size] "
@@ -254,7 +254,7 @@ using namespace std;
 
 
     try {
-      NGT::Index::append(database, data, threadSize, dataSize);	
+      NGT::Index::append(database, data, threadSize, dataSize);
     } catch (NGT::Exception &err) {
       cerr << "ngt: Error " << err.what() << endl;
       cerr << usage << endl;
@@ -269,8 +269,8 @@ using namespace std;
   NGT::Command::search(NGT::Index &index, NGT::Command::SearchParameters &searchParameters, istream &is, ostream &stream)
   {
 
-    if (searchParameters.outputMode[0] == 'e') { 
-      stream << "# Beginning of Evaluation" << endl; 
+    if (searchParameters.outputMode[0] == 'e') {
+      stream << "# Beginning of Evaluation" << endl;
     }
 
     string line;
@@ -287,7 +287,7 @@ using namespace std;
 	NGT::SearchContainer sc(*object);
 	double epsilon;
 	if (searchParameters.step != 0) {
-	  epsilon = searchParameters.beginOfEpsilon + (searchParameters.endOfEpsilon - searchParameters.beginOfEpsilon) * n / step; 
+	  epsilon = searchParameters.beginOfEpsilon + (searchParameters.endOfEpsilon - searchParameters.beginOfEpsilon) * n / step;
 	} else {
 	  epsilon = searchParameters.beginOfEpsilon + searchParameters.stepOfEpsilon * n;
 	  if (epsilon > searchParameters.endOfEpsilon) {
@@ -416,8 +416,8 @@ using namespace std;
 	stream << "# Average distance of edges=" << setprecision(10) << distance / (double)numberOfEdges << endl;
       }
     } else {
-      stream << "Average Query Time= " << totalTime / (double)queryCount  << " (sec), " 
-	   << totalTime * 1000.0 / (double)queryCount << " (msec), (" 
+      stream << "Average Query Time= " << totalTime / (double)queryCount  << " (sec), "
+	   << totalTime * 1000.0 / (double)queryCount << " (msec), ("
 	   << totalTime << "/" << queryCount << ")" << endl;
     }
   }
@@ -443,7 +443,7 @@ using namespace std;
       cerr << "indexType=" << searchParameters.indexType << endl;
       cerr << "size=" << searchParameters.size << endl;
       cerr << "edgeSize=" << searchParameters.edgeSize << endl;
-      cerr << "epsilon=" << searchParameters.beginOfEpsilon << "<->" << searchParameters.endOfEpsilon << "," 
+      cerr << "epsilon=" << searchParameters.beginOfEpsilon << "<->" << searchParameters.endOfEpsilon << ","
 	   << searchParameters.stepOfEpsilon << endl;
     }
 
@@ -527,7 +527,7 @@ using namespace std;
 	  if (*e != 0) {
 	    cerr << "Illegal data. " << e << endl;
 	  }
-	  cerr << "removed ID=" << id << endl;	
+	  cerr << "removed ID=" << id << endl;
 	}
       } else {
 	size_t id = args.getl("#2", 0);
@@ -676,7 +676,7 @@ using namespace std;
 		  continue;
 		}
 		NGT::GraphNode &node2 = *graph.getNode(node[t1].id);
-		for (size_t t2 = 0; t2 < node2.size(); ++t2) {		
+		for (size_t t2 = 0; t2 < node2.size(); ++t2) {
 		  if (t2 >= selectivelyPrunedEdgeSize) {
 		    break;
 		  }
@@ -921,7 +921,7 @@ using namespace std;
     size_t uninsertedTreeObjectCount = 0;
     std::cerr << "remove invalid objects from the tree." << std::endl;
     size_t size = objSize > idsSize ? objSize : idsSize;
-    for (size_t id = 1; id < size; id++) {    
+    for (size_t id = 1; id < size; id++) {
       if (ids.find(id) != ids.end()) {
 	if (removedIDs.find(id) != removedIDs.end() || id >= objSize) {
 	  if (repair) {

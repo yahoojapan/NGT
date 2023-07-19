@@ -115,8 +115,8 @@ namespace NGT {
       }
       getPivot(os).set(f, os);
     }
-    PersistentObject &getPivot(ObjectSpace &os) { 
-      return *(PersistentObject*)os.getRepository().getAllocator().getAddr(pivot); 
+    PersistentObject &getPivot(ObjectSpace &os) {
+      return *(PersistentObject*)os.getRepository().getAllocator().getAddr(pivot);
     }
     void deletePivot(ObjectSpace &os, SharedMemoryAllocator &allocator) {
       os.deleteObject(&getPivot(os));
@@ -149,7 +149,7 @@ namespace NGT {
 
   };
 
-  
+
   class InternalNode : public Node {
   public:
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
@@ -218,7 +218,7 @@ namespace NGT {
     Distance *getBorders() { return borders; }
 #endif // NGT_SHARED_MEMORY_ALLOCATOR
 
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR) 
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
     void serialize(std::ofstream &os, SharedMemoryAllocator &allocator, ObjectSpace *objectspace = 0) {
 #else
     void serialize(std::ofstream &os, ObjectSpace *objectspace = 0) {
@@ -243,9 +243,9 @@ namespace NGT {
       }
       for (size_t i = 0; i < childrenSize - 1; i++) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-	NGT::Serializer::write(os, getBorders(allocator)[i]);	
+	NGT::Serializer::write(os, getBorders(allocator)[i]);
 #else
-	NGT::Serializer::write(os, getBorders()[i]);	
+	NGT::Serializer::write(os, getBorders()[i]);
 #endif
       }
     }
@@ -313,9 +313,9 @@ namespace NGT {
       }
       for (size_t i = 0; i < childrenSize - 1; i++) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-	NGT::Serializer::writeAsText(os, getBorders(allocator)[i]);	
+	NGT::Serializer::writeAsText(os, getBorders(allocator)[i]);
 #else
-	NGT::Serializer::writeAsText(os, getBorders()[i]);	
+	NGT::Serializer::writeAsText(os, getBorders()[i]);
 #endif
 	os << " ";
       }
@@ -373,7 +373,7 @@ namespace NGT {
     }
 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    bool verify(PersistentRepository<InternalNode> &internalNodes, PersistentRepository<LeafNode> &leafNodes, 
+    bool verify(PersistentRepository<InternalNode> &internalNodes, PersistentRepository<LeafNode> &leafNodes,
 		SharedMemoryAllocator &allocator);
 #else
     bool verify(Repository<InternalNode> &internalNodes, Repository<LeafNode> &leafNodes);
@@ -390,7 +390,7 @@ namespace NGT {
 #endif
   };
 
-  
+
   class LeafNode : public Node {
   public:
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
@@ -441,7 +441,7 @@ namespace NGT {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
 #ifndef NGT_NODE_USE_VECTOR
     NGT::ObjectDistance *getObjectIDs(SharedMemoryAllocator &allocator) {
-      return (NGT::ObjectDistance *)allocator.getAddr(objectIDs); 
+      return (NGT::ObjectDistance *)allocator.getAddr(objectIDs);
     }
 #endif
 #else // NGT_SHARED_MEMORY_ALLOCATOR

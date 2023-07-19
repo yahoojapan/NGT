@@ -41,13 +41,13 @@ class SharedMemoryAllocator {
     GetFreedMemorySize		= 2
   };
 
-  SharedMemoryAllocator():isValid(false) { 
+  SharedMemoryAllocator():isValid(false) {
 #ifdef SMA_TRACE
-    std::cerr << "SharedMemoryAllocatorSiglton::constructor" << std::endl; 
+    std::cerr << "SharedMemoryAllocatorSiglton::constructor" << std::endl;
 #endif
   }
   SharedMemoryAllocator(const SharedMemoryAllocator& a){}
-  SharedMemoryAllocator& operator=(const SharedMemoryAllocator& a){ return *this; }  
+  SharedMemoryAllocator& operator=(const SharedMemoryAllocator& a){ return *this; }
  public:
   void* allocate(size_t size) {
     if (isValid == false) {
@@ -142,8 +142,8 @@ class SharedMemoryAllocator {
 #endif
     isValid = true;
 #ifdef SMA_TRACE
-    std::cerr << "SharedMemoryAllocator::construct: " << filePath << " total=" 
-	      << getTotalSize() << " allocated=" << getAllocatedSize() << " freed=" 
+    std::cerr << "SharedMemoryAllocator::construct: " << filePath << " total="
+	      << getTotalSize() << " allocated=" << getAllocatedSize() << " freed="
 	      << getFreedSize() << " (" << (double)getFreedSize() / (double)getTotalSize() << ") " << std::endl;
 #endif
     return hook;
@@ -163,23 +163,23 @@ class SharedMemoryAllocator {
     mmanager->setEntryHook(entry);
 #endif
   }
-  void *getAddr(off_t oft) { 
+  void *getAddr(off_t oft) {
     if (oft == 0) {
       return 0;
     }
     assert(oft > 0);
 #if defined(MMAP_MANAGER) && !defined(NOT_USE_MMAP_ALLOCATOR)
-    return mmanager->getAbsAddr(oft); 
+    return mmanager->getAbsAddr(oft);
 #else
     return (void*)oft;
 #endif
   }
-  off_t getOffset(void *adr) { 
+  off_t getOffset(void *adr) {
     if (adr == 0) {
       return 0;
     }
 #if defined(MMAP_MANAGER) && !defined(NOT_USE_MMAP_ALLOCATOR)
-    return mmanager->getRelAddr(adr); 
+    return mmanager->getRelAddr(adr);
 #else
     return (off_t)adr;
 #endif

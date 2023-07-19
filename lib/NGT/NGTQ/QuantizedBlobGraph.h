@@ -66,7 +66,7 @@ namespace QBG {
       verbose				= false;
     }
 
-    static void setProperties(CreationParameters &creation, NGTQ::Property &property, NGT::Property &globalProperty, 
+    static void setProperties(CreationParameters &creation, NGTQ::Property &property, NGT::Property &globalProperty,
 			      NGT::Property &localProperty) {
       property.threadSize		= creation.threadSize;
       property.globalCentroidLimit	= 0;
@@ -256,7 +256,7 @@ namespace QBG {
       optimization.setDefault();
     }
 
-    void setProperties(NGTQ::Property &property, NGT::Property &globalProperty, 
+    void setProperties(NGTQ::Property &property, NGT::Property &globalProperty,
 		      NGT::Property &localProperty) {
       CreationParameters::setProperties(creation, property, globalProperty, localProperty);
     }
@@ -336,8 +336,8 @@ namespace QBG {
 	quantizedIndex.getQuantizer().eraseInvertedIndexObject(gid);
 	NGTQ::QuantizedObjectProcessingStream quantizedStream(quantizedIndex.getQuantizer().divisionNo, invertedIndexObjects.size());
 	rearrange(invertedIndexObjects, (*this)[gid], quantizedStream);
-      } 
-#endif 
+      }
+#endif
     }
 
     static void rearrange(NGTQ::InvertedIndexEntry<uint16_t> &invertedIndexObjects, NGTQG::QuantizedNode &rearrangedObjects, NGTQ::QuantizedObjectProcessingStream &quantizedStream) {
@@ -347,20 +347,20 @@ namespace QBG {
 	  for (size_t idx = 0; idx < invertedIndexObjects.numOfSubvectors; idx++) {
 #ifdef NGTQ_UINT8_LUT
 #ifdef NGTQ_SIMD_BLOCK_SIZE
-            size_t dataNo = oidx;  
+            size_t dataNo = oidx;
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
 	    abort();
 #else
 	    quantizedStream.arrangeQuantizedObject(dataNo, idx, invertedIndexObjects[oidx].localID[idx] - 1);
 #endif
-#else 
+#else
 	    objectData[idx * noobjs + dataNo] = invertedIndexObjects[oidx].localID[idx] - 1;
-#endif 
-#else  
+#endif
+#else
 	    objectData[idx * noobjs + dataNo] = invertedIndexObjects[oidx].localID[idx];
-#endif 
+#endif
 	  }
-	} 
+	}
 
 	rearrangedObjects.subspaceID = invertedIndexObjects.subspaceID;
 	rearrangedObjects.objects = quantizedStream.compressIntoUint4();
@@ -386,7 +386,7 @@ namespace QBG {
 
 	rearrange(invertedIndexObjects, rearrangedObjects, quantizedStream);
       }
-#endif 
+#endif
     }
 
     static void rearrange(NGTQ::QuantizedObjectSet &quantizedObjects, NGTQG::QuantizedNode &rearrangedObjects) {
@@ -422,12 +422,12 @@ namespace QBG {
     bool &getVerbose() { return verbose; }
 
 #ifdef NGTQ_QBG
-    static void create(const std::string &index, 
+    static void create(const std::string &index,
 		       BuildParameters &buildParameters,
 		       std::vector<float> *rotation = 0,const std::string objectFile = "") {
       create(index, buildParameters.creation, rotation, objectFile);
     }
-    static void create(const std::string &index, 
+    static void create(const std::string &index,
 		       CreationParameters &creation,
 		       std::vector<float> *rotation = 0,const std::string objectFile = "") {
       NGTQ::Property property;
@@ -438,16 +438,16 @@ namespace QBG {
       NGTQ::Index::create(index, property, globalProperty, localProperty, rotation, objectFile);
     }
 #endif
-#ifdef NGTQ_QBG		       
+#ifdef NGTQ_QBG
     static void initialize(NGTQ::Property &property, NGT::Property &globalProperty,NGT::Property &localProperty) {
       QBG::CreationParameters params;
       QBG::CreationParameters::setProperties(params, property, globalProperty, localProperty);
     }
 #endif
     
-    static void create(const std::string &index, NGTQ::Property &property, 
+    static void create(const std::string &index, NGTQ::Property &property,
 		       NGT::Property &globalProperty,
-#ifdef NGTQ_QBG		       
+#ifdef NGTQ_QBG
 		       NGT::Property &localProperty,
 		       std::vector<float> *rotation,
 		       const std::string &objectFile) {
@@ -578,7 +578,7 @@ namespace QBG {
       redirector.end();
     }
 
-    float getApproximateDistances(std::vector<float> &query, NGTQG::RearrangedQuantizedObjectSet &quantizedObjects, 
+    float getApproximateDistances(std::vector<float> &query, NGTQG::RearrangedQuantizedObjectSet &quantizedObjects,
 				 size_t subspaceID, std::vector<float> &distances) {
       if (query.empty()) {
 	NGTThrowException("The specified query is empty.");
@@ -606,7 +606,7 @@ namespace QBG {
       return minDistance;
     }
 
-    void getApproximateDistances(std::vector<float> &query, NGTQ::QuantizedObjectSet &quantizedObjects, 
+    void getApproximateDistances(std::vector<float> &query, NGTQ::QuantizedObjectSet &quantizedObjects,
 				 size_t subspaceID, std::vector<float> &distances) {
       if (query.empty()) {
 	NGTThrowException("The specified query is empty.");
@@ -752,7 +752,7 @@ namespace QBG {
 #ifdef NGTQG_ZERO_GLOBAL
       NGTQ::QuantizedObjectDistance::DistanceLookupTableUint8 lut;
       quantizedObjectDistance.initialize(lut);
-      quantizedObjectDistance.createDistanceLookup(*query, 1, lut); 
+      quantizedObjectDistance.createDistanceLookup(*query, 1, lut);
 #else
 #if defined(NGTQG_ROTATION)
       quantizedObjectDistance.rotation->mul(static_cast<float*>(query->getPointer()));
@@ -817,7 +817,7 @@ namespace QBG {
 	    quantizedObjectDistance.createDistanceLookup(*query, subspaceID, (*luti).second);
 	  }
 	  std::tie(distance, radius) = judge(quantizedBlobGraph[neighborID], k, radius, (*luti).second, result, foundCount);
-#endif 
+#endif
 	  if (static_cast<float>(foundCount) / visitCount < searchContainer.cutback) {
 	    uncheckedBlobs = NGT::NeighborhoodGraph::UncheckedSet();
 	    break;
@@ -828,7 +828,7 @@ namespace QBG {
 	}
       }
 
-      if (searchContainer.resultIsAvailable()) { 
+      if (searchContainer.resultIsAvailable()) {
 	searchContainer.getResult().clear();
 	searchContainer.getResult().moveFrom(result);
       } else {
@@ -838,7 +838,7 @@ namespace QBG {
 
     }
 
-    static void refineDistances(QBG::SearchContainer &searchContainer, NGTQ::Quantizer &quantizer, 
+    static void refineDistances(QBG::SearchContainer &searchContainer, NGTQ::Quantizer &quantizer,
 				NGT::NeighborhoodGraph::ResultSet &result,
 				NGT::ObjectDistances &qresults) {
       auto &objectSpace = quantizer.globalCodebookIndex.getObjectSpace();
@@ -988,7 +988,7 @@ namespace QBG {
 	  auto subspaceID = quantizedBlobGraph[blobID].subspaceID;
 	  quantizedObjectDistance.createDistanceLookup(rotatedQuery, subspaceID, lookupTable);
 	  NGTQ::QuantizedObjectDistance::DistanceLookupTableUint8 &lut = lookupTable;
-#else 
+#else
 	{
 	  auto blobID = blobs[idx].id;
 	  auto subspaceID = quantizedBlobGraph[blobID].subspaceID;
@@ -1000,7 +1000,7 @@ namespace QBG {
 	    quantizedObjectDistance.createDistanceLookup(rotatedQuery.data(), subspaceID, (*luti).second);
           }
 	  NGTQ::QuantizedObjectDistance::DistanceLookupTableUint8 &lut = (*luti).second;
-#endif 
+#endif
 
 	  NGT::Distance bd;
 	  std::tie(bd, radius) = judge(quantizedBlobGraph[blobID], k, radius, lut, result, foundCount);
@@ -1012,9 +1012,9 @@ namespace QBG {
 #endif
         }
 #ifdef NGTQBG_MIN
-#endif 
+#endif
       }
-      if (searchContainer.resultIsAvailable()) { 
+      if (searchContainer.resultIsAvailable()) {
 	if (searchContainer.exactResultSize > 0) {
 	  NGT::ObjectDistances &qresults = searchContainer.getResult();
 	  refineDistances(searchContainer, quantizer, result, qresults);
@@ -1135,7 +1135,7 @@ namespace QBG {
 	    auto subspaceID = quantizedBlobGraph[blobID].subspaceID;
 	    quantizedObjectDistance.createDistanceLookup(rotatedQuery.data(), subspaceID, lookupTable);
 	    NGTQ::QuantizedObjectDistance::DistanceLookupTableUint8 &lut = lookupTable;
-#else 
+#else
 	  {
 	    auto blobID = currentNearestBlob.id;
 	    auto subspaceID = quantizedBlobGraph[blobID].subspaceID;
@@ -1147,10 +1147,10 @@ namespace QBG {
 	      quantizedObjectDistance.createDistanceLookup(rotatedQuery.data(), subspaceID, (*luti).second);
 	    }
 	    NGTQ::QuantizedObjectDistance::DistanceLookupTableUint8 &lut = (*luti).second;
-#endif 
+#endif
 	    size_t foundCount;
 	    NGT::Distance bd;
-	    std::tie(bd, radius) = judge(quantizedBlobGraph[blobID], requestedSize, 
+	    std::tie(bd, radius) = judge(quantizedBlobGraph[blobID], requestedSize,
 					 radius, lut, results, foundCount);
 #ifdef NGTQBG_COARSE_BLOB
 	    if (bd < blobDistance) {
@@ -1165,7 +1165,7 @@ namespace QBG {
 	  if (blobDistance > radius * searchContainer.explorationCoefficient) {
 	    break;
 	  }
-#endif 
+#endif
 	  if (explorationSize > searchContainer.graphExplorationSize) {
 	    break;
 	  }
@@ -1214,7 +1214,7 @@ namespace QBG {
 	  }
 	  distanceChecked.insert((*(neighborptr)).first);
 #else
-	  neighborptr = nsPtrs[idx]; 
+	  neighborptr = nsPtrs[idx];
 	  if (idx + prefetchOffset < nsPtrsSize) {
 	    unsigned char *ptr = reinterpret_cast<unsigned char*>((*(nsPtrs[idx + prefetchOffset])).second);
 	    NGT::MemoryCache::prefetch(ptr, prefetchSize);
@@ -1234,10 +1234,10 @@ namespace QBG {
 	  } else {
 	    discardedObjects.push(r);
 	  }
-	} 
-      } 
+	}
+      }
 
-      if (searchContainer.resultIsAvailable()) { 
+      if (searchContainer.resultIsAvailable()) {
 	if (searchContainer.exactResultSize > 0) {
 	  NGT::ObjectDistances &qresults = searchContainer.getResult();
 	  refineDistances(searchContainer, quantizer, results, qresults);
@@ -1251,7 +1251,7 @@ namespace QBG {
 	  searchContainer.workingResult = std::move(results);
 	}
       }
-#endif 
+#endif
     }
 
     void search(QBG::SearchContainer &searchContainer) {
@@ -1270,7 +1270,7 @@ namespace QBG {
     }
 
     static void buildNGTQ(const std::string &indexPath, bool verbose = false) {
-      load(indexPath, QBG::Index::getQuantizerCodebookFile(indexPath), "", ""); 
+      load(indexPath, QBG::Index::getQuantizerCodebookFile(indexPath), "", "");
       buildNGTQ(indexPath, "", "-", "-", 1, 0, verbose);
       if (verbose) {
 	std::cerr << "NGTQ and NGTQBG indices are completed." << std::endl;
@@ -1280,7 +1280,7 @@ namespace QBG {
     }
 
     static void build(const std::string &indexPath, bool verbose = false) {
-      load(indexPath, "", "", ""); 
+      load(indexPath, "", "", "");
       buildNGTQ(indexPath, "", "", "", 1, 0, verbose);
       buildQBG(indexPath, verbose);
       if (verbose) {
@@ -1443,13 +1443,13 @@ namespace QBG {
 	if (s == 0) {
 	  const string comrmdir = "rm -rf " + indexPath + "/" + getWorkspaceName();
 	  if (system(comrmdir.c_str()) == -1) {
-	    std::cerr << "Warning. cannot remove the workspace directory. " 
+	    std::cerr << "Warning. cannot remove the workspace directory. "
 		      << comrmdir << std::endl;
 	  }
 	}
 	const string comrm = "rm -f " + indexPath + "/" + NGTQ::Quantizer::getInvertedIndexFile();
 	if (system(comrm.c_str()) == -1) {
-	  std::cerr << "Warning. cannot remove the indeverted index. " 
+	  std::cerr << "Warning. cannot remove the indeverted index. "
 		    << comrm << std::endl;
 	}
       }
@@ -1617,7 +1617,7 @@ namespace QBG {
 	char ngtDir[strlen(ngtDirString) + 1];
 	strcpy(ngtDir, ngtDirString);
 	std::string tmpDir = mkdtemp(ngtDir);
-	const std::string mvcom = "mv " + indexPath + "/" + NGTQ::Quantizer::getGlobalFile() 
+	const std::string mvcom = "mv " + indexPath + "/" + NGTQ::Quantizer::getGlobalFile()
 	  + " " + tmpDir + "/";
 	if (system(mvcom.c_str()) == -1) {
 	  std::stringstream msg;
@@ -1625,7 +1625,7 @@ namespace QBG {
 	  NGTThrowException(msg);
 	}
 
-	NGT::Index::append(tmpDir + "/" + NGTQ::Quantizer::getGlobalFile(), blobs, threadSize, dataSize);	
+	NGT::Index::append(tmpDir + "/" + NGTQ::Quantizer::getGlobalFile(), blobs, threadSize, dataSize);
 
 	auto unlog = false;
 	NGT::GraphOptimizer graphOptimizer(unlog);
@@ -1748,6 +1748,6 @@ namespace QBG {
 
   };
 
-} 
+}
 
-#endif 
+#endif

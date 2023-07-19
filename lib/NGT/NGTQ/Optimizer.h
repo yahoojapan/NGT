@@ -24,7 +24,7 @@
 #endif
 
 #ifndef NGTQ_BLAS_FOR_ROTATION
-#define NGT_DISABLE_BLAS  
+#define NGT_DISABLE_BLAS
 #endif
 
 #include "Matrix.h"
@@ -83,9 +83,9 @@ namespace QBG {
 
     static void
 #ifdef NGT_CLUSTERING
-      extractQuantizedVector(vector<vector<float>> &qvectors, vector<NGT::Clustering::Cluster> &clusters) 
+      extractQuantizedVector(vector<vector<float>> &qvectors, vector<NGT::Clustering::Cluster> &clusters)
 #else
-      extractQuantizedVector(vector<vector<float>> &qvectors, vector<Cluster> &clusters) 
+      extractQuantizedVector(vector<vector<float>> &qvectors, vector<Cluster> &clusters)
 #endif
     {
       for (size_t cidx = 0; cidx < clusters.size(); ++cidx) {
@@ -174,7 +174,7 @@ namespace QBG {
 	  abort();
 	}
       }
-#endif 
+#endif
     }
 
     void
@@ -232,11 +232,11 @@ namespace QBG {
 	vector<vector<Cluster>> localClusters(numberOfSubvectors);
 #endif
 	vector<vector<float>> subQuantizedVectors[numberOfSubvectors];
-#define ERROR_CALCULATION  
+#define ERROR_CALCULATION
 #ifdef ERROR_CALCULATION
 	vector<float> subvectorDistances(numberOfSubvectors);
 #endif
-#pragma omp parallel for 
+#pragma omp parallel for
 	for (size_t m = 0; m < numberOfSubvectors; m++) {
 	  vector<vector<float>> subVectors;
 	  extractSubvector(xp, subVectors, m * subvectorSize, subvectorSize);
@@ -310,7 +310,7 @@ namespace QBG {
       }
     }
 
-    void optimize(vector<vector<float>> &vectors, 
+    void optimize(vector<vector<float>> &vectors,
 		  Matrix<float> &reposition,
 		  vector<Matrix<float>> &rs,
 		  vector<vector<vector<NGT::Clustering::Cluster>>> &localClusters,
@@ -366,7 +366,7 @@ namespace QBG {
     void optimizeWithinIndex(std::string indexPath);
     void optimize(std::string invector, std::string ofile, std::string global);
     void optimize(vector<vector<float>> &vectors, vector<vector<float>> &globalCentroid, Matrix<float> &r, vector<vector<NGT::Clustering::Cluster>> &localClusters, vector<double> &errors);
-#endif 
+#endif
     NGT::Timer		timelimitTimer;
     size_t		subvectorSize;
 

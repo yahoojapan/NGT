@@ -26,8 +26,8 @@ using namespace std;
 using namespace NGT;
 
 
-void 
-Index::version(ostream &os) 
+void
+Index::version(ostream &os)
 {
   os << "libngt:" << endl;
   Version::get(os);
@@ -84,12 +84,12 @@ NGT::Index::Index(NGT::Property &prop):redirect(false) {
 }
 #endif
 
-float 
-NGT::Index::getEpsilonFromExpectedAccuracy(double accuracy) { 
+float
+NGT::Index::getEpsilonFromExpectedAccuracy(double accuracy) {
    return static_cast<NGT::GraphIndex&>(getIndex()).getEpsilonFromExpectedAccuracy(accuracy);
  }
 
-void 
+void
 NGT::Index::open(const string &database, bool rdOnly, bool graphDisabled) {
   NGT::Property prop;
   prop.load(database);
@@ -114,7 +114,7 @@ NGT::Index::open(const string &database, bool rdOnly, bool graphDisabled) {
   path = database;
 }
 
-void 
+void
 NGT::Index::createGraphAndTree(const string &database, NGT::Property &prop, const string &dataFile,
 			       size_t dataSize, bool redirect) {
   if (prop.dimension == 0) {
@@ -142,7 +142,7 @@ NGT::Index::createGraphAndTree(const string &database, NGT::Property &prop, cons
   redirector.end();
 }
 
-void 
+void
 NGT::Index::createGraph(const string &database, NGT::Property &prop, const string &dataFile, size_t dataSize, bool redirect) {
   if (prop.dimension == 0) {
     NGTThrowException("Index::createGraphAndTree. Dimension is not specified.");
@@ -169,7 +169,7 @@ NGT::Index::createGraph(const string &database, NGT::Property &prop, const strin
   redirector.end();
 }
 
-void 
+void
 NGT::Index::loadAndCreateIndex(Index &index, const string &database, const string &dataFile, size_t threadSize, size_t dataSize) {
   NGT::Timer timer;
   timer.start();
@@ -193,7 +193,7 @@ NGT::Index::loadAndCreateIndex(Index &index, const string &database, const strin
   cerr << "Index creation time=" << timer.time << " (sec) " << timer.time * 1000.0 << " (msec)" << endl;
 }
 
-void 
+void
 NGT::Index::append(const string &database, const string &dataFile, size_t threadSize, size_t dataSize) {
   NGT::Index	index(database);
   NGT::Timer	timer;
@@ -213,7 +213,7 @@ NGT::Index::append(const string &database, const string &dataFile, size_t thread
   return;
 }
 
-void 
+void
 NGT::Index::append(const string &database, const float *data, size_t dataSize, size_t threadSize) {
   NGT::Index	index(database);
   NGT::Timer	timer;
@@ -235,7 +235,7 @@ NGT::Index::append(const string &database, const float *data, size_t dataSize, s
   return;
 }
 
-void 
+void
 NGT::Index::remove(const string &database, vector<ObjectID> &objects, bool force) {
   NGT::Index	index(database);
   NGT::Timer	timer;
@@ -255,7 +255,7 @@ NGT::Index::remove(const string &database, vector<ObjectID> &objects, bool force
   return;
 }
 
-void 
+void
 NGT::Index::importIndex(const string &database, const string &file) {
   Index *idx = 0;
   NGT::Property property;
@@ -293,7 +293,7 @@ NGT::Index::importIndex(const string &database, const string &file) {
   delete idx;
 }
 
-void 
+void
 NGT::Index::exportIndex(const string &database, const string &file) {
   NGT::Index	idx(database);
   NGT::Timer	timer;
@@ -323,7 +323,7 @@ NGT::Index::makeSparseObject(std::vector<uint32_t> &object)
   return obj;
 }
 
-void 
+void
 NGT::Index::Property::set(NGT::Property &prop) {
   if (prop.dimension != -1) dimension = prop.dimension;
   if (prop.threadPoolSize != -1) threadPoolSize = prop.threadPoolSize;
@@ -343,7 +343,7 @@ NGT::Index::Property::set(NGT::Property &prop) {
   if (prop.accuracyTable != "") accuracyTable = prop.accuracyTable;
 }
 
-void 
+void
 NGT::Index::Property::get(NGT::Property &prop) {
   prop.dimension = dimension;
   prop.threadPoolSize = threadPoolSize;
@@ -426,7 +426,7 @@ CreateIndexThread::run() {
       stringstream msg;
       msg << "CreateIndex::search:Fatal error! ID=" << job.id << " " << err.what();
       NGTThrowException(msg);
-    } 
+    }
     job.results = rs;
     poolThread.getOutputJobQueue().pushBack(job);
   }
@@ -486,7 +486,7 @@ public:
   NeighborhoodGraph::Property &property;
 };
 
-void 
+void
 NGT::GraphIndex::constructObjectSpace(NGT::Property &prop) {
   assert(prop.dimension != 0);
   size_t dimension = prop.dimension;
@@ -509,7 +509,7 @@ NGT::GraphIndex::constructObjectSpace(NGT::Property &prop) {
   default:
     stringstream msg;
     msg << "Invalid Object Type in the property. " << prop.objectType;
-    NGTThrowException(msg);	
+    NGTThrowException(msg);
   }
 }
 
@@ -519,7 +519,7 @@ NGT::GraphIndex::loadGraph(const string &ifile, NGT::GraphRepository &graph) {
   graph.deserialize(isg);
 }
 
-void 
+void
 NGT::GraphIndex::loadIndex(const string &ifile, bool readOnly, bool graphDisabled) {
   objectSpace->deserialize(ifile + "/obj");
   if (graphDisabled) {
@@ -536,12 +536,12 @@ NGT::GraphIndex::loadIndex(const string &ifile, bool readOnly, bool graphDisable
 #endif
 }
 
-void 
+void
 NGT::GraphIndex::saveProperty(const std::string &file) {
   NGT::Property::save(*this, file);
 }
 
-void 
+void
 NGT::GraphIndex::exportProperty(const std::string &file) {
   NGT::Property::exportProperty(*this, file);
 }
@@ -564,8 +564,8 @@ NGT::GraphAndTreeIndex::GraphAndTreeIndex(const string &allocator, NGT::Property
   initialize(allocator, prop.treeSharedMemorySize);
 }
 
-void 
-GraphAndTreeIndex::createTreeIndex() 
+void
+GraphAndTreeIndex::createTreeIndex()
 {
   ObjectRepository &fr = GraphIndex::objectSpace->getRepository();
   for (size_t id = 0; id < fr.size(); id++){
@@ -593,7 +593,7 @@ GraphAndTreeIndex::createTreeIndex()
   }
 }
 
-void 
+void
 NGT::GraphIndex::initialize(const string &allocator, NGT::Property &prop) {
   constructObjectSpace(prop);
   repository.open(allocator + "/grp", prop.graphSharedMemorySize);
@@ -646,9 +646,9 @@ GraphIndex::createIndex()
 }
 
 static size_t
-searchMultipleQueryForCreation(GraphIndex &neighborhoodGraph, 
-			       NGT::ObjectID &id, 
-			       CreateIndexJob &job, 
+searchMultipleQueryForCreation(GraphIndex &neighborhoodGraph,
+			       NGT::ObjectID &id,
+			       CreateIndexJob &job,
 			       CreateIndexThreadPool &threads,
 			       size_t sizeOfRepository)
 {
@@ -685,8 +685,8 @@ searchMultipleQueryForCreation(GraphIndex &neighborhoodGraph,
 }
 
 static void
-insertMultipleSearchResults(GraphIndex &neighborhoodGraph, 
-			    CreateIndexThreadPool::OutputJobQueue &output, 
+insertMultipleSearchResults(GraphIndex &neighborhoodGraph,
+			    CreateIndexThreadPool::OutputJobQueue &output,
 			    size_t dataSize)
 {
   // compute distances among all of the resultant objects
@@ -712,7 +712,7 @@ insertMultipleSearchResults(GraphIndex &neighborhoodGraph,
 	r.id = output[idxj].id;
 	objs.push_back(r);
       }
-      // sort and cut excess edges	    
+      // sort and cut excess edges
       std::sort(objs.begin(), objs.end());
       if (objs.size() > size) {
 	objs.resize(size);
@@ -741,8 +741,8 @@ insertMultipleSearchResults(GraphIndex &neighborhoodGraph,
   }
 }
 
-void 
-GraphIndex::createIndex(size_t threadPoolSize, size_t sizeOfRepository) 
+void
+GraphIndex::createIndex(size_t threadPoolSize, size_t sizeOfRepository)
 {
   if (NeighborhoodGraph::property.edgeSizeForCreation == 0) {
     return;
@@ -820,7 +820,7 @@ void GraphIndex::setupPrefetch(NGT::Property &prop) {
   prop.prefetchSize = GraphIndex::objectSpace->setPrefetchSize(prop.prefetchSize);
 }
 
-bool 
+bool
 NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode, size_t edgeSize)
 {
   long double distance = 0.0;
@@ -915,7 +915,7 @@ NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode, siz
 	continue;
       }
       NGT::GraphNode &node = *n;
-      for (size_t i = 0; i < node.size(); i++) {  
+      for (size_t i = 0; i < node.size(); i++) {
 	NGT::GraphNode *nn = 0;
 	try {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
@@ -926,16 +926,16 @@ NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode, siz
 	} catch(NGT::Exception &err) {
 	  count++;
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-	  std::cerr << "Directed edge! " << id << "->" << node.at(i, graph.allocator).id << " no object. " 
-		    << node.at(i, graph.allocator).id << std::endl; 
+	  std::cerr << "Directed edge! " << id << "->" << node.at(i, graph.allocator).id << " no object. "
+		    << node.at(i, graph.allocator).id << std::endl;
 #else
-	  std::cerr << "Directed edge! " << id << "->" << node[i].id << " no object. " << node[i].id << std::endl; 
+	  std::cerr << "Directed edge! " << id << "->" << node[i].id << " no object. " << node[i].id << std::endl;
 #endif
 	  continue;
 	}
 	NGT::GraphNode &nnode = *nn;
 	bool found = false;
-	for (size_t i = 0; i < nnode.size(); i++) {  
+	for (size_t i = 0; i < nnode.size(); i++) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
 	  if (nnode.at(i, graph.allocator).id == id) {
 #else
@@ -947,10 +947,10 @@ NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode, siz
 	}
 	if (!found) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-	    std::cerr << "Directed edge! " << id << "->" << node.at(i, graph.allocator).id << " no edge. " 
-		      << node.at(i, graph.allocator).id << "->" << id << std::endl; 
+	    std::cerr << "Directed edge! " << id << "->" << node.at(i, graph.allocator).id << " no edge. "
+		      << node.at(i, graph.allocator).id << "->" << id << std::endl;
 #else
-	    std::cerr << "Directed edge! " << id << "->" << node[i].id << " no edge. " << node[i].id << "->" << id << std::endl; 
+	    std::cerr << "Directed edge! " << id << "->" << node[i].id << " no edge. " << node[i].id << "->" << id << std::endl;
 #endif
 	    count++;
 	}
@@ -980,7 +980,7 @@ NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode, siz
       d10SkipCount++;
       continue;
     }
-    for (size_t i = 0; i < node.size(); i++) {  
+    for (size_t i = 0; i < node.size(); i++) {
       if (i >= dcsize) {
 	break;
       }
@@ -1005,7 +1005,7 @@ NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode, siz
       continue;
     }
     std::sort(node.begin(), node.end());
-    for (size_t i = 0; i < node.size(); i++) {  
+    for (size_t i = 0; i < node.size(); i++) {
       if (i > 0 && node[i - 1] > node[i]) {
 	stringstream msg;
 	msg << "Index::showStatisticsOfGraph: Fatal inner error! Wrong distance order " << node[i - 1] << ":" << node[i];
@@ -1037,7 +1037,7 @@ NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode, siz
     }
     size_t esize = node->size();
     sumOfSquareOfOutdegree += ((double)esize - averageNumberOfOutdegree) * ((double)esize - averageNumberOfOutdegree);
-    sumOfSquareOfIndegree += ((double)indegreeCount[id] - averageNumberOfOutdegree) * ((double)indegreeCount[id] - averageNumberOfOutdegree);	
+    sumOfSquareOfIndegree += ((double)indegreeCount[id] - averageNumberOfOutdegree) * ((double)indegreeCount[id] - averageNumberOfOutdegree);
   }
 
   size_t numberOfNodesWithoutIndegree = 0;
@@ -1157,13 +1157,13 @@ NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode, siz
     std::cerr << "The minimum of the indegrees:\t" << minNumberOfIndegree << std::endl;
   }
   std::cerr << "#-nodes,#-edges,#-no-indegree,avg-edges,avg-dist,max-out,min-out,v-out,max-in,min-in,v-in,med-out,"
-    "med-in,mode-out,mode-in,c95,c5,o-distance(10),o-skip,i-distance(10),i-skip:" 
-	    << numberOfNodes << ":" << numberOfOutdegree << ":" << numberOfNodesWithoutIndegree << ":" 
+    "med-in,mode-out,mode-in,c95,c5,o-distance(10),o-skip,i-distance(10),i-skip:"
+	    << numberOfNodes << ":" << numberOfOutdegree << ":" << numberOfNodesWithoutIndegree << ":"
 	    << std::setprecision(10) << (double)numberOfOutdegree / (double)numberOfNodes << ":"
 	    << distance / (double)numberOfOutdegree << ":"
 	    << maxNumberOfOutdegree << ":" << minNumberOfOutdegree << ":" << sumOfSquareOfOutdegree / (double)numberOfOutdegree<< ":"
 	    << maxNumberOfIndegree << ":" << minNumberOfIndegree << ":" << sumOfSquareOfIndegree / (double)numberOfOutdegree << ":"
-	    << medianOutdegree << ":" << medianIndegree << ":" << modeOutdegree << ":" << modeIndegree 
+	    << medianOutdegree << ":" << medianIndegree << ":" << modeOutdegree << ":" << modeIndegree
 	    << ":" << c95 << ":" << c5 << ":" << c99 << ":" << c1 << ":" << distance10 << ":" << d10SkipCount << ":"
 	    << indegreeDistance10 << ":" << ind10SkipCount << std::endl;
   if (mode == 'h') {
@@ -1183,8 +1183,8 @@ NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode, siz
 }
 
 
-void 
-GraphAndTreeIndex::createIndex(size_t threadPoolSize, size_t sizeOfRepository) 
+void
+GraphAndTreeIndex::createIndex(size_t threadPoolSize, size_t sizeOfRepository)
 {
   assert(threadPoolSize > 0);
 
@@ -1285,9 +1285,9 @@ GraphAndTreeIndex::createIndex(size_t threadPoolSize, size_t sizeOfRepository)
 }
 
 
-void 
-GraphAndTreeIndex::createIndex(const vector<pair<NGT::Object*, size_t> > &objects, 
-			       vector<InsertionResult> &ids, 
+void
+GraphAndTreeIndex::createIndex(const vector<pair<NGT::Object*, size_t> > &objects,
+			       vector<InsertionResult> &ids,
 			       float range, size_t threadPoolSize)
 {
   Timer		timer;
@@ -1327,7 +1327,7 @@ GraphAndTreeIndex::createIndex(const vector<pair<NGT::Object*, size_t> > &object
 	      idx++;
 	      break;
 	    }
-	  } 
+	  }
 	}
 	if (cnt == 0) {
 	  break;
@@ -1377,7 +1377,7 @@ GraphAndTreeIndex::createIndex(const vector<pair<NGT::Object*, size_t> > &object
 #endif
 	      ids[output[idxi].batchIdx].id = output[idxi].id;
 	    }
-	  } 
+	  }
 	}
 	// insert resultant objects into the graph as edges
 	for (size_t i = 0; i < cnt; i++) {
@@ -1417,7 +1417,7 @@ GraphAndTreeIndex::createIndex(const vector<pair<NGT::Object*, size_t> > &object
 	      msg << " Cannot insert the node. " << job.id << ". " << err.what();
 	      NGTThrowException(msg);
 	    }
-	  } 
+	  }
 	  if (job.results != 0) {
 	    delete job.results;
 	  }
@@ -1441,7 +1441,7 @@ GraphAndTreeIndex::createIndex(const vector<pair<NGT::Object*, size_t> > &object
   }
 }
 
-static bool 
+static bool
 findPathAmongIdenticalObjects(GraphAndTreeIndex &graph, size_t srcid, size_t dstid) {
   stack<size_t> nodes;
   unordered_set<size_t> done;
@@ -1470,7 +1470,7 @@ findPathAmongIdenticalObjects(GraphAndTreeIndex &graph, size_t srcid, size_t dst
   return false;
 }
 
-bool 
+bool
 GraphAndTreeIndex::verify(vector<uint8_t> &status, bool info, char mode) {
   bool valid = GraphIndex::verify(status, info);
   if (!valid) {
@@ -1608,13 +1608,13 @@ GraphAndTreeIndex::verify(vector<uint8_t> &status, bool info, char mode) {
 	  if (!fromFound || !toFound) {
 	    if (info) {
 	      if (!fromFound && !toFound) {
-		cerr << "Warning no undirected edge between " << id << "(" << fromNode.size() << ") and " 
+		cerr << "Warning no undirected edge between " << id << "(" << fromNode.size() << ") and "
 		     << objects[n].id << "(" << toNode.size() << ")." << endl;
 	      } else if (!fromFound) {
-		cerr << "Warning no directed edge from " << id << "(" << fromNode.size() << ") to " 
+		cerr << "Warning no directed edge from " << id << "(" << fromNode.size() << ") to "
 		     << objects[n].id << "(" << toNode.size() << ")." << endl;
 	      } else if (!toFound) {
-		cerr << "Warning no reverse directed edge from " << id << "(" << fromNode.size() << ") to " 
+		cerr << "Warning no reverse directed edge from " << id << "(" << fromNode.size() << ") to "
 		     << objects[n].id << "(" << toNode.size() << ")." << endl;
 	      }
 	    }

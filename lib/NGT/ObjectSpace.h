@@ -29,7 +29,7 @@ namespace NGT {
     void serialize(std::ofstream &os, ObjectSpace *objspace = 0) { NGT::Serializer::write(os, (std::vector<ObjectDistance>&)*this);}
     void deserialize(std::ifstream &is, ObjectSpace *objspace = 0) { NGT::Serializer::read(is, (std::vector<ObjectDistance>&)*this);}
 
-    void serializeAsText(std::ofstream &os, ObjectSpace *objspace = 0) { 
+    void serializeAsText(std::ofstream &os, ObjectSpace *objspace = 0) {
       NGT::Serializer::writeAsText(os, size());
       os << " ";
       for (size_t i = 0; i < size(); i++) {
@@ -39,7 +39,7 @@ namespace NGT {
     }
     void deserializeAsText(std::ifstream &is, ObjectSpace *objspace = 0) {
       size_t s;
-      NGT::Serializer::readAsText(is, s);     
+      NGT::Serializer::readAsText(is, s);
       resize(s);
       for (size_t i = 0; i < size(); i++) {
 	(*this)[i].deserializeAsText(is);
@@ -96,7 +96,7 @@ namespace NGT {
     PersistentObjectDistances(SharedMemoryAllocator &allocator, NGT::ObjectSpace *os = 0) {}
     void serialize(std::ofstream &os, ObjectSpace *objectspace = 0) { NGT::Serializer::write(os, (Vector<ObjectDistance>&)*this); }
     void deserialize(std::ifstream &is, ObjectSpace *objectspace = 0) { NGT::Serializer::read(is, (Vector<ObjectDistance>&)*this); }
-    void serializeAsText(std::ofstream &os, SharedMemoryAllocator &allocator, ObjectSpace *objspace = 0) { 
+    void serializeAsText(std::ofstream &os, SharedMemoryAllocator &allocator, ObjectSpace *objspace = 0) {
       NGT::Serializer::writeAsText(os, size());
       os << " ";
       for (size_t i = 0; i < size(); i++) {
@@ -221,7 +221,7 @@ namespace NGT {
 
     virtual void copy(Object &objecta, Object &objectb) = 0;
 
-    virtual void linearSearch(Object &query, double radius, size_t size,  
+    virtual void linearSearch(Object &query, double radius, size_t size,
 			      ObjectSpace::ResultSet &results) = 0;
 
     virtual const std::type_info &getObjectType() = 0;
@@ -301,41 +301,41 @@ namespace NGT {
   class BaseObject {
   public:
     virtual uint8_t &operator[](size_t idx) const = 0;
-    void serialize(std::ostream &os, ObjectSpace *objectspace = 0) { 
+    void serialize(std::ostream &os, ObjectSpace *objectspace = 0) {
       assert(objectspace != 0);
       size_t byteSize = objectspace->getByteSizeOfObject();
-      NGT::Serializer::write(os, (uint8_t*)&(*this)[0], byteSize); 
+      NGT::Serializer::write(os, (uint8_t*)&(*this)[0], byteSize);
     }
-    void deserialize(std::istream &is, ObjectSpace *objectspace = 0) { 
+    void deserialize(std::istream &is, ObjectSpace *objectspace = 0) {
       assert(objectspace != 0);
       size_t byteSize = objectspace->getByteSizeOfObject();
       assert(&(*this)[0] != 0);
-      NGT::Serializer::read(is, (uint8_t*)&(*this)[0], byteSize); 
+      NGT::Serializer::read(is, (uint8_t*)&(*this)[0], byteSize);
       if (is.eof()) {
 	std::stringstream msg;
 	msg << "ObjectSpace::BaseObject: Fatal Error! Read beyond the end of the object file. The object file is corrupted?" << byteSize;
 	NGTThrowException(msg);
       }
     }
-    void serializeAsText(std::ostream &os, ObjectSpace *objectspace = 0) { 
+    void serializeAsText(std::ostream &os, ObjectSpace *objectspace = 0) {
       assert(objectspace != 0);
       const std::type_info &t = objectspace->getObjectType();
       size_t dimension = objectspace->getDimension();
       void *ref = (void*)&(*this)[0];
       if (t == typeid(uint8_t)) {
-	NGT::Serializer::writeAsText(os, (uint8_t*)ref, dimension); 
+	NGT::Serializer::writeAsText(os, (uint8_t*)ref, dimension);
       } else if (t == typeid(float)) {
-	NGT::Serializer::writeAsText(os, (float*)ref, dimension); 
+	NGT::Serializer::writeAsText(os, (float*)ref, dimension);
 #ifdef NGT_HALF_FLOAT
       } else if (t == typeid(float16)) {
-	NGT::Serializer::writeAsText(os, (float16*)ref, dimension); 
+	NGT::Serializer::writeAsText(os, (float16*)ref, dimension);
 #endif
       } else if (t == typeid(double)) {
-	NGT::Serializer::writeAsText(os, (double*)ref, dimension); 
+	NGT::Serializer::writeAsText(os, (double*)ref, dimension);
       } else if (t == typeid(uint16_t)) {
-	NGT::Serializer::writeAsText(os, (uint16_t*)ref, dimension); 
+	NGT::Serializer::writeAsText(os, (uint16_t*)ref, dimension);
       } else if (t == typeid(uint32_t)) {
-	NGT::Serializer::writeAsText(os, (uint32_t*)ref, dimension); 
+	NGT::Serializer::writeAsText(os, (uint32_t*)ref, dimension);
       } else {
 	std::cerr << "Object::serializeAsText: not supported data type. [" << t.name() << "]" << std::endl;
 	assert(0);
@@ -348,19 +348,19 @@ namespace NGT {
       void *ref = (void*)&(*this)[0];
       assert(ref != 0);
       if (t == typeid(uint8_t)) {
-	NGT::Serializer::readAsText(is, (uint8_t*)ref, dimension); 
+	NGT::Serializer::readAsText(is, (uint8_t*)ref, dimension);
       } else if (t == typeid(float)) {
-	NGT::Serializer::readAsText(is, (float*)ref, dimension); 
+	NGT::Serializer::readAsText(is, (float*)ref, dimension);
 #ifdef NGT_HALF_FLOAT
       } else if (t == typeid(float16)) {
-	NGT::Serializer::readAsText(is, (float16*)ref, dimension); 
+	NGT::Serializer::readAsText(is, (float16*)ref, dimension);
 #endif
       } else if (t == typeid(double)) {
-	NGT::Serializer::readAsText(is, (double*)ref, dimension); 
+	NGT::Serializer::readAsText(is, (double*)ref, dimension);
       } else if (t == typeid(uint16_t)) {
-	NGT::Serializer::readAsText(is, (uint16_t*)ref, dimension); 
+	NGT::Serializer::readAsText(is, (uint16_t*)ref, dimension);
       } else if (t == typeid(uint32_t)) {
-	NGT::Serializer::readAsText(is, (uint32_t*)ref, dimension); 
+	NGT::Serializer::readAsText(is, (uint32_t*)ref, dimension);
       } else {
 	std::cerr << "Object::deserializeAsText: not supported data type. [" << t.name() << "]" << std::endl;
 	assert(0);
@@ -483,7 +483,7 @@ namespace NGT {
 
     ~PersistentObject() {}
 
-    uint8_t &at(size_t idx, SharedMemoryAllocator &allocator) const { 
+    uint8_t &at(size_t idx, SharedMemoryAllocator &allocator) const {
       uint8_t *a = (uint8_t *)allocator.getAddr(array);
       return a[idx];
     }
@@ -496,7 +496,7 @@ namespace NGT {
 
     void *getPointer(size_t idx, SharedMemoryAllocator &allocator) {
       uint8_t *a = (uint8_t *)allocator.getAddr(array);
-      return a + idx; 
+      return a + idx;
     }
 
     // set v in objectspace to this object using allocator.
@@ -504,22 +504,22 @@ namespace NGT {
 
     static off_t allocate(ObjectSpace &objectspace);
 
-    void serializeAsText(std::ostream &os, SharedMemoryAllocator &allocator, 
-			 ObjectSpace *objectspace = 0) { 
+    void serializeAsText(std::ostream &os, SharedMemoryAllocator &allocator,
+			 ObjectSpace *objectspace = 0) {
       serializeAsText(os, objectspace);
     }
 
     void serializeAsText(std::ostream &os, ObjectSpace *objectspace = 0);
 
-    void deserializeAsText(std::ifstream &is, SharedMemoryAllocator &allocator, 
+    void deserializeAsText(std::ifstream &is, SharedMemoryAllocator &allocator,
 			   ObjectSpace *objectspace = 0) {
       deserializeAsText(is, objectspace);
     }
 
     void deserializeAsText(std::ifstream &is, ObjectSpace *objectspace = 0);
 
-    void serialize(std::ostream &os, SharedMemoryAllocator &allocator, 
-		   ObjectSpace *objectspace = 0) { 
+    void serialize(std::ostream &os, SharedMemoryAllocator &allocator,
+		   ObjectSpace *objectspace = 0) {
       std::cerr << "serialize is not implemented" << std::endl;
       assert(0);
     }

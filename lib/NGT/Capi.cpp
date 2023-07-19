@@ -930,7 +930,7 @@ float* ngt_get_object_as_float(NGTObjectSpace object_space, ObjectID id, NGTErro
   auto os = static_cast<NGT::ObjectSpace*>(object_space);
   if (os->getObjectType() != typeid(float)) {
     std::stringstream ss;
-    ss << "Capi : " << __FUNCTION__ << "() : Error: Not available for the object type of the index. " 
+    ss << "Capi : " << __FUNCTION__ << "() : Error: Not available for the object type of the index. "
        << os->getObjectType().name();
     operate_error_string_(ss, error);
     return NULL;
@@ -942,7 +942,7 @@ NGTFloat16* ngt_get_object_as_float16(NGTObjectSpace object_space, ObjectID id, 
   auto os = static_cast<NGT::ObjectSpace*>(object_space);
   if (os->getObjectType() != typeid(NGT::float16)) {
     std::stringstream ss;
-    ss << "Capi : " << __FUNCTION__ << "() : Error: Not available for the object type of the index. " 
+    ss << "Capi : " << __FUNCTION__ << "() : Error: Not available for the object type of the index. "
        << os->getObjectType().name();
     operate_error_string_(ss, error);
     return NULL;
@@ -954,7 +954,7 @@ uint8_t* ngt_get_object_as_integer(NGTObjectSpace object_space, ObjectID id, NGT
   auto os = static_cast<NGT::ObjectSpace*>(object_space);
   if (os->getObjectType() != typeid(uint8_t)) {
     std::stringstream ss;
-    ss << "Capi : " << __FUNCTION__ << "() : Error: Not available for the object type of the index. " 
+    ss << "Capi : " << __FUNCTION__ << "() : Error: Not available for the object type of the index. "
        << os->getObjectType().name();
     operate_error_string_(ss, error);
     return NULL;
@@ -974,7 +974,7 @@ float* ngt_get_allocated_object_as_float(NGTObjectSpace object_space, ObjectID i
     return NULL;
   }
   auto sizeOfObject = sizeof(float) * v.size();
-  auto fv = static_cast<float*>(malloc(sizeOfObject));  
+  auto fv = static_cast<float*>(malloc(sizeOfObject));
   if (fv == NULL) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: Cannot allocate a vector.";

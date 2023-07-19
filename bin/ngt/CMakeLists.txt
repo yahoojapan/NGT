@@ -5,7 +5,7 @@ if( ${UNIX} )
 
 	add_executable(ngt_exe ngt.cpp)
 	add_dependencies(ngt_exe ngt)
-        set_target_properties(ngt_exe PROPERTIES OUTPUT_NAME ngt) 
+        set_target_properties(ngt_exe PROPERTIES OUTPUT_NAME ngt)
 	if(CMAKE_VERSION VERSION_LESS 3.1)
 		target_link_libraries(ngt_exe ngt pthread)
 	else()

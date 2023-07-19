@@ -112,7 +112,7 @@ public:
   }
 
   void batchInsert(
-   py::array_t<double> objects, 
+   py::array_t<double> objects,
    size_t numThreads = 16,
    bool debug = false
   ) {
@@ -135,7 +135,7 @@ public:
   }
 
   int insert(
-   py::array_t<double> object, 
+   py::array_t<double> object,
    bool debug = false
   ) {
     py::buffer_info info = object.request();
@@ -197,7 +197,7 @@ public:
       NGT::ResultPriorityQueue &r = sc.getWorkingResult();
       py::array_t<int> ids(r.size());
       py::buffer_info idsinfo = ids.request();
-      int *endptr = reinterpret_cast<int*>(idsinfo.ptr); 
+      int *endptr = reinterpret_cast<int*>(idsinfo.ptr);
       int *ptr = endptr + (r.size() - 1);
       if (zeroNumbering) {
         while (ptr >= endptr) {
@@ -261,7 +261,7 @@ public:
     if (!withDistance) {
       py::array_t<int> ids(rs.size());
       py::buffer_info idsinfo = ids.request();
-      int *ptr = reinterpret_cast<int*>(idsinfo.ptr); 
+      int *ptr = reinterpret_cast<int*>(idsinfo.ptr);
       if (zeroNumbering) {
 	for (auto ri = rs.begin(); ri != rs.end(); ++ri) {
 	  *ptr++ = (*ri).id - 1;
@@ -359,7 +359,7 @@ public:
 
 class Optimizer : public NGT::GraphOptimizer {
 public:
-  using NGT::GraphOptimizer::GraphOptimizer; 
+  using NGT::GraphOptimizer::GraphOptimizer;
 
   int optimizeNumberOfEdgesForANNG(
     const std::string path,		// anng index path
@@ -445,7 +445,7 @@ public:
 	NGT::ResultPriorityQueue &r = sc.getWorkingResult();
 	py::array_t<int> ids(r.size());
 	py::buffer_info idsinfo = ids.request();
-	int *endptr = reinterpret_cast<int*>(idsinfo.ptr); 
+	int *endptr = reinterpret_cast<int*>(idsinfo.ptr);
 	int *ptr = endptr + (r.size() - 1);
 	if (zeroNumbering) {
 	  while (ptr >= endptr) {
@@ -646,7 +646,7 @@ public:
   }
 
   void batchInsert(
-   py::array_t<double> objects, 
+   py::array_t<double> objects,
    bool debug = false
   ) {
     py::buffer_info info = objects.request();
@@ -881,7 +881,7 @@ public:
 	NGT::ResultPriorityQueue &r = sc.getWorkingResult();
 	py::array_t<int> ids(r.size());
 	py::buffer_info idsinfo = ids.request();
-	int *endptr = reinterpret_cast<int*>(idsinfo.ptr); 
+	int *endptr = reinterpret_cast<int*>(idsinfo.ptr);
 	int *ptr = endptr + (r.size() - 1);
 	if (zeroNumbering) {
 	  while (ptr >= endptr) {
@@ -974,31 +974,31 @@ PYBIND11_MODULE(ngtpy, m) {
 
     m.attr("__version__") = NGT_VERSION;
 
-    m.def("create", &::Index::create, 
-          py::arg("path"), 
-          py::arg("dimension"), 
-          py::arg("edge_size_for_creation") = 10, 
-          py::arg("edge_size_for_search") = 40, 
-          py::arg("distance_type") = "L2", 
+    m.def("create", &::Index::create,
+          py::arg("path"),
+          py::arg("dimension"),
+          py::arg("edge_size_for_creation") = 10,
+          py::arg("edge_size_for_search") = 40,
+          py::arg("distance_type") = "L2",
           py::arg("object_type") = "Float");
 
     py::class_<Index>(m, "Index")
-      .def(py::init<const std::string &, bool, bool, bool, bool>(), 
+      .def(py::init<const std::string &, bool, bool, bool, bool>(),
            py::arg("path"),
            py::arg("read_only") = false,
            py::arg("zero_based_numbering") = true,
 	   py::arg("tree_disabled") = false,
            py::arg("log_disabled") = false)
-      .def("search", &::Index::search, 
-           py::arg("query"), 
-           py::arg("size") = 0, 
-           py::arg("epsilon") = -FLT_MAX, 
+      .def("search", &::Index::search,
+           py::arg("query"),
+           py::arg("size") = 0,
+           py::arg("epsilon") = -FLT_MAX,
            py::arg("edge_size") = INT_MIN,
-           py::arg("expected_accuracy") = -FLT_MAX, 
+           py::arg("expected_accuracy") = -FLT_MAX,
            py::arg("with_distance") = true)
-      .def("linear_search", &::Index::linearSearch, 
-           py::arg("query"), 
-           py::arg("size") = 0, 
+      .def("linear_search", &::Index::linearSearch,
+           py::arg("query"),
+           py::arg("size") = 0,
            py::arg("with_distance") = true)
       .def("get_num_of_distance_computations", &::Index::getNumOfDistanceComputations)
       .def("save", (void (NGT::Index::*)()) &NGT::Index::save)
@@ -1032,9 +1032,9 @@ PYBIND11_MODULE(ngtpy, m) {
 	   py::arg("epsilon") = -FLT_MAX,
 	   py::arg("edge_size") = INT_MIN,
 	   py::arg("expected_accuracy") = -FLT_MAX)
-      .def("export_index", (void (NGT::Index::*)(const std::string&)) &NGT::Index::exportIndex, 
+      .def("export_index", (void (NGT::Index::*)(const std::string&)) &NGT::Index::exportIndex,
            py::arg("path"))
-      .def("import_index", (void (NGT::Index::*)(const std::string&)) &NGT::Index::importIndex, 
+      .def("import_index", (void (NGT::Index::*)(const std::string&)) &NGT::Index::importIndex,
            py::arg("path"));
 
     py::class_<Optimizer>(m, "Optimizer")
@@ -1050,10 +1050,10 @@ PYBIND11_MODULE(ngtpy, m) {
 	   py::arg("gt_epsilon") = -DBL_MAX,
 	   py::arg("margin") = -1.0,
 	   py::arg("log_disabled") = false)
-      .def("execute", &NGT::GraphOptimizer::execute, 
+      .def("execute", &NGT::GraphOptimizer::execute,
 	   py::arg("in_path"),
 	   py::arg("out_path"))
-      .def("adjust_search_coefficients", &NGT::GraphOptimizer::adjustSearchCoefficients, 
+      .def("adjust_search_coefficients", &NGT::GraphOptimizer::adjustSearchCoefficients,
 	   py::arg("path"))
       .def("set", (void (NGT::GraphOptimizer::*)(int, int, int, int, float, float, float, float,
 						 double, double)) &NGT::GraphOptimizer::set,
@@ -1072,7 +1072,7 @@ PYBIND11_MODULE(ngtpy, m) {
 	   py::arg("search_parameter_optimization") = true,
 	   py::arg("prefetch_parameter_optimization") = true,
 	   py::arg("accuracy_table_generation") = true)
-      .def("optimize_search_parameters", &NGT::GraphOptimizer::optimizeSearchParameters, 
+      .def("optimize_search_parameters", &NGT::GraphOptimizer::optimizeSearchParameters,
 	   py::arg("path"))
       .def("optimize_number_of_edges_for_anng", &::Optimizer::optimizeNumberOfEdgesForANNG,
 	   py::arg("path"),
@@ -1085,7 +1085,7 @@ PYBIND11_MODULE(ngtpy, m) {
 	   py::arg("max_num_of_edges") = -1);
 
     py::class_<QuantizedIndex>(m, "QuantizedIndex")
-      .def(py::init<const std::string &, size_t, bool, bool, bool>(), 
+      .def(py::init<const std::string &, size_t, bool, bool, bool>(),
            py::arg("path"),
 	   py::arg("max_no_of_edges") = 128,
            py::arg("zero_based_numbering") = true,
@@ -1115,7 +1115,7 @@ PYBIND11_MODULE(ngtpy, m) {
 
 
     py::class_<QuantizedBlobIndex>(m, "QuantizedBlobIndex")
-      .def(py::init<const std::string &, size_t, bool, bool, bool, bool>(), 
+      .def(py::init<const std::string &, size_t, bool, bool, bool, bool>(),
            py::arg("path"),
 	   py::arg("max_no_of_edges") = 128,
            py::arg("zero_based_numbering") = true,

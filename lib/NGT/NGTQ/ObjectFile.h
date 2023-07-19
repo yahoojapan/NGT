@@ -72,7 +72,7 @@ class ObjectFile : public ArrayFile<NGT::Object> {
     default:
       stringstream msg;
       msg << "ObjectFile::Invalid Object Type in the property. " << dataType;
-      NGTThrowException(msg);	
+      NGTThrowException(msg);
       break;
     }
     return true;
@@ -131,7 +131,7 @@ class ObjectFile : public ArrayFile<NGT::Object> {
     if (objectSpace == 0) {
       stringstream msg;
       msg << "ObjectFile::Fatal Error. objectSpace is not set." << std::endl;
-      NGTThrowException(msg);	
+      NGTThrowException(msg);
     }
     NGT::Object *object = objectSpace->allocateObject();
     if (!ArrayFile<NGT::Object>::get(id, *object, objectSpace)) {
@@ -171,12 +171,12 @@ class ObjectFile : public ArrayFile<NGT::Object> {
     if (objectSpace == 0) {
       stringstream msg;
       msg << "ObjectFile::Fatal Error. objectSpace is not set." << std::endl;
-      NGTThrowException(msg);	
+      NGTThrowException(msg);
     }
     if (objectSpace->getDimension() != data.size()) {
       stringstream msg;
       msg << "ObjectFile::Dimensions are inconsistency. " << objectSpace->getDimension() << ":" << data.size();
-      NGTThrowException(msg);	
+      NGTThrowException(msg);
     }
     NGT::Object *object = objectSpace->allocateObject();
     const std::type_info &otype = objectSpace->getObjectType();
@@ -362,7 +362,7 @@ public:
 };
 
 
-// constructor 
+// constructor
 template <class TYPE>
 StaticObjectFile<TYPE>::StaticObjectFile()
   : _isOpen(false) {
@@ -440,7 +440,7 @@ bool StaticObjectFile<TYPE>::open(const std::string &file, size_t pseudoDimensio
   }
   _stream.open(_objectPath, std::ios::in);
   if(!_stream){
-    _isOpen = false;    
+    _isOpen = false;
     return false;
   }
   _isOpen = true;
@@ -449,12 +449,12 @@ bool StaticObjectFile<TYPE>::open(const std::string &file, size_t pseudoDimensio
   if (_fileHead.noOfObjects != noOfObjects) {
     stringstream msg;
     msg << "Invalid # of objects=" << _fileHead.noOfObjects << ":" << noOfObjects;
-    NGTThrowException(msg);	
+    NGTThrowException(msg);
   }
   if (_fileHead.noOfDimensions != noOfDimensions) {
     stringstream msg;
     msg << "Invalid # of dimensions=" << _fileHead.noOfDimensions << ":" << noOfDimensions;
-    NGTThrowException(msg);	
+    NGTThrowException(msg);
   }
   _recordSize = _sizeOfElement * _fileHead.noOfDimensions;
   return ret;
@@ -539,7 +539,7 @@ bool StaticObjectFile<TYPE>::get(size_t id, std::vector<float> &data, NGT::Objec
   }
   //uint64_t offset_pos = (id * (sizeof(RecordStruct) + _fileHead.recordSize)) + sizeof(FileHeadStruct);
   uint64_t offset_pos = id * _recordSize + sizeof(FileHeadStruct);
-  //offset_pos += sizeof(RecordStruct);  
+  //offset_pos += sizeof(RecordStruct);
   _stream.seekg(offset_pos, std::ios::beg);
   if (!_stream.fail()) {
     switch (_type) {
@@ -600,7 +600,7 @@ size_t StaticObjectFile<TYPE>::size()
   int64_t offset_pos = _stream.tellg();
   offset_pos -= sizeof(FileHeadStruct);
   size_t num = offset_pos / _recordSize;
-  num++; 
+  num++;
   return num;
 }
 

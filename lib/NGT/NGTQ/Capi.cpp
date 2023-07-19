@@ -29,7 +29,7 @@
 #ifdef NGTQ_QBG
 
 static bool operate_error_string_(const std::stringstream &ss, NGTError error){
-  if(error != NULL){  
+  if(error != NULL){
     try{
       std::string *error_str = static_cast<std::string*>(error);
       *error_str = ss.str();
@@ -94,7 +94,7 @@ bool ngtqg_search_index(NGTQGIndex index, NGTQGQuery query, NGTObjectDistances r
     return false;
   }
   
-  NGTQG::Index* pindex = static_cast<NGTQG::Index*>(index);   
+  NGTQG::Index* pindex = static_cast<NGTQG::Index*>(index);
   int32_t dim = pindex->getObjectSpace().getDimension();
 
   NGT::Object *ngtquery = NULL;
@@ -130,7 +130,7 @@ bool ngtqg_quantize(const char *indexPath, NGTQGQuantizationParameters parameter
   }catch(std::exception &err){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-    operate_error_string_(ss, error);    
+    operate_error_string_(ss, error);
     return false;
   }
 }
@@ -170,13 +170,13 @@ bool qbg_create(const char *indexPath, QBGConstructionParameters *parameters, NG
     NGTQ::Property property;
     NGT::Property globalProperty;
     NGT::Property localProperty;
-    property.dimension = parameters->extended_dimension; 
+    property.dimension = parameters->extended_dimension;
     if (property.dimension == 0) {
       property.dimension = parameters->dimension;
     }
-    property.genuineDimension = parameters->dimension; 
-    property.globalRange = 0; 
-    property.localRange = 0; 
+    property.genuineDimension = parameters->dimension;
+    property.globalRange = 0;
+    property.localRange = 0;
     property.globalCentroidLimit = parameters->number_of_blobs;
     property.localCentroidLimit = 16;
     property.localDivisionNo = parameters->number_of_subvectors;
@@ -184,8 +184,8 @@ bool qbg_create(const char *indexPath, QBGConstructionParameters *parameters, NG
     property.centroidCreationMode = NGTQ::CentroidCreationModeStaticLayer;
     property.localCentroidCreationMode = NGTQ::CentroidCreationModeStatic;
     property.localIDByteSize = 1;
-    property.dataType = static_cast<NGTQ::DataType>(parameters->internal_data_type); 
-    property.genuineDataType = static_cast<ObjectFile::DataType>(parameters->data_type); 
+    property.dataType = static_cast<NGTQ::DataType>(parameters->internal_data_type);
+    property.genuineDataType = static_cast<ObjectFile::DataType>(parameters->data_type);
     property.distanceType = static_cast<NGTQ::DistanceType>(parameters->distance_type);
 
     globalProperty.edgeSizeForCreation = 10;
@@ -202,7 +202,7 @@ bool qbg_create(const char *indexPath, QBGConstructionParameters *parameters, NG
   } catch(NGT::Exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
-    operate_error_string_(ss, error);    
+    operate_error_string_(ss, error);
     return false;
   }
 
@@ -304,10 +304,10 @@ bool qbg_build_index(const char *index_path, QBGBuildParameters *parameters, QBG
 
   QBG::HierarchicalKmeans hierarchicalKmeans;
 
-  hierarchicalKmeans.maxSize = 1000; 
-  hierarchicalKmeans.numOfClusters = 2; 
+  hierarchicalKmeans.maxSize = 1000;
+  hierarchicalKmeans.numOfClusters = 2;
   hierarchicalKmeans.numOfTotalClusters = 0;
-  hierarchicalKmeans.numOfTotalBlobs = 0; 
+  hierarchicalKmeans.numOfTotalBlobs = 0;
   hierarchicalKmeans.clusterID = -1;
   hierarchicalKmeans.initMode = static_cast<NGT::Clustering::InitializationMode>(parameters->hierarchical_clustering_init_mode);
   hierarchicalKmeans.numOfRandomObjects = 0;
@@ -317,7 +317,7 @@ bool qbg_build_index(const char *index_path, QBGBuildParameters *parameters, QBG
   hierarchicalKmeans.numOfSecondObjects = parameters->number_of_second_objects;
   hierarchicalKmeans.numOfSecondClusters = parameters->number_of_second_clusters;
   hierarchicalKmeans.numOfThirdClusters = parameters->number_of_third_clusters;
-  hierarchicalKmeans.numOfObjects = 0; 
+  hierarchicalKmeans.numOfObjects = 0;
   //-/hierarchicalKmeans.threeLayerClustering = true;
   hierarchicalKmeans.clusteringType = QBG::HierarchicalKmeans::ClusteringTypeThreeLayer;
   hierarchicalKmeans.verbose = false;
@@ -346,8 +346,8 @@ bool qbg_build_index(const char *index_path, QBGBuildParameters *parameters, QBG
   optimizer.seedNumberOfSteps = 2;
   optimizer.seedStep = 10;
   optimizer.reject = 0.9;
-  optimizer.timelimit = 24 * 2; 
-  optimizer.timelimit *= 60.0 * 60.0; 
+  optimizer.timelimit = 24 * 2;
+  optimizer.timelimit *= 60.0 * 60.0;
   optimizer.rotation = parameters->rotation;
   optimizer.repositioning = parameters->repositioning;
   optimizer.globalType = QBG::Optimizer::GlobalTypeNone;
@@ -507,4 +507,4 @@ size_t qbg_get_dimension(QBGIndex index, QBGError error) {
   return pindex->getQuantizer().property.genuineDimension;
 }
 
-#endif 
+#endif

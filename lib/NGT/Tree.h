@@ -140,7 +140,7 @@ namespace NGT {
     void search(SearchContainer &so, LeafNode &node, UncheckedNode &uncheckedNode);
 
     bool searchObject(ObjectID id) {
-      LeafNode &ln = getLeaf(id);      
+      LeafNode &ln = getLeaf(id);
       for (size_t i = 0; i < ln.getObjectSize(); i++) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
         if (ln.getObjectIDs(leafNodes.allocator)[i].id == id) {
@@ -250,7 +250,7 @@ namespace NGT {
       if (id.getType() == Node::ID::Leaf) {
 	leafNodes.remove(idx);
       } else {
-	internalNodes.remove(idx);	  
+	internalNodes.remove(idx);
       }
     }
 
@@ -292,7 +292,7 @@ namespace NGT {
     }
 
     void
-      insertNode(InternalNode *n) 
+      insertNode(InternalNode *n)
     {
       size_t id = internalNodes.insert(n);
       n->id.setID(id);

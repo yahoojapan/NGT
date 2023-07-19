@@ -82,7 +82,7 @@ void QBG::HierarchicalKmeans::treeBasedTopdownClustering(std::string prefix, QBG
     batch.push_back(id);
     if (batch.size() > 100000) {
       size_t kmeansBatchSize = nleaves < nOfThreads ? nleaves : nOfThreads;
-      hierarchicalKmeansBatch(batch, exceededLeaves, rootID, object, objectList, objectSpace, nodes, 
+      hierarchicalKmeansBatch(batch, exceededLeaves, rootID, object, objectList, objectSpace, nodes,
 			      clustering, maxSize, nleaves, kmeansBatchSize);
 
     }
@@ -102,7 +102,7 @@ void QBG::HierarchicalKmeans::treeBasedTopdownClustering(std::string prefix, QBG
     std::cerr << "# of nodes=" << nodes.size() << std::endl;
     std::cerr << "# of leaves=" << numOfLeaves << std::endl;
     std::cerr << "clustering for quantization." << std::endl;
-    hierarchicalKmeansWithNumberOfClustersInParallel(numOfTotalClusters, numOfObjects, numOfLeaves, 
+    hierarchicalKmeansWithNumberOfClustersInParallel(numOfTotalClusters, numOfObjects, numOfLeaves,
 						     objectList, objectSpace, nodes, initMode);
     if (numOfTotalBlobs != 0) {
       NGT::Timer timer;
@@ -129,14 +129,14 @@ void QBG::HierarchicalKmeans::treeBasedTopdownClustering(std::string prefix, QBG
 	}
       }
       std::cerr << "clustering to make blobs." << std::endl;
-      hierarchicalKmeansWithNumberOfClustersInParallel(numOfTotalBlobs, numOfObjects, numOfTotalClusters, 
+      hierarchicalKmeansWithNumberOfClustersInParallel(numOfTotalBlobs, numOfObjects, numOfTotalClusters,
 						       objectList, objectSpace, nodes, initMode);
       {
 	std::ofstream of(prefix + QBG::Index::get3rdTo2ndSuffix());
 	extractBtoQIndex(of, nodes, qNodeIDs);
       }
     }
-  } 
+  }
 
 }
 
@@ -586,8 +586,8 @@ void QBG::HierarchicalKmeans::clustering(std::string indexPath, std::string pref
   NGT::StdOstreamRedirector redirector(!verbose);
   redirector.begin();
 
-  std::cerr << "The specified params=FC:" << numOfFirstClusters << ":FO:" << numOfFirstObjects 
-	    << ",SC:" << numOfSecondClusters << ":SO:" << numOfSecondObjects 
+  std::cerr << "The specified params=FC:" << numOfFirstClusters << ":FO:" << numOfFirstObjects
+	    << ",SC:" << numOfSecondClusters << ":SO:" << numOfSecondObjects
 	    << ",TC:" << numOfThirdClusters << ":TO:" << numOfThirdObjects << ",O:" << numOfObjects << std::endl;
 
   bool readOnly = false;

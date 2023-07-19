@@ -39,10 +39,10 @@ class ArrayFile {
 
   struct RecordStruct {
     bool deleteFlag;
-    uint64_t extraData; // reserve    
+    uint64_t extraData; // reserve
   };
 
-  bool _isOpen;  
+  bool _isOpen;
   std::fstream _stream;
   FileHeadStruct _fileHead;
 
@@ -65,7 +65,7 @@ class ArrayFile {
 };
 
 
-// constructor 
+// constructor
 template <class TYPE>
 ArrayFile<TYPE>::ArrayFile()
   : _isOpen(false), _mutex((pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER){
@@ -82,7 +82,7 @@ ArrayFile<TYPE>::~ArrayFile() {
 template <class TYPE>
 bool ArrayFile<TYPE>::create(const std::string &file, size_t recordSize) {
   std::fstream tmpstream;
-  tmpstream.open(file.c_str());  
+  tmpstream.open(file.c_str());
   if(tmpstream){
     return false;
   }
@@ -98,9 +98,9 @@ bool ArrayFile<TYPE>::create(const std::string &file, size_t recordSize) {
 
 template <class TYPE>
 bool ArrayFile<TYPE>::open(const std::string &file) {
-  _stream.open(file.c_str(), std::ios::in | std::ios::out);  
+  _stream.open(file.c_str(), std::ios::in | std::ios::out);
   if(!_stream){
-    _isOpen = false;    
+    _isOpen = false;
     return false;
   }
   _isOpen = true;
@@ -112,7 +112,7 @@ bool ArrayFile<TYPE>::open(const std::string &file) {
 template <class TYPE>
 void ArrayFile<TYPE>::close(){
   _stream.close();
-  _isOpen = false;  
+  _isOpen = false;
 }
 
 template <class TYPE>
@@ -140,7 +140,7 @@ void ArrayFile<TYPE>::put(const size_t id, TYPE &data, NGT::ObjectSpace *objectS
   _stream.seekp(offset_pos, std::ios::beg);
   
   for(size_t i = 0; i < _fileHead.recordSize; i++) { _stream.write("", 1); }
-  _stream.seekp(offset_pos, std::ios::beg); 
+  _stream.seekp(offset_pos, std::ios::beg);
   data.serialize(_stream, objectSpace);
 }
 
@@ -149,12 +149,12 @@ bool ArrayFile<TYPE>::get(const size_t id, TYPE &data, NGT::ObjectSpace *objectS
   pthread_mutex_lock(&_mutex);
 
   if( size() <= id ){
-    pthread_mutex_unlock(&_mutex);    
+    pthread_mutex_unlock(&_mutex);
     return false;
   }
   
   uint64_t offset_pos = (id * (sizeof(RecordStruct) + _fileHead.recordSize)) + sizeof(FileHeadStruct);
-  offset_pos += sizeof(RecordStruct);  
+  offset_pos += sizeof(RecordStruct);
   _stream.seekg(offset_pos, std::ios::beg);
   if (!_stream.fail()) {
     data.deserialize(_stream, objectSpace);
@@ -185,7 +185,7 @@ bool ArrayFile<TYPE>::get(const size_t id, TYPE &data, NGT::ObjectSpace *objectS
 
 template <class TYPE>
 void ArrayFile<TYPE>::remove(const size_t id) {
-  uint64_t offset_pos = (id * (sizeof(RecordStruct) + _fileHead.recordSize)) + sizeof(FileHeadStruct);  
+  uint64_t offset_pos = (id * (sizeof(RecordStruct) + _fileHead.recordSize)) + sizeof(FileHeadStruct);
   _stream.seekp(offset_pos, std::ios::beg);
   RecordStruct recordHead = {1, 0};
   _stream.write((char *)(&recordHead), sizeof(RecordStruct));
@@ -205,7 +205,7 @@ size_t ArrayFile<TYPE>::size()
   offset_pos -= sizeof(FileHeadStruct);
   size_t num = offset_pos / (sizeof(RecordStruct) + _fileHead.recordSize);
 
-  return num; 
+  return num;
 }
 
 template <class TYPE>

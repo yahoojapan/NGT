@@ -92,7 +92,7 @@ if(${UNIX})
             find_package(BLAS REQUIRED)
             find_package(LAPACK REQUIRED)
         endif()
-    endif() 
+    endif()
 
     add_subdirectory("${PROJECT_SOURCE_DIR}/lib")
     add_subdirectory("${PROJECT_SOURCE_DIR}/bin")

@@ -30,25 +30,25 @@ namespace MemoryManager{
   typedef enum _option_reuse_t{
     REUSE_DATA_CLASSIFY,
     REUSE_DATA_QUEUE,
-    REUSE_DATA_QUEUE_PLUS,    
+    REUSE_DATA_QUEUE_PLUS,
   }option_reuse_t;
 
   typedef enum _reuse_state_t{
-    REUSE_STATE_OK, 
-    REUSE_STATE_FALSE, 
-    REUSE_STATE_ALLOC, 
+    REUSE_STATE_OK,
+    REUSE_STATE_FALSE,
+    REUSE_STATE_ALLOC,
   }reuse_state_t;
 
   typedef enum _check_statistics_t{
-    CHECK_STATS_USE_SIZE,  
-    CHECK_STATS_USE_NUM,   
-    CHECK_STATS_FREE_SIZE, 
-    CHECK_STATS_FREE_NUM,  
+    CHECK_STATS_USE_SIZE,
+    CHECK_STATS_USE_NUM,
+    CHECK_STATS_FREE_SIZE,
+    CHECK_STATS_FREE_NUM,
   }check_statistics_t;
 
   typedef struct _init_option_st{
-    bool use_expand;  
-    option_reuse_t reuse_type; 
+    bool use_expand;
+    option_reuse_t reuse_type;
   }init_option_st;
 
 
@@ -66,15 +66,15 @@ namespace MemoryManager{
     void *getAbsAddr(off_t p) const;
     off_t getRelAddr(const void *p) const;
 
-    size_t getTotalSize() const; 
-    size_t getUseSize() const;   
-    uint64_t getUseNum() const;  
-    size_t getFreeSize() const;  
-    uint64_t getFreeNum() const; 
-    uint16_t getUnitNum() const; 
-    size_t getQueueCapacity() const; 
-    uint64_t getQueueNum() const; 
-    uint64_t getLargeListNum() const;    
+    size_t getTotalSize() const;
+    size_t getUseSize() const;
+    uint64_t getUseNum() const;
+    size_t getFreeSize() const;
+    uint64_t getFreeNum() const;
+    uint16_t getUnitNum() const;
+    size_t getQueueCapacity() const;
+    uint64_t getQueueNum() const;
+    uint64_t getLargeListNum() const;
 
     void dumpHeap() const;
 
@@ -82,7 +82,7 @@ namespace MemoryManager{
     void *getEntryHook() const;
     void setEntryHook(const void *entry_p);
 
-    // static method --- 
+    // static method ---
     static void setDefaultOptionValue(init_option_st &optionst);
     static size_t getAlignSize(size_t size);
 

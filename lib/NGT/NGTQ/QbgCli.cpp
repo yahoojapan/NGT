@@ -144,9 +144,9 @@ public:
   }
 
   void getHierarchicalClustringParameters() {
-    hierarchicalClustering.maxSize = args.getl("r", 1000); 
+    hierarchicalClustering.maxSize = args.getl("r", 1000);
     hierarchicalClustering.numOfObjects = args.getl("O", 0);
-    hierarchicalClustering.numOfClusters = args.getl("E", 2); 
+    hierarchicalClustering.numOfClusters = args.getl("E", 2);
     try {
       hierarchicalClustering.numOfTotalClusters = args.getl("C", 0);
     } catch (...) {
@@ -317,8 +317,8 @@ public:
     optimization.seedNumberOfSteps = args.getf("S", 2);
     optimization.seedStep = args.getl("X", 10);
     optimization.reject = args.getf("R", 0.9);
-    optimization.timelimit = args.getf("L", 24 * 1); 
-    optimization.timelimit *= 60.0 * 60.0; 
+    optimization.timelimit = args.getf("L", 24 * 1);
+    optimization.timelimit *= 60.0 * 60.0;
     optimization.showClusterInfo = args.getBool("Z");
     optimization.verbose = args.getBool("v");
 
@@ -379,7 +379,7 @@ public:
 };
 
 
-void 
+void
 QBG::CLI::buildQG(NGT::Args &args)
 {
   const std::string usage = "Usage: qbg build-qg [-Q dimension-of-subvector] [-E max-number-of-edges] index";
@@ -438,8 +438,8 @@ searchQG(NGTQG::Index &index, SearchParameters &searchParameters, ostream &strea
     return;
   }
 
-  if (searchParameters.outputMode[0] == 'e') { 
-    stream << "# Beginning of Evaluation" << endl; 
+  if (searchParameters.outputMode[0] == 'e') {
+    stream << "# Beginning of Evaluation" << endl;
   }
 
   string line;
@@ -527,7 +527,7 @@ searchQG(NGTQG::Index &index, SearchParameters &searchParameters, ostream &strea
       } else {
 	stream << "Query Time= " << timer.time << " (sec), " << timer.time * 1000.0 << " (msec)" << endl;
       }
-    } 
+    }
     if (searchParameters.outputMode[0] == 'e') {
       stream << "# End of Query" << endl;
     }
@@ -537,8 +537,8 @@ searchQG(NGTQG::Index &index, SearchParameters &searchParameters, ostream &strea
     stream << "# Number of queries=" << queryCount << endl;
     stream << "# End of Evaluation" << endl;
   } else {
-    stream << "Average Query Time= " << totalTime / (double)queryCount  << " (sec), " 
-	   << totalTime * 1000.0 / (double)queryCount << " (msec), (" 
+    stream << "Average Query Time= " << totalTime / (double)queryCount  << " (sec), "
+	   << totalTime * 1000.0 / (double)queryCount << " (msec), ("
 	   << totalTime << "/" << queryCount << ")" << endl;
   }
 }
@@ -561,14 +561,14 @@ QBG::CLI::searchQG(NGT::Args &args) {
 
   SearchParameters searchParameters(args);
 
-  bool readOnly = true; 
+  bool readOnly = true;
   NGTQG::Index index(indexPath, 128, readOnly);
 
   if (debugLevel >= 1) {
     cerr << "indexType=" << searchParameters.indexType << endl;
     cerr << "size=" << searchParameters.size << endl;
     cerr << "edgeSize=" << searchParameters.edgeSize << endl;
-    cerr << "epsilon=" << searchParameters.beginOfEpsilon << "<->" << searchParameters.endOfEpsilon << "," 
+    cerr << "epsilon=" << searchParameters.beginOfEpsilon << "<->" << searchParameters.endOfEpsilon << ","
 	 << searchParameters.stepOfEpsilon << endl;
   }
 
@@ -588,7 +588,7 @@ QBG::CLI::searchQG(NGT::Args &args) {
 }
 
 
-void 
+void
 QBG::CLI::createQG(NGT::Args &args)
 {
   const std::string usage = "Usage: qbg create-qg [-Q dimension-of-subvector] index";
@@ -609,7 +609,7 @@ QBG::CLI::createQG(NGT::Args &args)
   NGTQG::Index::append(indexPath, buildParameters);
 }
 
-void 
+void
 QBG::CLI::appendQG(NGT::Args &args)
 {
   const std::string usage = "Usage: qbg append-qbg ngt-index";
@@ -625,7 +625,7 @@ QBG::CLI::appendQG(NGT::Args &args)
 }
 
 
-void 
+void
 QBG::CLI::info(NGT::Args &args)
 {
   const string usage = "Usage: qbg index";
@@ -639,7 +639,7 @@ QBG::CLI::info(NGT::Args &args)
     return;
   }
 
-  try { 
+  try {
     bool readOnly = true;
     try {
       QBG::Index index(indexPath, readOnly);
@@ -665,7 +665,7 @@ QBG::CLI::info(NGT::Args &args)
 
 }
 
-void 
+void
 QBG::CLI::create(NGT::Args &args)
 {
   const string usage = "Usage: qbg create "
@@ -818,17 +818,17 @@ QBG::CLI::search(NGT::Args &args)
     string str = args.getString("p", "0.0");
     vector<string> tokens;
     NGT::Common::tokenize(str, tokens, ":");
-    if (tokens.size() >= 1) { 
+    if (tokens.size() >= 1) {
       beginOfResultExpansion = NGT::Common::strtod(tokens[0]);
       endOfResultExpansion = beginOfResultExpansion;
     }
     if (tokens.size() >= 2) { endOfResultExpansion = NGT::Common::strtod(tokens[1]); }
-    if (tokens.size() >= 3) { 
+    if (tokens.size() >= 3) {
       if (tokens[2][0] == 'x') {
 	mulStep = true;
-	stepOfResultExpansion = NGT::Common::strtod(tokens[2].substr(1)); 
+	stepOfResultExpansion = NGT::Common::strtod(tokens[2].substr(1));
       } else {
-	stepOfResultExpansion = NGT::Common::strtod(tokens[2]); 
+	stepOfResultExpansion = NGT::Common::strtod(tokens[2]);
       }
     }
   }
@@ -863,9 +863,9 @@ QBG::CLI::search(NGT::Args &args)
 	}
 	queryVector.resize(dimension);
 	queryCount++;
-	for (auto resultExpansion = beginOfResultExpansion; 
-	     resultExpansion <= endOfResultExpansion; 
-	     resultExpansion = mulStep ? resultExpansion * stepOfResultExpansion : 
+	for (auto resultExpansion = beginOfResultExpansion;
+	     resultExpansion <= endOfResultExpansion;
+	     resultExpansion = mulStep ? resultExpansion * stepOfResultExpansion :
 	       resultExpansion + stepOfResultExpansion) {
 	  NGT::ObjectDistances objects;
 	  QBG::SearchContainer searchContainer;
@@ -925,19 +925,19 @@ QBG::CLI::search(NGT::Args &args)
 	  } else {
 	    cout << "Query Time= " << timer.time << " (sec), " << timer.time * 1000.0 << " (msec)" << endl;
 	  }
-	} 
+	}
 	if (outputMode == 'e') {
 	  cout << "# End of Query" << endl;
 	}
-      } 
+      }
       queryTimes.push_back(totalTime * 1000.0 / static_cast<double>(queryCount));
       if (outputMode == 'e') {
 	cout << "# Average Query Time (msec)=" << queryTimes.back() << endl;
 	cout << "# Number of queries=" << queryCount << endl;
 	cout << "# End of Evaluation" << endl;
       } else {
-	cout << "Average Query Time= " << totalTime / (double)queryCount  << " (sec), " 
-	     << totalTime * 1000.0 / (double)queryCount << " (msec), (" 
+	cout << "Average Query Time= " << totalTime / (double)queryCount  << " (sec), "
+	     << totalTime * 1000.0 / (double)queryCount << " (msec), ("
 	     << totalTime << "/" << queryCount << ")" << endl;
       }
     }
@@ -961,7 +961,7 @@ QBG::CLI::search(NGT::Args &args)
 }
 
 
-void 
+void
 QBG::CLI::append(NGT::Args &args)
 {
   const string usage = "Usage: qbg append [-n data-size] [-m b|e] [-v] index(output) data.tsv(input)";
@@ -1012,7 +1012,7 @@ QBG::CLI::append(NGT::Args &args)
 }
 
 
-void 
+void
 QBG::CLI::buildIndex(NGT::Args &args)
 {
   const std::string usage = "Usage: qbg build-index  [-Q dimension-of-subvector] [-E max-number-of-edges] index";
@@ -1151,7 +1151,7 @@ QBG::CLI::buildIndex(NGT::Args &args)
 
 }
 
-void 
+void
 QBG::CLI::build(NGT::Args &args)
 {
   const std::string usage = "Usage: qbg build [-Q dimension-of-subvector] [-E max-number-of-edges] index";
@@ -1177,7 +1177,7 @@ QBG::CLI::build(NGT::Args &args)
     vector<string> tokens;
     NGT::Common::tokenize(phaseString, tokens, "-");
     int beginOfPhase, endOfPhase;
-    if (tokens.size() >= 1) { 
+    if (tokens.size() >= 1) {
       if (tokens[0].empty()) {
 	beginOfPhase = endOfPhase = 0;
       } else {
@@ -1370,7 +1370,7 @@ QBG::CLI::assign(NGT::Args &args)
 
 void
 QBG::CLI::extract(NGT::Args &args)
-{ 
+{
 
   const string usage = "Usage: qbg extract binary-file|index [output-file]";
 
@@ -1475,9 +1475,9 @@ QBG::CLI::extract(NGT::Args &args)
   return;
 }
 
-void 
+void
 QBG::CLI::gt(NGT::Args &args)
-{ 
+{
   string	path;
 
   try {
@@ -1537,9 +1537,9 @@ QBG::CLI::gt(NGT::Args &args)
 
 }
 
-void 
+void
 QBG::CLI::gtRange(NGT::Args &args)
-{ 
+{
   string	path;
 
   try {
@@ -1649,4 +1649,4 @@ QBG::CLI::optimize(NGT::Args &args)
 
 }
 
-#endif 
+#endif

@@ -14,7 +14,7 @@ void help() {
   cerr << "           command : info create search append" << endl;
 }
 
-void 
+void
 append(NGT::Args &args)
 {
   const string usage = "Usage: jaccard-sparse append [-p #-of-thread] [-n data-size] "
@@ -102,8 +102,8 @@ search(NGT::Index &index, NGT::Command::SearchParameters &searchParameters, ostr
     return;
   }
 
-  if (searchParameters.outputMode[0] == 'e') { 
-    stream << "# Beginning of Evaluation" << endl; 
+  if (searchParameters.outputMode[0] == 'e') {
+    stream << "# Beginning of Evaluation" << endl;
   }
 
   string line;
@@ -174,8 +174,8 @@ search(NGT::Index &index, NGT::Command::SearchParameters &searchParameters, ostr
     stream << "# Number of queries=" << queryCount << endl;
     stream << "# End of Evaluation" << endl;
   } else {
-    stream << "Average Query Time= " << totalTime / (double)queryCount  << " (sec), " 
-	   << totalTime * 1000.0 / (double)queryCount << " (msec), (" 
+    stream << "Average Query Time= " << totalTime / (double)queryCount  << " (sec), "
+	   << totalTime * 1000.0 / (double)queryCount << " (msec), ("
 	   << totalTime << "/" << queryCount << ")" << endl;
   }
 }

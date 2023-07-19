@@ -61,10 +61,10 @@ namespace NGT {
     Exception():message("No message") {}
     Exception(const std::string &file, const std::string &function, size_t line, std::stringstream &m) { set(file, function, line, m.str()); }
     Exception(const std::string &file, const std::string &function, size_t line, const std::string &m) { set(file, function, line, m); }
-    void set(const std::string &file, const std::string &function, size_t line, const std::string &m) { 
+    void set(const std::string &file, const std::string &function, size_t line, const std::string &m) {
       std::stringstream ss;
       ss << file << ":" << function << ":" << line << ": " << m;
-      message = ss.str(); 
+      message = ss.str();
     }
     ~Exception() throw() {}
     Exception &operator=(const Exception &e) {
@@ -207,7 +207,7 @@ namespace NGT {
       }
       if (*e != 0) {
 	std::stringstream msg;
-	msg << "ARGS::getl: Illegal string. Option=-" << s << " Specified value=" << get(s) 
+	msg << "ARGS::getl: Illegal string. Option=-" << s << " Specified value=" << get(s)
 	    << " Illegal string=" << e << std::endl;
 	NGTThrowException(msg.str());
       }
@@ -223,7 +223,7 @@ namespace NGT {
       }
       if (*e != 0) {
 	std::stringstream msg;
-	msg << "ARGS::getf: Illegal string. Option=-" << s << " Specified value=" << get(s) 
+	msg << "ARGS::getf: Illegal string. Option=-" << s << " Specified value=" << get(s)
 	    << " Illegal string=" << e << std::endl;
 	NGTThrowException(msg.str());
       }
@@ -271,11 +271,11 @@ namespace NGT {
       auto time = t.time;
       if (time < 1.0) {
 	time *= 1000.0;
-	os << std::setprecision(6) << time << " (ms)";	
+	os << std::setprecision(6) << time << " (ms)";
 	return os;
       }
       if (time < 60.0) {
-	os << std::setprecision(6) << time << " (s)";	
+	os << std::setprecision(6) << time << " (s)";
 	return os;
       }
       time /= 60.0;
@@ -516,9 +516,9 @@ namespace NGT {
   
   class StdOstreamRedirector {
   public:
-    StdOstreamRedirector(bool e = false, const std::string path = "/dev/null", mode_t m = S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH, int f = 2) { 
+    StdOstreamRedirector(bool e = false, const std::string path = "/dev/null", mode_t m = S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH, int f = 2) {
       logFilePath	= path;
-      mode	= m; 
+      mode	= m;
       logFD	= -1;
       fdNo	= f;
       enabled	= e;
@@ -571,7 +571,7 @@ namespace NGT {
     bool	enabled;
   };
 
-  template <class TYPE> 
+  template <class TYPE>
     class CompactVector {
   public:
     typedef TYPE *	iterator;
@@ -618,7 +618,7 @@ namespace NGT {
       if (idx >= vectorSize) {
 	std::stringstream msg;
 	msg << "CompactVector: beyond the range. " << idx << ":" << vectorSize;
-	NGTThrowException(msg);  
+	NGTThrowException(msg);
       }
       return vector[idx];
     }
@@ -768,17 +768,17 @@ namespace NGT {
 
     char &at(size_t idx) const {
       if (idx >= size()) {
-	NGTThrowException("CompactString: beyond the range");  
+	NGTThrowException("CompactString: beyond the range");
       }
       return vector[idx];
     }
 
     char *c_str() { return vector; }
-    size_t size() const { 
+    size_t size() const {
       if (vector == 0) {
 	return 0;
       } else {
-	return (size_t)strlen(vector); 
+	return (size_t)strlen(vector);
       }
     }
 
@@ -790,7 +790,7 @@ namespace NGT {
   public:
     BooleanSet(size_t s) {
       size = (s >> 6) + 1; // 2^6=64
-      size = ((size >> 2) << 2) + 4; 
+      size = ((size >> 2) << 2) + 4;
       bitvec.resize(size);
     }
     inline uint64_t getBitString(size_t i) { return (uint64_t)1 << (i & (64 - 1)); }
@@ -868,8 +868,8 @@ namespace NGT {
       }
       return defvalue;
     }
-    void load(const std::string &f) { 
-      std::ifstream st(f); 
+    void load(const std::string &f) {
+      std::ifstream st(f);
       if (!st) {
 	std::stringstream msg;
 	msg << "PropertySet::load: Cannot load the property file " << f << ".";
@@ -877,15 +877,15 @@ namespace NGT {
       }
       load(st);
     }
-    void save(const std::string &f) {    
-      std::ofstream st(f); 
+    void save(const std::string &f) {
+      std::ofstream st(f);
       if (!st) {
 	std::stringstream msg;
 	msg << "PropertySet::save: Cannot save. " << f << std::endl;
 	NGTThrowException(msg);
       }
-      save(st); 
-    }    
+      save(st);
+    }
     void save(std::ofstream &os) {
       for (std::map<std::string, std::string>::iterator i = this->begin(); i != this->end(); i++) {
 	os << i->first << "\t" << i->second << std::endl;
@@ -943,7 +943,7 @@ namespace NGT {
       }
     }
 
-    template <typename TYPE> void write(std::ostream &os, const std::vector<TYPE> &v) { 
+    template <typename TYPE> void write(std::ostream &os, const std::vector<TYPE> &v) {
       unsigned int s = v.size();
       write(os, s);
       for (unsigned int i = 0; i < s; i++) {
@@ -951,7 +951,7 @@ namespace NGT {
       }
     }
 
-    template <typename TYPE> void writeAsText(std::ostream &os, const std::vector<TYPE> &v) { 
+    template <typename TYPE> void writeAsText(std::ostream &os, const std::vector<TYPE> &v) {
       unsigned int s = v.size();
       os << s << " ";
       for (unsigned int i = 0; i < s; i++) {
@@ -960,7 +960,7 @@ namespace NGT {
       }
     }
 
-    template <typename TYPE> void write(std::ostream &os, const CompactVector<TYPE> &v) { 
+    template <typename TYPE> void write(std::ostream &os, const CompactVector<TYPE> &v) {
       unsigned int s = v.size();
       write(os, s);
       for (unsigned int i = 0; i < s; i++) {
@@ -968,7 +968,7 @@ namespace NGT {
       }
     }
 
-    template <typename TYPE> void writeAsText(std::ostream &os, const CompactVector<TYPE> &v) { 
+    template <typename TYPE> void writeAsText(std::ostream &os, const CompactVector<TYPE> &v) {
       unsigned int s = v.size();
       for (unsigned int i = 0; i < s; i++) {
 	writeAsText(os, v[i]);
@@ -976,7 +976,7 @@ namespace NGT {
       }
     }
 
-    template <typename TYPE> void writeAsText(std::ostream &os, TYPE *v, size_t s) { 
+    template <typename TYPE> void writeAsText(std::ostream &os, TYPE *v, size_t s) {
       os << s << " ";
       for (unsigned int i = 0; i < s; i++) {
 	writeAsText(os, v[i]);
@@ -984,7 +984,7 @@ namespace NGT {
       }
     }
 
-    template <typename TYPE> void read(std::istream &is, std::vector<TYPE> &v) { 
+    template <typename TYPE> void read(std::istream &is, std::vector<TYPE> &v) {
       v.clear();
       unsigned int s;
       read(is, s);
@@ -996,7 +996,7 @@ namespace NGT {
       }
     }
 
-    template <typename TYPE> void readAsText(std::istream &is, std::vector<TYPE> &v) { 
+    template <typename TYPE> void readAsText(std::istream &is, std::vector<TYPE> &v) {
       v.clear();
       unsigned int s;
       is >> s;
@@ -1008,7 +1008,7 @@ namespace NGT {
     }
 
 
-    template <typename TYPE> void read(std::istream &is, CompactVector<TYPE> &v) { 
+    template <typename TYPE> void read(std::istream &is, CompactVector<TYPE> &v) {
       v.clear();
       unsigned int s;
       read(is, s);
@@ -1020,7 +1020,7 @@ namespace NGT {
       }
     }
 
-    template <typename TYPE> void readAsText(std::istream &is, CompactVector<TYPE> &v) { 
+    template <typename TYPE> void readAsText(std::istream &is, CompactVector<TYPE> &v) {
       v.clear();
       unsigned int s;
       is >> s;
@@ -1031,7 +1031,7 @@ namespace NGT {
       }
     }
 
-    template <typename TYPE> void readAsText(std::istream &is,  TYPE *v, size_t s) { 
+    template <typename TYPE> void readAsText(std::istream &is,  TYPE *v, size_t s) {
       unsigned int size;
       is >> size;
       if (s != size) {
@@ -1053,7 +1053,7 @@ namespace NGT {
 
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-  template <class TYPE> 
+  template <class TYPE>
     class Vector {
   public:
     typedef TYPE *	iterator;
@@ -1072,8 +1072,8 @@ namespace NGT {
     TYPE &front(SharedMemoryAllocator &allocator) { return (*this).at(0, allocator); }
     TYPE &back(SharedMemoryAllocator &allocator) { return (*this).at(vectorSize - 1, allocator); }
     bool empty() { return vectorSize == 0; }
-    iterator begin(SharedMemoryAllocator &allocator) { 
-      return (TYPE*)allocator.getAddr((off_t)vector); 
+    iterator begin(SharedMemoryAllocator &allocator) {
+      return (TYPE*)allocator.getAddr((off_t)vector);
     }
     iterator end(SharedMemoryAllocator &allocator) {
       return begin(allocator) + vectorSize;
@@ -1102,7 +1102,7 @@ namespace NGT {
       if (idx >= vectorSize) {
 	std::stringstream msg;
 	msg << "Vector: beyond the range. " << idx << ":" << vectorSize;
-	NGTThrowException(msg);  
+	NGTThrowException(msg);
       }
       return *(begin(allocator) + idx);
     }
@@ -1192,7 +1192,7 @@ namespace NGT {
       vectorSize = s;
     }
 
-    void serializeAsText(std::ostream &os, ObjectSpace *objectspace = 0) { 
+    void serializeAsText(std::ostream &os, ObjectSpace *objectspace = 0) {
       unsigned int s = size();
       os << s << " ";
       for (unsigned int i = 0; i < s; i++) {
@@ -1200,7 +1200,7 @@ namespace NGT {
 	os << " ";
       }
     }
-    void deserializeAsText(std::istream &is, ObjectSpace *objectspace = 0) { 
+    void deserializeAsText(std::istream &is, ObjectSpace *objectspace = 0) {
       clear();
       size_t s;
       Serializer::readAsText(is, s);
@@ -1234,10 +1234,10 @@ namespace NGT {
     uint32_t vectorSize;
     uint32_t allocatedSize;
   };
-#endif 
+#endif
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-  template <class TYPE> 
+  template <class TYPE>
     class DynamicLengthVector {
   public:
     typedef TYPE *	iterator;
@@ -1257,8 +1257,8 @@ namespace NGT {
     TYPE &front(SharedMemoryAllocator &allocator) { return (*this).at(0, allocator); }
     TYPE &back(SharedMemoryAllocator &allocator) { return (*this).at(vectorSize - 1, allocator); }
     bool empty() { return vectorSize == 0; }
-    iterator begin(SharedMemoryAllocator &allocator) { 
-      return (TYPE*)allocator.getAddr((off_t)vector); 
+    iterator begin(SharedMemoryAllocator &allocator) {
+      return (TYPE*)allocator.getAddr((off_t)vector);
     }
     iterator end(SharedMemoryAllocator &allocator) {
       return begin(allocator) + vectorSize;
@@ -1273,7 +1273,7 @@ namespace NGT {
       if (idx >= vectorSize) {
 	std::stringstream msg;
 	msg << "Vector: beyond the range. " << idx << ":" << vectorSize;
-	NGTThrowException(msg);  
+	NGTThrowException(msg);
       }
       return *reinterpret_cast<TYPE*>(reinterpret_cast<uint8_t*>(begin(allocator)) + idx * elementSize);
     }
@@ -1361,7 +1361,7 @@ namespace NGT {
       vectorSize = s;
     }
 
-    void serializeAsText(std::ostream &os, ObjectSpace *objectspace = 0) { 
+    void serializeAsText(std::ostream &os, ObjectSpace *objectspace = 0) {
       unsigned int s = size();
       os << s << " ";
       for (unsigned int i = 0; i < s; i++) {
@@ -1371,7 +1371,7 @@ namespace NGT {
     }
 
 
-    void deserializeAsText(std::istream &is, ObjectSpace *objectspace = 0) { 
+    void deserializeAsText(std::istream &is, ObjectSpace *objectspace = 0) {
       clear();
       size_t s;
       Serializer::readAsText(is, s);
@@ -1411,7 +1411,7 @@ namespace NGT {
 
 #else // NGT_SHARED_MEMORY_ALLOCATOR
 
-  template <class TYPE> 
+  template <class TYPE>
     class DynamicLengthVector {
   public:
     typedef TYPE *	iterator;
@@ -1431,8 +1431,8 @@ namespace NGT {
     TYPE &front() { return (*this).at(0); }
     TYPE &back() { return (*this).at(vectorSize - 1); }
     bool empty() { return vectorSize == 0; }
-    iterator begin() { 
-      return reinterpret_cast<iterator>(vector); 
+    iterator begin() {
+      return reinterpret_cast<iterator>(vector);
     }
     iterator end(SharedMemoryAllocator &allocator) {
       return begin() + vectorSize;
@@ -1447,7 +1447,7 @@ namespace NGT {
       if (idx >= vectorSize) {
 	std::stringstream msg;
 	msg << "Vector: beyond the range. " << idx << ":" << vectorSize;
-	NGTThrowException(msg);  
+	NGTThrowException(msg);
       }
       return *reinterpret_cast<TYPE*>(reinterpret_cast<uint8_t*>(begin()) + idx * elementSize);
     }
@@ -1539,7 +1539,7 @@ namespace NGT {
       vectorSize = s;
     }
 
-    void serializeAsText(std::ostream &os, ObjectSpace *objectspace = 0) { 
+    void serializeAsText(std::ostream &os, ObjectSpace *objectspace = 0) {
       unsigned int s = size();
       os << s << " ";
       for (unsigned int i = 0; i < s; i++) {
@@ -1549,7 +1549,7 @@ namespace NGT {
     }
 
 
-    void deserializeAsText(std::istream &is, ObjectSpace *objectspace = 0) { 
+    void deserializeAsText(std::istream &is, ObjectSpace *objectspace = 0) {
       clear();
       size_t s;
       Serializer::readAsText(is, s);
@@ -1562,7 +1562,7 @@ namespace NGT {
 
     void serialize(std::ofstream &os, NGT::ObjectSpace *objspace = 0) {
       uint32_t sz = size();
-      NGT::Serializer::write(os, sz);    
+      NGT::Serializer::write(os, sz);
       os.write(reinterpret_cast<char*>(vector), size() * elementSize);
     }
 
@@ -1726,14 +1726,14 @@ namespace NGT {
 	resize(idx + 1);
       }
       if ((*this)[idx] != 0) {
-	NGTThrowException("put: Not empty");  
+	NGTThrowException("put: Not empty");
       }
       set(idx, n);
     }
 
     void erase(size_t idx) {
       if (isEmpty(idx)) {
-	NGTThrowException("erase: Not in-memory or invalid id");  
+	NGTThrowException("erase: Not in-memory or invalid id");
       }
       (*this)[idx]->~TYPE();
       allocator.free((*this)[idx]);
@@ -1757,7 +1757,7 @@ namespace NGT {
     }
 
     void serialize(std::ofstream &os, ObjectSpace *objectspace = 0) {
-      NGT::Serializer::write(os, array->size());    
+      NGT::Serializer::write(os, array->size());
       for (size_t idx = 0; idx < array->size(); idx++) {
 	if ((*this)[idx] == 0) {
 	  NGT::Serializer::write(os, '-');
@@ -1916,8 +1916,8 @@ namespace NGT {
     TYPE *at(size_t idx) {
       return (TYPE*)allocator.getAddr(array->at(idx, allocator));
     }
-    void push_back(TYPE *data) { 
-      array->push_back(allocator.getOffset(data), allocator); 
+    void push_back(TYPE *data) {
+      array->push_back(allocator.getOffset(data), allocator);
     }
     void reserve(size_t s) { array->reserve(s, allocator); }
     void resize(size_t s) { array->resize(s, allocator, (off_t)0); }
@@ -1980,14 +1980,14 @@ namespace NGT {
 	std::vector<TYPE*>::resize(idx + 1, 0);
       }
       if ((*this)[idx] != 0) {
-	NGTThrowException("put: Not empty");  
+	NGTThrowException("put: Not empty");
       }
       (*this)[idx] = n;
     }
 
     void erase(size_t idx) {
       if (isEmpty(idx)) {
-	NGTThrowException("erase: Not in-memory or invalid id");  
+	NGTThrowException("erase: Not in-memory or invalid id");
       }
       delete (*this)[idx];
       (*this)[idx] = 0;
@@ -2017,7 +2017,7 @@ namespace NGT {
       if (!os.is_open()) {
 	NGTThrowException("NGT::Common: Not open the specified stream yet.");
       }
-      NGT::Serializer::write(os, std::vector<TYPE*>::size());    
+      NGT::Serializer::write(os, std::vector<TYPE*>::size());
       for (size_t idx = 0; idx < std::vector<TYPE*>::size(); idx++) {
 	if ((*this)[idx] == 0) {
 	  NGT::Serializer::write(os, '-');
@@ -2262,7 +2262,7 @@ namespace NGT {
       distanceComputationCount = sc.distanceComputationCount;
       edgeSize = sc.edgeSize;
       workingResult = sc.workingResult;
-      useAllNodesInLeaf = sc.useAllNodesInLeaf;  
+      useAllNodesInLeaf = sc.useAllNodesInLeaf;
       expectedAccuracy = sc.expectedAccuracy;
       visitCount = sc.visitCount;
       return *this;

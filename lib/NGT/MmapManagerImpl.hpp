@@ -40,7 +40,7 @@ namespace MemoryManager{
     bool isOpen;
     void *mmapCntlAddr;
     control_st *mmapCntlHead;
-    std::string filePath;         
+    std::string filePath;
     void *mmapDataAddr[MMAP_MAX_UNIT_NUM];
 
     void initBootStruct(boot_st &bst, size_t size) const;
@@ -53,7 +53,7 @@ namespace MemoryManager{
     int32_t formatFile(const std::string &targetFile, size_t size) const;
     void clearChunk(const off_t chunk_off) const;
 
-    void free_data_classify(const off_t p, const bool force_large_list = false) const;    
+    void free_data_classify(const off_t p, const bool force_large_list = false) const;
     off_t reuse_data_classify(const size_t size, reuse_state_t &reuse_state, const bool force_large_list = false) const;
     void free_data_queue(const off_t p);
     off_t reuse_data_queue(const size_t size, reuse_state_t &reuse_state);
@@ -76,7 +76,7 @@ namespace MemoryManager{
   MmapManager::Impl::Impl(MmapManager &ommanager):mmanager(ommanager), isOpen(false), mmapCntlAddr(NULL), mmapCntlHead(NULL){}
   
   
-  void MmapManager::Impl::initBootStruct(boot_st &bst, size_t size) const 
+  void MmapManager::Impl::initBootStruct(boot_st &bst, size_t size) const
   {
     bst.version = MMAP_MANAGER_VERSION;
     bst.reserve = 0;
@@ -86,10 +86,10 @@ namespace MemoryManager{
   void MmapManager::Impl::initFreeStruct(free_st &fst) const
   {
     fst.large_list.free_p = -1;
-    fst.large_list.free_last_p = -1;	
+    fst.large_list.free_last_p = -1;
     for(uint32_t i = 0; i < MMAP_FREE_LIST_NUM; ++i){
       fst.free_lists[i].free_p = -1;
-      fst.free_lists[i].free_last_p = -1;	
+      fst.free_lists[i].free_last_p = -1;
     }
   }
   
@@ -216,7 +216,7 @@ namespace MemoryManager{
 
     free_list_st *free_list;
     if(p_size <= border_size && force_large_list == false){
-      uint32_t index = (p_size / MMAP_MEMORY_ALIGN) - 1; 
+      uint32_t index = (p_size / MMAP_MEMORY_ALIGN) - 1;
       free_list = &mmapCntlHead->free_data.free_lists[index];
     }else{
       free_list = &mmapCntlHead->free_data.large_list;
@@ -240,7 +240,7 @@ namespace MemoryManager{
 
     free_list_st *free_list;
     if(size <= border_size && force_large_list == false){
-      uint32_t index = (size / MMAP_MEMORY_ALIGN) - 1; 
+      uint32_t index = (size / MMAP_MEMORY_ALIGN) - 1;
       free_list = &mmapCntlHead->free_data.free_lists[index];
     }else{
       free_list = &mmapCntlHead->free_data.large_list;
@@ -327,7 +327,7 @@ namespace MemoryManager{
 	
 	return free_data_classify(p, true);
       }else{
-	const off_t alloc_offset = mmanager.alloc(new_size);	
+	const off_t alloc_offset = mmanager.alloc(new_size);
 	if(alloc_offset == -1){
 	  
 	  return free_data_classify(p, true);
@@ -356,8 +356,8 @@ namespace MemoryManager{
   
   off_t MmapManager::Impl::reuse_data_queue(const size_t size, reuse_state_t &reuse_state)
   {
-    free_queue_st *free_queue = &mmapCntlHead->free_queue;    
-    if(free_queue->data == -1){    
+    free_queue_st *free_queue = &mmapCntlHead->free_queue;
+    if(free_queue->data == -1){
       
       reuse_state = REUSE_STATE_ALLOC;
       return -1;
@@ -423,7 +423,7 @@ namespace MemoryManager{
       if(reuse_state == REUSE_STATE_ALLOC){
 	
 	reuse_state = REUSE_STATE_OK;
-	ret_off = reuse_data_queue(size, reuse_state);	
+	ret_off = reuse_data_queue(size, reuse_state);
       }
     }else{
       ret_off = reuse_data_queue(size, reuse_state);
@@ -483,7 +483,7 @@ namespace MemoryManager{
     return true;
   }
 
-  void MmapManager::Impl::upHeap(free_queue_st *free_queue, uint64_t index) const 
+  void MmapManager::Impl::upHeap(free_queue_st *free_queue, uint64_t index) const
   {
     off_t *queue = (off_t *)mmanager.getAbsAddr(free_queue->data);
 
@@ -493,7 +493,7 @@ namespace MemoryManager{
       const off_t parent_chunk_offset = queue[parent];
       const off_t index_chunk_offset = queue[index];
       const chunk_head_st *parent_chunk_head = (chunk_head_st *)mmanager.getAbsAddr(parent_chunk_offset);
-      const chunk_head_st *index_chunk_head = (chunk_head_st *)mmanager.getAbsAddr(index_chunk_offset);    
+      const chunk_head_st *index_chunk_head = (chunk_head_st *)mmanager.getAbsAddr(index_chunk_offset);
       
       if(parent_chunk_head->size < index_chunk_head->size){
 	
@@ -508,13 +508,13 @@ namespace MemoryManager{
   void MmapManager::Impl::downHeap(free_queue_st *free_queue)const
   {
     off_t *queue = (off_t *)mmanager.getAbsAddr(free_queue->data);
-    uint64_t index = 1;    
+    uint64_t index = 1;
 
     while(index * 2 <= free_queue->tail){
       uint64_t child = index * 2;
 
       const off_t index_chunk_offset = queue[index];
-      const chunk_head_st *index_chunk_head = (chunk_head_st *)mmanager.getAbsAddr(index_chunk_offset);  
+      const chunk_head_st *index_chunk_head = (chunk_head_st *)mmanager.getAbsAddr(index_chunk_offset);
 
       if(child + 1 < free_queue->tail){
 	const off_t left_chunk_offset = queue[child];
@@ -544,9 +544,9 @@ namespace MemoryManager{
     }
   }
   
-  bool MmapManager::Impl::insertHeap(free_queue_st *free_queue, const off_t p) const 
+  bool MmapManager::Impl::insertHeap(free_queue_st *free_queue, const off_t p) const
   {
-    off_t *queue = (off_t *)mmanager.getAbsAddr(free_queue->data);    
+    off_t *queue = (off_t *)mmanager.getAbsAddr(free_queue->data);
     uint64_t index;
     if(free_queue->capacity < free_queue->tail){
       return false;
@@ -564,11 +564,11 @@ namespace MemoryManager{
   bool MmapManager::Impl::getHeap(free_queue_st *free_queue, off_t *p) const
   {
     
-    if( (free_queue->tail - 1) <= 0){     
+    if( (free_queue->tail - 1) <= 0){
       return false;
     }
 
-    off_t *queue = (off_t *)mmanager.getAbsAddr(free_queue->data);        
+    off_t *queue = (off_t *)mmanager.getAbsAddr(free_queue->data);
     *p = queue[1];
     free_queue->tail -= 1;
     queue[1] = queue[free_queue->tail];
@@ -596,7 +596,7 @@ namespace MemoryManager{
       return;
     }
     
-    off_t *queue = (off_t *)mmanager.getAbsAddr(free_queue->data);        
+    off_t *queue = (off_t *)mmanager.getAbsAddr(free_queue->data);
     for(uint32_t i = 1; i < free_queue->tail; ++i){
       const off_t chunk_offset = queue[i];
       const off_t payload_offset = chunk_offset + sizeof(chunk_head_st);
@@ -632,8 +632,8 @@ namespace MemoryManager{
     setupChunkHead(new_chunk_head, true, chunk_head->unit_id, -1, new_size);
     
     
-    head_st *unit_header = &mmapCntlHead->data_headers[mmapCntlHead->active_unit];    
-    unit_header->chunk_num++;    
+    head_st *unit_header = &mmapCntlHead->data_headers[mmapCntlHead->active_unit];
+    unit_header->chunk_num++;
 
     
     const off_t payload_offset = new_chunk_offset + sizeof(chunk_head_st);

@@ -77,4 +77,4 @@ void NGTQG::Index::create(const std::string indexPath, QBG::BuildParameters &bui
 void NGTQG::Index::append(const std::string indexPath, QBG::BuildParameters &buildParameters) {
   QBG::Index::appendFromObjectRepository(indexPath, indexPath + "/qg", buildParameters.verbose);
 }
-#endif 
+#endif

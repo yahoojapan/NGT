@@ -26,7 +26,7 @@ class ObjectSpace;
 
 namespace NGT {
 
-  template <typename OBJECT_TYPE, typename COMPARE_TYPE> 
+  template <typename OBJECT_TYPE, typename COMPARE_TYPE>
     class ObjectSpaceRepository : public ObjectSpace, public ObjectRepository {
   public:
 
@@ -330,7 +330,7 @@ namespace NGT {
       }
     }
 
-    Object *allocateObject(Object &o) { 
+    Object *allocateObject(Object &o) {
       Object *po = new Object(getByteSizeOfObject());
       for (size_t i = 0; i < getByteSizeOfObject(); i++) {
 	(*po)[i] = o[i];
@@ -359,7 +359,7 @@ namespace NGT {
 	delete comparator;
       }
       assert(ObjectSpace::dimension != 0);
-      distanceType = t; 
+      distanceType = t;
       switch (distanceType) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
       case DistanceTypeL1:
@@ -691,26 +691,26 @@ namespace NGT {
     return allocator.getOffset(new(allocator) PersistentObject(allocator, &objectspace));
   }
 
-  inline void PersistentObject::serializeAsText(std::ostream &os, ObjectSpace *objectspace) { 
+  inline void PersistentObject::serializeAsText(std::ostream &os, ObjectSpace *objectspace) {
     assert(objectspace != 0);
     SharedMemoryAllocator &allocator = objectspace->getRepository().getAllocator();
     const std::type_info &t = objectspace->getObjectType();
     void *ref = &(*this).at(0, allocator);
     size_t dimension = objectspace->getDimension();
     if (t == typeid(uint8_t)) {
-      NGT::Serializer::writeAsText(os, (uint8_t*)ref, dimension); 
+      NGT::Serializer::writeAsText(os, (uint8_t*)ref, dimension);
     } else if (t == typeid(float)) {
-      NGT::Serializer::writeAsText(os, (float*)ref, dimension); 
+      NGT::Serializer::writeAsText(os, (float*)ref, dimension);
 #ifdef NGT_HALF_FLOAT
     } else if (t == typeid(float16)) {
-      NGT::Serializer::writeAsText(os, (float16*)ref, dimension); 
+      NGT::Serializer::writeAsText(os, (float16*)ref, dimension);
 #endif
     } else if (t == typeid(double)) {
-      NGT::Serializer::writeAsText(os, (double*)ref, dimension); 
+      NGT::Serializer::writeAsText(os, (double*)ref, dimension);
     } else if (t == typeid(uint16_t)) {
-      NGT::Serializer::writeAsText(os, (uint16_t*)ref, dimension); 
+      NGT::Serializer::writeAsText(os, (uint16_t*)ref, dimension);
     } else if (t == typeid(uint32_t)) {
-      NGT::Serializer::writeAsText(os, (uint32_t*)ref, dimension); 
+      NGT::Serializer::writeAsText(os, (uint32_t*)ref, dimension);
     } else {
       std::cerr << "ObjectT::serializeAsText: not supported data type. [" << t.name() << "]" << std::endl;
       assert(0);
@@ -725,19 +725,19 @@ namespace NGT {
     void *ref = &(*this).at(0, allocator);
     assert(ref != 0);
     if (t == typeid(uint8_t)) {
-      NGT::Serializer::readAsText(is, (uint8_t*)ref, dimension); 
+      NGT::Serializer::readAsText(is, (uint8_t*)ref, dimension);
     } else if (t == typeid(float)) {
-      NGT::Serializer::readAsText(is, (float*)ref, dimension); 
+      NGT::Serializer::readAsText(is, (float*)ref, dimension);
 #ifdef NGT_HALF_FLOAT
     } else if (t == typeid(float16)) {
-      NGT::Serializer::readAsText(is, (float16*)ref, dimension); 
+      NGT::Serializer::readAsText(is, (float16*)ref, dimension);
 #endif
     } else if (t == typeid(double)) {
-      NGT::Serializer::readAsText(is, (double*)ref, dimension); 
+      NGT::Serializer::readAsText(is, (double*)ref, dimension);
     } else if (t == typeid(uint16_t)) {
-      NGT::Serializer::readAsText(is, (uint16_t*)ref, dimension); 
+      NGT::Serializer::readAsText(is, (uint16_t*)ref, dimension);
     } else if (t == typeid(uint32_t)) {
-      NGT::Serializer::readAsText(is, (uint32_t*)ref, dimension); 
+      NGT::Serializer::readAsText(is, (uint32_t*)ref, dimension);
     } else {
       std::cerr << "Object::deserializeAsText: not supported data type. [" << t.name() << "]" << std::endl;
       assert(0);

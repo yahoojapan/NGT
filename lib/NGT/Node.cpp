@@ -293,7 +293,7 @@ LeafNode::removeObject(size_t id, size_t replaceId) {
 }
 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-bool InternalNode::verify(PersistentRepository<InternalNode> &internalNodes, PersistentRepository<LeafNode> &leafNodes, 
+bool InternalNode::verify(PersistentRepository<InternalNode> &internalNodes, PersistentRepository<LeafNode> &leafNodes,
 			  SharedMemoryAllocator &allocator) {
 #else
 bool InternalNode::verify(Repository<InternalNode> &internalNodes, Repository<LeafNode> &leafNodes) {

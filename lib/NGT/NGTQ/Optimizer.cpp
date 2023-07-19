@@ -120,7 +120,7 @@ void QBG::Optimizer::evaluate(string global, vector<vector<float>> &vectors, cha
   }
 
   Matrix<float> R;
-  Matrix<float>::load(ofile + QBG::Index::getRotationFile(), R);    
+  Matrix<float>::load(ofile + QBG::Index::getRotationFile(), R);
   vector<vector<float>> qv(vectors.size());	// quantized vector
   vector<vector<float>> xp;	// residual vector
   if (residualVectors.empty()) {
@@ -191,7 +191,7 @@ void QBG::Optimizer::evaluate(string global, vector<vector<float>> &vectors, cha
 #endif
   cout << "distortion=" << distortion << endl;
   return;
-#endif 
+#endif
 }
 #endif
 
@@ -203,7 +203,7 @@ void QBG::Optimizer::evaluate(vector<vector<float>> &vectors, string &ofile, siz
 #else
   cerr << "Evaluate" << endl;
   Matrix<float> R;
-  Matrix<float>::load(ofile + QBG::Index::getRotationFile(), R);    
+  Matrix<float>::load(ofile + QBG::Index::getRotationFile(), R);
   vector<vector<float>> xp = vectors;
   Matrix<float>::mulSquare(xp, R);
   for (size_t m = 0; m < numberOfSubvectors; m++) {
@@ -234,7 +234,7 @@ void QBG::Optimizer::evaluate(vector<vector<float>> &vectors, string &ofile, siz
     }
   }
   return;
-#endif 
+#endif
 }
 #endif
 
@@ -262,7 +262,7 @@ void QBG::Optimizer::optimize(const std::string indexPath, size_t threadSize) {
       msg << "optimize: # of clusters is illegal. " << index.getQuantizer().property.localCentroidLimit << ":" << numberOfClusters;
       NGTThrowException(msg);
     }
-    if (index.getQuantizer().property.localCentroidLimit != 0 && numberOfClusters != 0 && 
+    if (index.getQuantizer().property.localCentroidLimit != 0 && numberOfClusters != 0 &&
 	index.getQuantizer().property.localCentroidLimit != numberOfClusters) {
       std::stringstream msg;
       msg << "optimize: # of clusters is already specified. " << index.getQuantizer().property.localCentroidLimit << ":" << numberOfClusters;
@@ -353,7 +353,7 @@ void QBG::Optimizer::optimize(const std::string indexPath, size_t threadSize) {
 
   redirector.end();
 }
-#endif 
+#endif
 
 #ifdef NGTQ_QBG
 void QBG::Optimizer::optimizeWithinIndex(std::string indexPath) {
@@ -372,7 +372,7 @@ void QBG::Optimizer::optimizeWithinIndex(std::string indexPath) {
   pq += "/";
   optimize(object, pq, global);
 }
-#endif 
+#endif
 
 
 
@@ -459,11 +459,11 @@ void QBG::Optimizer::optimize(vector<vector<float>> &vectors, vector<vector<floa
   timer.start();
   for (int step = seedNumberOfSteps - 1; ; step--) {
     size_t vsize = vectors.size() / pow(seedStep, step);
-    std::cerr << "optimize: # of vectors=" << vsize << "/" << vectors.size() 
+    std::cerr << "optimize: # of vectors=" << vsize << "/" << vectors.size()
 	      << ", # of matrices=" << numberOfMatrices << std::endl;
     if (vsize <= 1) {
       std::stringstream msg;
-      msg << "# of partial vectors is too small, because # of vectors is too small or seedStep is too large." 
+      msg << "# of partial vectors is too small, because # of vectors is too small or seedStep is too large."
 	  << " # of partial vectors=" << vsize << " # of vectors=" <<  vectors.size() << " seedStep=" << seedStep << std::endl;
       NGTThrowException(msg);
     }
@@ -520,7 +520,7 @@ void QBG::Optimizer::optimize(vector<vector<float>> &vectors, vector<vector<floa
 
   //-/size_t pos = std::distance(std::find(ofile.rbegin(), ofile.rend(), '.'), ofile.rend()) - 1;
 
-#endif 
+#endif
 }
 
 void QBG::Optimizer::optimize(std::string invector, std::string ofile, std::string global) {
@@ -551,7 +551,7 @@ void QBG::Optimizer::optimize(std::string invector, std::string ofile, std::stri
   if (showClusterInfo) {
     if (localClusters.size() != numberOfSubvectors) {
       std::stringstream msg;
-      msg << "Fatal error. localClusters.size() != numberOfSubvectors " 
+      msg << "Fatal error. localClusters.size() != numberOfSubvectors "
 	  << localClusters.size() << ":" << numberOfSubvectors;
       NGTThrowException(msg);
     }
@@ -590,6 +590,6 @@ void QBG::Optimizer::optimize(std::string invector, std::string ofile, std::stri
     saveClusters(str.str(), localClusters[m]);
 #endif
   }
-#endif 
+#endif
 }
 #endif

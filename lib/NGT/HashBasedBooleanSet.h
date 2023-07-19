@@ -75,7 +75,7 @@ class HashBasedBooleanSet{
     if (v == 0){
       return false;
     }
-    if (_stlHash.count(num) <= 0) {    
+    if (_stlHash.count(num) <= 0) {
       return false;
     }
     return true;
