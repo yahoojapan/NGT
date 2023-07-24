@@ -127,6 +127,16 @@ extern "C" {
   } QBGBuildParameters;
 
   typedef struct {
+    size_t	number_of_results;
+    float	epsilon;
+    float	blob_epsilon;
+    float	result_expansion;
+    size_t	number_of_explored_blobs;
+    size_t	number_of_edges;
+    float	radius;
+  } QBGQueryParameters;
+
+  typedef struct {
     float	*query;
     size_t	number_of_results;
     float	epsilon;
@@ -136,6 +146,21 @@ extern "C" {
     size_t	number_of_edges;
     float	radius;
   } QBGQuery;
+
+  typedef struct {
+    float		   		*query;
+    QBGQueryParameters	params;
+  } QBGQueryFloat;
+
+  typedef struct {
+    uint8_t		   		*query;
+    QBGQueryParameters	params;
+  } QBGQueryUint8;
+
+  typedef struct {
+    NGTFloat16	   		*query;
+    QBGQueryParameters	params;
+  } QBGQueryFloat16;
 
   void qbg_initialize_construction_parameters(QBGConstructionParameters *parameters);
 
@@ -151,17 +176,29 @@ extern "C" {
 
   ObjectID qbg_append_object_as_uint8(QBGIndex index, uint8_t *obj, uint32_t obj_dim, QBGError error);
 
+  ObjectID qbg_append_object_as_float16(QBGIndex index, NGTFloat16 *obj, uint32_t obj_dim, QBGError error);
+
   void qbg_initialize_build_parameters(QBGBuildParameters *parameters);
 
   bool qbg_build_index(const char *index_path, QBGBuildParameters *parameters, QBGError error);
+
+  void qbg_initialize_query_parameters(QBGQueryParameters *parameters);
 
   void qbg_initialize_query(QBGQuery *parameters);
 
   bool qbg_search_index(QBGIndex index, QBGQuery query, NGTObjectDistances results, QBGError error);
 
+  bool qbg_search_index_float(QBGIndex index, QBGQueryFloat query, NGTObjectDistances results, QBGError error);
+
+  bool qbg_search_index_uint8(QBGIndex index, QBGQueryUint8 query, NGTObjectDistances results, QBGError error);
+
+  bool qbg_search_index_float16(QBGIndex index, QBGQueryFloat16 query, NGTObjectDistances results, QBGError error);
+
   float* qbg_get_object(QBGIndex index, ObjectID id,  QBGError error);
 
   uint8_t* qbg_get_object_as_uint8(QBGIndex index, ObjectID id,  QBGError error);
+
+  NGTFloat16* qbg_get_object_as_float16(QBGIndex index, ObjectID id, QBGError error);
 
   size_t qbg_get_dimension(QBGIndex index, QBGError error);
 
