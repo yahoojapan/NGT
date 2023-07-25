@@ -761,6 +761,8 @@ namespace QBG {
 
       lowerClusters.resize(upperClusters.size());
       std::vector<size_t> counters(nthreads, 0);
+      size_t progressStep = upperClusters.size() / 20;;
+      progressStep = progressStep < 20 ? 20 : progressStep;
 #pragma omp parallel for schedule(dynamic)
       for (size_t idx = 0; idx < upperClusters.size(); idx++) {
 	std::vector<std::vector<float>> partialVectors;
@@ -798,12 +800,13 @@ namespace QBG {
 	  for (auto c : counters) {
 	    cnt += c;
 	  }
-	  if (cnt % ((upperClusters.size() < 20 ? 20 : upperClusters.size()) / 20) == 0) {
-	    timer.stop();
-	    std::cerr << "subclustering: " << cnt << " clusters ("
-		      << (cnt * 100 / upperClusters.size()) << "%) have been processed. time=" << timer << std::endl;
-	    timer.restart();
-	  }
+          if (cnt % progressStep == 0) {
+            timer.stop();
+            float progress = (cnt * 100 / upperClusters.size());
+            std::cerr << "subclustering: " << cnt << " clusters ("
+                      << progress << "%) have been processed. time=" << timer << std::endl;
+            timer.restart();
+          }
 	}
       }
       size_t nc = 0;
@@ -1156,6 +1159,8 @@ namespace QBG {
       timer.stop();
       std::cerr << "assignWithNGT: exploring epsilon. time=" << timer << " epsilon=" << epsilon << std::endl;
       timer.start();
+      size_t progressStep = (endID - beginID) / 20;;
+      progressStep = progressStep < 20 ? 20 : progressStep;
 #pragma omp parallel for
       for (size_t id = beginID; id < endID; id++) {
 	std::vector<float> obj;
@@ -1179,12 +1184,13 @@ namespace QBG {
 	  for (auto d : distances) {
 	    cnt += d.first;
 	  }
-	  if (cnt % ((endID - beginID) / 100) == 0) {
-	    timer.stop();
-	    std::cerr << "assignWithNGT: " << cnt << " objects ("
-		      << (cnt * 100 / (endID - beginID)) << "%) have been assigned. time=" << timer << std::endl;
-	    timer.restart();
-	  }
+          if (cnt % progressStep == 0) {
+            timer.stop();
+            float progress = cnt * 100 / (endID - beginID);
+            std::cerr << "assignWithNGT: " << cnt << " objects ("
+                      << progress  << "%) have been assigned. time=" << timer << std::endl;
+            timer.restart();
+          }
 	}
       }
       std::cerr << "pushing..." << std::endl;

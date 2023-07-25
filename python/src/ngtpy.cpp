@@ -120,6 +120,12 @@ public:
     if (debug) {
       std::cerr << info.shape.size() << ":" << info.shape[0] << ":" << info.shape[1] << std::endl;
     }
+    if ((objects.flags() & py::detail::npy_api::constants::NPY_ARRAY_C_CONTIGUOUS_) == 0) {
+      std::stringstream msg;
+      msg << "ngtpy::batchInsert: Error! The array order is not C type. " << static_cast<int>(objects.flags())
+	  << ":" << static_cast<int>(py::detail::npy_api::constants::NPY_ARRAY_C_CONTIGUOUS_);
+      NGTThrowException(msg);
+    }
     auto ptr = static_cast<double *>(info.ptr);
     assert(info.shape.size() == 2);
     NGT::Property prop;
@@ -653,6 +659,12 @@ public:
     if (debug) {
       std::cerr << info.shape.size() << ":" << info.shape[0] << ":" << info.shape[1] << std::endl;
     }
+    if ((objects.flags() & py::detail::npy_api::constants::NPY_ARRAY_C_CONTIGUOUS_) == 0) {
+      std::stringstream msg;
+      msg << "ngtpy::batchInsert: Error! The array order is not C type. " << static_cast<int>(objects.flags())
+	  << ":" << static_cast<int>(py::detail::npy_api::constants::NPY_ARRAY_C_CONTIGUOUS_);
+      NGTThrowException(msg);
+    }
     auto ptr = static_cast<double *>(info.ptr);
     assert(info.shape.size() == 2);
     for (int idx = 0; idx < info.shape[0]; idx++) {
@@ -799,6 +811,12 @@ public:
     BatchResults &results,
     size_t size
   ) {
+    if ((queries.flags() & py::detail::npy_api::constants::NPY_ARRAY_C_CONTIGUOUS_) == 0) {
+      std::stringstream msg;
+      msg << "ngtpy::batchSearch: Error! The array order is not C type. " << static_cast<int>(queries.flags())
+	  << ":" << static_cast<int>(py::detail::npy_api::constants::NPY_ARRAY_C_CONTIGUOUS_);
+      NGTThrowException(msg);
+    }
     if (defaultNumOfProbes == 0) {
       batchSearchInOneStep(queries, results, size);
     } else {
@@ -812,6 +830,12 @@ public:
     BatchResults &results,
     float radius
   ) {
+    if ((queries.flags() & py::detail::npy_api::constants::NPY_ARRAY_C_CONTIGUOUS_) == 0) {
+      std::stringstream msg;
+      msg << "ngtpy::batchRangeSearch: Error! The array order is not C type. " << static_cast<int>(queries.flags())
+	  << ":" << static_cast<int>(py::detail::npy_api::constants::NPY_ARRAY_C_CONTIGUOUS_);
+      NGTThrowException(msg);
+    }
     const py::buffer_info &qinfo = queries.request();
     const std::vector<long int> &qshape = qinfo.shape;
     auto nOfQueries = qshape[0];

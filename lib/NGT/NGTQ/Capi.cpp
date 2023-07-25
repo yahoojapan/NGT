@@ -125,7 +125,7 @@ void ngtqg_initialize_quantization_parameters(NGTQGQuantizationParameters *param
 
 bool ngtqg_quantize(const char *indexPath, NGTQGQuantizationParameters parameters, NGTError error) {
   try{
-    NGTQG::Index::quantize(indexPath, parameters.dimension_of_subvector, parameters.max_number_of_edges, true);
+    NGTQG::Index::quantize(indexPath, parameters.dimension_of_subvector, parameters.max_number_of_edges, false);
     return true;
   }catch(std::exception &err){
     std::stringstream ss;
@@ -165,7 +165,6 @@ bool qbg_create(const char *indexPath, QBGConstructionParameters *parameters, NG
 {
 
   try {
-    cerr << "qbgcapi: Create" << endl;
     std::vector<float> r;
     NGTQ::Property property;
     NGT::Property globalProperty;

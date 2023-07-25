@@ -1270,7 +1270,7 @@ namespace QBG {
     }
 
     static void buildNGTQ(const std::string &indexPath, bool verbose = false) {
-      load(indexPath, QBG::Index::getQuantizerCodebookFile(indexPath), "", "");
+      load(indexPath, QBG::Index::getQuantizerCodebookFile(indexPath), "", "", "", verbose);
       buildNGTQ(indexPath, "", "-", "-", 1, 0, verbose);
       if (verbose) {
 	std::cerr << "NGTQ and NGTQBG indices are completed." << std::endl;
@@ -1593,8 +1593,10 @@ namespace QBG {
 
 
     static void
-      load(std::string indexPath, std::string blobs = "", std::string localCodebooks = "", std::string quantizerCodebook = "", std::string rotationPath = "", int threadSize = 0)
+    load(std::string indexPath, std::string blobs = "", std::string localCodebooks = "", std::string quantizerCodebook = "", std::string rotationPath = "", bool verbose = false, int threadSize = 0)
     {
+      NGT::StdOstreamRedirector redirector(!verbose);
+      redirector.begin();
       if (blobs.empty()) {
 	blobs = QBG::Index::getBlobFile(indexPath);
       }
@@ -1709,6 +1711,7 @@ namespace QBG {
 	QBG::Index::load(indexPath, qCodebook, rotation);
       }
 #endif
+      redirector.end();
     }
 
     static const std::string getSubvectorPrefix() { return "sv"; }

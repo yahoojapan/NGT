@@ -419,12 +419,12 @@ QBG::CLI::buildQG(NGT::Args &args)
   if (phase == 0 || phase == 2) {
     std::cerr << "building the inverted index..." << std::endl;
     bool verbose = false;
-    QBG::Index::buildNGTQ(qgPath, !verbose);
+    QBG::Index::buildNGTQ(qgPath, verbose);
   }
   if (phase == 0 || phase == 3) {
     std::cerr << "building the quantized graph... " << std::endl;
     bool verbose = false;
-    NGTQG::Index::realign(indexPath, maxNumOfEdges, !verbose);
+    NGTQG::Index::realign(indexPath, maxNumOfEdges, verbose);
   }
 }
 
@@ -1002,9 +1002,9 @@ QBG::CLI::append(NGT::Args &args)
   NGT::Timer timer;
   timer.start();
   if (mode.find_first_of('b') != std::string::npos) {
-    QBG::Index::appendBinary(indexPath, data, dataSize, !verbose);
+    QBG::Index::appendBinary(indexPath, data, dataSize, verbose);
   } else {
-    QBG::Index::append(indexPath, data, dataSize, !verbose);
+    QBG::Index::append(indexPath, data, dataSize, verbose);
   }
   timer.stop();
   std::cerr << "qbg: appending time=" << timer << std::endl;

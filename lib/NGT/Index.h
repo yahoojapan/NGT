@@ -526,8 +526,8 @@ namespace NGT {
       }
       return *index;
     }
-    void enableLog() { redirect = true; }
-    void disableLog() { redirect = false; }
+    void enableLog() { redirect = false; }
+    void disableLog() { redirect = true; }
 
     static void destroy(const std::string &path) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR

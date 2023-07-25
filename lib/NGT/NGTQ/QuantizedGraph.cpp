@@ -45,7 +45,7 @@ void NGTQG::Index::quantize(const std::string indexPath, size_t dimensionOfSubve
 #endif
 
       if (optimizer.globalType == QBG::Optimizer::GlobalTypeNone) {
-	std::cerr << "build-qg: Warning! None is unavailable for the global type. Zero is set to the global type." << std::endl;
+	if (verbose) std::cerr << "build-qg: Warning! None is unavailable for the global type. Zero is set to the global type." << std::endl;
 	optimizer.globalType = QBG::Optimizer::GlobalTypeZero;
       }
 

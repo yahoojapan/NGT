@@ -87,8 +87,9 @@ namespace NGTQG {
       PARENT::resize(graphRepository.size());
 
       for (size_t id = 1; id < graphRepository.size(); id++) {
-	if (id % 100000 == 0) {
-	  std::cerr << "# of processed objects=" << id << "/" << graphRepository.size() << std::endl;
+	if (id % ((graphRepository.size() - 1) / 100) == 0) {
+	  std::cerr << "# of processed objects=" << id << "/" << (graphRepository.size() - 1) 
+		    << "(" << id * 100 / (graphRepository.size() - 1) << "%)" << std::endl;
 	}
 	NGT::GraphNode &node = *graphRepository.VECTOR::get(id);
 	size_t numOfEdges = node.size() < maxNoOfEdges ? node.size() : maxNoOfEdges;
@@ -118,8 +119,9 @@ namespace NGTQG {
 	    abort();
 #else
 	    if (invertedIndexObjects[(*i).id].localID[idx] < 1 || invertedIndexObjects[(*i).id].localID[idx] > 16) {
-	      std::cerr << "Fatal inner error! Invalid local centroid ID. ID=" << (*i).id << ":" << invertedIndexObjects[(*i).id].localID[idx] << std::endl;
-	      abort();
+	      std::stringstream msg;
+	      msg << "Fatal inner error! Invalid local centroid ID. ID=" << (*i).id << ":" << invertedIndexObjects[(*i).id].localID[idx];
+	      NGTThrowException(msg);
 	    }
 	    quantizedStream.arrangeQuantizedObject(dataNo, idx, invertedIndexObjects[(*i).id].localID[idx] - 1);
 #endif

@@ -299,17 +299,18 @@ void QBG::Optimizer::optimize(const std::string indexPath, size_t threadSize) {
       std::vector<std::vector<float>> global(1);
       global[0].resize(index.getQuantizer().property.dimension, 0.0);
       NGT::Clustering::saveVectors(QBG::Index::getQuantizerCodebookFile(indexPath), global);
-
-      ifstream ifs(QBG::Index::getCodebookIndexFile(indexPath));
-      if (!ifs) {
-	std::stringstream msg;
-	msg << "Cannot open the file. " << QBG::Index::getCodebookIndexFile(indexPath);
-	NGTThrowException(msg);
-      }
-      size_t id;
       size_t count = 0;
-      while (ifs >> id) {
-	count++;
+      {
+	ifstream ifs(QBG::Index::getCodebookIndexFile(indexPath));
+	if (!ifs) {
+	  count = 1;
+	  std::cerr << "the codebook index file is missing. this index must be QG." << std::endl;
+	} else {
+	  size_t id;
+	  while (ifs >> id) {
+	    count++;
+	  }
+	}
       }
       ofstream ofs(QBG::Index::getCodebookIndexFile(indexPath));
       if (!ofs) {

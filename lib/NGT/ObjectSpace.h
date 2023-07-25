@@ -302,12 +302,16 @@ namespace NGT {
   public:
     virtual uint8_t &operator[](size_t idx) const = 0;
     void serialize(std::ostream &os, ObjectSpace *objectspace = 0) {
-      assert(objectspace != 0);
+      if (objectspace == 0) {
+	NGTThrowException("Object: objectspace is null");
+      }
       size_t byteSize = objectspace->getByteSizeOfObject();
       NGT::Serializer::write(os, (uint8_t*)&(*this)[0], byteSize);
     }
     void deserialize(std::istream &is, ObjectSpace *objectspace = 0) {
-      assert(objectspace != 0);
+      if (objectspace == 0) {
+	NGTThrowException("Object: objectspace is null");
+      }
       size_t byteSize = objectspace->getByteSizeOfObject();
       assert(&(*this)[0] != 0);
       NGT::Serializer::read(is, (uint8_t*)&(*this)[0], byteSize);
@@ -318,7 +322,9 @@ namespace NGT {
       }
     }
     void serializeAsText(std::ostream &os, ObjectSpace *objectspace = 0) {
-      assert(objectspace != 0);
+      if (objectspace == 0) {
+	NGTThrowException("Object: objectspace is null");
+      }
       const std::type_info &t = objectspace->getObjectType();
       size_t dimension = objectspace->getDimension();
       void *ref = (void*)&(*this)[0];
@@ -342,7 +348,9 @@ namespace NGT {
       }
     }
     void deserializeAsText(std::ifstream &is, ObjectSpace *objectspace = 0) {
-      assert(objectspace != 0);
+      if (objectspace == 0) {
+	NGTThrowException("Object: objectspace is null");
+      }
       const std::type_info &t = objectspace->getObjectType();
       size_t dimension = objectspace->getDimension();
       void *ref = (void*)&(*this)[0];
