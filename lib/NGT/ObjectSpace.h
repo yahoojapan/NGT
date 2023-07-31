@@ -218,6 +218,10 @@ namespace NGT {
     virtual void appendText(std::istream &is, size_t dataSize) = 0;
     virtual void append(const float *data, size_t dataSize) = 0;
     virtual void append(const double *data, size_t dataSize) = 0;
+    virtual void append(const uint8_t *data, size_t dataSize) = 0;
+#ifdef NGT_HALF_FLOAT
+    virtual void append(const float16 *data, size_t dataSize) = 0;
+#endif
 
     virtual void copy(Object &objecta, Object &objectb) = 0;
 

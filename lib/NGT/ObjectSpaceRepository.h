@@ -461,6 +461,10 @@ namespace NGT {
 
     void append(const float *data, size_t dataSize) { ObjectRepository::append(data, dataSize); }
     void append(const double *data, size_t dataSize) { ObjectRepository::append(data, dataSize); }
+    void append(const uint8_t *data, size_t dataSize) { ObjectRepository::append(data, dataSize); }
+#ifdef NGT_HALF_FLOAT
+    void append(const float16 *data, size_t dataSize) { ObjectRepository::append(data, dataSize); }
+#endif
 
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR

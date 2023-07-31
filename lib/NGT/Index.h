@@ -709,6 +709,10 @@ namespace NGT {
 
     virtual void append(const float *data, size_t dataSize) { objectSpace->append(data, dataSize); }
     virtual void append(const double *data, size_t dataSize) { objectSpace->append(data, dataSize); }
+    virtual void append(const uint8_t *data, size_t dataSize) { objectSpace->append(data, dataSize); }
+#ifdef NGT_HALF_FLOAT
+    virtual void append(const float16 *data, size_t dataSize) { objectSpace->append(data, dataSize); }
+#endif
 
     void saveObjectRepository(const std::string &ofile) {
 #ifndef NGT_SHARED_MEMORY_ALLOCATOR
