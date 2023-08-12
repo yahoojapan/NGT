@@ -576,8 +576,9 @@ namespace NGTQG {
       index.getProperty(ngtProperty);
       //NGTQG::Command::CreateParameters createParameters(args, property.dimension);
 #ifdef NGTQ_QBG
+      int align = 16;
       if (pseudoDimension == 0) {
-	pseudoDimension = ((ngtProperty.dimension - 1) / 4 + 1) * 4;
+        pseudoDimension = ((ngtProperty.dimension - 1) / align + 1) * align;
       }
       if (ngtProperty.dimension > static_cast<int>(pseudoDimension)) {
 	std::stringstream msg;
@@ -585,9 +586,9 @@ namespace NGTQG {
 	    << ngtProperty.dimension << ":" << pseudoDimension << std::endl;
 	NGTThrowException(msg);
       }
-      if (pseudoDimension % 4 != 0) {
+      if (pseudoDimension % align != 0) {
 	std::stringstream msg;
-	msg << "QuantizedGraph::quantize: the specified pseudo dimension should be a multiple of 4. "
+	msg << "QuantizedGraph::quantize: the specified pseudo dimension should be a multiple of " << align << ". "
 	    << pseudoDimension << std::endl;
 	NGTThrowException(msg);
       }

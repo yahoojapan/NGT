@@ -3840,8 +3840,11 @@ public:
       setGlobalCodeToInvertedEntry(ids[i], objects[i], localData);
     }
     float subspaceObjects[localData.size()][globalCodebookIndex.getObjectSpace().getPaddedDimension()];
+    bool error = false;
+    std::string errorMessage;
 #pragma omp parallel for
     for (size_t i = 0; i < localData.size(); i++) {
+      if (error) continue;
       IIEntry &invertedIndexEntry = *invertedIndex.at(localData[i].iiIdx);
 #ifdef NGTQ_SHARED_INVERTED_INDEX
 #ifdef NGTQ_QBG
@@ -3864,15 +3867,23 @@ public:
 #endif
       }
 #endif
+      try {
 #ifdef NGTQ_VECTOR_OBJECT
-      (*generateResidualObject)(objects[i].first, // object
-				invertedIndexEntry.subspaceID,
-				subspaceObjects[i]); // subspace objects
+        (*generateResidualObject)(objects[i].first, // object
+				  invertedIndexEntry.subspaceID,
+				  subspaceObjects[i]); // subspace objects
 #else
-      (*generateResidualObject)(*objects[i].first, // object
-				invertedIndexEntry.subspaceID,
-				subspaceObjects[i]); // subspace objects
+        (*generateResidualObject)(*objects[i].first, // object
+				  invertedIndexEntry.subspaceID,
+				  subspaceObjects[i]); // subspace objects
 #endif
+      } catch(NGT::Exception &err) {
+	if (errorMessage.empty()) {
+	  errorMessage = err.what();
+	}
+	error = true;
+	continue;
+      }
 #ifndef NGTQG_ROTATED_GLOBAL_CODEBOOKS
       rotation.mul(subspaceObjects[i]);
 #endif
@@ -3883,6 +3894,9 @@ public:
 #endif
 #endif
 
+    }
+    if (error) {
+      NGTThrowException(errorMessage);
     }
     
     if (property.singleLocalCodebook) {

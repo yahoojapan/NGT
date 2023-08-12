@@ -87,7 +87,10 @@ main(int argc, char **argv)
   ngtqg_initialize_quantization_parameters(&quantizationParameters);
 
   std::cerr << "quantize the index..." << std::endl;
-  ngtqg_quantize(indexPath.c_str(), quantizationParameters, err);
+  if (ngtqg_quantize(indexPath.c_str(), quantizationParameters, err) == false) {
+    std::cerr << ngt_get_error_string(err) << std::endl;
+    return 1;
+  }
 
   std::cerr << "open the quantized index..." << std::endl;
   index = ngtqg_open_index(indexPath.c_str(), err);
@@ -109,7 +112,6 @@ main(int argc, char **argv)
     {
       std::vector<std::string> tokens;
       NGT::Common::tokenize(line, tokens, " \t");
-      tokens.resize(dimension);
       if (tokens.size() != dimension) {
 	std::cerr << "dimension of the query is invalid. dimesion=" << tokens.size() << ":" << dimension << std::endl;
 	return 1;
