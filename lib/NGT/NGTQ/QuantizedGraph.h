@@ -36,16 +36,16 @@ namespace NGTQG {
     public:
       SearchContainer(SearchContainer &sc, NGT::Object &f): NGT::SearchContainer(sc, f), resultExpansion(sc.resultExpansion) {}
       SearchContainer() {}
-      
+
       void setResultExpansion(float re) { resultExpansion = re; }
       float resultExpansion;
   };
-  
+
   class SearchQuery : public NGT::QueryContainer, public NGTQG::SearchContainer {
     public:
       template <typename QTYPE> SearchQuery(const std::vector<QTYPE> &q): NGT::QueryContainer(q) {}
   };
-  
+
   class QuantizedNode {
   public:
     ~QuantizedNode() {
@@ -57,7 +57,7 @@ namespace NGTQG {
   };
 
   typedef QuantizedNode RearrangedQuantizedObjectSet;
-  
+
   class QuantizedGraphRepository : public std::vector<QuantizedNode> {
     typedef std::vector<QuantizedNode> PARENT;
   public:
@@ -77,7 +77,7 @@ namespace NGTQG {
       NGT::GraphRepository &graphRepository = graph.repository;
       construct(graphRepository, quantizedIndex, maxNoOfEdges);
     }
-    
+
     void construct(NGT::GraphRepository &graphRepository, NGTQ::Index &quantizedIndex, size_t maxNoOfEdges) {
       NGTQ::InvertedIndexEntry<uint16_t> invertedIndexObjects(numOfSubspaces);
       quantizedIndex.getQuantizer().extractInvertedIndexObject(invertedIndexObjects);
@@ -178,7 +178,7 @@ namespace NGTQG {
       const std::string p(path + "/grp");
       return ::stat(p.c_str(), &st) == 0;
     }
-    
+
     void save(const string &path) {
       if (PARENT::size() == 0) {
 	return;
@@ -226,7 +226,7 @@ namespace NGTQG {
       quantizedGraph.save(path + "/qg");
     }
 
-    
+
     void searchQuantizedGraph(NGT::NeighborhoodGraph &graph, NGTQG::SearchContainer &sc, NGT::ObjectDistances &seeds) {
       size_t sizeBackup = sc.size;
       if (sc.resultExpansion > 1.0) {
