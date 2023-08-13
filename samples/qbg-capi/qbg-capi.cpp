@@ -103,7 +103,6 @@ main(int argc, char **argv)
     {
       std::vector<std::string> tokens;
       NGT::Common::tokenize(line, tokens, " \t");
-      tokens.resize(dimension);
       if (tokens.size() != dimension) {
 	std::cerr << "dimension of the query is invalid. dimesion=" << tokens.size() << ":" << dimension << std::endl;
 	return 1;

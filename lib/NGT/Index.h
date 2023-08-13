@@ -385,11 +385,11 @@ namespace NGT {
 #endif
     }
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-  Index(NGT::Property &prop, const std::string &database);
+    Index(NGT::Property &prop, const std::string &database);
 #else
-  Index(NGT::Property &prop);
+    Index(NGT::Property &prop);
 #endif
-  Index(const std::string &database, bool rdOnly = false):index(0), redirect(false) { open(database, rdOnly); }
+    Index(const std::string &database, bool rdOnly = false):index(0), redirect(false) { open(database, rdOnly); }
     Index(const std::string &database, bool rdOnly, bool graphDisabled):index(0), redirect(false) { open(database, rdOnly, graphDisabled); }
     Index(const std::string &database, NGT::Property &prop):index(0), redirect(false) { open(database, prop);  }
     virtual ~Index() { close(); }
@@ -1145,6 +1145,11 @@ namespace NGT {
     Object *allocateObject(const std::vector<float> &obj) {
       return objectSpace->allocateNormalizedObject(obj);
     }
+#ifdef NGT_HALF_FLOAT
+    Object *allocateObject(const std::vector<float16> &obj) {
+      return objectSpace->allocateNormalizedObject(obj);
+    }
+#endif
     Object *allocateObject(const std::vector<uint8_t> &obj) {
       return objectSpace->allocateNormalizedObject(obj);
     }

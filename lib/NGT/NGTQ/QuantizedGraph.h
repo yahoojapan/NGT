@@ -87,7 +87,7 @@ namespace NGTQG {
       PARENT::resize(graphRepository.size());
 
       for (size_t id = 1; id < graphRepository.size(); id++) {
-	if (id % ((graphRepository.size() - 1) / 100) == 0) {
+	if ((graphRepository.size() > 100) && id % (((graphRepository.size() - 1) / 100) == 0)) {
 	  std::cerr << "# of processed objects=" << id << "/" << (graphRepository.size() - 1) 
 		    << "(" << id * 100 / (graphRepository.size() - 1) << "%)" << std::endl;
 	}
@@ -202,7 +202,7 @@ namespace NGTQG {
   class Index : public NGT::Index {
   public:
     Index(const std::string &indexPath, size_t maxNoOfEdges = 128, bool rdOnly = false) :
-      NGT::Index(indexPath, false, rdOnly),
+      NGT::Index(indexPath, rdOnly, false),
       readOnly(rdOnly),
       path(indexPath),
       quantizedIndex(indexPath + "/qg", rdOnly),

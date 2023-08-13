@@ -2319,7 +2319,12 @@ namespace NGT {
 	deleteQuery();
       }
       queryType = &typeid(QTYPE);
-      if (*queryType != typeid(float) && *queryType != typeid(double) && *queryType != typeid(uint8_t)) {
+      if (*queryType != typeid(float) &&
+#ifdef NGT_HALF_FLOAT
+	  *queryType != typeid(float16) && 
+#endif
+	  *queryType != typeid(double) && 
+	  *queryType != typeid(uint8_t)) {
 	query = 0;
 	queryType = 0;
 	std::stringstream msg;

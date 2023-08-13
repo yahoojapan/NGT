@@ -236,6 +236,9 @@ namespace NGT {
     virtual Object *allocateNormalizedObject(const std::string &textLine, const std::string &sep) = 0;
     virtual Object *allocateNormalizedObject(const std::vector<double> &obj) = 0;
     virtual Object *allocateNormalizedObject(const std::vector<float> &obj) = 0;
+#ifdef NGT_HALF_FLOAT
+    virtual Object *allocateNormalizedObject(const std::vector<float16> &obj) = 0;
+#endif
     virtual Object *allocateNormalizedObject(const std::vector<uint8_t> &obj) = 0;
     virtual Object *allocateNormalizedObject(const float *obj, size_t size) = 0;
     virtual PersistentObject *allocateNormalizedPersistentObject(const std::vector<double> &obj) = 0;
