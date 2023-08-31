@@ -248,9 +248,17 @@ namespace NGT {
       removeNode(Node::ID id) {
       size_t idx = id.getID();
       if (id.getType() == Node::ID::Leaf) {
+#ifndef NGT_SHARED_MEMORY_ALLOCATOR
+	LeafNode &n = *static_cast<LeafNode*>(getNode(id));
+	delete n.pivot;
+#endif
 	leafNodes.remove(idx);
       } else {
-	internalNodes.remove(idx);
+#ifndef NGT_SHARED_MEMORY_ALLOCATOR
+	InternalNode &n = *static_cast<InternalNode*>(getNode(id));
+	delete n.pivot;
+#endif
+	internalNodes.remove(idx);	  
       }
     }
 
