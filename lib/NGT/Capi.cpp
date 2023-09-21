@@ -877,8 +877,7 @@ ObjectID ngt_insert_index_as_float(NGTIndex index, float *obj, uint32_t obj_dim,
 
   try{
     NGT::Index* pindex = static_cast<NGT::Index*>(index);
-    std::vector<float> vobj(&obj[0], &obj[obj_dim]);
-    return pindex->insert(vobj);
+    return pindex->insert(&obj[0], obj_dim);
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
