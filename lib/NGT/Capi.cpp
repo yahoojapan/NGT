@@ -878,11 +878,13 @@ ObjectID ngt_insert_index_as_float(NGTIndex index, float *obj, uint32_t obj_dim,
   }
 
   try{
-    NGT::Index* pindex = static_cast<NGT::Index*>(index);
-    return pindex->insert(&obj[0], obj_dim);
-    // float* arr = new float[obj_dim];
-    // object_space.push_back(arr);
-    // return object_space.size()-1;
+    // NGT::Index* pindex = static_cast<NGT::Index*>(index);
+    // std::vector<float> vobj(&obj[0], &obj[obj_dim]);
+    // return pindex->insert(vobj);
+    float* arr = new float[obj_dim];
+    memcpy(arr, obj, obj_dim);
+    object_space.push_back(arr);
+    return object_space.size()-1;
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
@@ -1105,7 +1107,7 @@ bool ngt_create_index(NGTIndex index, uint32_t pool_size, NGTError error) {
   }
 
   try{
-    (static_cast<NGT::Index*>(index))->createIndex(pool_size);
+    // (static_cast<NGT::Index*>(index))->createIndex(pool_size);
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
@@ -1124,9 +1126,9 @@ bool ngt_remove_index(NGTIndex index, ObjectID id, NGTError error) {
   }
 
   try{
-    (static_cast<NGT::Index*>(index))->remove(id);
-    // delete[] object_space[id];
-    // object_space[id] = nullptr;
+    // (static_cast<NGT::Index*>(index))->remove(id);
+    delete[] object_space[id];
+    object_space[id] = nullptr;
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
