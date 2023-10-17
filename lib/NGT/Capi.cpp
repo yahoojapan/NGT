@@ -868,6 +868,7 @@ ObjectID ngt_append_index(NGTIndex index, double *obj, uint32_t obj_dim, NGTErro
 }
 
 std::vector<float*> object_space;
+std::priority_queue<size_t, std::vector<size_t>, std::greater<size_t> >	removedList;
 
 ObjectID ngt_insert_index_as_float(NGTIndex index, float *obj, uint32_t obj_dim, NGTError error) {
   if(index == NULL || obj == NULL || obj_dim == 0){
@@ -883,8 +884,15 @@ ObjectID ngt_insert_index_as_float(NGTIndex index, float *obj, uint32_t obj_dim,
     // return pindex->insert(vobj);
     float* arr = new float[obj_dim];
     memcpy(arr, obj, obj_dim);
-    object_space.push_back(arr);
-    return object_space.size()-1;
+    if (!removedList.empty()) {
+      size_t idx = removedList.top();
+      removedList.pop();
+      object_space[idx] = arr;
+      return idx;
+    } else {
+      object_space.push_back(arr);
+      return object_space.size()-1;
+    }
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
@@ -1129,6 +1137,7 @@ bool ngt_remove_index(NGTIndex index, ObjectID id, NGTError error) {
     // (static_cast<NGT::Index*>(index))->remove(id);
     delete[] object_space[id];
     object_space[id] = nullptr;
+    removedList.push(id);
   }catch(std::exception &err) {
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
