@@ -36,8 +36,8 @@ if static_library_avx2_option in sys.argv:
     print('use the NGT static library with avx2')
     sys.argv.remove(static_library_avx2_option)
     static_library_avx2 = True
-    package = 'ngt_qbg'
-    module = 'ngtpy_qbg'
+    package = 'ngt_avx2'
+    module = 'ngtpy_avx2'
 
 included_library = False
 if included_library_option in sys.argv:
@@ -62,8 +62,8 @@ if shared_library_avx2_option in sys.argv:
     print('use the shared library with avx2')
     sys.argv.remove(shared_library_avx2_option)
     shared_library_avx2 = True
-    package = 'ngt_qbg'
-    module = 'ngtpy_qbg'
+    package = 'ngt_avx2'
+    module = 'ngtpy_avx2'
 
 if sys.version_info.major >= 3:
     from setuptools import Extension

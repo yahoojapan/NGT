@@ -87,7 +87,7 @@ namespace NGTQG {
       PARENT::resize(graphRepository.size());
 
       for (size_t id = 1; id < graphRepository.size(); id++) {
-	if ((graphRepository.size() > 100) && id % (((graphRepository.size() - 1) / 100) == 0)) {
+	if ((graphRepository.size() > 100) && (id % ((graphRepository.size() - 1) / 100) == 0)) {
 	  std::cerr << "# of processed objects=" << id << "/" << (graphRepository.size() - 1) 
 		    << "(" << id * 100 / (graphRepository.size() - 1) << "%)" << std::endl;
 	}

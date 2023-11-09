@@ -67,7 +67,7 @@ main(int argc, char **argv)
 
   // nearest neighbor search
   try {
-    NGT::Index		index(indexPath);
+    NGTQG::Index	index(indexPath);
     NGT::Property	property;
     index.getProperty(property);
     ifstream		is(queryFile);
@@ -90,7 +90,7 @@ main(int argc, char **argv)
 	cout << "...";
       }
 
-      NGT::SearchQuery		sc(query);
+      NGTQG::SearchQuery	sc(query);
       NGT::ObjectDistances	objects;
       sc.setResults(&objects);
       sc.setSize(10);
