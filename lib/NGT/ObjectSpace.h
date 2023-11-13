@@ -296,6 +296,18 @@ namespace NGT {
       }
       return prefetchSize;
     }
+
+    bool isNormalizedDistance() {
+      return (getDistanceType() == ObjectSpace::DistanceTypeNormalizedAngle) ||
+	     (getDistanceType() == ObjectSpace::DistanceTypeNormalizedCosine) ||
+	     (getDistanceType() == ObjectSpace::DistanceTypeNormalizedL2);
+    }
+
+    NGT::Distance compareWithL1(NGT::Object &o1, NGT::Object &o2);
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+    NGT::Distance compareWithL1(NGT::Object &o1, NGT::PersistentObject &o2);
+#endif
+
   protected:
     const size_t	dimension;
     DistanceType	distanceType;
@@ -509,6 +521,9 @@ namespace NGT {
       return a[idx];
     }
 
+    void *getPointer(SharedMemoryAllocator &allocator) {
+      return getPointer(0, allocator);
+    }
     void *getPointer(size_t idx, SharedMemoryAllocator &allocator) {
       uint8_t *a = (uint8_t *)allocator.getAddr(array);
       return a + idx;

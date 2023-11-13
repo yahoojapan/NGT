@@ -242,7 +242,8 @@ LeafNode::removeObject(size_t id, size_t replaceId) {
 #else
       if (getObjectIDs()[idx].id == replaceId) {
 #endif
-	std::cerr << " Warning. found the same ID as the replaced ID." << std::endl;
+	std::cerr << " Warning. found the same ID as the replaced ID. " << id << ":" << replaceId << std::endl;
+	std::cerr << "          ignore it, if normalized distance." << std::endl;
 	replaceId = 0;
 	break;
       }

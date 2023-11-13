@@ -1537,12 +1537,52 @@ namespace NGT {
       ObjectDistances	seeds;
       seeds.push_back(ObjectDistance(id, 0.0));
       GraphIndex::search(so, seeds);
+      if (results.size() == 0) {
+	if (!GraphIndex::objectSpace->isNormalizedDistance()) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	  GraphIndex::objectSpace->deleteObject(obj);
+#endif
+	  std::stringstream msg;
+	  msg << "Not found the specified id. ID=" << id;
+	  NGTThrowException(msg);
+	}
+	so.radius = FLT_MAX;
+	so.size = 10;
+	results.clear();
+	GraphIndex::search(so, seeds);
+	for (size_t i = 0; i < results.size(); i++) {
+	  try {
+	    auto *robj = GraphIndex::objectSpace->getRepository().get(results[i].id);
+	    results[i].distance = GraphIndex::objectSpace->compareWithL1(*obj, *robj);
+	  } catch (Exception &err) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	    GraphIndex::objectSpace->deleteObject(obj);
+#endif
+	    std::stringstream msg;
+	    msg << "remove: Fatal Inner Error! Cannot get an object. ID=" << id;
+	    NGTThrowException(msg);
+	  }
+	}
+	std::sort(results.begin(), results.end());
+	results.resize(2);
+	for (auto i = results.begin(); i != results.end(); ++i) {
+	  if ((*i).distance != 0.0) {
+	    results.resize(distance(results.begin(), i));
+	    break;
+	  }
+	}
+	if (results.size() == 0) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	  GraphIndex::objectSpace->deleteObject(obj);
+#endif
+	  std::stringstream msg;
+	  msg << "Not found the specified id. ID=" << id;
+	  NGTThrowException(msg);
+	}
+      }
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
       GraphIndex::objectSpace->deleteObject(obj);
 #endif
-      if (results.size() == 0) {
-	NGTThrowException("Not found the specified id");
-      }
       if (results.size() == 1) {
 	try {
 	  DVPTree::remove(id);

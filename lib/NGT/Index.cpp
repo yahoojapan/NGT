@@ -1229,6 +1229,12 @@ GraphAndTreeIndex::createIndex(size_t threadPoolSize, size_t sizeOfRepository)
 
       for (size_t i = 0; i < cnt; i++) {
 	CreateIndexJob &job = output[i];
+	if (GraphIndex::objectSpace->isNormalizedDistance()) {
+	  if (job.results->size() > 0) {
+	    auto *o = GraphIndex::getObjectRepository().get((*job.results)[0].id);
+	    (*job.results)[0].distance = GraphIndex::objectSpace->compareWithL1(*job.object, *o);
+	  }
+	}
 	if (((job.results->size() > 0) && ((*job.results)[0].distance != 0.0)) ||
 	    (job.results->size() == 0)) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
