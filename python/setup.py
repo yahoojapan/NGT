@@ -110,7 +110,7 @@ if sys.version_info.major >= 3:
             'include_dirs': ['/usr/local/include',
                              pybind11.get_include(True),
                              pybind11.get_include(False)],
-            'extra_compile_args': ['-std=c++11', '-Ofast', '-DNDEBUG'],
+            'extra_compile_args': ['-std=c++11', '-Ofast', '-march=x86-64', '-DNDEBUG'],
             'sources': ['src/ngtpy.cpp']
         }
     elif static_library_avx2 or shared_library_avx2:

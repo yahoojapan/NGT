@@ -502,7 +502,7 @@ namespace NGT {
 						  "avx512vbmi2", "avx512vnni"};
       std::string types;
       int size = sizeof(simdTypes) / sizeof(simdTypes[0]);
-      for (int i = 0; i <= size; i++) {
+      for (int i = 0; i < size; i++) {
 	if (is(static_cast<SimdType>(i))) {
 	  types += simdTypes[i];
 	}
