@@ -197,7 +197,6 @@ namespace MemoryManager{
       _impl->isOpen = true;
       return true;
     }catch(MmapManagerException &e){
-      std::cerr << "open error" << std::endl;
       throw e;
     }
   }

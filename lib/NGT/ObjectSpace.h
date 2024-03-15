@@ -46,7 +46,7 @@ namespace NGT {
       }
     }
 
-    void moveFrom(std::priority_queue<ObjectDistance, std::vector<ObjectDistance>, std::less<ObjectDistance> > &pq) {
+    void moveFrom(std::priority_queue<ObjectDistance, std::vector<ObjectDistance>, std::less<ObjectDistance>> &pq) {
       this->clear();
       this->resize(pq.size());
       for (int i = pq.size() - 1; i >= 0; i--) {
@@ -56,7 +56,7 @@ namespace NGT {
       assert(pq.size() == 0);
     }
 
-    void moveFrom(std::priority_queue<ObjectDistance, std::vector<ObjectDistance>, std::less<ObjectDistance> > &pq, double (&f)(double)) {
+    void moveFrom(std::priority_queue<ObjectDistance, std::vector<ObjectDistance>, std::less<ObjectDistance>> &pq, double (&f)(double)) {
       this->clear();
       this->resize(pq.size());
       for (int i = pq.size() - 1; i >= 0; i--) {
@@ -67,7 +67,7 @@ namespace NGT {
       assert(pq.size() == 0);
     }
 
-    void moveFrom(std::priority_queue<ObjectDistance, std::vector<ObjectDistance>, std::less<ObjectDistance> > &pq, unsigned int id) {
+    void moveFrom(std::priority_queue<ObjectDistance, std::vector<ObjectDistance>, std::less<ObjectDistance>> &pq, unsigned int id) {
       this->clear();
       if (pq.size() == 0) {
 	return;
@@ -175,6 +175,9 @@ namespace NGT {
       DistanceTypeJaccard		= 7,
       DistanceTypeSparseJaccard		= 8,
       DistanceTypeNormalizedL2		= 9,
+#ifdef NGT_INNER_PRODUCT
+      DistanceTypeInnerProduct		= 10,
+#endif
       DistanceTypePoincare		= 100,  // added by Nyapicom
       DistanceTypeLorentz		= 101  // added by Nyapicom
     };
@@ -187,12 +190,17 @@ namespace NGT {
       ,
       Float16		= 3
 #endif
+#ifdef NGT_BFLOAT
+      ,
+      Bfloat16		= 5
+#endif
     };
 
 
     typedef std::priority_queue<ObjectDistance, std::vector<ObjectDistance>, std::less<ObjectDistance> > ResultSet;
   ObjectSpace(size_t d):dimension(d), distanceType(DistanceTypeNone), comparator(0), normalization(false),
-                        prefetchOffset(-1), prefetchSize(-1) {}
+                        prefetchOffset(-1), prefetchSize(-1)
+    {}
     virtual ~ObjectSpace() { if (comparator != 0) { delete comparator; } }
     
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
@@ -227,7 +235,6 @@ namespace NGT {
 
     virtual void linearSearch(Object &query, double radius, size_t size,
 			      ObjectSpace::ResultSet &results) = 0;
-
     virtual const std::type_info &getObjectType() = 0;
     virtual void show(std::ostream &os, Object &object) = 0;
     virtual size_t getSize() = 0;
@@ -253,9 +260,19 @@ namespace NGT {
 
     virtual void *getObject(size_t idx) = 0;
     virtual void getObject(size_t idx, std::vector<float> &v) = 0;
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+    virtual std::vector<float> getObject(PersistentObject &object, SharedMemoryAllocator &allocator) = 0;
+#endif
     virtual std::vector<float> getObject(Object &object) = 0;
     virtual void getObjects(const std::vector<size_t> &idxs, std::vector<std::vector<float>> &vs) = 0;
-
+#ifdef NGT_INNER_PRODUCT
+    virtual float computeMaxMagnitude(ObjectID beginId) = 0;
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+    virtual void setMagnitude(float maxMag, NGT::PersistentRepository<void> &graphNodes, NGT::ObjectID beginID) = 0;
+#else
+    virtual void setMagnitude(float maxMag, NGT::Repository<void> &graphNodes, ObjectID beginId) = 0;
+#endif
+#endif
     DistanceType getDistanceType() { return distanceType; }
     size_t getDimension() { return dimension; }
     size_t getPaddedDimension() { return ((dimension - 1) / 16 + 1) * 16; }
@@ -267,8 +284,15 @@ namespace NGT {
         sum += static_cast<float>(data[i]) * static_cast<float>(data[i]);
       }
       if (sum == 0.0) {
+	for (size_t i = 0; i < dim; i++) {
+	  if (static_cast<float>(data[i]) != 0.0) {
+	    std::stringstream msg;
+	    msg << "ObjectSpace::normalize: Error! the sum of the object is zero for the cosine similarity, but not a zero vector. " << i << ":" << static_cast<float>(data[i]);
+	    NGTThrowException(msg);
+	  }
+	}
 	std::stringstream msg;
-	msg << "ObjectSpace::normalize: Error! the object is an invalid zero vector for the cosine similarity or normalized distances.";
+	msg << "ObjectSpace::normalize: Error! the object is an invalid zero vector for the cosine similarity.";
 	NGTThrowException(msg);
       }
       sum = sqrt(sum);

@@ -83,7 +83,7 @@ public:
     creation.localIDByteSize = args.getl("B", 1);
 #endif
       
-    creation.globalEdgeSizeForCreation = args.getl("E", 10);
+    creation.globalEdgeSizeForCreation = args.getl("E", 100);
     creation.globalEdgeSizeForSearch = args.getl("S", 40);
     {
       char indexType = args.getChar("i", 't');
@@ -112,6 +112,9 @@ public:
     case 'a': creation.distanceType = NGTQ::DistanceType::DistanceTypeAngle; break;
     case 'C': creation.distanceType = NGTQ::DistanceType::DistanceTypeNormalizedCosine; break;
     case 'E': creation.distanceType = NGTQ::DistanceType::DistanceTypeL2; break;
+#ifdef NGT_INNER_PRODUCT
+    case 'i': creation.distanceType = NGTQ::DistanceType::DistanceTypeInnerProduct; break;
+#endif
     default:
       std::stringstream msg;
       msg << "Command::CreateParameters: Error: Invalid distance type. " << distanceType;
@@ -416,14 +419,13 @@ QBG::CLI::buildQG(NGT::Args &args)
     std::cerr << "optimizing..." << std::endl;
     optimizer.optimize(qgPath);
   }
+  bool verbose = false;
   if (phase == 0 || phase == 2) {
     std::cerr << "building the inverted index..." << std::endl;
-    bool verbose = false;
     QBG::Index::buildNGTQ(qgPath, verbose);
   }
   if (phase == 0 || phase == 3) {
     std::cerr << "building the quantized graph... " << std::endl;
-    bool verbose = false;
     NGTQG::Index::realign(indexPath, maxNumOfEdges, verbose);
   }
 }
@@ -513,6 +515,7 @@ searchQG(NGTQG::Index &index, SearchParameters &searchParameters, ostream &strea
 	stream << "# Factor=" << param << endl;
 	stream << "# Query Time (msec)=" << timer.time * 1000.0 << endl;
 	stream << "# Distance Computation=" << searchQuery.distanceComputationCount << endl;
+	stream << "# VM Peak=" << NGT::Common::getProcessVmPeakStr() << endl;
 	stream << "# Visit Count=" << searchQuery.visitCount << endl;
       } else {
 	stream << "Query No." << queryCount << endl;
@@ -565,11 +568,13 @@ QBG::CLI::searchQG(NGT::Args &args) {
   NGTQG::Index index(indexPath, 128, readOnly);
 
   if (debugLevel >= 1) {
-    cerr << "indexType=" << searchParameters.indexType << endl;
-    cerr << "size=" << searchParameters.size << endl;
-    cerr << "edgeSize=" << searchParameters.edgeSize << endl;
-    cerr << "epsilon=" << searchParameters.beginOfEpsilon << "<->" << searchParameters.endOfEpsilon << ","
-	 << searchParameters.stepOfEpsilon << endl;
+    std::cerr << "indexType=" << searchParameters.indexType << std::endl;
+    std::cerr << "size=" << searchParameters.size << std::endl;
+    std::cerr << "edgeSize=" << searchParameters.edgeSize << std::endl;
+    std::cerr << "epsilon=" << searchParameters.beginOfEpsilon << "<->" << searchParameters.endOfEpsilon << ","
+	      << searchParameters.stepOfEpsilon << std::endl;
+    std::cerr << "VM size=" << NGT::Common::getProcessVmSizeStr() << std::endl;
+    std::cerr << "VM peak=" << NGT::Common::getProcessVmPeakStr() << std::endl;
   }
 
   try {
@@ -769,6 +774,7 @@ QBG::CLI::search(NGT::Args &args)
   const string usage = "Usage: qbg search [-i g|t|s] [-n result-size] [-e epsilon] [-m mode(r|l|c|a)] "
     "[-E edge-size] [-o output-mode] [-b result expansion(begin:end:[x]step)] "
     "index(input) query.tsv(input)";
+  args.parse("v");
   string indexPath;
   try {
     indexPath = args.get("#1");
@@ -787,6 +793,7 @@ QBG::CLI::search(NGT::Args &args)
     return;
   }
 
+  bool verbose = args.getBool("v");
   size_t size		= args.getl("n", 20);
   char outputMode	= args.getChar("o", '-');
   float epsilon	= 0.1;
@@ -802,42 +809,58 @@ QBG::CLI::search(NGT::Args &args)
   size_t edgeSize = args.getl("E", 0);
   float cutback = args.getf("C", 0.0);
   size_t explorationSize = args.getf("N", 256);
-  size_t nOfProbes = args.getl("P", 10);
+  size_t nOfProbes = 0;
+  float resultExpansion = -1;
   size_t nOfTrials = args.getl("T", 1);
   if (nOfTrials != 1) {
     std::cerr << "# of trials=" << nOfTrials << std::endl;
   }
   std::vector<double> queryTimes;
 
-  float beginOfResultExpansion, endOfResultExpansion, stepOfResultExpansion;
+  float beginOfParameter, endOfParameter, stepOfParameter;
   bool mulStep = false;
   {
-    beginOfResultExpansion = 0.0;
-    endOfResultExpansion = 0.0;
-    stepOfResultExpansion = 1;
-    string str = args.getString("p", "0.0");
+    beginOfParameter = 0.0;
+    endOfParameter = 0.0;
+    stepOfParameter = 1;
     vector<string> tokens;
-    NGT::Common::tokenize(str, tokens, ":");
-    if (tokens.size() >= 1) {
-      beginOfResultExpansion = NGT::Common::strtod(tokens[0]);
-      endOfResultExpansion = beginOfResultExpansion;
+    if (args.getString("p", "-").find_first_of(':') == std::string::npos) {
+      resultExpansion = args.getf("p", 0.0);
     }
-    if (tokens.size() >= 2) { endOfResultExpansion = NGT::Common::strtod(tokens[1]); }
-    if (tokens.size() >= 3) {
-      if (tokens[2][0] == 'x') {
-	mulStep = true;
-	stepOfResultExpansion = NGT::Common::strtod(tokens[2].substr(1));
-      } else {
-	stepOfResultExpansion = NGT::Common::strtod(tokens[2]);
+    if (args.getString("P", "-").find_first_of(':') == std::string::npos) {
+      nOfProbes = args.getl("P", 10);
+    }
+    if (resultExpansion < 0 && nOfProbes == 0) {
+      std::cerr << "Cannot specify both -p and -P as a fluctuating value. -P is prioritized." << std::endl;
+      NGT::Common::tokenize(args.getString("p", "-"), tokens, ":");
+      resultExpansion = NGT::Common::strtod(tokens[0]);
+      tokens.clear();
+    }
+    if (resultExpansion < 0) {
+      NGT::Common::tokenize(args.getString("p", "-"), tokens, ":");
+    } else if (nOfProbes == 0) {
+      NGT::Common::tokenize(args.getString("P", "-"), tokens, ":");
+    }
+    if (tokens.size() >= 2) {
+      beginOfParameter = NGT::Common::strtod(tokens[0]);
+      endOfParameter = beginOfParameter;
+      if (tokens.size() >= 2) { endOfParameter = NGT::Common::strtod(tokens[1]); }
+      if (tokens.size() >= 3) {
+	if (tokens[2][0] == 'x') {
+	  mulStep = true;
+	  stepOfParameter = NGT::Common::strtod(tokens[2].substr(1));
+	} else {
+	  stepOfParameter = NGT::Common::strtod(tokens[2]);
+	}
       }
     }
   }
   if (debugLevel >= 1) {
     cerr << "size=" << size << endl;
-    cerr << "result expansion=" << beginOfResultExpansion << "->" << endOfResultExpansion << "," << stepOfResultExpansion << endl;
+    cerr << "parameter=" << beginOfParameter << "->" << endOfParameter << "," << stepOfParameter << endl;
   }
 
-  QBG::Index index(indexPath, true);
+  QBG::Index index(indexPath, true, verbose);
   std::cerr << "qbg::The index is open." << std::endl;
   std::cerr << "  vmsize=" << NGT::Common::getProcessVmSizeStr() << std::endl;
   std::cerr << "  peak vmsize=" << NGT::Common::getProcessVmPeakStr() << std::endl;
@@ -863,28 +886,32 @@ QBG::CLI::search(NGT::Args &args)
 	}
 	queryVector.resize(dimension);
 	queryCount++;
-	for (auto resultExpansion = beginOfResultExpansion;
-	     resultExpansion <= endOfResultExpansion;
-	     resultExpansion = mulStep ? resultExpansion * stepOfResultExpansion :
-	       resultExpansion + stepOfResultExpansion) {
+	for (auto parameter = beginOfParameter;
+	     parameter <= endOfParameter;
+	     parameter = mulStep ? parameter * stepOfParameter :
+	       parameter + stepOfParameter) {
 	  NGT::ObjectDistances objects;
 	  QBG::SearchContainer searchContainer;
 	  auto query = queryVector;
 	  searchContainer.setObjectVector(query);
 	  searchContainer.setResults(&objects);
-	  if (resultExpansion >= 1.0) {
-	    searchContainer.setSize(static_cast<float>(size) * resultExpansion);
+	  auto re = resultExpansion;
+	  if (re < 0.0) re = parameter;
+	  if (re >= 1.0) {
+	    searchContainer.setSize(static_cast<float>(size) * re);
 	    searchContainer.setExactResultSize(size);
 	  } else {
 	    searchContainer.setSize(size);
 	    searchContainer.setExactResultSize(0);
 	  }
+	  auto np = nOfProbes;
+	  if (np == 0) np = parameter;
+	  searchContainer.setNumOfProbes(np);
 	  searchContainer.setEpsilon(epsilon);
 	  searchContainer.setBlobEpsilon(blobEpsilon);
 	  searchContainer.setEdgeSize(edgeSize);
 	  searchContainer.setCutback(cutback);
 	  searchContainer.setGraphExplorationSize(explorationSize);
-	  searchContainer.setNumOfProbes(nOfProbes);
 	  NGT::Timer timer;
 	  timer.start();
 	  switch (searchMode) {
@@ -901,13 +928,19 @@ QBG::CLI::search(NGT::Args &args)
 	  }
 	  timer.stop();
 	  totalTime += timer.time;
-	  if (outputMode == 'e') {
+	  if (outputMode == 'e' || outputMode == 'E') {
 	    cout << "# Query No.=" << queryCount << endl;
 	    cout << "# Query=" << line.substr(0, 20) + " ..." << endl;
 	    cout << "# Index Type=" << "----" << endl;
 	    cout << "# Size=" << size << endl;
 	    cout << "# Epsilon=" << epsilon << endl;
-	    cout << "# Result expansion=" << resultExpansion << endl;
+	    cout << "# Result expansion=" << re << endl;
+	    cout << "# # of probes=" << np << endl;
+	    if (nOfProbes == 0) {
+	      cout << "# Factor=" << np << endl;
+	    } else if (resultExpansion < 0.0) {
+	      cout << "# Factor=" << re << endl;
+	    }
 	    cout << "# Distance Computation=" << index.getQuantizer().distanceComputationCount << endl;
 	    cout << "# Query Time (msec)=" << timer.time * 1000.0 << endl;
 	  } else {
@@ -920,18 +953,18 @@ QBG::CLI::search(NGT::Args &args)
 	    cout << objects[i].distance << endl;
 	  }
 
-	  if (outputMode == 'e') {
+	  if (outputMode == 'e' || outputMode == 'E') {
 	    cout << "# End of Search" << endl;
 	  } else {
 	    cout << "Query Time= " << timer.time << " (sec), " << timer.time * 1000.0 << " (msec)" << endl;
 	  }
 	}
-	if (outputMode == 'e') {
+	if (outputMode == 'e' || outputMode == 'E') {
 	  cout << "# End of Query" << endl;
 	}
       }
       queryTimes.push_back(totalTime * 1000.0 / static_cast<double>(queryCount));
-      if (outputMode == 'e') {
+      if (outputMode == 'e' || outputMode == 'E') {
 	cout << "# Average Query Time (msec)=" << queryTimes.back() << endl;
 	cout << "# Number of queries=" << queryCount << endl;
 	cout << "# End of Evaluation" << endl;
@@ -948,7 +981,7 @@ QBG::CLI::search(NGT::Args &args)
     cerr << "Error" << endl;
     cerr << usage << endl;
   }
-  if (outputMode == 'e') {
+  if (outputMode == 'e' || outputMode == 'E') {
     if (nOfTrials >= 1) {
       std::cout << "# Total minimum query time (msec)=" << *std::min_element(queryTimes.begin(), queryTimes.end())
 		<< "/" << nOfTrials << " (msec)" << std::endl;
@@ -1008,6 +1041,95 @@ QBG::CLI::append(NGT::Args &args)
   }
   timer.stop();
   std::cerr << "qbg: appending time=" << timer << std::endl;
+
+}
+
+void
+QBG::CLI::insert(NGT::Args &args)
+{
+  const string usage = "Usage: qbg append [-n data-size] [-m b|e] [-v] index(output) data.tsv(input)";
+  args.parse("v");
+  string indexPath;
+  try {
+    indexPath = args.get("#1");
+  } catch (...) {
+    cerr << "Index is not specified." << endl;
+    cerr << usage << endl;
+    return;
+  }
+  string data;
+  try {
+    data = args.get("#2");
+  } catch (...) {
+    cerr << usage << endl;
+    cerr << "Data is not specified." << endl;
+  }
+
+  std::ifstream stream(data);
+  if (!stream) {
+    std::cerr << "Cannot open the data file. " << data << std::endl;
+    cerr << usage << endl;
+    return;
+  }
+  bool verbose = args.getBool("v");
+
+  QBG::Index qbg(indexPath);
+  std::string line;
+  std::vector<std::vector<float>> objects;
+
+  while (getline(stream, line)) {
+    std::vector<float> object;
+    stringstream linestream(line);
+    while (!linestream.eof()) {
+      float value;
+      linestream >> value;
+      object.emplace_back(value);
+    }
+    objects.emplace_back(object);
+  }
+  std::vector<NGT::ObjectID> ids;
+  qbg.insert(objects, ids);
+  if (verbose) {
+    for (auto &id : ids) {
+      std::cout << id << " ";
+    }
+    std::cout << std::endl;
+  }
+
+  qbg.save();
+}
+
+void
+QBG::CLI::remove(NGT::Args &args)
+{
+  const string usage = "Usage: qbg remove index removed-id";
+  args.parse("v");
+  string indexPath;
+  try {
+    indexPath = args.get("#1");
+  } catch (...) {
+    cerr << "Index is not specified." << endl;
+    cerr << usage << endl;
+    return;
+  }
+  uint32_t ids;
+  try {
+    ids = args.getl("#2", 0);
+  } catch (...) {
+    cerr << usage << endl;
+    cerr << "Data is not specified." << endl;
+  }
+
+  auto verbose = args.getBool("v");
+  if (verbose) {
+    std::cout << "Removed ID=" << ids << std::endl;
+  }
+  std::vector<uint32_t> removedIds;
+  removedIds.push_back(ids);
+
+  QBG::Index qbg(indexPath);
+  qbg.remove(removedIds);
+  qbg.save();
 
 }
 
@@ -1090,7 +1212,6 @@ QBG::CLI::buildIndex(NGT::Args &args)
 	while (getline(stream, line)) {
 	  std::vector<std::string> tokens;
 	  NGT::Common::tokenize(line, tokens, " \t");
-	  std::vector<float> object;
 	  if (tokens.size() != 1) {
 	    cerr << "The specified codebook index is invalid. " << line << std::endl;
 	    cerr << usage << endl;
@@ -1241,6 +1362,45 @@ QBG::CLI::build(NGT::Args &args)
       std::cerr << "  ph2 peak vmsize=" << NGT::Common::getProcessVmPeakStr() << std::endl;
     }
   }
+}
+
+void
+QBG::CLI::rebuild(NGT::Args &args)
+{
+  const std::string usage = "Usage: qbg rebuild index";
+  args.parse("v");
+  bool verbose = args.getBool("v");
+  if (verbose) {
+    std::cerr << "rebuild" << std::endl;
+  }
+  string indexPath;
+  try {
+    indexPath = args.get("#1");
+  } catch (...) {
+    cerr << "An index is not specified." << endl;
+    cerr << usage << endl;
+    return;
+  }
+  auto start = args.getl("s", 0);
+  if (start == 0) {
+    std::cerr << "Start ID(-s) should be set. The ID is the smallest ID of the objects that are appended but not indexed." << std::endl;
+    std::cerr << usage << std::endl;
+  }
+
+  NGT::Timer timer;
+  timer.start();
+  NGTQ::Index ngtq(indexPath);
+  ngtq.createIndex(start);
+  ngtq.save();
+  QBG::Index::buildQBG(indexPath, verbose);
+  timer.stop();
+  if (verbose) {
+    std::cerr << "qbg: index build successfully completed." << std::endl;;
+    std::cerr << "  ph2 time=" << timer << std::endl;
+    std::cerr << "  ph2 vmsize=" << NGT::Common::getProcessVmSizeStr() << std::endl;
+    std::cerr << "  ph2 peak vmsize=" << NGT::Common::getProcessVmPeakStr() << std::endl;
+  }
+
 }
 
 

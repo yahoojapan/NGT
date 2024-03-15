@@ -5,7 +5,7 @@ int
 main(int argc, char **argv)
 {
 #if !defined(NGT_SHARED_MEMORY_ALLOCATOR)
-  std::string indexPath  = "index";
+  std::string indexPath  = "qbg-index";
   std::string objectFile = "sift-128-euclidean.tsv";
   std::string queryFile  = "query.tsv";
 
@@ -18,6 +18,14 @@ main(int argc, char **argv)
   std::cerr << "object file=" << objectFile << std::endl;
   std::cerr << "query file=" << queryFile << std::endl;
   std::cerr << std::endl;
+
+  {
+    std::cerr << "remove the existing index. " << indexPath << std::endl;
+    const std::string com = "rm -rf " + indexPath;
+    if (system(com.c_str()) == -1) {
+      std::cerr << "Cannot exec. " << com << std::endl;
+    }
+  }
 
   size_t dimension = 128;
   NGTError err = ngt_create_error_object();

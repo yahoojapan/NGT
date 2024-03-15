@@ -23,6 +23,7 @@
 #include	<bitset>
 #include	<iomanip>
 #include	<unordered_set>
+#include	<thread>
 
 #include	<sys/time.h>
 #include	<sys/stat.h>
@@ -41,6 +42,12 @@ namespace NGT {
 
   class Index {
   public:
+    enum OpenType {
+      OpenTypeNone		= 0x00,
+      OpenTypeGraphDisabled	= 0x01,
+      OpenTypeTreeDisabled	= 0x02,
+      OpenTypeObjectDisabled	= 0x04
+    };
 
     class Property {
     public:
@@ -68,6 +75,9 @@ namespace NGT {
 	dimension 	= 0;
 	threadPoolSize	= 32;
 	objectType	= ObjectSpace::ObjectType::Float;
+#ifdef NGT_REFINEMENT
+	refinementObjectType	= ObjectSpace::ObjectType::Float;
+#endif
 	distanceType	= DistanceType::DistanceTypeL2;
 	indexType	= IndexType::GraphAndTree;
 	objectAlignment	= ObjectAlignment::ObjectAlignmentFalse;
@@ -85,11 +95,19 @@ namespace NGT {
 #endif
 	prefetchOffset	= 0;
 	prefetchSize	= 0;
+#ifdef NGT_INNER_PRODUCT
+        maxMagnitude	= 0.0;
+#endif
+	nOfNeighborsForInsertionOrder = 0;
+	epsilonForInsertionOrder = 0.1;
       }
       void clear() {
 	dimension 	= -1;
 	threadPoolSize	= -1;
 	objectType	= ObjectSpace::ObjectTypeNone;
+#ifdef NGT_REFINEMENT
+	refinementObjectType	= ObjectSpace::ObjectTypeNone;
+#endif
 	distanceType	= DistanceType::DistanceTypeNone;
 	indexType	= IndexTypeNone;
 	databaseType	= DatabaseTypeNone;
@@ -103,6 +121,11 @@ namespace NGT {
 	prefetchOffset	= -1;
 	prefetchSize	= -1;
 	accuracyTable	= "";
+#ifdef NGT_INNER_PRODUCT
+        maxMagnitude	= -1;
+#endif
+	nOfNeighborsForInsertionOrder = -1;
+	epsilonForInsertionOrder = -1;
       }
 
       void exportProperty(NGT::PropertySet &p) {
@@ -114,8 +137,24 @@ namespace NGT {
 #ifdef NGT_HALF_FLOAT
 	case ObjectSpace::ObjectType::Float16: p.set("ObjectType", "Float-2"); break;
 #endif
+#ifdef NGT_BFLOAT
+	case ObjectSpace::ObjectType::Bfloat16: p.set("ObjectType", "Bfloat-2"); break;
+#endif
 	default : std::cerr << "Fatal error. Invalid object type. " << objectType << std::endl; abort();
 	}
+#ifdef NGT_REFINEMENT
+	switch (refinementObjectType) {
+	case ObjectSpace::ObjectType::Uint8: p.set("RefinementObjectType", "Integer-1"); break;
+	case ObjectSpace::ObjectType::Float: p.set("RefinementObjectType", "Float-4"); break;
+#ifdef NGT_HALF_FLOAT
+	case ObjectSpace::ObjectType::Float16: p.set("RefinementObjectType", "Float-2"); break;
+#endif
+#ifdef NGT_BFLOAT
+	case ObjectSpace::ObjectType::Bfloat16: p.set("RefinementObjectType", "Bfloat-2"); break;
+#endif
+	default : std::cerr << "Fatal error. Invalid refinement object type. " << refinementObjectType << std::endl; abort();
+	}
+#endif
 	switch (distanceType) {
 	case DistanceType::DistanceTypeNone:			p.set("DistanceType", "None"); break;
 	case DistanceType::DistanceTypeL1:			p.set("DistanceType", "L1"); break;
@@ -128,6 +167,9 @@ namespace NGT {
 	case DistanceType::DistanceTypeNormalizedAngle:		p.set("DistanceType", "NormalizedAngle"); break;
 	case DistanceType::DistanceTypeNormalizedCosine:	p.set("DistanceType", "NormalizedCosine"); break;
 	case DistanceType::DistanceTypeNormalizedL2:		p.set("DistanceType", "NormalizedL2"); break;
+#ifdef NGT_INNER_PRODUCT
+	case DistanceType::DistanceTypeInnerProduct:		p.set("DistanceType", "InnerProduct"); break;
+#endif
 	case DistanceType::DistanceTypePoincare:		p.set("DistanceType", "Poincare"); break;  // added by Nyapicom
 	case DistanceType::DistanceTypeLorentz:			p.set("DistanceType", "Lorentz"); break;  // added by Nyapicom
 	default : std::cerr << "Fatal error. Invalid distance type. " << distanceType << std::endl; abort();
@@ -157,6 +199,11 @@ namespace NGT {
 	p.set("PrefetchOffset", prefetchOffset);
 	p.set("PrefetchSize", prefetchSize);
 	p.set("AccuracyTable", accuracyTable);
+#ifdef NGT_INNER_PRODUCT
+        p.set("MaxMagnitude", maxMagnitude);
+#endif
+	p.set("NumberOfNeighborsForInsertionOrder", nOfNeighborsForInsertionOrder);
+	p.set("EpsilonForInsertionOrder", epsilonForInsertionOrder);
       }
 
       void importProperty(NGT::PropertySet &p) {
@@ -173,12 +220,40 @@ namespace NGT {
 	  } else if (it->second == "Float-2") {
 	    objectType = ObjectSpace::ObjectType::Float16;
 #endif
+#ifdef NGT_BFLOAT
+	  } else if (it->second == "Bfloat-2") {
+	    objectType = ObjectSpace::ObjectType::Bfloat16;
+#endif
 	  } else {
 	    std::cerr << "Invalid Object Type in the property. " << it->first << ":" << it->second << std::endl;
 	  }
 	} else {
 	  std::cerr << "Not found \"ObjectType\"" << std::endl;
 	}
+#ifdef NGT_REFINEMENT
+	{
+	  PropertySet::iterator it = p.find("RefinementObjectType");
+	  if (it != p.end()) {
+	    if (it->second == "Float-4") {
+	      refinementObjectType = ObjectSpace::ObjectType::Float;
+	    } else if (it->second == "Integer-1") {
+	      refinementObjectType = ObjectSpace::ObjectType::Uint8;
+#ifdef NGT_HALF_FLOAT
+	    } else if (it->second == "Float-2") {
+	      refinementObjectType = ObjectSpace::ObjectType::Float16;
+#endif
+#ifdef NGT_BFLOAT
+	    } else if (it->second == "Bfloat-2") {
+	      refinementObjectType = ObjectSpace::ObjectType::Bfloat16;
+#endif
+	    } else {
+	      std::cerr << "Invalid Object Type in the property. " << it->first << ":" << it->second << std::endl;
+	    }
+	  } else {
+	    std::cerr << "Not found \"RefinementObjectType\"" << std::endl;
+	  }
+	}
+#endif
 	it = p.find("DistanceType");
 	if (it != p.end()) {
 	  if (it->second == "None") {
@@ -207,6 +282,10 @@ namespace NGT {
 	    distanceType = DistanceType::DistanceTypeNormalizedCosine;
 	  } else if (it->second == "NormalizedL2") {
 	    distanceType = DistanceType::DistanceTypeNormalizedL2;
+#ifdef NGT_INNER_PRODUCT
+	  } else if (it->second == "InnerProduct") {
+	    distanceType = DistanceType::DistanceTypeInnerProduct;
+#endif
 	  } else {
 	    std::cerr << "Invalid Distance Type in the property. " << it->first << ":" << it->second << std::endl;
 	  }
@@ -268,6 +347,11 @@ namespace NGT {
 	if (it != p.end()) {
 	  searchType = it->second;
 	}
+#ifdef NGT_INNER_PRODUCT
+	maxMagnitude = p.getf("MaxMagnitude", maxMagnitude);
+#endif
+	nOfNeighborsForInsertionOrder = p.getl("NumberOfNeighborsForInsertionOrder", nOfNeighborsForInsertionOrder);
+	epsilonForInsertionOrder = p.getf("EpsilonForInsertionOrder", epsilonForInsertionOrder);
       }
 
       void set(NGT::Property &prop);
@@ -289,6 +373,31 @@ namespace NGT {
       int		prefetchSize;
       std::string	accuracyTable;
       std::string	searchType;	// test
+#ifdef NGT_INNER_PRODUCT
+      float		maxMagnitude;
+#endif
+      int		nOfNeighborsForInsertionOrder;
+      float		epsilonForInsertionOrder;
+#ifdef NGT_REFINEMENT
+      ObjectSpace::ObjectType	refinementObjectType;
+#endif
+    };
+
+    class InsertionOrder : public std::vector<uint32_t> {
+    public:
+      InsertionOrder() : nOfNeighboringNodes(50), epsilon(0.1), nOfThreads(0), indegreeOrder(false) {}
+      ObjectID getID(ObjectID id) {
+	if (id > size()) {
+	  std::stringstream msg;
+	  msg << "InsertionOrder::getID: Invalid ID. " << size() << ":" << id;
+	  NGTThrowException(msg);
+	}
+	return at(id - 1);
+      }
+      size_t nOfNeighboringNodes;
+      float epsilon;
+      size_t nOfThreads;
+      bool indegreeOrder;
     };
 
     class InsertionResult {
@@ -373,13 +482,13 @@ namespace NGT {
 #if defined(NGT_AVX2)
       if (!CpuInfo::isAVX2()) {
 	std::stringstream msg;
-	msg << "NGT::Index: Fatal Error!. Despite that This NGT library is built with AVX2, this CPU doesn't support AVX2. This CPU supoorts " << CpuInfo::getSupportedSimdTypes();
+	msg << "NGT::Index: Fatal Error!. Despite that this NGT library is built with AVX2, this CPU doesn't support AVX2. This CPU supoorts " << CpuInfo::getSupportedSimdTypes();
 	NGTThrowException(msg);
       }
 #elif defined(NGT_AVX512)
       if (!CpuInfo::isAVX512()) {
 	std::stringstream msg;
-	msg << "NGT::Index: Fatal Error!. Despite that This NGT library is built with AVX512, this CPU doesn't support AVX512. This CPU supoorts " << CpuInfo::getSupportedSimdTypes();
+	msg << "NGT::Index: Fatal Error!. Despite that this NGT library is built with AVX512, this CPU doesn't support AVX512. This CPU supoorts " << CpuInfo::getSupportedSimdTypes();
 	NGTThrowException(msg);
       }
 #endif
@@ -389,8 +498,7 @@ namespace NGT {
 #else
     Index(NGT::Property &prop);
 #endif
-    Index(const std::string &database, bool rdOnly = false):index(0), redirect(false) { open(database, rdOnly); }
-    Index(const std::string &database, bool rdOnly, bool graphDisabled):index(0), redirect(false) { open(database, rdOnly, graphDisabled); }
+    Index(const std::string &database, bool rdOnly = false, Index::OpenType openType = Index::OpenTypeNone):index(0), redirect(false) { open(database, rdOnly, openType); }
     Index(const std::string &database, NGT::Property &prop):index(0), redirect(false) { open(database, prop);  }
     virtual ~Index() { close(); }
 
@@ -398,8 +506,7 @@ namespace NGT {
       open(database);
       setProperty(prop);
     }
-    void open(const std::string &database, bool rdOnly = false) { open(database, rdOnly, false); }
-    void open(const std::string &database, bool rdOnly, bool graphDisabled);
+    void open(const std::string &database, bool rdOnly = false, Index::OpenType openType = OpenTypeNone);
 
     void close() {
       if (index != 0) {
@@ -432,6 +539,11 @@ namespace NGT {
     static void createGraph(const std::string &database, NGT::Property &prop, const std::string &dataFile, size_t dataSize = 0, bool redirect = false);
     template<typename T> size_t insert(const std::vector<T> &object);
     template<typename T> size_t append(const std::vector<T> &object);
+    template<typename T> void update(ObjectID id, const std::vector<T> &object);
+#ifdef NGT_REFINEMENT
+    template<typename T> size_t appendToRefinement(const std::vector<T> &object);
+    template<typename T> void updateToRefinement(ObjectID id, const std::vector<T> &object);
+#endif
     static void append(const std::string &database, const std::string &dataFile, size_t threadSize, size_t dataSize);
     static void append(const std::string &database, const float *data, size_t dataSize, size_t threadSize);
     static void remove(const std::string &database, std::vector<ObjectID> &objects, bool force = false);
@@ -489,11 +601,12 @@ namespace NGT {
     virtual size_t getNumberOfIndexedObjects() { return getIndex().getNumberOfIndexedObjects(); }
     virtual size_t getObjectRepositorySize() { return getIndex().getObjectRepositorySize(); }
     virtual size_t getGraphRepositorySize() { return getIndex().getGraphRepositorySize(); }
-    virtual void createIndex(size_t threadNumber, size_t sizeOfRepository = 0) {
+    void createIndex(size_t threadNumber = 0, size_t sizeOfRepository = 0);
+    virtual void createIndexWithInsertionOrder(InsertionOrder &insertionOrder, size_t threadNumber = 0, size_t sizeOfRepository = 0) {
       StdOstreamRedirector redirector(redirect);
       redirector.begin();
       try {
-	getIndex().createIndex(threadNumber, sizeOfRepository);
+	getIndex().createIndexWithInsertionOrder(insertionOrder, threadNumber, sizeOfRepository);
       } catch(Exception &err) {
 	redirector.end();
 	throw err;
@@ -525,6 +638,9 @@ namespace NGT {
     virtual void importIndex(const std::string &file) { getIndex().importIndex(file); }
     virtual bool verify(std::vector<uint8_t> &status, bool info = false, char mode = '-') { return getIndex().verify(status, info, mode); }
     virtual ObjectSpace &getObjectSpace() { return getIndex().getObjectSpace(); }
+#ifdef NGT_REFINEMENT
+    virtual ObjectSpace &getRefinementObjectSpace() { return getIndex().getRefinementObjectSpace(); }
+#endif
     virtual size_t getSharedMemorySize(std::ostream &os, SharedMemoryAllocator::GetMemorySizeType t = SharedMemoryAllocator::GetTotalMemorySize) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
       size_t osize = getObjectSpace().getRepository().getAllocator().getMemorySize(t);
@@ -536,16 +652,11 @@ namespace NGT {
       return osize + isize;
     }
     float getEpsilonFromExpectedAccuracy(double accuracy);
-    void searchUsingOnlyGraph(NGT::SearchContainer &sc) {
-      sc.distanceComputationCount = 0;
-      sc.visitCount = 0;
-      ObjectDistances seeds;
-      getIndex().search(sc, seeds);
-    }
+    void searchUsingOnlyGraph(NGT::SearchContainer &sc);
+    void searchUsingOnlyGraph(NGT::SearchQuery &searchQuery);
     std::vector<float> makeSparseObject(std::vector<uint32_t> &object);
     Index &getIndex() {
       if (index == 0) {
-	assert(index != 0);
 	NGTThrowException("NGT::Index::getIndex: Index is unavailable.");
       }
       return *index;
@@ -553,6 +664,7 @@ namespace NGT {
     void enableLog() { redirect = false; }
     void disableLog() { redirect = true; }
 
+    void extractInsertionOrder(InsertionOrder &insertionOrder);
     static void destroy(const std::string &path) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
       std::remove(std::string(path + "/grp").c_str());
@@ -575,15 +687,18 @@ namespace NGT {
     static void version(std::ostream &os);
     static std::string getVersion();
     std::string getPath(){ return path; }
+    size_t getDimension();
 
   protected:
-    Object *allocateObject(void *vec, const std::type_info &objectType) {
+    Object *allocateQuery(NGT::QueryContainer &queryContainer) {
+      auto *vec = queryContainer.getQuery();
       if (vec == 0) {
 	std::stringstream msg;
 	msg << "NGT::Index::allocateObject: Object is not set. ";
 	NGTThrowException(msg);
       }
       Object *object = 0;
+      auto &objectType = queryContainer.getQueryType();
       if (objectType == typeid(float)) {
 	object = allocateObject(*static_cast<std::vector<float>*>(vec));
       } else if (objectType == typeid(double)) {
@@ -621,7 +736,7 @@ namespace NGT {
     }
     void initialize(const std::string &allocator, NGT::Property &prop);
 #else // NGT_SHARED_MEMORY_ALLOCATOR
-    GraphIndex(const std::string &database, bool rdOnly = false, bool graphDisabled = false);
+    GraphIndex(const std::string &database, bool rdOnly = false, Index::OpenType openType = Index::OpenTypeNone);
     GraphIndex(NGT::Property &prop):readOnly(false) {
       initialize(prop);
     }
@@ -639,6 +754,16 @@ namespace NGT {
     void constructObjectSpace(NGT::Property &prop);
 
     void destructObjectSpace() {
+#ifdef NGT_REFINEMENT
+      if (refinementObjectSpace != 0) {
+	auto *os = (ObjectSpaceRepository<float, double>*)refinementObjectSpace;
+#ifndef NGT_SHARED_MEMORY_ALLOCATOR
+	os->deleteAll();
+#endif
+	delete os;
+        refinementObjectSpace = 0;
+      }
+#endif
       if (objectSpace == 0) {
 	return;
       }
@@ -748,6 +873,11 @@ namespace NGT {
       } else {
 	std::cerr << "saveIndex::Warning! ObjectSpace is null. continue saving..." << std::endl;
       }
+#ifdef NGT_REFINEMENT
+      if (refinementObjectSpace != 0) {
+	refinementObjectSpace->serialize(ofile + "/robj");
+      }
+#endif
 #endif
     }
 
@@ -774,7 +904,7 @@ namespace NGT {
     void exportProperty(const std::string &file);
 
     static void loadGraph(const std::string &ifile, NGT::GraphRepository &graph);
-    virtual void loadIndex(const std::string &ifile, bool readOnly, bool graphDisabled);
+    virtual void loadIndex(const std::string &ifile, bool readOnly, NGT::Index::OpenType openType);
 
     virtual void exportIndex(const std::string &ofile) {
       try {
@@ -810,13 +940,12 @@ namespace NGT {
     }
 
     void linearSearch(NGT::SearchQuery &searchQuery) {
-      Object *query = Index::allocateObject(searchQuery.getQuery(), searchQuery.getQueryType());
+      Object *query = Index::allocateQuery(searchQuery);
       try {
         NGT::SearchContainer sc(searchQuery, *query);
-	ObjectSpace::ResultSet results;
-	objectSpace->linearSearch(sc.object, sc.radius, sc.size, results);
-	ObjectDistances &qresults = sc.getResult();
-	qresults.moveFrom(results);
+	GraphIndex::linearSearch(sc);
+	searchQuery.distanceComputationCount = sc.distanceComputationCount;
+	searchQuery.visitCount = sc.visitCount;
       } catch(Exception &err) {
 	deleteObject(query);
 	throw err;
@@ -832,14 +961,90 @@ namespace NGT {
       search(sc, seeds);
     }
 
+    // GraphIndex
     void search(NGT::SearchQuery &searchQuery) {
-      Object *query = Index::allocateObject(searchQuery.getQuery(), searchQuery.getQueryType());
+      Object *query = Index::allocateQuery(searchQuery);
       try {
         NGT::SearchContainer sc(searchQuery, *query);
-	sc.distanceComputationCount = 0;
-	sc.visitCount = 0;
-	ObjectDistances seeds;
-	search(sc, seeds);
+#ifdef NGT_REFINEMENT
+	auto expansion = searchQuery.getRefinementExpansion();
+	if (expansion < 1.0) {
+	  GraphIndex::search(sc);
+	  searchQuery.workingResult = std::move(sc.workingResult);
+	} else {
+	  size_t poffset = 12;
+	  size_t psize = 64;
+	  auto size = sc.size;
+	  sc.size *= expansion;
+	  try {
+	    GraphIndex::search(sc);
+	  } catch(Exception &err) {
+	    sc.size = size;
+	    throw err;
+	  }
+	  auto &ros = getRefinementObjectSpace();
+	  auto &rrepo = ros.getRepository();
+	  NGT::Object *robject = 0;
+	  if (searchQuery.getQueryType() == typeid(float)) {
+	    auto &v = *static_cast<std::vector<float>*>(searchQuery.getQuery());
+	    robject = ros.allocateNormalizedObject(v);
+	  } else if (searchQuery.getQueryType() == typeid(uint8_t)) {
+	    auto &v = *static_cast<std::vector<uint8_t>*>(searchQuery.getQuery());
+	    robject = ros.allocateNormalizedObject(v);
+#ifdef NGT_HALF_FLOAT
+	  } else if (searchQuery.getQueryType() == typeid(float16)) {
+	    auto &v = *static_cast<std::vector<float16>*>(searchQuery.getQuery());
+	    robject = ros.allocateNormalizedObject(v);
+#endif
+	  } else {
+	    std::stringstream msg;
+	    msg << "Invalid query object type.";
+	    NGTThrowException(msg);
+	  }
+	  sc.size = size;
+	  auto &comparator = getRefinementObjectSpace().getComparator();
+	  if (sc.resultIsAvailable()) {
+	    auto &results = sc.getResult();
+	    for (auto &r : results) {
+	      r.distance = comparator(*robject, *rrepo.get(r.id));
+	    }
+	    std::sort(results.begin(), results.end());
+	    results.resize(size);
+	  } else {
+	    ObjectDistances rs;
+	    rs.resize(sc.workingResult.size());
+            size_t counter = 0;
+            while (!sc.workingResult.empty()) {
+              if (counter < poffset) {
+#ifndef NGT_SHARED_MEMORY_ALLOCATOR
+                auto *ptr = rrepo.get(sc.workingResult.top().id)->getPointer();
+		MemoryCache::prefetch(static_cast<uint8_t*>(ptr), psize);
+#endif
+              }
+              rs[counter++].id = sc.workingResult.top().id;
+              sc.workingResult.pop();
+            }
+            for (size_t idx = 0; idx < rs.size(); idx++) {
+              if (idx + poffset < rs.size()) {
+#ifndef NGT_SHARED_MEMORY_ALLOCATOR
+                auto *ptr = rrepo.get(rs[idx + poffset].id)->getPointer();
+		MemoryCache::prefetch(static_cast<uint8_t*>(ptr), psize);
+#endif
+              }
+              auto &r = rs[idx];
+              r.distance = comparator(*robject, *rrepo.get(r.id));
+	      searchQuery.workingResult.emplace(r);
+            }
+	    while (searchQuery.workingResult.size() > sc.size) { searchQuery.workingResult.pop(); }
+	  }
+	  ros.deleteObject(robject);
+	}
+#else
+	GraphIndex::search(sc);
+	searchQuery.workingResult = std::move(sc.workingResult);
+#endif
+	searchQuery.distanceComputationCount = sc.distanceComputationCount;
+	searchQuery.visitCount = sc.visitCount;
       } catch(Exception &err) {
 	deleteObject(query);
 	throw err;
@@ -952,7 +1157,9 @@ namespace NGT {
       Object &po = *fr[id];
 #endif
       ObjectDistances rs;
-      if (NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeANNG) {
+      if (NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeANNG ||
+	  NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeIANNG ||
+	  NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeRANNG) {
 	searchForNNGInsertion(po, rs);
       } else {
 	searchForKNNGInsertion(po, id, rs);
@@ -963,8 +1170,8 @@ namespace NGT {
 #endif
     }
 
-    virtual void createIndex();
-    virtual void createIndex(size_t threadNumber, size_t sizeOfRepository = 0);
+    virtual void createIndexWithSingleThread();
+    virtual void createIndexWithInsertionOrder(InsertionOrder &insertionOrder, size_t threadNumber = 0, size_t sizeOfRepository = 0);
 
     void checkGraph()
     {
@@ -1135,6 +1342,9 @@ namespace NGT {
       return valid;
     }
 
+    void extractSparseness(InsertionOrder &insertionOrder);
+    void extractInsertionOrder(InsertionOrder &insertionOrder);
+
     static bool showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode = '-', size_t edgeSize = UINT_MAX);
 
     size_t getNumberOfObjects() { return objectSpace->getRepository().count(); }
@@ -1149,6 +1359,7 @@ namespace NGT {
       }
       return count;
     }
+
     size_t getObjectRepositorySize() { return objectSpace->getRepository().size(); }
     size_t getGraphRepositorySize() {
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
@@ -1186,7 +1397,9 @@ namespace NGT {
     }
 
     ObjectSpace &getObjectSpace() { return *objectSpace; }
-
+#ifdef NGT_REFINEMENT
+    ObjectSpace &getRefinementObjectSpace() { return *refinementObjectSpace; }
+#endif
     void setupPrefetch(NGT::Property &prop);
 
     void setProperty(NGT::Property &prop) {
@@ -1264,29 +1477,26 @@ namespace NGT {
 	sc.setEpsilon(getEpsilonFromExpectedAccuracy(sc.expectedAccuracy));
       }
 
-      NGT::SearchContainer so(sc);
       try {
 	if (readOnly) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR) || !defined(NGT_GRAPH_READ_ONLY_GRAPH)
-	  NeighborhoodGraph::search(so, seeds);
+	  NeighborhoodGraph::search(sc, seeds);
 #else
-	  (*searchUnupdatableGraph)(*this, so, seeds);
+	  (*searchUnupdatableGraph)(*this, sc, seeds);
 #endif
 	} else {
-	  NeighborhoodGraph::search(so, seeds);
+	  NeighborhoodGraph::search(sc, seeds);
 	}
-	sc.workingResult = std::move(so.workingResult);
-	sc.distanceComputationCount = so.distanceComputationCount;
-	sc.visitCount = so.visitCount;
       } catch(Exception &err) {
-	std::cerr << err.what() << std::endl;
 	Exception e(err);
 	throw e;
       }
     }
 
+  public:
     Index::Property			property;
 
+  protected:
     bool readOnly;
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
     void (*searchUnupdatableGraph)(NGT::NeighborhoodGraph&, NGT::SearchContainer&, NGT::ObjectDistances&);
@@ -1463,11 +1673,8 @@ namespace NGT {
       std::ifstream ist(ifile + "/tre");
       DVPTree::deserialize(ist);
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
-      if (readOnly) {
-	if (property.objectAlignment == NGT::Index::Property::ObjectAlignmentTrue) {
-	  alignObjects();
-	}
-	GraphIndex::NeighborhoodGraph::loadSearchGraph(ifile);
+      if (property.objectAlignment == NGT::Index::Property::ObjectAlignmentTrue) {
+	alignObjects();
       }
 #endif
     }
@@ -1637,7 +1844,9 @@ namespace NGT {
       Object &po = *fr[id];
 #endif
       ObjectDistances rs;
-      if (NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeANNG) {
+      if (NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeANNG ||
+	  NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeIANNG ||
+	  NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeRANNG) {
 	searchForNNGInsertion(po, rs);
       } else {
 	searchForKNNGInsertion(po, id, rs);
@@ -1660,7 +1869,7 @@ namespace NGT {
 #endif
     }
 
-    void createIndex(size_t threadNumber, size_t sizeOfRepository = 0);
+    void createIndexWithInsertionOrder(InsertionOrder &insertionOrder, size_t threadNumber = 0, size_t sizeOfRepository = 0);
 
     void createIndex(const std::vector<std::pair<NGT::Object*, size_t> > &objects, std::vector<InsertionResult> &ids,
 		     float range, size_t threadNumber);
@@ -1756,15 +1965,90 @@ namespace NGT {
       GraphIndex::search(sc, seeds);
     }
 
+    // GraphAndTreeIndex
     void search(NGT::SearchQuery &searchQuery) {
-      Object *query = Index::allocateObject(searchQuery.getQuery(), searchQuery.getQueryType());
+      Object *query = Index::allocateQuery(searchQuery);
       try {
         NGT::SearchContainer sc(searchQuery, *query);
-        sc.distanceComputationCount = 0;
-        sc.visitCount = 0;
-        ObjectDistances	seeds;
-	getSeedsFromTree(sc, seeds);
-	GraphIndex::search(sc, seeds);
+#ifdef NGT_REFINEMENT
+	auto expansion = searchQuery.getRefinementExpansion();
+	if (expansion < 1.0) {
+	  GraphAndTreeIndex::search(sc);
+	  searchQuery.workingResult = std::move(sc.workingResult);
+	} else {
+	  size_t poffset = 12;
+	  size_t psize = 64;
+	  auto size = sc.size;
+	  sc.size *= expansion;
+	  try {
+	    GraphAndTreeIndex::search(sc);
+	  } catch(Exception &err) {
+	    sc.size = size;
+	    throw err;
+	  }
+	  auto &ros = getRefinementObjectSpace();
+	  auto &rrepo = ros.getRepository();
+	  NGT::Object *robject = 0;
+	  if (searchQuery.getQueryType() == typeid(float)) {
+	    auto &v = *static_cast<std::vector<float>*>(searchQuery.getQuery());
+	    robject = ros.allocateNormalizedObject(v);
+	  } else if (searchQuery.getQueryType() == typeid(uint8_t)) {
+	    auto &v = *static_cast<std::vector<uint8_t>*>(searchQuery.getQuery());
+	    robject = ros.allocateNormalizedObject(v);
+#ifdef NGT_HALF_FLOAT
+	  } else if (searchQuery.getQueryType() == typeid(float16)) {
+	    auto &v = *static_cast<std::vector<float16>*>(searchQuery.getQuery());
+	    robject = ros.allocateNormalizedObject(v);
+#endif
+	  } else {
+	    std::stringstream msg;
+	    msg << "Invalid query object type.";
+	    NGTThrowException(msg);
+	  }
+	  sc.size = size;
+	  auto &comparator = getRefinementObjectSpace().getComparator();
+	  if (sc.resultIsAvailable()) {
+	    auto &results = sc.getResult();
+	    for (auto &r : results) {
+	      r.distance = comparator(*robject, *rrepo.get(r.id));
+	    }
+	    std::sort(results.begin(), results.end());
+	    results.resize(size);
+	  } else {
+	    ObjectDistances rs;
+	    rs.resize(sc.workingResult.size());
+	    size_t counter = 0;
+	    while (!sc.workingResult.empty()) {
+	      if (counter < poffset) {
+#ifndef NGT_SHARED_MEMORY_ALLOCATOR
+		auto *ptr = rrepo.get(sc.workingResult.top().id)->getPointer();
+		MemoryCache::prefetch(static_cast<uint8_t*>(ptr), psize);
+#endif
+	      }
+	      rs[counter++].id = sc.workingResult.top().id;
+	      sc.workingResult.pop();
+	    }	    
+	    for (size_t idx = 0; idx < rs.size(); idx++) {
+	      if (idx + poffset < rs.size()) {
+#ifndef NGT_SHARED_MEMORY_ALLOCATOR
+		auto *ptr = rrepo.get(rs[idx + poffset].id)->getPointer();
+		MemoryCache::prefetch(static_cast<uint8_t*>(ptr), psize);
+#endif
+	      }
+	      auto &r = rs[idx];
+	      r.distance = comparator(*robject, *rrepo.get(r.id));
+	      searchQuery.workingResult.emplace(r);
+	    }
+	    while (searchQuery.workingResult.size() > sc.size) { searchQuery.workingResult.pop(); }
+	  }
+	  ros.deleteObject(robject);
+	}
+#else
+	GraphAndTreeIndex::search(sc);
+	searchQuery.workingResult = std::move(sc.workingResult);
+#endif
+	searchQuery.distanceComputationCount = sc.distanceComputationCount;
+	searchQuery.visitCount = sc.visitCount;
       } catch(Exception &err) {
 	deleteObject(query);
 	throw err;
@@ -1835,24 +2119,97 @@ namespace NGT {
 template<typename T>
 size_t NGT::Index::append(const std::vector<T> &object)
 {
-  if (getObjectSpace().getRepository().size() == 0) {
-    getObjectSpace().getRepository().initialize();
+  auto &os = getObjectSpace();
+  auto &repo = os.getRepository();
+  if (repo.size() == 0) {
+    repo.initialize();
   }
 
-  auto *o = getObjectSpace().getRepository().allocateNormalizedPersistentObject(object);
-  getObjectSpace().getRepository().push_back(dynamic_cast<PersistentObject*>(o));
-  size_t oid = getObjectSpace().getRepository().size() - 1;
+  auto *o = repo.allocateNormalizedPersistentObject(object);
+  repo.push_back(dynamic_cast<PersistentObject*>(o));
+  size_t oid = repo.size() - 1;
   return oid;
 }
+
+#ifdef NGT_REFINEMENT
+template<typename T>
+size_t NGT::Index::appendToRefinement(const std::vector<T> &object)
+{
+  auto &os = getRefinementObjectSpace();
+  auto &repo = os.getRepository();
+  if (repo.size() == 0) {
+    repo.initialize();
+  }
+
+  auto *o = repo.allocateNormalizedPersistentObject(object);
+  repo.push_back(dynamic_cast<PersistentObject*>(o));
+  size_t oid = repo.size() - 1;
+  return oid;
+}
+#endif
 
 template<typename T>
 size_t NGT::Index::insert(const std::vector<T> &object)
 {
-  if (getObjectSpace().getRepository().size() == 0) {
-    getObjectSpace().getRepository().initialize();
+  auto &os = getObjectSpace();
+  auto &repo = os.getRepository();
+  if (repo.size() == 0) {
+    repo.initialize();
   }
 
-  auto *o = getObjectSpace().getRepository().allocateNormalizedPersistentObject(object);
-  size_t oid = getObjectSpace().getRepository().insert(dynamic_cast<PersistentObject*>(o));
+  auto *o = repo.allocateNormalizedPersistentObject(object);
+  size_t oid = repo.insert(dynamic_cast<PersistentObject*>(o));
   return oid;
 }
+
+template<typename T>
+  void NGT::Index::update(ObjectID id, const std::vector<T> &object)
+{
+  auto &os = getObjectSpace();
+  auto &repo = os.getRepository();
+
+  Object *obj = 0;
+  try {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+    obj = os.allocateObject(*repo.get(id));
+#else
+    obj = repo.get(id);
+#endif
+  } catch (Exception &err) {
+    std::stringstream msg;
+    msg << "Invalid ID. " << id;
+    NGTThrowException(msg);
+  }
+  repo.setObject(*obj, object);
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+  os.deleteObject(obj);
+#endif
+  return;
+}
+
+#ifdef NGT_REFINEMENT
+template<typename T>
+  void NGT::Index::updateToRefinement(ObjectID id, const std::vector<T> &object)
+{
+  auto &os = getRefinementObjectSpace();
+  auto &repo = os.getRepository();
+
+  Object *obj = 0;
+  try {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+    obj = os.allocateObject(*repo.get(id));
+#else
+    obj = repo.get(id);
+#endif
+  } catch (Exception &err) {
+    std::stringstream msg;
+    msg << "Invalid ID. " << id;
+    NGTThrowException(msg);
+  }
+  repo.setObject(*obj, object);
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+  os.deleteObject(obj);
+#endif
+  return;
+}
+#endif

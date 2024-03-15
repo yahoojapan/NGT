@@ -107,6 +107,7 @@ Specify the distance function as follows.
 - __j__: Jaccard distance. 1 byte unsigned integer should be specified for the data object type.
 - __p__: Poincare distance
 - __l__: Lorentz distance
+- __i__: Inner product (Dot product)
 
 **-n** *no\_of\_registration\_data*  
 Specify the number of data items to be registered. If not specified, all data in the specified file will be registered.
@@ -232,6 +233,9 @@ Specify the mode of the search parameter optimization.
 **-I** *graph_type*    
 Specify the type of the specified index as input_index. For not ANNG, the index is converted to ANNG before graph reconstruction.
 - __a__: ANNG
+- __r__: RANNG. ANNG with reduced shortcut edges.
+- __i__: IANNG. ANNG with reduced excess edges.
+- __R__: RIANNG. ANNG with reduced shortcut or excess edges.
 - __o__: The others
 
 Examples of using ngt command

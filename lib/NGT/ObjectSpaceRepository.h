@@ -17,6 +17,12 @@
 #pragma once
 
 
+#ifdef _OPENMP
+#include	<omp.h>
+#else
+#warning "*** OMP is *NOT* available! ***"
+#endif
+
 #include	"Common.h"
 #include	"ObjectSpace.h"
 #include	"ObjectRepository.h"
@@ -282,6 +288,29 @@ namespace NGT {
 #endif
     };
 
+#ifdef NGT_INNER_PRODUCT
+    class ComparatorInnerProduct : public Comparator {
+      public:
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+        ComparatorInnerProduct(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
+        double operator()(Object &objecta, Object &objectb) {
+	  return PrimitiveComparator::compareDotProduct((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
+	}
+	double operator()(Object &objecta, PersistentObject &objectb) {
+	  return PrimitiveComparator::compareDotProduct((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
+        }
+	double operator()(PersistentObject &objecta, PersistentObject &objectb) {
+          return PrimitiveComparator::compareDotProduct((OBJECT_TYPE*)&objecta.at(0, allocator), (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
+        }
+#else
+        ComparatorInnerProduct(size_t d) : Comparator(d) {}
+	double operator()(Object &objecta, Object &objectb) {
+          return PrimitiveComparator::compareDotProduct((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
+        }
+#endif
+    };
+#endif
+
     ObjectSpaceRepository(size_t d, const std::type_info &ot, DistanceType t) : ObjectSpace(d), ObjectRepository(d, ot) {
      size_t objectSize = 0;
      if (ot == typeid(uint8_t)) {
@@ -291,6 +320,10 @@ namespace NGT {
 #ifdef NGT_HALF_FLOAT
      } else if (ot == typeid(float16)) {
        objectSize = sizeof(float16);
+#endif
+#ifdef NGT_BFLOAT
+     } else if (ot == typeid(bfloat16)) {
+       objectSize = sizeof(bfloat16);
 #endif
      } else {
        std::stringstream msg;
@@ -402,6 +435,12 @@ namespace NGT {
 	comparator = new ObjectSpaceRepository::ComparatorNormalizedCosineSimilarity(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
 	normalization = true;
 	break;
+#ifdef NGT_INNER_PRODUCT
+      case DistanceTypeInnerProduct:
+	comparator = new ObjectSpaceRepository::ComparatorL2(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
+	setInnerProduct();
+        break;
+#endif
 #else
       case DistanceTypeL1:
 	comparator = new ObjectSpaceRepository::ComparatorL1(ObjectSpace::getPaddedDimension());
@@ -443,11 +482,17 @@ namespace NGT {
 	comparator = new ObjectSpaceRepository::ComparatorNormalizedCosineSimilarity(ObjectSpace::getPaddedDimension());
 	normalization = true;
 	break;
+#ifdef NGT_INNER_PRODUCT
+      case DistanceTypeInnerProduct:
+	comparator = new ObjectSpaceRepository::ComparatorL2(ObjectSpace::getPaddedDimension());
+	setInnerProduct();
+        break;
+#endif
 #endif
       default:
-	std::cerr << "Distance type is not specified" << std::endl;
-	assert(distanceType != DistanceTypeNone);
-	abort();
+        std::stringstream msg;
+	msg << "NGT::ObjectSpaceRepository: The distance type is invalid. " << distanceType;
+	NGTThrowException(msg);
       }
     }
 
@@ -516,6 +561,78 @@ namespace NGT {
       return;
     }
 
+#ifdef NGT_INNER_PRODUCT
+    float computeMaxMagnitude(NGT::ObjectID beginID = 1) {
+      float maxMag = 0.0;
+      ObjectRepository &rep = *this;
+      auto nOfThreads = omp_get_max_threads();
+      std::vector<float> maxm(nOfThreads, 0.0);
+#pragma omp parallel for
+      for (size_t idx = beginID; idx < rep.size(); idx++) {
+	if (rep[idx] == 0) {
+	  continue;
+	}
+	auto thdID = omp_get_thread_num();
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	auto object = getObject(*rep[idx], allocator);
+#else
+	auto object = getObject(*rep[idx]);
+#endif
+	double mag = 0.0;
+	for (size_t i = 0; i < object.size() - 1; i++) {
+	  mag += object[i] * object[i];
+	}
+	if (mag > maxm[thdID]) {
+	  maxm[thdID] = mag;
+	}
+      }
+      for (int ti = 0; ti < nOfThreads; ti++) {
+	if (maxm[ti] > maxMag) {
+          maxMag = maxm[ti];
+	}
+      }
+      return maxMag;
+    }
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+    //void setMagnitude(float maxMag, NGT::Vector<off_t> &graphNodes, NGT::ObjectID beginID = 1) {
+  void setMagnitude(float maxMag, NGT::PersistentRepository<void> &graphNodes, NGT::ObjectID beginID = 1) {
+#else
+  void setMagnitude(float maxMag, NGT::Repository<void> &graphNodes, NGT::ObjectID beginID = 1) {
+#endif
+      ObjectRepository &rep = *this;
+#pragma omp parallel for
+      for (size_t idx = beginID; idx < rep.size(); idx++) {
+	if (rep[idx] == 0) {
+	  continue;
+	}
+	if (idx < graphNodes.size() && graphNodes[idx] != 0) {
+	  continue;
+	}
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	auto object = getObject(*rep[idx], allocator);
+#else
+	auto object = getObject(*rep[idx]);
+#endif
+	double mag = 0.0;
+	for (size_t i = 0; i < object.size() - 1; i++) {
+	  mag += object[i] * object[i];
+	}
+	auto v = maxMag - static_cast<float>(mag);
+	if (v < 0.0) {
+          std::cerr << "Warning! magnitude is larger than the current max magnitude. " << idx << ":" << v << ":" << maxMag << ":" << static_cast<float>(mag) << std::endl;
+          v = 0.0;
+        }
+	object.back() = sqrt(v);
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+        setObject(*rep[idx], object, allocator);
+#else
+	setObject(*rep[idx], object);
+#endif
+      }
+    }
+#endif
+
+
     void *getObject(size_t idx) {
       if (isEmpty(idx)) {
 	std::stringstream msg;
@@ -538,7 +655,18 @@ namespace NGT {
 	v[i] = static_cast<float>(obj[i]);
       }
     }
-
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+    std::vector<float> getObject(PersistentObject &object, SharedMemoryAllocator &allocator) {
+      std::vector<float> v;
+      OBJECT_TYPE *obj = static_cast<OBJECT_TYPE*>(object.getPointer(allocator));
+      size_t dim = getDimension();
+      v.resize(dim);
+      for (size_t i = 0; i < dim; i++) {
+	v[i] = static_cast<float>(obj[i]);
+      }
+      return v;
+    }
+#endif
     std::vector<float> getObject(Object &object) {
       std::vector<float> v;
       OBJECT_TYPE *obj = static_cast<OBJECT_TYPE*>(object.getPointer());
@@ -579,6 +707,7 @@ namespace NGT {
       }
       return allocatedObject;
     }
+
     Object *allocateNormalizedObject(const std::vector<double> &obj) {
       Object *allocatedObject = ObjectRepository::allocateObject(obj);
       if (normalization) {
@@ -609,6 +738,7 @@ namespace NGT {
       }
       return allocatedObject;
     }
+
     Object *allocateNormalizedObject(const float *obj, size_t size) {
       Object *allocatedObject = ObjectRepository::allocateObject(obj, size);
       if (normalization) {

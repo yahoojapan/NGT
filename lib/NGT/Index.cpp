@@ -39,6 +39,11 @@ Index::getVersion()
   return Version::getVersion();
 }
 
+size_t Index::getDimension()
+{
+  return static_cast<NGT::GraphIndex&>(getIndex()).getProperty().dimension;
+}
+
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
 NGT::Index::Index(NGT::Property &prop, const string &database):redirect(false) {
   if (prop.dimension == 0) {
@@ -90,17 +95,19 @@ NGT::Index::getEpsilonFromExpectedAccuracy(double accuracy) {
  }
 
 void
-NGT::Index::open(const string &database, bool rdOnly, bool graphDisabled) {
+NGT::Index::open(const string &database, bool rdOnly, NGT::Index::OpenType openType) {
   NGT::Property prop;
   prop.load(database);
   Index* idx = 0;
-  if ((prop.indexType == NGT::Index::Property::GraphAndTree) && !graphDisabled) {
+  if ((prop.indexType == NGT::Index::Property::GraphAndTree) && 
+      ((openType & NGT::Index::OpenTypeGraphDisabled) == 0)) {
     idx = new NGT::GraphAndTreeIndex(database, rdOnly);
-  } else if ((prop.indexType == NGT::Index::Property::Graph) || graphDisabled) {
+  } else if ((prop.indexType == NGT::Index::Property::Graph) || 
+	     ((openType & NGT::Index::OpenTypeGraphDisabled) != 0)) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
     idx = new NGT::GraphIndex(database, rdOnly);
 #else
-    idx = new NGT::GraphIndex(database, rdOnly, graphDisabled);
+    idx = new NGT::GraphIndex(database, rdOnly, openType);
 #endif
   } else {
     NGTThrowException("Index::Open: Not found IndexType in property file.");
@@ -180,7 +187,7 @@ NGT::Index::loadAndCreateIndex(Index &index, const string &database, const strin
     return;
   }
   timer.stop();
-  cerr << "Data loading time=" << timer.time << " (sec) " << timer.time * 1000.0 << " (msec)" << endl;
+  cerr << "loadAndCreateIndex: Data loading time=" << timer.time << " (sec) " << timer.time * 1000.0 << " (msec)" << endl;
   if (index.getObjectRepositorySize() == 0) {
     NGTThrowException("Index::create: Data file is empty.");
   }
@@ -202,11 +209,13 @@ NGT::Index::append(const string &database, const string &dataFile, size_t thread
     index.append(dataFile, dataSize);
   }
   timer.stop();
-  cerr << "Data loading time=" << timer.time << " (sec) " << timer.time * 1000.0 << " (msec)" << endl;
+  cerr << "append: Data loading time=" << timer.time << " (sec) " << timer.time * 1000.0 << " (msec)" << endl;
   cerr << "# of objects=" << index.getObjectRepositorySize() - 1 << endl;
   timer.reset();
   timer.start();
-  index.createIndex(threadSize);
+  size_t nOfObjects = index.getObjectSpace().getRepository().size();
+  size_t endOfAppendedObjectID = (nOfObjects == 0 ? 1 : nOfObjects) + dataSize;
+  index.createIndex(threadSize, endOfAppendedObjectID);
   timer.stop();
   index.saveIndex(database);
   cerr << "Index creation time=" << timer.time << " (sec) " << timer.time * 1000.0 << " (msec)" << endl;
@@ -304,6 +313,16 @@ NGT::Index::exportIndex(const string &database, const string &file) {
   cerr << "# of objects=" << idx.getObjectRepositorySize() - 1 << endl;
 }
 
+void
+NGT::Index::searchUsingOnlyGraph(NGT::SearchContainer &sc) {
+  static_cast<GraphIndex&>(getIndex()).search(sc);
+}
+
+void
+NGT::Index::searchUsingOnlyGraph(NGT::SearchQuery &searchQuery) {
+  static_cast<GraphIndex&>(getIndex()).GraphIndex::search(searchQuery);
+}
+
 std::vector<float>
 NGT::Index::makeSparseObject(std::vector<uint32_t> &object)
 {
@@ -323,11 +342,61 @@ NGT::Index::makeSparseObject(std::vector<uint32_t> &object)
   return obj;
 }
 
+
+void
+NGT::Index::extractInsertionOrder(InsertionOrder &insertionOrder) {
+  static_cast<NGT::GraphIndex&>(getIndex()).extractInsertionOrder(insertionOrder);
+}
+
+void
+NGT::Index::createIndex(size_t threadNumber, size_t sizeOfRepository) {
+  StdOstreamRedirector redirector(redirect);
+  redirector.begin();
+  try {
+    InsertionOrder insertionOrder;
+    NGT::Property prop;
+    getProperty(prop);
+#ifdef NGT_INNER_PRODUCT
+    if (prop.distanceType == ObjectSpace::DistanceTypeInnerProduct) {
+      size_t beginId = 1;
+      NGT::GraphRepository &graphRepository = static_cast<NGT::GraphIndex&>(getIndex()).repository;
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+      auto &graphNodes = static_cast<PersistentRepository<GraphNode>&>(graphRepository);
+      auto &graphNodeVector = reinterpret_cast<PersistentRepository<void>&>(graphNodes);
+#else
+      auto &graphNodes = static_cast<Repository<GraphNode>&>(graphRepository);
+      auto &graphNodeVector = reinterpret_cast<Repository<void>&>(graphNodes);
+#endif
+      if (prop.maxMagnitude != 0.0) {
+	getObjectSpace().setMagnitude(prop.maxMagnitude, graphNodeVector, beginId);
+      } else {
+	auto maxMag  = getObjectSpace().computeMaxMagnitude(beginId);
+	static_cast<NGT::GraphIndex&>(getIndex()).property.maxMagnitude = maxMag;
+	getObjectSpace().setMagnitude(maxMag, graphNodeVector, beginId);
+      }
+    }
+#endif
+    if (prop.nOfNeighborsForInsertionOrder != 0) {
+      insertionOrder.nOfNeighboringNodes = prop.nOfNeighborsForInsertionOrder;
+      insertionOrder.epsilon = prop.epsilonForInsertionOrder;
+      extractInsertionOrder(insertionOrder);
+    }
+    createIndexWithInsertionOrder(insertionOrder, threadNumber, sizeOfRepository);
+  } catch(Exception &err) {
+    redirector.end();
+    throw err;
+  }
+  redirector.end();
+}
+
 void
 NGT::Index::Property::set(NGT::Property &prop) {
   if (prop.dimension != -1) dimension = prop.dimension;
   if (prop.threadPoolSize != -1) threadPoolSize = prop.threadPoolSize;
   if (prop.objectType != ObjectSpace::ObjectTypeNone) objectType = prop.objectType;
+#ifdef NGT_REFINEMENT
+  if (prop.refinementObjectType != ObjectSpace::ObjectTypeNone) refinementObjectType = prop.refinementObjectType;
+#endif
   if (prop.distanceType != DistanceType::DistanceTypeNone) distanceType = prop.distanceType;
   if (prop.indexType != IndexTypeNone) indexType = prop.indexType;
   if (prop.databaseType != DatabaseTypeNone) databaseType = prop.databaseType;
@@ -341,6 +410,11 @@ NGT::Index::Property::set(NGT::Property &prop) {
   if (prop.prefetchOffset != -1) prefetchOffset = prop.prefetchOffset;
   if (prop.prefetchSize != -1) prefetchSize = prop.prefetchSize;
   if (prop.accuracyTable != "") accuracyTable = prop.accuracyTable;
+#ifdef NGT_INNER_PRODUCT
+  if (prop.maxMagnitude	!= -1) maxMagnitude = prop.maxMagnitude;
+#endif
+  if (prop.nOfNeighborsForInsertionOrder != -1) nOfNeighborsForInsertionOrder = prop.nOfNeighborsForInsertionOrder;
+  if (prop.epsilonForInsertionOrder != -1) epsilonForInsertionOrder = prop.epsilonForInsertionOrder;
 }
 
 void
@@ -348,6 +422,9 @@ NGT::Index::Property::get(NGT::Property &prop) {
   prop.dimension = dimension;
   prop.threadPoolSize = threadPoolSize;
   prop.objectType = objectType;
+#ifdef NGT_REFINEMENT
+  prop.refinementObjectType = refinementObjectType;
+#endif
   prop.distanceType = distanceType;
   prop.indexType = indexType;
   prop.databaseType = databaseType;
@@ -360,6 +437,11 @@ NGT::Index::Property::get(NGT::Property &prop) {
   prop.prefetchOffset = prefetchOffset;
   prop.prefetchSize = prefetchSize;
   prop.accuracyTable = accuracyTable;
+#ifdef NGT_INNER_PRODUCT
+  prop.maxMagnitude = maxMagnitude;
+#endif
+  prop.nOfNeighborsForInsertionOrder = nOfNeighborsForInsertionOrder;
+  prop.epsilonForInsertionOrder = epsilonForInsertionOrder;
 }
 
 class CreateIndexJob {
@@ -490,9 +572,16 @@ void
 NGT::GraphIndex::constructObjectSpace(NGT::Property &prop) {
   assert(prop.dimension != 0);
   size_t dimension = prop.dimension;
+#ifdef NGT_INNER_PRODUCT
+  if (prop.distanceType == NGT::ObjectSpace::DistanceType::DistanceTypeSparseJaccard ||
+      prop.distanceType == NGT::ObjectSpace::DistanceType::DistanceTypeInnerProduct) {
+    dimension++;
+  }
+#else
   if (prop.distanceType == NGT::ObjectSpace::DistanceType::DistanceTypeSparseJaccard) {
     dimension++;
   }
+#endif
 
   switch (prop.objectType) {
   case NGT::ObjectSpace::ObjectType::Float :
@@ -511,6 +600,30 @@ NGT::GraphIndex::constructObjectSpace(NGT::Property &prop) {
     msg << "Invalid Object Type in the property. " << prop.objectType;
     NGTThrowException(msg);
   }
+#ifdef NGT_REFINEMENT
+  switch (prop.refinementObjectType) {
+  case NGT::ObjectSpace::ObjectType::Float :
+    refinementObjectSpace = new ObjectSpaceRepository<float, double>(dimension, typeid(float), prop.distanceType);
+    break;
+  case NGT::ObjectSpace::ObjectType::Uint8 :
+    refinementObjectSpace = new ObjectSpaceRepository<unsigned char, int>(dimension, typeid(uint8_t), prop.distanceType);
+    break;
+#ifdef NGT_HALF_FLOAT
+  case NGT::ObjectSpace::ObjectType::Float16 :
+    refinementObjectSpace = new ObjectSpaceRepository<float16, float>(dimension, typeid(float16), prop.distanceType);
+    break;
+#endif
+#ifdef NGT_BFLOAT
+  case NGT::ObjectSpace::ObjectType::Bfloat16 :
+    refinementObjectSpace = new ObjectSpaceRepository<bfloat16, float>(dimension, typeid(bfloat16), prop.distanceType);
+    break;
+#endif
+  default:
+    stringstream msg;
+    msg << "Invalid Refinement Object Type in the property. " << prop.refinementObjectType;
+    NGTThrowException(msg);
+  }
+#endif
 }
 
 void
@@ -520,20 +633,28 @@ NGT::GraphIndex::loadGraph(const string &ifile, NGT::GraphRepository &graph) {
 }
 
 void
-NGT::GraphIndex::loadIndex(const string &ifile, bool readOnly, bool graphDisabled) {
-  objectSpace->deserialize(ifile + "/obj");
-  if (graphDisabled) {
-    return;
+NGT::GraphIndex::loadIndex(const string &ifile, bool readOnly, NGT::Index::OpenType openType) {
+  if ((openType & NGT::Index::OpenTypeObjectDisabled) == 0) {
+    objectSpace->deserialize(ifile + "/obj");
   }
-#ifdef NGT_GRAPH_READ_ONLY_GRAPH
-  if (readOnly && property.indexType == NGT::Index::Property::IndexType::Graph) {
-    GraphIndex::NeighborhoodGraph::loadSearchGraph(ifile);
-  } else {
-    loadGraph(ifile, repository);
+#ifdef NGT_REFINEMENT
+  try {
+    refinementObjectSpace->deserialize(ifile + "/robj");
+  } catch (Exception &err) {
+    std::cerr << "Warning. Cannot open the refinment objects. " << err.what() << std::endl;
   }
-#else
-  loadGraph(ifile, repository);
 #endif
+  if ((openType & NGT::Index::OpenTypeGraphDisabled) == 0) {
+#ifdef NGT_GRAPH_READ_ONLY_GRAPH
+    if (readOnly) {
+      GraphIndex::NeighborhoodGraph::loadSearchGraph(ifile);
+    } else {
+      loadGraph(ifile, repository);
+    }
+#else
+    loadGraph(ifile, repository);
+#endif
+  }
 }
 
 void
@@ -598,10 +719,13 @@ NGT::GraphIndex::initialize(const string &allocator, NGT::Property &prop) {
   constructObjectSpace(prop);
   repository.open(allocator + "/grp", prop.graphSharedMemorySize);
   objectSpace->open(allocator + "/obj", prop.objectSharedMemorySize);
+#ifdef NGT_REFINEMENT
+  refinementObjectSpace->open(allocator + "/robj", prop.objectSharedMemorySize);
+#endif
   setProperty(prop);
 }
 #else // NGT_SHARED_MEMORY_ALLOCATOR
-NGT::GraphIndex::GraphIndex(const string &database, bool rdOnly, bool graphDisabled):readOnly(rdOnly) {
+NGT::GraphIndex::GraphIndex(const string &database, bool rdOnly, NGT::Index::OpenType openType):readOnly(rdOnly) {
   NGT::Property prop;
   prop.load(database);
   if (prop.databaseType != NGT::Index::Property::DatabaseType::Memory) {
@@ -609,7 +733,7 @@ NGT::GraphIndex::GraphIndex(const string &database, bool rdOnly, bool graphDisab
   }
   assert(prop.dimension != 0);
   initialize(prop);
-  loadIndex(database, readOnly, graphDisabled);
+  loadIndex(database, readOnly, openType);
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
   if (prop.searchType == "Large") {
     searchUnupdatableGraph = NeighborhoodGraph::Search::getMethod(prop.distanceType, prop.objectType, 10000000);
@@ -623,8 +747,162 @@ NGT::GraphIndex::GraphIndex(const string &database, bool rdOnly, bool graphDisab
 }
 #endif
 
+void GraphIndex::extractSparseness(InsertionOrder &insertionOrder) {
+  if (getNumberOfIndexedObjects() == 0) {
+    NGTThrowException("extractInsertionOrder: No indexed objects.");
+  }
+  auto nOfThreads = insertionOrder.nOfThreads == 0 ?std::thread::hardware_concurrency() : insertionOrder.nOfThreads;
+  NGT::Timer timer;
+  timer.start();
+  std::cerr << "extractInsertionOrder" << std::endl;
+  std::cerr << "VM size=" << NGT::Common::getProcessVmSizeStr() << std::endl;
+  std::cerr << "Peak VM size=" << NGT::Common::getProcessVmPeakStr() << std::endl;
+  std::cerr << "searching..." << std::endl;
+
+  if (getObjectRepositorySize() != getGraphRepositorySize()) {
+    std::stringstream msg;
+    msg << "extractInsertionOrder: # of objects and # of indexed objects are not consistent. "
+	<< getObjectRepositorySize() << ":" << getGraphRepositorySize();
+    NGTThrowException(msg);
+  }
+
+  omp_set_num_threads(nOfThreads);
+
+  std::cerr << "search size=" << insertionOrder.nOfNeighboringNodes << std::endl;
+  std::vector<uint32_t> counter(nOfThreads);
+  std::vector<uint32_t> indegrees[nOfThreads];
+  for (size_t tidx = 0; tidx < nOfThreads; tidx++) {
+    indegrees[tidx].resize(getGraphRepositorySize());
+  }
+  std::vector<std::pair<float, uint32_t>> length;
+  length.resize(getObjectRepositorySize());
+#pragma omp parallel for
+  for (NGT::ObjectID query = 1; query < getObjectRepositorySize(); query++) {
+    auto thdID = omp_get_thread_num();
+    counter[thdID]++;
+    if (query % 100000 == 0) {
+      size_t n = 0;
+      for (auto &c : counter) n += c;
+      timer.stop();
+      std::cerr << "# of the processed objects=" << n
+		<< " VM size=" << NGT::Common::getProcessVmSizeStr()
+		<< " Peak VM size=" << NGT::Common::getProcessVmPeakStr() 
+		<< " Time=" << timer << std::endl;
+      timer.restart();
+    }
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+    NGT::Object *object = getObjectSpace().allocateObject(*getObjectSpace().getRepository().get(query));
+#else
+    NGT::Object *object = getObjectSpace().getRepository().get(query);
+#endif
+    {
+      NGT::SearchContainer sc(*object);
+      NGT::ObjectDistances objects;
+      sc.setResults(&objects);
+      sc.setSize(insertionOrder.nOfNeighboringNodes);
+      sc.setEpsilon(insertionOrder.epsilon);
+      sc.setEdgeSize(-2);
+      NGT::Timer timer;
+      try {
+	timer.start();
+	search(sc);
+	timer.stop();
+      } catch (NGT::Exception &err) {
+        std::cerr << "extractSparseness: Warning! " << err.what() << ":" << query << std::endl;
+      }
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+      getObjectSpace().deleteObject(object);
+#endif
+      float len = 0.0;
+      size_t count = 0;
+      if (objects.size() == 0) {
+	std::stringstream msg;
+	msg << "extractInsertionOrder: Error! # of the searched objects is zero. " << query 
+	    << ":" << getPath() << std::endl;
+	NGTThrowException(msg);
+      }
+      for (size_t i = 0; i < objects.size(); i++) {
+	if (query == objects[i].id) continue;
+	len += objects[i].distance;
+	count++;
+	if (objects[i].id >= indegrees[thdID].size()) {
+	  std::cerr << "too large. " << objects[i].id << ":" << indegrees[thdID].size() << std::endl;
+	  exit(1);
+	}
+	indegrees[thdID][objects[i].id]++;
+      }
+      length[query].first = len / count;
+      length[query].second = query;
+    }
+  }
+
+  std::sort(length.begin(), length.end());
+
+  size_t max = 0;
+  for (NGT::ObjectID id = 1; id < getObjectRepositorySize(); id++) {
+    for (size_t tidx = 1; tidx < nOfThreads; tidx++) {
+      indegrees[0][id] += indegrees[tidx][id];
+    }
+    if (indegrees[0][id] > max) max = indegrees[0][id];
+  }
+  std::cerr << "max=" << max << std::endl;
+  if (insertionOrder.indegreeOrder) {
+    std::vector<std::vector<uint32_t>> sortedIndegrees;
+    sortedIndegrees.resize(max + 1);
+    for (uint32_t oid = 1; oid < indegrees[0].size(); oid++) {
+
+      sortedIndegrees[indegrees[0][oid]].push_back(oid);
+    }
+    {
+      size_t c = 0;
+      insertionOrder.reserve(getObjectRepositorySize());
+      for (uint32_t ind = 0; ind < sortedIndegrees.size(); ind++) {
+	c += ind * sortedIndegrees[ind].size();
+	if (sortedIndegrees[ind].size() != 0) {
+	  for (auto &id: sortedIndegrees[ind]) {
+	    insertionOrder.push_back(id);
+	  }
+	}
+      }
+      std::cerr << "total number of the incoming edges=" << c << ":" 
+		<< (insertionOrder.nOfThreads - 1) * (getObjectRepositorySize() - 1) << std::endl;
+    }
+  } else {
+    insertionOrder.reserve(getObjectRepositorySize());
+    for (NGT::ObjectID id = getObjectRepositorySize() - 1; id != 0; id--) {
+      insertionOrder.push_back(length[id].second);
+    }
+  }
+
+}
+
 void
-GraphIndex::createIndex()
+GraphIndex::extractInsertionOrder(InsertionOrder &insertionOrder) {
+#ifndef NGT_SHARED_MEMORY_ALLOCATOR
+  if (getNumberOfObjects() == 0) {
+    NGTThrowException("extractInsertionOrder: No objects.");
+  }
+  auto edgeSizeBackup = NeighborhoodGraph::property.edgeSizeForCreation;
+  NeighborhoodGraph::property.edgeSizeForCreation = 10;
+  auto nOfThreads = insertionOrder.nOfThreads == 0 ? std::thread::hardware_concurrency() : insertionOrder.nOfThreads;
+
+  try {
+    InsertionOrder io;
+    GraphIndex::createIndexWithInsertionOrder(io, nOfThreads);
+  } catch(Exception &err) {
+    NeighborhoodGraph::property.edgeSizeForCreation = edgeSizeBackup;
+    throw err;
+  }
+  NeighborhoodGraph::property.edgeSizeForCreation = edgeSizeBackup;
+
+  extractSparseness(insertionOrder);
+
+  NeighborhoodGraph::repository.initialize();
+#endif
+}
+
+void
+GraphIndex::createIndexWithSingleThread()
 {
   GraphRepository &anngRepo = repository;
   ObjectRepository &fr = objectSpace->getRepository();
@@ -650,7 +928,8 @@ searchMultipleQueryForCreation(GraphIndex &neighborhoodGraph,
 			       NGT::ObjectID &id,
 			       CreateIndexJob &job,
 			       CreateIndexThreadPool &threads,
-			       size_t sizeOfRepository)
+                               size_t sizeOfRepository,
+                               Index::InsertionOrder &insertionOrder)
 {
   ObjectRepository &repo = neighborhoodGraph.objectSpace->getRepository();
   GraphRepository &anngRepo = neighborhoodGraph.repository;
@@ -659,19 +938,20 @@ searchMultipleQueryForCreation(GraphIndex &neighborhoodGraph,
     if (sizeOfRepository > 0 && id >= sizeOfRepository) {
       break;
     }
-    if (repo[id] == 0) {
+    auto oid = insertionOrder.empty() ? id : insertionOrder.getID(id);
+    if (repo[oid] == 0) {
       continue;
     }
     if (neighborhoodGraph.NeighborhoodGraph::property.graphType != NeighborhoodGraph::GraphTypeBKNNG) {
-      if (id < anngRepo.size() && anngRepo[id] != 0) {
+      if (oid < anngRepo.size() && anngRepo[oid] != 0) {
 	continue;
       }
     }
-    job.id = id;
+    job.id = oid;
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-    job.object = neighborhoodGraph.objectSpace->allocateObject(*repo[id]);
+    job.object = neighborhoodGraph.objectSpace->allocateObject(*repo[oid]);
 #else
-    job.object = repo[id];
+    job.object = repo[oid];
 #endif
     job.batchIdx = cnt;
     threads.pushInputQueue(job);
@@ -687,13 +967,23 @@ searchMultipleQueryForCreation(GraphIndex &neighborhoodGraph,
 static void
 insertMultipleSearchResults(GraphIndex &neighborhoodGraph,
 			    CreateIndexThreadPool::OutputJobQueue &output,
+			    ObjectID id,
 			    size_t dataSize)
 {
+  if (neighborhoodGraph.NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeRANNG ||
+      neighborhoodGraph.NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeRIANNG) {
+#pragma omp parallel for
+    for (size_t i = 0; i < dataSize; i++) {
+      neighborhoodGraph.deleteShortcutEdges(*output[i].results);
+    }
+  }
   // compute distances among all of the resultant objects
   if (neighborhoodGraph.NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeANNG ||
       neighborhoodGraph.NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeIANNG ||
       neighborhoodGraph.NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeONNG ||
-      neighborhoodGraph.NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeDNNG) {
+      neighborhoodGraph.NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeDNNG ||
+      neighborhoodGraph.NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeRANNG ||
+      neighborhoodGraph.NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeRIANNG) {
     // This processing occupies about 30% of total indexing time when batch size is 200.
     // Only initial batch objects should be connected for each other.
     // The number of nodes in the graph is checked to know whether the batch is initial.
@@ -724,12 +1014,17 @@ insertMultipleSearchResults(GraphIndex &neighborhoodGraph,
     CreateIndexJob &gr = output[i];
     if ((*gr.results).size() == 0) {
     }
-    if (static_cast<int>(gr.id) > neighborhoodGraph.NeighborhoodGraph::property.edgeSizeForCreation &&
+    auto targetID = id == 0 ? gr.id : (id + i);
+    if (static_cast<int>(targetID) > neighborhoodGraph.NeighborhoodGraph::property.edgeSizeForCreation &&
 	static_cast<int>(gr.results->size()) < neighborhoodGraph.NeighborhoodGraph::property.edgeSizeForCreation) {
-      cerr << "createIndex: Warning. The specified number of edges could not be acquired, because the pruned parameter [-S] might be set." << endl;
-      cerr << "  The node id=" << gr.id << endl;
-      cerr << "  The number of edges for the node=" << gr.results->size() << endl;
-      cerr << "  The pruned parameter (edgeSizeForSearch [-S])=" << neighborhoodGraph.NeighborhoodGraph::property.edgeSizeForSearch << endl;
+      if (neighborhoodGraph.NeighborhoodGraph::property.graphType != NeighborhoodGraph::GraphTypeRANNG &&
+	  neighborhoodGraph.NeighborhoodGraph::property.graphType != NeighborhoodGraph::GraphTypeRIANNG) {
+	cerr << "createIndex: Warning. The specified number of edges could not be acquired, because the pruned parameter [-S] might be set." << endl;
+	cerr << "  The node id=" << gr.id << ":" << id + i << ":" << targetID << endl;
+	cerr << "  The number of edges for creation=" << neighborhoodGraph.NeighborhoodGraph::property.edgeSizeForCreation << endl;
+	cerr << "  The number of edges for the node=" << gr.results->size() << endl;
+	cerr << "  The pruned parameter (edgeSizeForSearch [-S])=" << neighborhoodGraph.NeighborhoodGraph::property.edgeSizeForSearch << endl;
+      }
     }
     try {
       neighborhoodGraph.insertNode(gr.id, *gr.results);
@@ -742,13 +1037,22 @@ insertMultipleSearchResults(GraphIndex &neighborhoodGraph,
 }
 
 void
-GraphIndex::createIndex(size_t threadPoolSize, size_t sizeOfRepository)
+GraphIndex::createIndexWithInsertionOrder(InsertionOrder &insertionOrder, size_t threadPoolSize, size_t sizeOfRepository)
 {
   if (NeighborhoodGraph::property.edgeSizeForCreation == 0) {
     return;
   }
+  if (!insertionOrder.empty()) {
+    if (objectSpace->getRepository().size() - 1 != insertionOrder.size()) {
+      stringstream msg;
+      msg << "Index::createIndex: The insertion order size is invalid. " << (objectSpace->getRepository().size() - 1) << ":" << insertionOrder.size();
+      NGTThrowException(msg);
+    }
+  }
+  threadPoolSize = threadPoolSize == 0 ? std::thread::hardware_concurrency() : threadPoolSize;
+  threadPoolSize = threadPoolSize == 0 ? 8 : threadPoolSize;
   if (threadPoolSize <= 1) {
-    createIndex();
+    createIndexWithSingleThread();
   } else {
     Timer	timer;
     size_t	timerInterval = 100000;
@@ -771,7 +1075,7 @@ GraphIndex::createIndex(size_t threadPoolSize, size_t sizeOfRepository)
       NGT::ObjectID id = 1;
       for (;;) {
 	// search for the nearest neighbors
-	size_t cnt = searchMultipleQueryForCreation(*this, id, job, threads, sizeOfRepository);
+	size_t cnt = searchMultipleQueryForCreation(*this, id, job, threads, sizeOfRepository, insertionOrder);
 	if (cnt == 0) {
 	  break;
 	}
@@ -782,7 +1086,7 @@ GraphIndex::createIndex(size_t threadPoolSize, size_t sizeOfRepository)
 	  cnt = output.size();
 	}
 	// insertion
-	insertMultipleSearchResults(*this, output, cnt);
+	insertMultipleSearchResults(*this, output, insertionOrder.empty() ? 0 : (id - cnt), cnt);
 
 	while (!output.empty()) {
 	  delete output.front().results;
@@ -835,6 +1139,9 @@ NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode, siz
   std::vector<std::vector<float> > indegree;
   NGT::GraphRepository &graph = outGraph.repository;
   NGT::ObjectRepository &repo = outGraph.objectSpace->getRepository();
+#ifdef NGT_REFINEMENT
+  auto &rrepo = outGraph.refinementObjectSpace->getRepository();
+#endif
   indegreeCount.resize(graph.size(), 0);
   indegree.resize(graph.size());
   size_t removedObjectCount = 0;
@@ -976,14 +1283,11 @@ NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode, siz
       continue;
     }
     NGT::GraphNode &node = *n;
-    if (node.size() < dcsize - 1) {
+    if (node.size() < dcsize) {
       d10SkipCount++;
       continue;
     }
-    for (size_t i = 0; i < node.size(); i++) {
-      if (i >= dcsize) {
-	break;
-      }
+    for (size_t i = 0; i < dcsize; i++) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
       distance10 += node.at(i, graph.allocator).distance;
 #else
@@ -992,7 +1296,9 @@ NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode, siz
       d10count++;
     }
   }
-  distance10 /= (long double)d10count;
+  if (d10count != 0) {
+    distance10 /= (long double)d10count;
+  }
 
   // calculate indegree distance 10
   size_t ind10count = 0;
@@ -1000,25 +1306,24 @@ NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode, siz
   size_t ind10SkipCount = 0;
   for (size_t id = 1; id < indegree.size(); id++) {
     std::vector<float> &node = indegree[id];
-    if (node.size() < dcsize - 1) {
+    if (node.size() < dcsize) {
       ind10SkipCount++;
       continue;
     }
     std::sort(node.begin(), node.end());
-    for (size_t i = 0; i < node.size(); i++) {
+    for (size_t i = 0; i < dcsize; i++) {
       if (i > 0 && node[i - 1] > node[i]) {
 	stringstream msg;
 	msg << "Index::showStatisticsOfGraph: Fatal inner error! Wrong distance order " << node[i - 1] << ":" << node[i];
 	NGTThrowException(msg);
       }
-      if (i >= dcsize) {
-	break;
-      }
       indegreeDistance10 += node[i];
       ind10count++;
     }
   }
-  indegreeDistance10 /= (long double)ind10count;
+  if (ind10count != 0) {
+    indegreeDistance10 /= (long double)ind10count;
+  }
 
   // calculate variance
   double averageNumberOfOutdegree = (double)numberOfOutdegree / (double)numberOfNodes;
@@ -1049,7 +1354,7 @@ NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode, siz
     }
     if (indegreeCount[id] == 0) {
       numberOfNodesWithoutIndegree++;
-      std::cerr << "Error! The node without incoming edges. " << id << std::endl;
+      std::cerr << "Warning! The node without incoming edges. " << id << std::endl;
       valid = false;
     }
     if (indegreeCount[id] > static_cast<int>(maxNumberOfIndegree)) {
@@ -1134,6 +1439,10 @@ NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode, siz
   std::cerr << "The number of the indexed objects:\t" << outGraph.getNumberOfIndexedObjects() << std::endl;
   std::cerr << "The size of the object repository (not the number of the objects):\t"
 	    << (repo.size() == 0 ? 0 : repo.size() - 1) << std::endl;
+#ifdef NGT_REFINEMENT
+  std::cerr << "The size of the refinement object repository (not the number of the objects):\t"
+	    << (rrepo.size() == 0 ? 0 : rrepo.size() - 1) << std::endl;
+#endif
   std::cerr << "The number of the removed objects:\t" << removedObjectCount << "/"
 	    << (repo.size() == 0 ? 0 : repo.size() - 1) << std::endl;
   std::cerr << "The number of the nodes:\t" << numberOfNodes << std::endl;
@@ -1156,6 +1465,8 @@ NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode, siz
   } else {
     std::cerr << "The minimum of the indegrees:\t" << minNumberOfIndegree << std::endl;
   }
+  std::cerr << "The mean of the edge lengths for 10 edges:\t" << std::setprecision(10)
+	    << distance10 << "/" << d10count << std::endl;
   std::cerr << "#-nodes,#-edges,#-no-indegree,avg-edges,avg-dist,max-out,min-out,v-out,max-in,min-in,v-in,med-out,"
     "med-in,mode-out,mode-in,c95,c5,o-distance(10),o-skip,i-distance(10),i-skip:"
 	    << numberOfNodes << ":" << numberOfOutdegree << ":" << numberOfNodesWithoutIndegree << ":"
@@ -1184,20 +1495,25 @@ NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode, siz
 
 
 void
-GraphAndTreeIndex::createIndex(size_t threadPoolSize, size_t sizeOfRepository)
+GraphAndTreeIndex::createIndexWithInsertionOrder(InsertionOrder &insertionOrder, size_t threadPoolSize, size_t sizeOfRepository)
 {
-  assert(threadPoolSize > 0);
-
   if (NeighborhoodGraph::property.edgeSizeForCreation == 0) {
     return;
   }
-
+  if (!insertionOrder.empty()) {
+    if (GraphIndex::objectSpace->getRepository().size() - 1 != insertionOrder.size()) {
+      stringstream msg;
+      msg << "Index::createIndex: The insertion order size is invalid. " << (GraphIndex::objectSpace->getRepository().size() - 1) << ":" << insertionOrder.size();
+      NGTThrowException(msg);
+    }
+  }
+  threadPoolSize = threadPoolSize == 0 ? std::thread::hardware_concurrency() : threadPoolSize;
+  threadPoolSize = threadPoolSize == 0 ? 8 : threadPoolSize;
   Timer	timer;
   size_t	timerInterval = 100000;
   size_t	timerCount = timerInterval;
   size_t	count = 0;
   timer.start();
-
   size_t	pathAdjustCount = property.pathAdjustmentInterval;
   CreateIndexThreadPool threads(threadPoolSize);
 
@@ -1213,8 +1529,7 @@ GraphAndTreeIndex::createIndex(size_t threadPoolSize, size_t sizeOfRepository)
     CreateIndexJob job;
     NGT::ObjectID id = 1;
     for (;;) {
-      size_t cnt = searchMultipleQueryForCreation(*this, id, job, threads, sizeOfRepository);
-
+      size_t cnt = searchMultipleQueryForCreation(*this, id, job, threads, sizeOfRepository, insertionOrder);
       if (cnt == 0) {
 	break;
       }
@@ -1225,7 +1540,7 @@ GraphAndTreeIndex::createIndex(size_t threadPoolSize, size_t sizeOfRepository)
 	cnt = output.size();
       }
 
-      insertMultipleSearchResults(*this, output, cnt);
+      insertMultipleSearchResults(*this, output, insertionOrder.empty() ? 0 : (id - cnt), cnt);
 
       for (size_t i = 0; i < cnt; i++) {
 	CreateIndexJob &job = output[i];
@@ -1273,9 +1588,11 @@ GraphAndTreeIndex::createIndex(size_t threadPoolSize, size_t sizeOfRepository)
       count += cnt;
       if (timerCount <= count) {
 	timer.stop();
-	cerr << "Processed " << timerCount << " objects. time= " << timer << endl;
+	cerr << "Processed " << timerCount << " objects. time= " << timer
+             << " vm size=" << NGT::Common::getProcessVmSizeStr()
+             << ":" << NGT::Common::getProcessVmPeakStr() << endl;
 	timerCount += timerInterval;
-	timer.start();
+	timer.restart();
       }
       buildTimeController.adjustEdgeSize(count);
       if (pathAdjustCount > 0 && pathAdjustCount <= count) {

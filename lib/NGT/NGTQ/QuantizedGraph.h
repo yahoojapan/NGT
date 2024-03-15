@@ -35,7 +35,7 @@ namespace NGTQG {
   class SearchContainer : public NGT::SearchContainer {
     public:
       SearchContainer(SearchContainer &sc, NGT::Object &f): NGT::SearchContainer(sc, f), resultExpansion(sc.resultExpansion) {}
-      SearchContainer() {}
+      SearchContainer() : resultExpansion(0.0) {}
 
       void setResultExpansion(float re) { resultExpansion = re; }
       float resultExpansion;
@@ -49,7 +49,12 @@ namespace NGTQG {
   class QuantizedNode {
   public:
     ~QuantizedNode() {
+      clear();
+    }
+    void clear() {
+      ids.clear();
       delete[] static_cast<uint8_t*>(objects);
+      objects = 0;
     }
     uint32_t subspaceID;
     std::vector<uint32_t> ids;
@@ -84,10 +89,11 @@ namespace NGTQG {
       quantizedIndex.getQuantizer().eraseInvertedIndexObject();
 
 
+      std::cerr << "graph repository size=" << graphRepository.size() << std::endl;
       PARENT::resize(graphRepository.size());
 
       for (size_t id = 1; id < graphRepository.size(); id++) {
-	if ((graphRepository.size() > 100) && (id % ((graphRepository.size() - 1) / 100) == 0)) {
+	if ((graphRepository.size() > 100) && ((id % ((graphRepository.size() - 1) / 100)) == 0)) {
 	  std::cerr << "# of processed objects=" << id << "/" << (graphRepository.size() - 1) 
 		    << "(" << id * 100 / (graphRepository.size() - 1) << "%)" << std::endl;
 	}
@@ -202,7 +208,7 @@ namespace NGTQG {
   class Index : public NGT::Index {
   public:
     Index(const std::string &indexPath, size_t maxNoOfEdges = 128, bool rdOnly = false) :
-      NGT::Index(indexPath, rdOnly, false),
+      NGT::Index(indexPath, rdOnly, NGT::Index::OpenTypeNone),
       readOnly(rdOnly),
       path(indexPath),
       quantizedIndex(indexPath + "/qg", rdOnly),
@@ -391,9 +397,6 @@ namespace NGTQG {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
       NGTThrowException("NGTQG is not available for SHARED.");
 #endif
-      if (index.getReadOnly()) {
-	NGTThrowException("NGTQG is not available for readonly mode.");
-      }
       if (sc.size == 0) {
 	while (!sc.workingResult.empty()) sc.workingResult.pop();
 	return;
@@ -419,7 +422,7 @@ namespace NGTQG {
 
     void search(NGTQG::SearchQuery &sq) {
       NGT::GraphAndTreeIndex &index = static_cast<NGT::GraphAndTreeIndex&>(getIndex());
-      NGT::Object *query = Index::allocateObject(sq.getQuery(), sq.getQueryType());
+      NGT::Object *query = Index::allocateQuery(sq);
       try {
         NGTQG::SearchContainer sc(sq, *query);
         sc.distanceComputationCount = 0;

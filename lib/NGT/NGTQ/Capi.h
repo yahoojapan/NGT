@@ -166,17 +166,33 @@ extern "C" {
 
   bool qbg_create(const char *indexPath, QBGConstructionParameters *parameters, QBGError error);
 
-  QBGIndex qbg_open_index(const char *index_path, bool read_only, QBGError error);
+  QBGIndex qbg_open_index(const char *index_path, bool prebuilt, QBGError error);
 
   void qbg_close_index(QBGIndex index);
 
   bool qbg_save_index(QBGIndex index, QBGError error);
 
-  ObjectID qbg_append_object(QBGIndex index, float *obj, uint32_t obj_dim, QBGError error);
+  ObjectID qbg_append_object(QBGIndex index, float *object, uint32_t obj_dim, QBGError error);
 
-  ObjectID qbg_append_object_as_uint8(QBGIndex index, uint8_t *obj, uint32_t obj_dim, QBGError error);
+  ObjectID qbg_append_object_as_uint8(QBGIndex index, uint8_t *object, uint32_t obj_dim, QBGError error);
 
-  ObjectID qbg_append_object_as_float16(QBGIndex index, NGTFloat16 *obj, uint32_t obj_dim, QBGError error);
+  ObjectID qbg_append_object_as_float16(QBGIndex index, NGTFloat16 *object, uint32_t obj_dim, QBGError error);
+
+  ObjectID qbg_insert_object(QBGIndex index, float *object, uint32_t obj_dim, QBGError error);
+
+  ObjectID qbg_insert_object_as_uint8(QBGIndex index, uint8_t *object, uint32_t obj_dim, QBGError error);
+
+  ObjectID qbg_insert_object_as_float16(QBGIndex index, NGTFloat16 *object, uint32_t obj_dim, QBGError error);
+
+  uint32_t qbg_insert_objects(QBGIndex index, float *objects, uint32_t n_of_objects, ObjectID *ids, NGTError error);
+
+  uint32_t qbg_insert_objects_as_uint8(QBGIndex index, uint8_t *objects, uint32_t n_of_objects, ObjectID *ids, NGTError error);
+
+  uint32_t qbg_insert_objects_as_float16(QBGIndex index, NGTFloat16 *objects, uint32_t n_of_objects, ObjectID *ids, NGTError error);
+
+  bool qbg_remove_object(QBGIndex index, ObjectID id, QBGError error);
+
+  bool qbg_remove_objects(QBGIndex index, ObjectID *ids, uint32_t n_of_ids, QBGError error);
 
   void qbg_initialize_build_parameters(QBGBuildParameters *parameters);
 

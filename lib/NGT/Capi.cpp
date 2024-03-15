@@ -249,7 +249,7 @@ bool ngt_set_property_object_type_integer(NGTProperty prop, NGTError error) {
   return true;
 }
 
-bool ngt_set_property_distance_type_l1(NGTProperty prop, NGTError error) {
+bool ngt_set_property_distance_type(NGTProperty prop, NGT::Index::Property::DistanceType type, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
     ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
@@ -257,140 +257,60 @@ bool ngt_set_property_distance_type_l1(NGTProperty prop, NGTError error) {
     return false;
   }
 
-  (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeL1;
+  (*static_cast<NGT::Property*>(prop)).distanceType = type;
   return true;
+}
+
+bool ngt_set_property_distance_type_l1(NGTProperty prop, NGTError error) {
+  return ngt_set_property_distance_type(prop, NGT::Index::Property::DistanceType::DistanceTypeL1, error);
 }
 
 bool ngt_set_property_distance_type_l2(NGTProperty prop, NGTError error) {
-  if(prop == NULL){
-    std::stringstream ss;
-    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
-    operate_error_string_(ss, error);
-    return false;
-  }
-
-  (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeL2;
-  return true;
+  return ngt_set_property_distance_type(prop, NGT::Index::Property::DistanceType::DistanceTypeL2, error);
 }
 
 bool ngt_set_property_distance_type_angle(NGTProperty prop, NGTError error) {
-  if(prop == NULL){
-    std::stringstream ss;
-    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
-    operate_error_string_(ss, error);
-    return false;
-  }
-
-  (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeAngle;
-  return true;
+  return ngt_set_property_distance_type(prop, NGT::Index::Property::DistanceType::DistanceTypeAngle, error);
 }
 
 bool ngt_set_property_distance_type_hamming(NGTProperty prop, NGTError error) {
-  if(prop == NULL){
-    std::stringstream ss;
-    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
-    operate_error_string_(ss, error);
-    return false;
-  }
-
-  (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeHamming;
-  return true;
+  return ngt_set_property_distance_type(prop, NGT::Index::Property::DistanceType::DistanceTypeHamming, error);
 }
 
 bool ngt_set_property_distance_type_poincare(NGTProperty prop, NGTError error) {
-  if(prop == NULL){
-    std::stringstream ss;
-    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
-    operate_error_string_(ss, error);
-    return false;
-  }
-
-  (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypePoincare;
-  return true;
+  return ngt_set_property_distance_type(prop, NGT::Index::Property::DistanceType::DistanceTypePoincare, error);
 }
 
 bool ngt_set_property_distance_type_lorentz(NGTProperty prop, NGTError error) {
-  if(prop == NULL){
-    std::stringstream ss;
-    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
-    operate_error_string_(ss, error);
-    return false;
-  }
-
-  (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeLorentz;
-  return true;
+  return ngt_set_property_distance_type(prop, NGT::Index::Property::DistanceType::DistanceTypeLorentz, error);
 }
 
 bool ngt_set_property_distance_type_jaccard(NGTProperty prop, NGTError error) {
-  if(prop == NULL){
-    std::stringstream ss;
-    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
-    operate_error_string_(ss, error);
-    return false;
-  }
-
-  (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeJaccard;
-  return true;
+  return ngt_set_property_distance_type(prop, NGT::Index::Property::DistanceType::DistanceTypeJaccard, error);
 }
 
 bool ngt_set_property_distance_type_sparse_jaccard(NGTProperty prop, NGTError error) {
-  if(prop == NULL){
-    std::stringstream ss;
-    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
-    operate_error_string_(ss, error);
-    return false;
-  }
-
-  (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeSparseJaccard;
-  return true;
+  return ngt_set_property_distance_type(prop, NGT::Index::Property::DistanceType::DistanceTypeSparseJaccard, error);
 }
 
 bool ngt_set_property_distance_type_normalized_l2(NGTProperty prop, NGTError error) {
-  if(prop == NULL){
-    std::stringstream ss;
-    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
-    operate_error_string_(ss, error);
-    return false;
-  }
-
-  (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeNormalizedL2;
-  return true;
+  return ngt_set_property_distance_type(prop, NGT::Index::Property::DistanceType::DistanceTypeNormalizedL2, error);
 }
 
 bool ngt_set_property_distance_type_cosine(NGTProperty prop, NGTError error) {
-  if(prop == NULL){
-    std::stringstream ss;
-    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
-    operate_error_string_(ss, error);
-    return false;
-  }
-
-  (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeCosine;
-  return true;
+  return ngt_set_property_distance_type(prop, NGT::Index::Property::DistanceType::DistanceTypeCosine, error);
 }
 
 bool ngt_set_property_distance_type_normalized_angle(NGTProperty prop, NGTError error) {
-  if(prop == NULL){
-    std::stringstream ss;
-    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
-    operate_error_string_(ss, error);
-    return false;
-  }
-
-  (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeNormalizedAngle;
-  return true;
+  return ngt_set_property_distance_type(prop, NGT::Index::Property::DistanceType::DistanceTypeNormalizedAngle, error);
 }
 
 bool ngt_set_property_distance_type_normalized_cosine(NGTProperty prop, NGTError error) {
-  if(prop == NULL){
-    std::stringstream ss;
-    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
-    operate_error_string_(ss, error);
-    return false;
-  }
+  return ngt_set_property_distance_type(prop, NGT::Index::Property::DistanceType::DistanceTypeNormalizedCosine, error);
+}
 
-  (*static_cast<NGT::Property*>(prop)).distanceType = NGT::Index::Property::DistanceType::DistanceTypeNormalizedCosine;
-  return true;
+bool ngt_set_property_distance_type_inner_product(NGTProperty prop, NGTError error) {
+  return ngt_set_property_distance_type(prop, NGT::Index::Property::DistanceType::DistanceTypeInnerProduct, error);
 }
 
 NGTObjectDistances ngt_create_empty_results(NGTError error) {
@@ -557,7 +477,7 @@ bool ngt_search_index_with_query(NGTIndex index, NGTQuery query, NGTObjectDistan
   }
 
   NGT::Index* pindex = static_cast<NGT::Index*>(index);
-  int32_t dim = pindex->getObjectSpace().getDimension();
+  int32_t dim = pindex->getDimension();
 
   NGT::Object *ngtquery = NULL;
 
@@ -597,7 +517,7 @@ bool ngt_search_index_with_query_float(NGTIndex index, NGTQueryFloat query, NGTO
   }
 
   NGT::Index* pindex = static_cast<NGT::Index*>(index);
-  int32_t dim = pindex->getObjectSpace().getDimension();
+  int32_t dim = pindex->getDimension();
 
   NGT::Object *ngtquery = NULL;
 
@@ -630,7 +550,7 @@ bool ngt_search_index_with_query_uint8(NGTIndex index, NGTQueryUint8 query, NGTO
   }
 
   NGT::Index* pindex = static_cast<NGT::Index*>(index);
-  int32_t dim = pindex->getObjectSpace().getDimension();
+  int32_t dim = pindex->getDimension();
 
   NGT::Object *ngtquery = NULL;
 
@@ -663,7 +583,7 @@ bool ngt_search_index_with_query_float16(NGTIndex index, NGTQueryFloat16 query, 
   }
 
   NGT::Index* pindex = static_cast<NGT::Index*>(index);
-  int32_t dim = pindex->getObjectSpace().getDimension();
+  int32_t dim = pindex->getDimension();
 
   NGT::Object *ngtquery = NULL;
 
@@ -768,7 +688,7 @@ bool ngt_linear_search_index_with_query(NGTIndex index,  NGTQuery query, NGTObje
   }
 
   NGT::Index* pindex = static_cast<NGT::Index*>(index);
-  int32_t dim = pindex->getObjectSpace().getDimension();
+  int32_t dim = pindex->getDimension();
 
   NGT::Object *ngtquery = NULL;
 
@@ -1004,13 +924,12 @@ bool ngt_batch_append_index(NGTIndex index, float *obj, uint32_t data_count, NGT
 
 bool ngt_batch_insert_index(NGTIndex index, float *obj, uint32_t data_count, uint32_t *ids, NGTError error) {
   NGT::Index* pindex = static_cast<NGT::Index*>(index);
-  int32_t dim = pindex->getObjectSpace().getDimension();
-
+  int32_t dim = pindex->getDimension();
   bool status = true;
   float *objptr = obj;
   for (size_t idx = 0; idx < data_count; idx++, objptr += dim) {
     try{
-      std::vector<double> vobj(objptr, objptr + dim);
+      std::vector<float> vobj(objptr, objptr + dim);
       ids[idx] = pindex->insert(vobj);
     }catch(std::exception &err) {
       status = false;
@@ -1038,7 +957,7 @@ bool ngt_batch_append_index_as_uint8(NGTIndex index, uint8_t *obj, uint32_t data
 
 bool ngt_batch_insert_index_as_uint8(NGTIndex index, uint8_t *obj, uint32_t data_count, uint32_t *ids, NGTError error) {
   NGT::Index* pindex = static_cast<NGT::Index*>(index);
-  int32_t dim = pindex->getObjectSpace().getDimension();
+  int32_t dim = pindex->getDimension();
 
   bool status = true;
   uint8_t *objptr = obj;
@@ -1073,7 +992,7 @@ bool ngt_batch_append_index_as_float16(NGTIndex index, NGTFloat16 *obj, uint32_t
 
 bool ngt_batch_insert_index_as_float16(NGTIndex index, NGTFloat16 *obj, uint32_t data_count, uint32_t *ids, NGTError error) {
   NGT::Index* pindex = static_cast<NGT::Index*>(index);
-  int32_t dim = pindex->getObjectSpace().getDimension();
+  int32_t dim = pindex->getDimension();
 
   bool status = true;
   NGT::float16 *objptr = static_cast<NGT::float16*>(obj);

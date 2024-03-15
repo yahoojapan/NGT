@@ -66,6 +66,7 @@ namespace NGT {
       numOfOutgoingEdges = 10;
       numOfIncomingEdges = 120;
       minNumOfEdges = 0;
+      maxNumOfEdges = std::numeric_limits<int64_t>::max();
       numOfQueries = 100;
       numOfResults = 20;
       baseAccuracyRange = std::pair<float, float>(0.30, 0.50);
@@ -77,6 +78,8 @@ namespace NGT {
       searchParameterOptimization = true;
       prefetchParameterOptimization = true;
       accuracyTableGeneration = true;
+      shortcutReductionWithLessMemory = false;
+      numOfThreads = 0;
     }
 
     void adjustSearchCoefficients(const std::string indexPath){
@@ -102,7 +105,7 @@ namespace NGT {
       graph.saveIndex(indexPath);
     }
 
-    static double measureQueryTime(NGT::Index &index, size_t start) {
+    static std::pair<double, float> measureQueryTime(NGT::Index &index, size_t start, float epsilon) {
       NGT::ObjectSpace &objectSpace = index.getObjectSpace();
       NGT::ObjectRepository &objectRepository = objectSpace.getRepository();
       size_t nQueries = 200;
@@ -124,7 +127,31 @@ namespace NGT {
       }
       if (nQueries > ids.size()) {
 	std::cerr << "# of Queries is not enough." << std::endl;
-	return DBL_MAX;
+	return std::pair<double, float>(DBL_MAX, 0.1);
+      }
+      if (epsilon < 0.0) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	NGT::Object *obj = objectSpace.allocateObject(*objectRepository.get(ids[0]));
+	NGT::SearchContainer searchContainer(*obj);
+#else
+	NGT::SearchContainer searchContainer(*objectRepository.get(ids[0]));
+#endif
+	for (size_t i = 0; i < 100; i++, epsilon /= 2.0) {
+	  Timer timer;
+	  NGT::ObjectDistances objects;
+	  searchContainer.setResults(&objects);
+	  searchContainer.setSize(10);
+	  searchContainer.setEpsilon(epsilon);
+	  timer.start();
+	  index.search(searchContainer);
+	  timer.stop();
+	  std::cerr << timer << std::endl;
+	  std::cerr << timer.ntime << std::endl;
+	  std::cerr << epsilon << std::endl;
+	  if (timer.ntime < 1000000.0) {
+	    break;
+	  }
+	}
       }
 
       NGT::Timer timer;
@@ -139,7 +166,7 @@ namespace NGT {
 	NGT::ObjectDistances objects;
 	searchContainer.setResults(&objects);
 	searchContainer.setSize(10);
-	searchContainer.setEpsilon(0.1);
+	searchContainer.setEpsilon(epsilon);
 	timer.restart();
 	index.search(searchContainer);
 	timer.stop();
@@ -147,11 +174,11 @@ namespace NGT {
 	objectSpace.deleteObject(obj);
 #endif
       }
-      return timer.time * 1000.0;
+      return std::pair<double, float>(timer.time * 1000.0, epsilon);
     }
 
     static std::pair<size_t, double> searchMinimumQueryTime(NGT::Index &index, size_t prefetchOffset,
-							    int maxPrefetchSize, size_t seedID) {
+							    int maxPrefetchSize, size_t seedID, float epsilon) {
       NGT::ObjectSpace &objectSpace = index.getObjectSpace();
       int step = 256;
       int prevPrefetchSize = 64;
@@ -162,11 +189,11 @@ namespace NGT {
         for (int prefetchSize = prevPrefetchSize - step < 64 ? 64 : prevPrefetchSize - step; prefetchSize <= maxPrefetchSize; prefetchSize += step) {
           objectSpace.setPrefetchOffset(prefetchOffset);
           objectSpace.setPrefetchSize(prefetchSize);
-          double time = measureQueryTime(index, seedID);
-          if (prevTime < time) {
+          auto time = measureQueryTime(index, seedID, epsilon);
+          if (prevTime < time.first) {
             break;
           }
-          prevTime = time;
+          prevTime = time.first;
           prevPrefetchSize = prefetchSize;
         }
         if (minTime > prevTime) {
@@ -180,9 +207,11 @@ namespace NGT {
     static std::pair<size_t, size_t> adjustPrefetchParameters(NGT::Index &index) {
 
       bool gridSearch = false;
+      float epsilon = -1.0;
       {
-	double time = measureQueryTime(index, 1);
-	if (time < 500.0) {
+	auto time = measureQueryTime(index, 1, epsilon);
+	epsilon = time.second;
+	if (time.first < 500.0) {
 	  gridSearch = true;
 	}
       }
@@ -199,7 +228,7 @@ namespace NGT {
 	if (gridSearch) {
 	  double minTime = DBL_MAX;
 	  for (size_t po = 1; po <= 10; po++) {
-	    auto min = searchMinimumQueryTime(index, po, maxSize, trial + 1);
+	    auto min = searchMinimumQueryTime(index, po, maxSize, trial + 1, epsilon);
 	    if (minTime > min.second) {
 	      minTime = min.second;
 	      minps = min.first;
@@ -209,7 +238,7 @@ namespace NGT {
 	} else {
 	  double prevTime = DBL_MAX;
 	  for (size_t po = 1; po <= 10; po++) {
-	    auto min = searchMinimumQueryTime(index, po, maxSize, trial + 1);
+	    auto min = searchMinimumQueryTime(index, po, maxSize, trial + 1, epsilon);
 	    if (prevTime < min.second) {
 	      break;
 	    }
@@ -249,7 +278,22 @@ namespace NGT {
 
       {
 	NGT::StdOstreamRedirector redirector(logDisabled);
-	NGT::GraphIndex graphIndex(outIndexPath, false);
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	auto *graphIndex = new NGT::GraphIndex(outIndexPath, false);
+#else
+	auto *graphIndex = new NGT::GraphIndex(outIndexPath, false, NGT::Index::OpenTypeObjectDisabled);
+#endif
+	std::cerr << "GraphOptimizer::execute:  vm size=" << NGT::Common::getProcessVmSizeStr()
+		  << ":" << NGT::Common::getProcessVmPeakStr() << std::endl;
+	std::cerr << " delete all of objects" << std::endl;
+	try {
+	  graphIndex->destructObjectSpace();
+	} catch (NGT::Exception &err) {
+	  delete graphIndex;
+	  throw(err);
+	}
+	std::cerr << " vm size=" << NGT::Common::getProcessVmSizeStr()
+		  << ":" << NGT::Common::getProcessVmPeakStr() << std::endl;
 	if (numOfOutgoingEdges > 0 || numOfIncomingEdges > 0) {
 	  if (!logDisabled) {
 	    std::cerr << "GraphOptimizer: adjusting outgoing and incoming edges..." << std::endl;
@@ -261,18 +305,19 @@ namespace NGT {
 	  try {
 	    std::cerr << "Optimizer::execute: Extract the graph data." << std::endl;
 	    // extract only edges from the index to reduce the memory usage.
-	    NGT::GraphReconstructor::extractGraph(graph, graphIndex);
-	    NeighborhoodGraph::Property &prop = graphIndex.getGraphProperty();
-	    if (prop.graphType != NGT::NeighborhoodGraph::GraphTypeANNG) {
+	    NGT::GraphReconstructor::extractGraph(graph, *graphIndex);
+	    NeighborhoodGraph::Property &prop = graphIndex->getGraphProperty();
+	    if (prop.graphType == NGT::NeighborhoodGraph::GraphTypeONNG) {
 	      NGT::GraphReconstructor::convertToANNG(graph);
 	    }
-	    NGT::GraphReconstructor::reconstructGraph(graph, graphIndex, numOfOutgoingEdges, numOfIncomingEdges);
+	    NGT::GraphReconstructor::reconstructGraph(graph, *graphIndex, numOfOutgoingEdges, numOfIncomingEdges, maxNumOfEdges);
 	    timer.stop();
 	    std::cerr << "Optimizer::execute: Graph reconstruction time=" << timer.time << " (sec) " << std::endl;
-	    graphIndex.saveGraph(outIndexPath);
+	    graphIndex->saveGraph(outIndexPath);
 	    prop.graphType = NGT::NeighborhoodGraph::GraphTypeONNG;
-	    graphIndex.saveProperty(outIndexPath);
+	    graphIndex->saveProperty(outIndexPath);
 	  } catch (NGT::Exception &err) {
+	    delete graphIndex;
 	    redirector.end();
 	    throw(err);
 	  }
@@ -285,15 +330,23 @@ namespace NGT {
 	  try {
 	    NGT::Timer timer;
 	    timer.start();
-	    NGT::GraphReconstructor::adjustPathsEffectively(graphIndex, minNumOfEdges);
+	    if (shortcutReductionWithLessMemory) {
+	      NGT::GraphReconstructor::removeShortcutEdges(*graphIndex, outIndexPath, 
+							   shortcutReductionRange,
+							   numOfThreads, minNumOfEdges);
+	    } else {
+	      NGT::GraphReconstructor::adjustPathsEffectively(*graphIndex, minNumOfEdges);
+	    }
 	    timer.stop();
 	    std::cerr << "Optimizer::execute: Path adjustment time=" << timer.time << " (sec) " << std::endl;
-	    graphIndex.saveGraph(outIndexPath);
 	  } catch (NGT::Exception &err) {
+	    delete graphIndex;
 	    redirector.end();
 	    throw(err);
 	  }
 	}
+	graphIndex->saveGraph(outIndexPath);
+	delete graphIndex;
 	redirector.end();
       }
 
@@ -635,9 +688,10 @@ namespace NGT {
       accuracyTableGeneration = accuracyTable;
     }
 
-    size_t numOfOutgoingEdges;
-    size_t numOfIncomingEdges;
-    size_t minNumOfEdges;
+    int64_t numOfOutgoingEdges;
+    int64_t numOfIncomingEdges;
+    int64_t minNumOfEdges;
+    int64_t maxNumOfEdges;
     std::pair<float, float> baseAccuracyRange;
     std::pair<float, float> rateAccuracyRange;
     size_t numOfQueries;
@@ -649,6 +703,9 @@ namespace NGT {
     bool searchParameterOptimization;
     bool prefetchParameterOptimization;
     bool accuracyTableGeneration;
+    bool shortcutReductionWithLessMemory;
+    float shortcutReductionRange;
+    size_t numOfThreads;
   };
 
 }; // NGT

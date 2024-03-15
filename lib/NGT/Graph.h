@@ -22,8 +22,6 @@
 #include	"NGT/Common.h"
 #include	"NGT/ObjectSpaceRepository.h"
 
-
-
 #include	"NGT/HashBasedBooleanSet.h"
 
 #ifndef NGT_GRAPH_CHECK_VECTOR
@@ -70,13 +68,21 @@ namespace NGT {
 #else
     typedef Repository<GRAPH_NODE>	VECTOR;
 
-    GraphRepository() {
-      prevsize = new vector<unsigned short>;
+    GraphRepository():prevsize(0) {
+      initialize();
     }
     virtual ~GraphRepository() {
+      destruct();
+    }
+    void initialize() {
+      destruct();
+      prevsize = new vector<unsigned short>;
+    }
+    void destruct() {
       deleteAll();
       if (prevsize != 0) {
 	delete prevsize;
+	prevsize = 0;
       }
     }
 #endif
@@ -183,16 +189,16 @@ namespace NGT {
     };
 
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
-    class ReadOnlyGraphNode : public std::vector<std::pair<uint64_t, PersistentObject*>> {
-      typedef std::vector<std::pair<uint64_t, PersistentObject*>> PARENT;
+    class ReadOnlyGraphNode : public std::vector<std::pair<uint32_t, PersistentObject*>> {
+      typedef std::vector<std::pair<uint32_t, PersistentObject*>> PARENT;
     public:
       ReadOnlyGraphNode():reservedSize(0), usedSize(0) {}
       void reserve(size_t s) {
-	reservedSize = ((s & 7) == 0) ? s : (s & 0xFFFFFFFFFFFFFFF8) + 8;
-	PARENT::resize(reservedSize);
-	for (size_t i = s; i < reservedSize; i++) {
+	PARENT::resize(s);
+	for (size_t i = reservedSize; i < s; i++) {
 	  (*this)[i].first = 0;
 	}
+	reservedSize = s;
       }
       void push_back(std::pair<uint32_t, PersistentObject*> node) {
 	(*this)[usedSize] = node;
@@ -273,7 +279,9 @@ namespace NGT {
 	GraphTypeBKNNG	= 3,
 	GraphTypeONNG	= 4,
 	GraphTypeIANNG	= 5,	// Improved ANNG
-	GraphTypeDNNG	= 6
+	GraphTypeDNNG	= 6,
+	GraphTypeRANNG	= 7,
+	GraphTypeRIANNG	= 8
       };
 
       enum SeedType {
@@ -502,6 +510,8 @@ namespace NGT {
 	  case NeighborhoodGraph::GraphTypeBKNNG: p.set("GraphType", "BKNNG"); break;
 	  case NeighborhoodGraph::GraphTypeONNG: p.set("GraphType", "ONNG"); break;
 	  case NeighborhoodGraph::GraphTypeIANNG: p.set("GraphType", "IANNG"); break;
+	  case NeighborhoodGraph::GraphTypeRANNG: p.set("GraphType", "RANNG"); break;
+	  case NeighborhoodGraph::GraphTypeRIANNG: p.set("GraphType", "RIANNG"); break;
 	  default: std::cerr << "Graph::exportProperty: Fatal error! Invalid Graph Type. " << graphType << std::endl; abort();
 	  }
 	  switch (seedType) {
@@ -536,6 +546,8 @@ namespace NGT {
 	    else if (it->second == "BKNNG")     graphType = NeighborhoodGraph::GraphTypeBKNNG;
 	    else if (it->second == "ONNG")      graphType = NeighborhoodGraph::GraphTypeONNG;
 	    else if (it->second == "IANNG")	graphType = NeighborhoodGraph::GraphTypeIANNG;
+	    else if (it->second == "RANNG")	graphType = NeighborhoodGraph::GraphTypeRANNG;
+	    else if (it->second == "RIANNG")	graphType = NeighborhoodGraph::GraphTypeRIANNG;
 	    else { std::cerr << "Graph::importProperty: Fatal error! Invalid Graph Type. " << it->second << std::endl; abort(); }
 	  }
 	  it = p.find("SeedType");
@@ -599,9 +611,11 @@ namespace NGT {
       void insertNode(ObjectID id,  ObjectDistances &objects) {
 	switch (property.graphType) {
 	case GraphTypeANNG:
+	case GraphTypeRANNG:
 	  insertANNGNode(id, objects);
 	  break;
 	case GraphTypeIANNG:
+	case GraphTypeRIANNG:
 	  insertIANNGNode(id, objects);
 	  break;
 	case GraphTypeONNG:
@@ -690,9 +704,89 @@ namespace NGT {
 	repository.insert(id, results);
 	for (ObjectDistances::iterator ri = results.begin(); ri != results.end(); ri++) {
 	  assert(id != (*ri).id);
-	  addEdgeDeletingExcessEdges((*ri).id, id, (*ri).distance);
+	  size_t nOfEdges = std::max(property.incomingEdge, property.outgoingEdge);
+	  nOfEdges = nOfEdges != 0 ? nOfEdges : property.edgeSizeForCreation;
+	  addEdgeWithDeletion((*ri).id, id, (*ri).distance, nOfEdges);
 	}
 	return;
+      }
+
+      void deleteShortcutEdges(ObjectDistances &srcNode) {
+	size_t removeCount = 0;
+	std::vector<bool> removedEdge(srcNode.size(), false);
+	for (uint32_t rank = 1; rank < srcNode.size(); rank++) {
+	  auto dstNodeID = srcNode[rank].id;
+	  auto dstNodeDistance = srcNode[rank].distance;
+#ifdef NGT_SHORTCUT_REDUCTION_WITH_ANGLE
+	  auto dstNodeDistance2 = dstNodeDistance * dstNodeDistance;
+#endif
+	  bool found = false;
+	  for (size_t sni = 0; sni < srcNode.size() && sni < rank; sni++) {
+	    if (removedEdge[sni]) continue;
+	    auto pathNodeID = srcNode[sni].id;
+#ifdef NGT_SHORTCUT_REDUCTION_WITH_ANGLE
+	    auto srcNodeDistance2 = srcNode[sni].distance * srcNode[sni].distance;
+#else
+	    if (srcNode[sni].distance >= dstNodeDistance) continue;
+#endif
+	    NGT::GraphNode &pathNode = *getNode(pathNodeID);
+	    for (size_t pni = 0; pni < pathNode.size(); pni++) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	      auto nodeID = pathNode.at(pni, repository.allocator).id;
+#else
+	      auto nodeID = pathNode[pni].id;
+#endif
+	      if (nodeID != dstNodeID) continue;
+#ifdef NGT_SHORTCUT_REDUCTION_WITH_ANGLE
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	      auto pathNodeDistance2 = pathNode.at(pni, outGraph.repository.allocator).distance *
+		pathNode.at(pni, repository.allocator).distance;
+#else
+	      auto pathNodeDistance2 = pathNode[pni].distance * pathNode[pni].distance;
+#endif
+	      auto v1 = srcNodeDistance2 + pathNodeDistance2 - dstNodeDistance2;
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	      auto v2 = 2.0 * srcNode.at(sni, outGraph.repository.allocator).distance *
+		pathNode.at(pni, repository.allocator).distance;
+#else
+	      auto v2 = 2.0 * srcNode[sni].distance * pathNode[pni].distance;
+#endif
+	      if (cosAlpha >= range) {
+		break;
+	      }
+#else
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	      if (pathNode.at(pni, repository.allocator).distance >= dstNodeDistance) break;
+#else
+	      if (pathNode[pni].distance >= dstNodeDistance) break;
+#endif
+#ifdef NGT_SHORTCUT_REDUCTION_WITH_ADDITIONAL_CONDITION
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	      if (srcNode[sni].allocator).distance + pathNode.at(pni, repository.allocator).distance >= dstNodeDistance * range) break;
+#else
+	      if (srcNode[sni].distance + pathNode[pni].distance >= dstNodeDistance * range) break;
+#endif
+#endif
+#endif
+	      found = true;
+	      removeCount++;
+	      break;
+	    }
+	    if (found) {
+	      removedEdge[rank] = true;
+	    }
+	  }
+	}
+	{
+	  size_t idx = 0;
+	  for (auto e = srcNode.begin(); e != srcNode.end(); idx++) {
+	    if (removedEdge[idx]) {
+	      e = srcNode.erase(e);
+	    } else {
+	      ++e;
+	    }
+	  }
+	}
       }
 
       void insertONNGNode(ObjectID id, ObjectDistances &results) {
@@ -875,7 +969,9 @@ namespace NGT {
       ObjectRepository &getObjectRepository() { return objectSpace->getRepository(); }
 
       ObjectSpace &getObjectSpace() { return *objectSpace; }
-
+#ifdef NGT_REFINEMENT
+      ObjectSpace &getRefinementObjectSpace() { return *refinementObjectSpace; }
+#endif
       void deleteInMemory() {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
 	assert(0);
@@ -952,52 +1048,39 @@ namespace NGT {
 	return false;
       }
 
-      void addEdgeDeletingExcessEdges(ObjectID target, ObjectID addID, Distance addDistance, bool identityCheck = true) {
+      void addEdgeWithDeletion(ObjectID target, ObjectID addID, Distance addDistance, size_t kEdge, bool identityCheck = true) {
 	GraphNode &node = *getNode(target);
-	size_t kEdge = property.edgeSizeForCreation - 1;
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-	if (node.size() > kEdge && node.at(kEdge, repository.allocator).distance >= addDistance) {
-	  GraphNode &linkedNode = *getNode(node.at(kEdge, repository.allocator).id);
-	  ObjectDistance linkedNodeEdge(target, node.at(kEdge, repository.allocator).distance);
-	  if ((linkedNode.size() > kEdge) && node.at(kEdge, repository.allocator).distance >=
-	    linkedNode.at(kEdge, repository.allocator).distance) {
+	try {
+	  while (node.size() >= kEdge && node.back(repository.allocator).distance > addDistance) {
+	    removeEdge(node, node.at(kEdge - 1, repository.allocator));
+	  }
+	} catch (Exception &exp) {
+	  std::stringstream msg;
+	  msg << "addEdge: Cannot remove. (b) " << target << "," << addID << "," << node.at(kEdge - 1, repository.allocator).id;
+	  msg << ":" << exp.what();
+	  NGTThrowException(msg.str());
+	}
 #else
-	if (node.size() > kEdge && node[kEdge].distance >= addDistance) {
-	  GraphNode &linkedNode = *getNode(node[kEdge].id);
-	  ObjectDistance linkedNodeEdge(target, node[kEdge].distance);
-	  if ((linkedNode.size() > kEdge) && node[kEdge].distance >= linkedNode[kEdge].distance) {
+	try {
+	  while (node.size() >= kEdge && node.back().distance > addDistance) {
+	    removeEdge(node, node[kEdge - 1]);
+	  }
+	} catch (Exception &exp) {
+	  std::stringstream msg;
+	  msg << "addEdge: Cannot remove. (b) " << target << "," << addID << "," << node[kEdge - 1].distance;
+	  msg << ":" << exp.what();
+	  NGTThrowException(msg.str());
+	}
 #endif
-	    try {
-#ifdef NGT_SHARED_MEMORY_ALLOCATOR
-	      removeEdge(node, node.at(kEdge, repository.allocator));
-#else
-	      removeEdge(node, node[kEdge]);
-#endif
-	    } catch (Exception &exp) {
-	      std::stringstream msg;
-#ifdef NGT_SHARED_MEMORY_ALLOCATOR
-	      msg << "addEdge: Cannot remove. (a) " << target << "," << addID << "," << node.at(kEdge, repository.allocator).id << "," << node.at(kEdge, repository.allocator).distance;
-#else
-	      msg << "addEdge: Cannot remove. (a) " << target << "," << addID << "," << node[kEdge].id << "," << node[kEdge].distance;
-#endif
-	      msg << ":" << exp.what();
-	      NGTThrowException(msg.str());
-	    }
-	    try {
-	      removeEdge(linkedNode, linkedNodeEdge);
-	    } catch (Exception &exp) {
-	      std::stringstream msg;
-#ifdef NGT_SHARED_MEMORY_ALLOCATOR
-	      msg << "addEdge: Cannot remove. (b) " << target << "," << addID << "," << node.at(kEdge, repository.allocator).id << "," << node.at(kEdge, repository.allocator).distance;
-#else
-	      msg << "addEdge: Cannot remove. (b) " << target << "," << addID << "," << node[kEdge].id << "," << node[kEdge].distance;
-#endif
-	      msg << ":" << exp.what();
-	      NGTThrowException(msg.str());
-	    }
+#ifndef NGT_SHARED_MEMORY_ALLOCATOR
+	if (node.size() < kEdge) {
+	  addEdge(node, addID, addDistance, identityCheck);
+	  if (node.capacity() > kEdge) {
+	    node.shrink_to_fit();
 	  }
 	}
-	addEdge(node, addID, addDistance, identityCheck);
+#endif
       }
 
 
@@ -1012,7 +1095,9 @@ namespace NGT {
 
       GraphRepository	repository;
       ObjectSpace	*objectSpace;
-
+#ifdef NGT_REFINEMENT
+      ObjectSpace	*refinementObjectSpace;
+#endif
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
       SearchGraphRepository searchRepository;
 #endif

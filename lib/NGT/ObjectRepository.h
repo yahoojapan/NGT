@@ -32,7 +32,8 @@ namespace NGT {
   public:
     typedef Repository<Object>	Parent;
 #endif
-    ObjectRepository(size_t dim, const std::type_info &ot):dimension(dim), type(ot), sparse(false) { }
+    ObjectRepository(size_t dim, const std::type_info &ot):dimension(dim), type(ot), 
+      sparse(false), innerProduct(false) {}
 
     void initialize() {
       deleteAll();
@@ -146,7 +147,9 @@ namespace NGT {
 	  }
 	  push_back(obj);
 	} catch (Exception &err) {
-	  std::cerr << "ObjectSpace::readText: Warning! Invalid line. [" << line << "] Skip the line " << lineNo << " and continue." << std::endl;
+	  std::cerr << "ObjectSpace::readText: Warning! Invalid line. " << err.what() 
+		    << " [" << line << "] Skip the line " << lineNo 
+		    << " and continue." << std::endl;
 	}
       }
     }
@@ -164,10 +167,11 @@ namespace NGT {
       if (objectCount > 0) {
 	reserve(size() + objectCount);
       }
-      for (size_t idx = 0; idx < objectCount; idx++, data += dimension) {
-	std::vector<double> object;
-	object.reserve(dimension);
-	for (size_t dataidx = 0; dataidx < dimension; dataidx++) {
+      size_t dim = innerProduct ? dimension - 1 : dimension;
+      for (size_t idx = 0; idx < objectCount; idx++, data += dim) {
+	std::vector<float> object;
+	object.reserve(dim);
+	for (size_t dataidx = 0; dataidx < dim; dataidx++) {
 	  object.push_back(data[dataidx]);
 	}
 	try {
@@ -179,7 +183,6 @@ namespace NGT {
 	    obj = allocatePersistentObject(object);
 	  }
 	  push_back(obj);
-
 	} catch (Exception &err) {
 	  std::cerr << "ObjectSpace::readText: Warning! Invalid data. Skip the data no. " << idx << " and continue." << std::endl;
 	}
@@ -204,14 +207,15 @@ namespace NGT {
       object.resize(dimension);
       std::vector<std::string> tokens;
       NGT::Common::tokenize(textLine, tokens, sep);
-      if (dimension > tokens.size()) {
+      if ((innerProduct && (dimension - 1 > tokens.size())) || 
+	  ((!innerProduct) && dimension > tokens.size())) {
 	std::stringstream msg;
 	msg << "ObjectSpace::allocate: too few dimension. " << tokens.size() << ":" << dimension << ". "
 	    << textLine;
 	NGTThrowException(msg);
       }
-      size_t idx;
-      for (idx = 0; idx < dimension; idx++) {
+      size_t size = innerProduct ? dimension - 1 : dimension;
+      for (size_t idx = 0; idx < size; idx++) {
 	if (tokens[idx].size() == 0) {
 	  std::stringstream msg;
 	  msg << "ObjectSpace::allocate: an empty value string. " << idx << ":" << tokens.size() << ":"
@@ -228,21 +232,7 @@ namespace NGT {
     }
 
     template <typename T>
-      Object *allocateObject(T *o, size_t size) {
-      size_t osize = paddedByteSize;
-      if (sparse) {
-	size_t vsize = size * (type == typeid(float) ? 4 : 1);
-	osize = osize < vsize ? vsize : osize;
-      } else {
-	if (dimension != size) {
-	  std::stringstream msg;
-	  msg << "ObjectSpace::allocateObject: Fatal error! The specified dimension is invalid. The indexed objects="
-	      << dimension << " The specified object=" << size;
-	  NGTThrowException(msg);
-	}
-      }
-      Object *po = new Object(osize);
-      void *object = static_cast<void*>(&(*po)[0]);
+      void setObject(void *object, T *o, size_t size) {
       if (type == typeid(uint8_t)) {
 	uint8_t *obj = static_cast<uint8_t*>(object);
 	for (size_t i = 0; i < size; i++) {
@@ -260,10 +250,44 @@ namespace NGT {
 	  obj[i] = static_cast<float16>(o[i]);
 	}
 #endif
+#ifdef NGT_BFLOAT
+      } else if (type == typeid(bfloat16)) {
+	bfloat16 *obj = static_cast<bfloat16*>(object);
+	for (size_t i = 0; i < size; i++) {
+	  obj[i] = static_cast<bfloat16>(o[i]);
+	}
+#endif
       } else {
 	std::cerr << "ObjectSpace::allocateObject: Fatal error: unsupported type!" << std::endl;
 	abort();
       }
+      return;
+    }
+
+    template <typename T>
+      void setObject(NGT::Object &obj, T *o, size_t size) {
+      void *object = obj.getPointer();
+      setObject(object, o, size);
+    }
+
+    template <typename T>
+      Object *allocateObject(T *o, size_t size) {
+      size_t osize = paddedByteSize;
+      if (sparse) {
+	size_t vsize = size * (type == typeid(float) ? 4 : 1);
+	osize = osize < vsize ? vsize : osize;
+      } else {
+	if (size != 0 && 
+	    ((innerProduct && dimension != size && (dimension - 1) != size) ||
+	     (!innerProduct && dimension != size))) {
+	  std::stringstream msg;
+	  msg << "ObjectSpace::allocateObject: Fatal error! The specified dimension is invalid. The indexed objects="
+	      << dimension << " The specified object=" << size;
+	  NGTThrowException(msg);
+	}
+      }
+      Object *po = new Object(osize);
+      setObject(*po, o, size);
       return po;
     }
 
@@ -271,6 +295,24 @@ namespace NGT {
       Object *allocateObject(const std::vector<T> &o) {
       return allocateObject(o.data(), o.size());
     }
+
+    template <typename T>
+      void setObject(NGT::Object &o, const std::vector<T> &v) {
+      setObject(o, v.data(), v.size());
+    }
+
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+    template <typename T>
+      void setObject(NGT::PersistentObject &obj, T *o, size_t size, SharedMemoryAllocator &allocator) {
+      void *object = obj.getPointer(allocator);   
+      setObject(object, o, size);
+    }
+
+    template <typename T>
+      void setObject(NGT::PersistentObject &o, const std::vector<T> &v, SharedMemoryAllocator &allocator) {
+      setObject(o, v.data(), v.size(), allocator);
+    }
+#endif
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
     PersistentObject *allocatePersistentObject(Object &o) {
@@ -299,7 +341,9 @@ namespace NGT {
       PersistentObject *allocatePersistentObject(T *o, size_t size) {
       SharedMemoryAllocator &objectAllocator = getAllocator();
       PersistentObject *po = new (objectAllocator) PersistentObject(objectAllocator, paddedByteSize);
-      if (size != 0 && dimension != size) {
+      if (size != 0 && 
+	  ((innerProduct && dimension != size && (dimension - 1) != size) ||
+	   (!innerProduct && dimension != size))) {
 	std::stringstream msg;
 	msg << "ObjectSpace::allocatePersistentObject: Fatal error! The dimensionality is invalid. The specified dimensionality="
 	    << (sparse ? dimension - 1 : dimension) << ". The specified object=" << (sparse ? size - 1 : size) << ".";
@@ -338,7 +382,9 @@ namespace NGT {
 #else
     template <typename T>
       PersistentObject *allocatePersistentObject(T *o, size_t size) {
-      if (size != 0 && dimension != size) {
+      if (size != 0 && 
+	  ((innerProduct && dimension != size && (dimension - 1) != size) ||
+	   (!innerProduct && dimension != size))) {
 	std::stringstream msg;
 	msg << "ObjectSpace::allocatePersistentObject: Fatal error! The dimensionality is invalid. The specified dimensionality="
 	    << (sparse ? dimension - 1 : dimension) << ". The specified object=" << (sparse ? size - 1 : size) << ".";
@@ -398,6 +444,7 @@ namespace NGT {
     void setLength(size_t l) { byteSize = l; }
     void setPaddedLength(size_t l) { paddedByteSize = l; }
     void setSparse() { sparse = true; }
+    void setInnerProduct() { innerProduct = true; }
     size_t getByteSize() { return byteSize; }
     size_t insert(PersistentObject *obj) { return Parent::insert(obj); }
     const size_t dimension;
@@ -406,6 +453,7 @@ namespace NGT {
     size_t byteSize;		// the length of all of elements.
     size_t paddedByteSize;
     bool sparse;		// sparse data format
+    bool innerProduct;
   };
 
 } // namespace NGT
