@@ -73,7 +73,8 @@ using namespace std;
       NGTThrowException(msg);
     }
 
-    if (property.graphType == NGT::Property::GraphType::GraphTypeONNG ||
+    if (property.graphType == NGT::Property::GraphType::GraphTypeANNG ||
+	property.graphType == NGT::Property::GraphType::GraphTypeONNG ||
 	property.graphType == NGT::Property::GraphType::GraphTypeIANNG ||
 	property.graphType == NGT::Property::GraphType::GraphTypeRANNG ||
 	property.graphType == NGT::Property::GraphType::GraphTypeRIANNG) {

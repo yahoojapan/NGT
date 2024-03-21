@@ -92,6 +92,10 @@ if(${UNIX})
         endif()
     endif()
 
+    if(${NGT_BFLOAT_DISABLED})
+        message(STATUS "bfloat is disabled.")
+    endif()
+
     add_subdirectory("${PROJECT_SOURCE_DIR}/lib")
     add_subdirectory("${PROJECT_SOURCE_DIR}/bin")
     add_subdirectory("${PROJECT_SOURCE_DIR}/samples")

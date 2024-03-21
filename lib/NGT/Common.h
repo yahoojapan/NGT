@@ -497,7 +497,7 @@ namespace NGT {
     static bool is(SimdType type) {
 #ifndef __BUILTIN_CPU_SUPPORTS__
       return true;
-#endif
+#else
       __builtin_cpu_init();
       switch (type) {
 #if defined(__AVX__)
@@ -551,6 +551,7 @@ namespace NGT {
       default: break;
       }
       return false;
+#endif
     }
     static bool isAVX512() { return is(SimdTypeAVX512F); };
     static bool isAVX2() { return is(SimdTypeAVX2); };

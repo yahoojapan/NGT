@@ -702,10 +702,10 @@ namespace NGT {
 
       void insertIANNGNode(ObjectID id, ObjectDistances &results) {
 	repository.insert(id, results);
+	size_t nOfEdges = std::max(property.incomingEdge, property.outgoingEdge);
+	nOfEdges = nOfEdges != 0 ? nOfEdges : property.edgeSizeForCreation;
 	for (ObjectDistances::iterator ri = results.begin(); ri != results.end(); ri++) {
 	  assert(id != (*ri).id);
-	  size_t nOfEdges = std::max(property.incomingEdge, property.outgoingEdge);
-	  nOfEdges = nOfEdges != 0 ? nOfEdges : property.edgeSizeForCreation;
 	  addEdgeWithDeletion((*ri).id, id, (*ri).distance, nOfEdges);
 	}
 	return;
@@ -1053,7 +1053,7 @@ namespace NGT {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
 	try {
 	  while (node.size() >= kEdge && node.back(repository.allocator).distance > addDistance) {
-	    removeEdge(node, node.at(kEdge - 1, repository.allocator));
+	    removeEdge(node, node.back(repository.allocator));
 	  }
 	} catch (Exception &exp) {
 	  std::stringstream msg;
@@ -1064,7 +1064,7 @@ namespace NGT {
 #else
 	try {
 	  while (node.size() >= kEdge && node.back().distance > addDistance) {
-	    removeEdge(node, node[kEdge - 1]);
+	    removeEdge(node, node.back());
 	  }
 	} catch (Exception &exp) {
 	  std::stringstream msg;

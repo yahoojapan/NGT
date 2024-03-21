@@ -294,6 +294,10 @@ namespace NGT {
 	}
 	std::cerr << " vm size=" << NGT::Common::getProcessVmSizeStr()
 		  << ":" << NGT::Common::getProcessVmPeakStr() << std::endl;
+	numOfOutgoingEdges = (numOfOutgoingEdges < 0 && graphIndex->NeighborhoodGraph::property.outgoingEdge >= 0) ?
+	  graphIndex->NeighborhoodGraph::property.outgoingEdge : numOfOutgoingEdges;
+	numOfIncomingEdges = (numOfIncomingEdges < 0 && graphIndex->NeighborhoodGraph::property.incomingEdge >= 0) ?
+	  graphIndex->NeighborhoodGraph::property.incomingEdge : numOfIncomingEdges;
 	if (numOfOutgoingEdges > 0 || numOfIncomingEdges > 0) {
 	  if (!logDisabled) {
 	    std::cerr << "GraphOptimizer: adjusting outgoing and incoming edges..." << std::endl;
@@ -607,12 +611,8 @@ namespace NGT {
     }
 
     void set(int outgoing, int incoming, int nofqs, int nofrs) {
-      if (outgoing >= 0) {
-	numOfOutgoingEdges = outgoing;
-      }
-      if (incoming >= 0) {
-	numOfIncomingEdges = incoming;
-      }
+      numOfOutgoingEdges = outgoing;
+      numOfIncomingEdges = incoming;
       if (nofqs > 0) {
 	numOfQueries = nofqs;
       }
