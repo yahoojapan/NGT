@@ -663,7 +663,7 @@ namespace NGT {
     }
 #endif
 
-#ifdef NGT_HALF_FLOAT
+#ifdef NGT_BFLOAT
     inline static double compareDotProduct(const bfloat16 *a, const bfloat16 *b, size_t size) {
       abort();
     }
