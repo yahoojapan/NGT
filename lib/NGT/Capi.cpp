@@ -93,7 +93,7 @@ NGTIndex ngt_create_graph_and_tree_in_memory(NGTProperty prop, NGTError error) {
   return NULL;
 #else
   try{
-    NGT::Index *index = new NGT::GraphAndTreeIndex(*(static_cast<NGT::Property*>(prop)));
+    NGT::Index *index = new NGT::Index(*(static_cast<NGT::Property*>(prop)));
     index->disableLog();
     return static_cast<NGTIndex>(index);
   }catch(std::exception &err){
