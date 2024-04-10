@@ -30,6 +30,8 @@ namespace QBG {
     void create(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
     void load(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
     void append(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
+    void insert(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
+    void remove(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
     void buildIndex(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
     void hierarchicalKmeans(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
     void search(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
@@ -39,6 +41,7 @@ namespace QBG {
     void gtRange(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
     void optimize(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
     void build(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
+    void rebuild(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
     void createQG(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
     void buildQG(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
     void appendQG(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
@@ -48,6 +51,8 @@ namespace QBG {
     void create(NGT::Args &args);
     void load(NGT::Args &args);
     void append(NGT::Args &args);
+    void insert(NGT::Args &args);
+    void remove(NGT::Args &args);
     void buildIndex(NGT::Args &args);
     void hierarchicalKmeans(NGT::Args &args);
     void search(NGT::Args &args);
@@ -57,6 +62,7 @@ namespace QBG {
     void gtRange(NGT::Args &args);
     void optimize(NGT::Args &args);
     void build(NGT::Args &args);
+    void rebuild(NGT::Args &args);
     void createQG(NGT::Args &args);
     void buildQG(NGT::Args &args);
     void appendQG(NGT::Args &args);
@@ -95,6 +101,10 @@ namespace QBG {
 	  load(args);
 	} else if (command == "append") {
 	  append(args);
+	} else if (command == "insert") {
+	  insert(args);
+	} else if (command == "remove") {
+	  remove(args);
 	} else if (command == "build-index") {
 	  buildIndex(args);
 	} else if (command == "kmeans") {
@@ -111,6 +121,8 @@ namespace QBG {
 	  optimize(args);
 	} else if (command == "build") {
 	  build(args);
+	} else if (command == "rebuild") {
+	  rebuild(args);
 	} else if (command == "create-qg") {
 	  createQG(args);
 	} else if (command == "build-qg") {
@@ -122,10 +134,10 @@ namespace QBG {
 	} else if (command == "info") {
 	  info(args);
 	} else {
-	  cerr << "Illegal command. " << command << endl;
+	  cerr << "qbg: Illegal command. " << command << endl;
 	}
       } catch(NGT::Exception &err) {
-	cerr << "qbg: Fatal error: " << err.what() << endl;
+	cerr << "qbg: Error: " << err.what() << endl;
       }
     }
 

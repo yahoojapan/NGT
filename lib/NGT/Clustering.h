@@ -445,20 +445,6 @@ namespace NGT {
 	  clusters[entry.centroidID].members.push_back(entry);
 	  soi++;
 	} else {
-#if 0
-	  double mind = DBL_MAX;
-	  size_t mincidx = -1;
-	  for (auto cit = clusters.begin(); cit != clusters.end(); ++cit) {
-	    if ((*cit).members.size() >= clusterSize) {
-	      continue;
-	    }
-	    double d = distanceL2(vectors[entry.vectorID], (*cit).centroid);
-	    if (d < mind) {
-	      mind = d;
-	      mincidx = distance(clusters.begin(), cit);
-	    }
-	  }
-#else
 	  std::vector<float> ds(clusters.size());
 #pragma omp parallel for
 	  for (size_t idx = 0; idx < clusters.size(); idx++) {
@@ -476,7 +462,6 @@ namespace NGT {
 	      mincidx = idx;
 	    }
 	  }
-#endif
 	  entry = Entry(entry.vectorID, mincidx, mind);
 	  int pt = distance(sortedObjects.rbegin(), soi);
 	  std::sort(sortedObjects.begin(), soi.base());

@@ -363,8 +363,7 @@ namespace NGT {
 	    if (tf.size() >= 2 && (size_t)NGT::Common::strtol(tf[1]) == queryNo) {
 	      size_t relevantCount = 0;
 	      size_t dataCount = 0;
-	      std::string epsilon;
-	      std::string expansion;
+	      std::string fluctuation;
 	      double queryTime = 0.0;
 	      size_t distanceCount = 0;
 	      size_t visitCount = 0;
@@ -376,9 +375,7 @@ namespace NGT {
 		  std::vector<std::string> gtf;
 		  NGT::Common::tokenize(line, gtf, "=");
 		  if (gtf.size() >= 2 && (gtf[0] == "# Epsilon" || gtf[0] == "# Factor")) {
-		    epsilon = gtf[1];
-		  } else if (gtf.size() >= 2 && gtf[0] == "# Result expansion") {
-		    expansion = gtf[1];
+		    fluctuation = gtf[1];
 		  } else if (gtf.size() >= 2 && gtf[0] == "# Query Time (msec)") {
 		    queryTime = NGT::Common::strtod(gtf[1]);
 		  } else if (gtf.size() >= 2 && gtf[0] == "# Distance Computation") {
@@ -399,15 +396,12 @@ namespace NGT {
 		    }
 		    double accuracy = (double)relevantCount / (double)resultDataSize;
 		    double key;
-		    if (expansion != "") {
-		      key = NGT::Common::strtod(expansion);
-		      keyValue = "Expansion";
-		    } else if (epsilon != "") {
-		      key = NGT::Common::strtod(epsilon);
-		      keyValue = "Factor (Epsilon)";
+		    if (fluctuation != "") {
+		      key = NGT::Common::strtod(fluctuation);
+		      keyValue = "Factor (Epsilon or a fluctuating value)";
 		    } else {
 		      std::stringstream msg;
-		      msg << "check: inner error! " << epsilon;
+		      msg << "check: inner error! " << fluctuation;
 		      std::cerr << "Cannot find epsilon.";
 		      NGTThrowException(msg);
 		    }
@@ -671,7 +665,7 @@ namespace NGT {
       size_t actualResultSize = 0;
       std::vector<MeasuredValue> accuracies = evaluate(gtStream, resultStream, type, actualResultSize);
       size_t size;
-      double distanceCount, visitCount, time;
+      double distanceCount = 0.0, visitCount = 0.0, time = 0.0;
       calculateMeanValues(accuracies, accuracyRange.first, accuracyRange.second, size, distanceCount, visitCount, time);
       if (distanceCount == 0) {
 	std::stringstream msg;

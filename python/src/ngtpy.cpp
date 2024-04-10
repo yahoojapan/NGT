@@ -30,6 +30,116 @@
 
 namespace py = pybind11;
 
+class BatchResults {
+public:
+  BatchResults() {}
+  size_t getSize() { return size; }
+  void convert() {
+    if (results.size() == 0) {
+      return;
+    }
+    resultList.clear();
+    resultList.resize(results.size());
+#pragma omp parallel for schedule(dynamic)
+    for (size_t idx = 0; idx < size; idx++) {
+      if (resultList[idx].size() != results[idx].size() && results[idx].size() != 0) {
+	resultList[idx].clear();
+	resultList[idx].resize(results[idx].size());
+	size_t rank = results[idx].size();
+	resultList[idx].resize(rank);
+	rank--;
+	while (!results[idx].empty()) {
+	  resultList[idx][rank] = results[idx].top();
+	  results[idx].pop();
+	  rank--;
+	}
+      }
+    }
+    results.clear();
+  }
+  py::object get(size_t idx) {
+    convert();
+    if (idx >= size) {
+      py::list result;
+      return result;
+    }
+    py::list result;
+    for (auto ri = resultList[idx].begin(); ri != resultList[idx].end(); ++ri) {
+      result.append(py::make_tuple((*ri).id - 1, (*ri).distance));
+    }
+    return result;
+  }
+  py::array_t<int> getIDs() {
+    convert();
+    if (size == 0 || resultList[0].size() == 0) {
+      NGTThrowException("ngtpy::BatchResults::get: empty.");
+    }
+    size_t nobjects = resultList[0].size();
+    py::array_t<uint32_t> r({size, nobjects});
+    auto wr = r.mutable_unchecked<2>();
+    for (size_t idx = 0; idx < size; idx++) {
+      if (resultList[idx].size() != nobjects) {
+	NGTThrowException("ngtpy::BatchResults::get: not knn results.");
+      }
+      for (auto ri = resultList[idx].begin(); ri != resultList[idx].end(); ++ri) {
+	wr(idx, std::distance(resultList[idx].begin(), ri)) = (*ri).id - 1;
+      }
+    }
+    return r;
+  }
+
+  py::array_t<int> getIndexedIDs() {
+    convert();
+    size_t count = 0;
+    for (size_t idx = 0; idx < size; idx++) {
+      count += resultList[idx].size();
+    }
+    py::array_t<int> results(count);
+    auto wresults = results.mutable_unchecked<1>();
+    size_t pos = 0;
+    for (size_t idx = 0; idx < size; idx++) {
+      for (auto ri = resultList[idx].begin(); ri != resultList[idx].end(); ++ri) {
+	wresults(pos++) = (*ri).id - 1;
+      }
+    }
+    return results;
+  }
+
+  py::array_t<float> getIndexedDistances() {
+    convert();
+    size_t count = 0;
+    for (size_t idx = 0; idx < size; idx++) {
+      count += resultList[idx].size();
+    }
+    py::array_t<float> results(count);
+    auto wresults = results.mutable_unchecked<1>();
+    size_t pos = 0;
+    for (size_t idx = 0; idx < size; idx++) {
+      for (auto ri = resultList[idx].begin(); ri != resultList[idx].end(); ++ri) {
+	wresults(pos++) = (*ri).distance;
+      }
+    }
+    return results;
+  }
+
+  py::array_t<uint32_t> getIndex() {
+    convert();
+    py::array_t<int> results(size + 1);
+    auto wresults = results.mutable_unchecked<1>();
+    size_t count = 0;
+    wresults(0) = 0;
+    for (size_t idx = 0; idx < size; idx++) {
+      count += resultList[idx].size();
+      wresults(idx + 1) = count;
+    }
+    return results;
+  }
+
+  std::vector<NGT::ResultPriorityQueue> results;
+  std::vector<NGT::ObjectDistances> resultList;
+  size_t size;
+};
+
 class Index : public NGT::Index {
 public:
   Index(
@@ -60,7 +170,8 @@ public:
    int edgeSizeForCreation = 10,
    int edgeSizeForSearch = 40,
    const std::string distanceType = "L2",
-   const std::string objectType = "Float"
+   const std::string objectType = "Float",
+   const std::string graphType = "ANNG"
   ) {
     NGT::Property prop;
     prop.dimension = dimension;
@@ -103,16 +214,33 @@ public:
       prop.distanceType = NGT::Property::DistanceType::DistanceTypeNormalizedCosine;
     } else if (distanceType == "Normalized L2") {
       prop.distanceType = NGT::Property::DistanceType::DistanceTypeNormalizedL2;
+    } else if (distanceType == "Inner Product") {
+      prop.distanceType = NGT::Property::DistanceType::DistanceTypeInnerProduct;
     } else {
       std::stringstream msg;
       msg << "ngtpy::create: invalid distance type. " << distanceType;
       NGTThrowException(msg);
     }
+
+    if (graphType == "ANNG") {
+      prop.graphType = NGT::Property::GraphType::GraphTypeANNG;
+    } else if (graphType == "IANNG") {
+      prop.graphType = NGT::Property::GraphType::GraphTypeIANNG;
+    } else if (graphType == "RANNG") {
+      prop.graphType = NGT::Property::GraphType::GraphTypeRANNG;
+    } else if (graphType == "RIANNG") {
+      prop.graphType = NGT::Property::GraphType::GraphTypeRIANNG;
+    } else {
+      std::stringstream msg;
+      msg << "ngtpy::create: invalid graph type. " << graphType;
+      NGTThrowException(msg);
+    }
+
     NGT::Index::createGraphAndTree(path, prop);
   }
 
   void batchInsert(
-   py::array_t<double> objects,
+   py::array_t<float> objects,
    size_t numThreads = 16,
    bool debug = false
   ) {
@@ -126,7 +254,7 @@ public:
 	  << ":" << static_cast<int>(py::detail::npy_api::constants::NPY_ARRAY_C_CONTIGUOUS_);
       NGTThrowException(msg);
     }
-    auto ptr = static_cast<double *>(info.ptr);
+    auto ptr = static_cast<float *>(info.ptr);
     assert(info.shape.size() == 2);
     NGT::Property prop;
     getProperty(prop);
@@ -169,18 +297,8 @@ public:
   ) {
     py::array_t<float> qobject(query);
     py::buffer_info qinfo = qobject.request();
-    NGT::Object *ngtquery = 0;
-    try {
-      ngtquery = NGT::Index::allocateObject(static_cast<float*>(qinfo.ptr), qinfo.size);
-    } catch (NGT::Exception &e) {
-      std::cerr << e.what() << std::endl;
-      if (!withDistance) {
-	return py::array_t<int>();
-      } else {
-	return py::list();
-      }
-    }
-    NGT::SearchContainer sc(*ngtquery);
+    std::vector<float> qvector(static_cast<float*>(qinfo.ptr), static_cast<float*>(qinfo.ptr) + qinfo.size);
+    NGT::SearchQuery sc(qvector);
     sc.setSize(size == 0 ? defaultNumOfSearchObjects : size);		// the number of resulting objects.
     sc.setRadius(defaultRadius);					// the radius of search.
     if (expectedAccuracy > 0.0) {
@@ -189,7 +307,9 @@ public:
       sc.setEpsilon(epsilon <= -1.0 ? defaultEpsilon : epsilon);	// set exploration coefficient.
     }
     sc.setEdgeSize(edgeSize < -2 ? defaultEdgeSize : edgeSize);		// if maxEdge is negative, the specified value in advance is used.
-
+#ifdef NGT_REFINEMENT
+    sc.setRefinementExpansion(defaultResultExpansion);		// set result expansion.
+#endif
     if (treeIndex) {
       NGT::Index::search(sc);
     } else {
@@ -198,7 +318,6 @@ public:
 
     numOfDistanceComputations += sc.distanceComputationCount;
 
-    NGT::Index::deleteObject(ngtquery);
     if (!withDistance) {
       NGT::ResultPriorityQueue &r = sc.getWorkingResult();
       py::array_t<int> ids(r.size());
@@ -292,6 +411,48 @@ public:
     return results;
   }
 
+  void batchSearch(
+    py::array_t<float> queries,
+    BatchResults &results,
+    size_t size,
+    bool withDistance = true
+  ) {
+    const py::buffer_info &qinfo = queries.request();
+    const std::vector<long int> &qshape = qinfo.shape;
+    auto nOfQueries = qshape[0];
+    size_t dimension = qshape[1];
+    auto *queryPtr = static_cast<float*>(qinfo.ptr);
+    size = size > 0 ? size : defaultNumOfSearchObjects;
+
+    results.results.clear();
+    results.resultList.clear();
+    results.results.resize(nOfQueries);
+    results.size = 0;
+
+#pragma omp parallel for schedule(dynamic)
+    for (int idx = 0; idx < nOfQueries; idx++) {
+      float *qptr = queryPtr + idx * dimension;
+      std::vector<float> qvector(static_cast<float*>(qptr), static_cast<float*>(qptr) + dimension);
+      NGT::SearchQuery sc(qvector);
+      sc.setSize(size);
+      sc.setRadius(defaultRadius);
+      sc.setExpectedAccuracy(defaultExpectedAccuracy);
+      sc.setEpsilon(defaultEpsilon);
+      sc.setEdgeSize(defaultEdgeSize);
+#ifdef NGT_REFINEMENT
+      sc.setRefinementExpansion(defaultResultExpansion);	// set refinement expansion.
+#endif
+      if (treeIndex) {
+        NGT::Index::search(sc);
+      } else {
+        NGT::Index::searchUsingOnlyGraph(sc);
+      }
+      results.results[idx] = std::move(sc.getWorkingResult());
+    }
+    results.size = results.results.size();
+    return;
+  }
+
   void remove(size_t id) {
     id = zeroNumbering ? id + 1 : id;
     NGT::Index::remove(id);
@@ -341,13 +502,15 @@ public:
    NGT::Distance radius,		// search radius.
    float epsilon,	 		// search parameter epsilon. the adequate range is from 0.0 to 0.05.
    int edgeSize,			// the number of edges for each node
-   float expectedAccuracy		// Expected accuracy
+   float expectedAccuracy,		// Expected accuracy
+   float resultExpansion		// the number of inner resultant objects
   ) {
     defaultNumOfSearchObjects = numOfSearchObjects > 0 ? numOfSearchObjects : defaultNumOfSearchObjects;
     defaultEpsilon	      = epsilon > -1.0 ? epsilon : defaultEpsilon;
     defaultRadius	      = radius >= 0.0 ? radius : defaultRadius;
     defaultEdgeSize	      = edgeSize >= -2 ? edgeSize : defaultEdgeSize;
     defaultExpectedAccuracy   = expectedAccuracy > 0.0 ? expectedAccuracy : defaultExpectedAccuracy;
+    defaultResultExpansion    = resultExpansion >= 0.0 ? resultExpansion : defaultResultExpansion;
   }
 
   size_t getNumOfDistanceComputations() { return numOfDistanceComputations; }
@@ -361,6 +524,7 @@ public:
   float		defaultRadius;
   int64_t	defaultEdgeSize;
   float		defaultExpectedAccuracy;
+  float		defaultResultExpansion;
 };
 
 class Optimizer : public NGT::GraphOptimizer {
@@ -517,115 +681,6 @@ public:
   int64_t	defaultEdgeSize;
 };
 
-
-class BatchResults {
-public:
-  BatchResults() {}
-  size_t getSize() { return size; }
-  void convert() {
-    if (results.size() == 0) {
-      return;
-    }
-    resultList.clear();
-    resultList.resize(results.size());
-    for (size_t idx = 0; idx < size; idx++) {
-      if (resultList[idx].size() != results[idx].size() && results[idx].size() != 0) {
-	resultList[idx].clear();
-	resultList[idx].resize(results[idx].size());
-	size_t rank = results[idx].size();
-	resultList[idx].resize(rank);
-	rank--;
-	while (!results[idx].empty()) {
-	  resultList[idx][rank] = results[idx].top();
-	  results[idx].pop();
-	  rank--;
-	}
-      }
-    }
-    results.clear();
-  }
-  py::object get(size_t idx) {
-    convert();
-    if (idx >= size) {
-      py::list result;
-      return result;
-    }
-    py::list result;
-    for (auto ri = resultList[idx].begin(); ri != resultList[idx].end(); ++ri) {
-      result.append(py::make_tuple((*ri).id - 1, (*ri).distance));
-    }
-    return result;
-  }
-  py::array_t<int> getIDs() {
-    convert();
-    if (size == 0 || resultList[0].size() == 0) {
-      NGTThrowException("ngtpy::BatchResults::get: empty.");
-    }
-    size_t nobjects = resultList[0].size();
-    py::array_t<uint32_t> r({size, nobjects});
-    auto wr = r.mutable_unchecked<2>();
-    for (size_t idx = 0; idx < size; idx++) {
-      if (resultList[idx].size() != nobjects) {
-	NGTThrowException("ngtpy::BatchResults::get: not knn results.");
-      }
-      for (auto ri = resultList[idx].begin(); ri != resultList[idx].end(); ++ri) {
-	wr(idx, std::distance(resultList[idx].begin(), ri)) = (*ri).id - 1;
-      }
-    }
-    return r;
-  }
-
-  py::array_t<int> getIndexedIDs() {
-    convert();
-    size_t count = 0;
-    for (size_t idx = 0; idx < size; idx++) {
-      count += resultList[idx].size();
-    }
-    py::array_t<int> results(count);
-    auto wresults = results.mutable_unchecked<1>();
-    size_t pos = 0;
-    for (size_t idx = 0; idx < size; idx++) {
-      for (auto ri = resultList[idx].begin(); ri != resultList[idx].end(); ++ri) {
-	wresults(pos++) = (*ri).id - 1;
-      }
-    }
-    return results;
-  }
-
-  py::array_t<float> getIndexedDistances() {
-    convert();
-    size_t count = 0;
-    for (size_t idx = 0; idx < size; idx++) {
-      count += resultList[idx].size();
-    }
-    py::array_t<float> results(count);
-    auto wresults = results.mutable_unchecked<1>();
-    size_t pos = 0;
-    for (size_t idx = 0; idx < size; idx++) {
-      for (auto ri = resultList[idx].begin(); ri != resultList[idx].end(); ++ri) {
-	wresults(pos++) = (*ri).distance;
-      }
-    }
-    return results;
-  }
-
-  py::array_t<uint32_t> getIndex() {
-    convert();
-    py::array_t<int> results(size + 1);
-    auto wresults = results.mutable_unchecked<1>();
-    size_t count = 0;
-    wresults(0) = 0;
-    for (size_t idx = 0; idx < size; idx++) {
-      count += resultList[idx].size();
-      wresults(idx + 1) = count;
-    }
-    return results;
-  }
-
-  std::vector<NGT::ResultPriorityQueue> results;
-  std::vector<NGT::ObjectDistances> resultList;
-  size_t size;
-};
 
 class QuantizedBlobIndex : public QBG::Index {
 public:
@@ -1004,7 +1059,8 @@ PYBIND11_MODULE(ngtpy, m) {
           py::arg("edge_size_for_creation") = 10,
           py::arg("edge_size_for_search") = 40,
           py::arg("distance_type") = "L2",
-          py::arg("object_type") = "Float");
+          py::arg("object_type") = "Float",
+	  py::arg("graph_type") = "ANNG");
 
     py::class_<Index>(m, "Index")
       .def(py::init<const std::string &, bool, bool, bool, bool>(),
@@ -1022,6 +1078,11 @@ PYBIND11_MODULE(ngtpy, m) {
            py::arg("with_distance") = true)
       .def("linear_search", &::Index::linearSearch,
            py::arg("query"),
+           py::arg("size") = 0,
+           py::arg("with_distance") = true)
+      .def("batch_search", &::Index::batchSearch,
+           py::arg("query"),
+           py::arg("results"),
            py::arg("size") = 0,
            py::arg("with_distance") = true)
       .def("get_num_of_distance_computations", &::Index::getNumOfDistanceComputations)
@@ -1055,7 +1116,8 @@ PYBIND11_MODULE(ngtpy, m) {
 	   py::arg("search_radius") = -FLT_MAX,
 	   py::arg("epsilon") = -FLT_MAX,
 	   py::arg("edge_size") = INT_MIN,
-	   py::arg("expected_accuracy") = -FLT_MAX)
+	   py::arg("expected_accuracy") = -FLT_MAX,
+           py::arg("result_expansion") = -FLT_MAX)
       .def("export_index", (void (NGT::Index::*)(const std::string&)) &NGT::Index::exportIndex,
            py::arg("path"))
       .def("import_index", (void (NGT::Index::*)(const std::string&)) &NGT::Index::importIndex,

@@ -282,8 +282,9 @@ public:
       type = "f";
       sizeOfObject = 4;
     } else {
-      std::cerr << "Fatal error!!!" << std::endl;
-      exit(1);
+      std::cerr << "no specified data type. float32 is used as data type." << std::endl;
+      type = "f";
+      sizeOfObject = 4;
     }
     stream.open(path, std::ios::in | std::ios::binary);
     if (!stream) {

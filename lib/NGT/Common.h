@@ -35,6 +35,9 @@
 
 #include	<sys/time.h>
 #include	<fcntl.h>
+#if __linux__
+#include	<sys/sysinfo.h>
+#endif
 
 #include	"NGT/defines.h"
 #include	"NGT/SharedMemoryAllocator.h"
@@ -51,6 +54,43 @@ namespace NGT {
   typedef	float		Distance;
 #ifdef NGT_HALF_FLOAT
   typedef	half_float::half	float16;
+#endif
+
+#ifdef NGT_BFLOAT
+  class bfloat16 {
+  public:
+    bfloat16(float fp32) {
+      value = fp32ToBf16(fp32);
+    }
+    explicit operator float() const { return bf16ToFp32(value); }
+    explicit operator double() const { return static_cast<double>(bf16ToFp32(value)); }
+    static uint16_t fp32ToBf16(const float fp32) {
+      union {
+        float fp;
+	uint32_t ui;
+      } b32;
+      b32.fp = fp32;
+      if ((b32.ui & 0xffff) > 0x7fff) {
+	b32.ui = (b32.ui >> 16) | 0x1;
+      } else {
+	b32.ui = b32.ui >> 16;
+      }
+      return static_cast<uint16_t>(b32.ui & 0xffff);
+    }
+
+    static float bf16ToFp32(const uint16_t bf16) {
+      union {
+        float fp;
+	uint32_t ui;
+      } b32;
+      b32.ui = bf16;
+      b32.ui <<= 16;
+      b32.ui |= 0x7fff;
+      return b32.fp;
+    }
+
+    uint16_t value;
+  };
 #endif
 
 #define	NGTThrowException(MESSAGE)			throw NGT::Exception(__FILE__, __FUNCTION__, (size_t)__LINE__, MESSAGE)
@@ -343,6 +383,13 @@ namespace NGT {
       return val;
     }
 
+#if __linux__
+    static unsigned long getTotalRam() {
+      struct sysinfo info;
+      sysinfo(&info);
+      return info.totalram;
+    }
+#endif
 
     template <typename T>
       static void extractVector(const std::string &textLine, const std::string &sep, T &object) {
@@ -351,8 +398,11 @@ namespace NGT {
       size_t idx;
       for (idx = 0; idx < tokens.size(); idx++) {
 	if (tokens[idx].size() == 0) {
+	  if (idx + 1 == tokens.size()) {
+	    break;
+	  }
 	  std::stringstream msg;
-	  msg << "Common::extractVecot: No data. " << textLine;
+	  msg << "Common::extractVector: No data. sep=(" << sep << "):" << idx << ": " << textLine;
 	  NGTThrowException(msg);
         }
 	char *e;
@@ -393,6 +443,14 @@ namespace NGT {
     static int getProcessVmSize() { return strtol(getProcessStatus("VmSize")); }
     static int getProcessVmPeak() { return strtol(getProcessStatus("VmPeak")); }
     static int getProcessVmRSS() { return strtol(getProcessStatus("VmRSS")); }
+    static int getProcessVmHWM() { return strtol(getProcessStatus("VmHWM")); }
+#if __linux__
+    static int getSystemHWM() {
+      struct sysinfo info;
+      sysinfo(&info);
+      return info.totalram / 1024;
+    }
+#endif
     static std::string sizeToString(float size) {
       char unit = 'K';
       if (size > 1024) {
@@ -411,6 +469,8 @@ namespace NGT {
     static std::string getProcessVmSizeStr() { return sizeToString(getProcessVmSize()); }
     static std::string getProcessVmPeakStr() { return sizeToString(getProcessVmPeak()); }
     static std::string getProcessVmRSSStr() { return sizeToString(getProcessVmRSS()); }
+    static std::string getProcessVmHWMStr() { return sizeToString(getProcessVmHWM()); }
+    static std::string getSystemHWMStr() { return sizeToString(getSystemHWM()); }
   };
 
   class CpuInfo {
@@ -435,6 +495,10 @@ namespace NGT {
     };
     CpuInfo() {}
     static bool is(SimdType type) {
+#ifndef __BUILTIN_CPU_SUPPORTS__
+      return true;
+#else
+      __builtin_cpu_init();
       switch (type) {
 #if defined(__AVX__)
       case SimdTypeAVX: return __builtin_cpu_supports("avx") > 0; break;
@@ -487,6 +551,7 @@ namespace NGT {
       default: break;
       }
       return false;
+#endif
     }
     static bool isAVX512() { return is(SimdTypeAVX512F); };
     static bool isAVX2() { return is(SimdTypeAVX2); };
@@ -822,6 +887,8 @@ namespace NGT {
     }
     template <class VALUE_TYPE> void set(const std::string &key, VALUE_TYPE value) {
       std::stringstream vstr;
+      auto precision = vstr.precision();
+      vstr << std::setprecision(7);
       vstr << value;
       iterator it = find(key);
       if (it == end()) {
@@ -829,6 +896,7 @@ namespace NGT {
       } else {
 	(*it).second = vstr.str();
       }
+      vstr << std::setprecision(precision);
     }
 
     std::string get(const std::string &key) {
@@ -1240,7 +1308,22 @@ namespace NGT {
   template <class TYPE>
     class DynamicLengthVector {
   public:
-    typedef TYPE *	iterator;
+    class iterator {
+    public:
+      iterator(void *ptr, uint32_t size):i(static_cast<uint8_t*>(ptr)), elementSize(size) {}
+      iterator operator+(size_t c) {
+	return iterator(i + c * elementSize, elementSize);
+      }
+      iterator operator++(int c) {
+	i += elementSize;
+	return iterator(i, elementSize);
+      }
+      bool operator<(const iterator& it) const { return i < it.i; }
+      TYPE& operator*() {return *reinterpret_cast<TYPE*>(i);}
+
+      uint8_t *i;
+      uint32_t elementSize;
+    };
 
     DynamicLengthVector(): vector(0), vectorSize(0), allocatedSize(0), elementSize(0) {}
     ~DynamicLengthVector() {}
@@ -1258,7 +1341,7 @@ namespace NGT {
     TYPE &back(SharedMemoryAllocator &allocator) { return (*this).at(vectorSize - 1, allocator); }
     bool empty() { return vectorSize == 0; }
     iterator begin(SharedMemoryAllocator &allocator) {
-      return (TYPE*)allocator.getAddr((off_t)vector);
+      return iterator(allocator.getAddr((off_t)vector), elementSize);
     }
     iterator end(SharedMemoryAllocator &allocator) {
       return begin(allocator) + vectorSize;
@@ -1275,11 +1358,11 @@ namespace NGT {
 	msg << "Vector: beyond the range. " << idx << ":" << vectorSize;
 	NGTThrowException(msg);
       }
-      return *reinterpret_cast<TYPE*>(reinterpret_cast<uint8_t*>(begin(allocator)) + idx * elementSize);
+      return *(begin(allocator) + idx);
     }
     
     void copy(TYPE &dst, const TYPE &src) {
-      memcpy(&dst, &src, elementSize);
+      memcpy(reinterpret_cast<unsigned char*>(&dst), reinterpret_cast<const unsigned char*>(&src), elementSize);
     }
 
     iterator erase(iterator b, iterator e, SharedMemoryAllocator &allocator) {
@@ -1414,7 +1497,22 @@ namespace NGT {
   template <class TYPE>
     class DynamicLengthVector {
   public:
-    typedef TYPE *	iterator;
+    class iterator {
+    public:
+      iterator(void *ptr, uint32_t size):i(static_cast<uint8_t*>(ptr)), elementSize(size) {}
+      iterator operator+(size_t c) {
+	return iterator(i + c * elementSize, elementSize);
+      }
+      iterator operator++(int c) {
+	i += elementSize;
+	return iterator(i, elementSize);
+      }
+      bool operator<(const iterator& it) const { return i < it.i; }
+      TYPE& operator*() {return *reinterpret_cast<TYPE*>(i);}
+
+      uint8_t *i;
+      uint32_t elementSize;
+    };
 
     DynamicLengthVector(): vector(0), vectorSize(0), allocatedSize(0), elementSize(0) {}
     ~DynamicLengthVector() { clear(); }
@@ -1432,9 +1530,9 @@ namespace NGT {
     TYPE &back() { return (*this).at(vectorSize - 1); }
     bool empty() { return vectorSize == 0; }
     iterator begin() {
-      return reinterpret_cast<iterator>(vector);
+      return iterator(vector, elementSize);
     }
-    iterator end(SharedMemoryAllocator &allocator) {
+    iterator end() {
       return begin() + vectorSize;
     }
 
@@ -1449,15 +1547,15 @@ namespace NGT {
 	msg << "Vector: beyond the range. " << idx << ":" << vectorSize;
 	NGTThrowException(msg);
       }
-      return *reinterpret_cast<TYPE*>(reinterpret_cast<uint8_t*>(begin()) + idx * elementSize);
+      return *(begin() + idx);
     }
 
     TYPE &operator[](size_t idx) {
-      return *reinterpret_cast<TYPE*>(reinterpret_cast<uint8_t*>(begin()) + idx * elementSize);
+      return *(begin() + idx);
     }
     
     void copy(TYPE &dst, const TYPE &src) {
-      memcpy(&dst, &src, elementSize);
+      memcpy(reinterpret_cast<unsigned char*>(&dst), reinterpret_cast<const unsigned char*>(&src), elementSize);
     }
 
     iterator erase(iterator b, iterator e) {
@@ -2327,14 +2425,37 @@ namespace NGT {
 	  *queryType != typeid(uint8_t)) {
 	query = 0;
 	queryType = 0;
+	dimension = 0;
 	std::stringstream msg;
 	msg << "NGT::SearchQuery: Invalid query type!";
 	NGTThrowException(msg);
       }
       query = new std::vector<QTYPE>(q);
+      dimension = q.size();
+#ifdef NGT_REFINEMENT
+      refinementExpansion = 0.0;
+#endif
     }
     void	*getQuery() { return query; }
+    size_t	getDimension() { return dimension; }
     const std::type_info &getQueryType() { return *queryType; }
+    void	pushBack(float v) {
+      if (*queryType == typeid(float)) {
+	static_cast<std::vector<float>*>(query)->push_back(v);
+      } else if (*queryType == typeid(double)) {
+	static_cast<std::vector<double>*>(query)->push_back(v);
+      } else if (*queryType == typeid(uint8_t)) {
+	static_cast<std::vector<uint8_t>*>(query)->push_back(v);
+#ifdef NGT_HALF_FLOAT
+      } else if (*queryType == typeid(float16)) {
+	static_cast<std::vector<float16>*>(query)->push_back(static_cast<float16>(v));
+#endif
+      }
+    }
+#ifdef NGT_REFINEMENT
+    void setRefinementExpansion(float re) { refinementExpansion = re; }
+    float getRefinementExpansion() { return refinementExpansion; }
+#endif
   private:
     void deleteQuery() {
       if (query == 0) {
@@ -2356,6 +2477,10 @@ namespace NGT {
     }
     void			*query;
     const std::type_info	*queryType;
+    size_t			dimension;
+#ifdef NGT_REFINEMENT
+    float			refinementExpansion;
+#endif
   };
 
   class SearchQuery : public NGT::QueryContainer, public NGT::SearchContainer {

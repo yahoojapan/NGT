@@ -138,11 +138,16 @@ namespace NGT {
     inline static double compareL2(const float *a, const float *b, size_t size) {
       return compareL2<float, double>(a, b, size);
     }
-
+#ifdef NGT_HALF_FLOAT
     inline static double compareL2(const float16 *a, const float16 *b, size_t size) {
       return compareL2<float16, double>(a, b, size);
     }
-
+#endif
+#ifdef NGT_BFLOAT
+    inline static double compareL2(const bfloat16 *a, const bfloat16 *b, size_t size) {
+      return compareL2<bfloat16, float>(a, b, size);
+    }
+#endif
 #else
     inline static double compareL2(const float *a, const float *b, size_t size) {
       const float *last = a + size;
@@ -248,11 +253,33 @@ namespace NGT {
         b += 8;
       }
 #endif
-
-      __attribute__((aligned(32))) float f[4];
-      _mm_store_ps(f, sum128);
-      double s = f[0] + f[1] + f[2] + f[3];
+      __m128 tmp = _mm_hadd_ps(sum128, _mm_set1_ps(0));
+      double s = _mm_cvtss_f32(_mm_shuffle_ps(tmp, tmp, _MM_SHUFFLE(0, 0, 0, 0))) +
+	         _mm_cvtss_f32(_mm_shuffle_ps(tmp, tmp, _MM_SHUFFLE(0, 0, 0, 1)));
       return sqrt(s);
+      //return s;
+    }
+#endif
+
+#ifdef NGT_BFLOAT
+    inline static double compareL2(const bfloat16 *a, const bfloat16 *b, size_t size) {
+      const bfloat16 *last = a + size;
+      __m512 sum512 = _mm512_setzero_ps();
+      while (a < last) {
+	__m512i av = _mm512_slli_epi32(_mm512_cvtepu16_epi32(_mm256_loadu_si256(reinterpret_cast<const __m256i*>(a))), 16);
+	__m512i bv = _mm512_slli_epi32(_mm512_cvtepu16_epi32(_mm256_loadu_si256(reinterpret_cast<const __m256i*>(b))), 16);
+	__m512 sub = _mm512_sub_ps(reinterpret_cast<__m512>(av), reinterpret_cast<__m512>(bv));
+	sum512 = _mm512_fmadd_ps(sub, sub, sum512);
+	a += 16;
+	b += 16;
+      }
+      __m256 sum256 = _mm256_add_ps(_mm512_extractf32x8_ps(sum512, 0), _mm512_extractf32x8_ps(sum512, 1));
+      __m128 sum128 = _mm_add_ps(_mm256_extractf128_ps(sum256, 0), _mm256_extractf128_ps(sum256, 1));
+      __m128 tmp = _mm_hadd_ps(sum128, _mm_set1_ps(0));
+      double d = _mm_cvtss_f32(_mm_shuffle_ps(tmp, tmp, _MM_SHUFFLE(0, 0, 0, 0))) +
+	         _mm_cvtss_f32(_mm_shuffle_ps(tmp, tmp, _MM_SHUFFLE(0, 0, 0, 1)));
+      //return sqrt(d);
+      return d;
     }
 #endif
 
@@ -262,7 +289,9 @@ namespace NGT {
       const unsigned char *lastgroup = last - 7;
       const __m128i zero = _mm_setzero_si128();
       while (a < lastgroup) {
+	//__m128i x1 = _mm_cvtepu8_epi16(*reinterpret_cast<__m128i const*>(a));
 	__m128i x1 = _mm_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)a));
+	//__m128i x2 = _mm_cvtepu8_epi16(*reinterpret_cast<__m128i const*>(b));
 	__m128i x2 = _mm_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)b));
 	x1 = _mm_subs_epi16(x1, x2);
 	__m128i v = _mm_mullo_epi16(x1, x1);
@@ -280,6 +309,8 @@ namespace NGT {
       }
       return sqrt(s);
     }
+
+
 #endif
 
     template <typename OBJECT_TYPE>
@@ -328,6 +359,11 @@ namespace NGT {
       return compareL1<float16, double>(a, b, size);
     }
 #endif
+#ifdef NGT_BFLOAT
+    inline static double compareL1(const bfloat16 *a, const bfloat16 *b, size_t size) {
+      return compareL1<bfloat16, float>(a, b, size);
+    }
+#endif
 #else
     inline static double compareL1(const float *a, const float *b, size_t size) {
       __m256 sum = _mm256_setzero_ps();
@@ -374,15 +410,19 @@ namespace NGT {
       return s;
     }
 #endif
-
+#ifdef NGT_BFLOAT
+    inline static double compareL1(const bfloat16 *a, const bfloat16 *b, size_t size) {
+      abort();
+    }
+#endif
     inline static double compareL1(const unsigned char *a, const unsigned char *b, size_t size) {
       __m128 sum = _mm_setzero_ps();
       const unsigned char *last = a + size;
       const unsigned char *lastgroup = last - 7;
       const __m128i zero = _mm_setzero_si128();
       while (a < lastgroup) {
-	__m128i x1 = _mm_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)a));
-	__m128i x2 = _mm_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)b));
+	__m128i x1 = _mm_cvtepu8_epi16(*reinterpret_cast<__m128i const*>(a));
+	__m128i x2 = _mm_cvtepu8_epi16(*reinterpret_cast<__m128i const*>(b));
 	x1 = _mm_subs_epi16(x1, x2);
 	x1 = _mm_sign_epi16(x1, x1);
 	sum = _mm_add_ps(sum, _mm_cvtepi32_ps(_mm_unpacklo_epi16(x1, zero)));
@@ -490,6 +530,14 @@ namespace NGT {
       abort();
     }
 #endif
+
+#ifdef NGT_BFLOAT
+    inline static double compareSparseJaccardDistance(const bfloat16 *a, const bfloat16 *b, size_t size) {
+      std::cerr << "compareSparseJaccardDistance: Not implemented." << std::endl;
+      abort();
+    }
+#endif
+
 
 
     inline static double compareSparseJaccardDistance(const float *a, const float *b, size_t size) {
@@ -615,6 +663,12 @@ namespace NGT {
     }
 #endif
 
+#ifdef NGT_BFLOAT
+    inline static double compareDotProduct(const bfloat16 *a, const bfloat16 *b, size_t size) {
+      abort();
+    }
+#endif
+
     inline static double compareDotProduct(const unsigned char *a, const unsigned char *b, size_t size) {
       double sum = 0.0;
       for (size_t loc = 0; loc < size; loc++) {
@@ -622,7 +676,6 @@ namespace NGT {
       }
       return sum;
     }
-
     inline static double compareCosine(const float *a, const float *b, size_t size) {
 
       const float *last = a + size;
@@ -770,6 +823,12 @@ namespace NGT {
     }
 #endif
 
+#ifdef NGT_BFLOAT
+    inline static double compareCosine(const bfloat16 *a, const bfloat16 *b, size_t size) {
+      abort();
+    }
+#endif
+
     inline static double compareCosine(const unsigned char *a, const unsigned char *b, size_t size) {
       double normA = 0.0;
       double normB = 0.0;
@@ -784,6 +843,8 @@ namespace NGT {
 
       return cosine;
     }
+
+
 #endif    // #if defined(NGT_NO_AVX)
 
     template <typename OBJECT_TYPE>
@@ -1020,6 +1081,81 @@ namespace NGT {
       }
     };
 #endif
+#ifdef NGT_BFLOAT
+    class SparseJaccardBfloat16 {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	NGTThrowException("Not supported.");
+      }
+    };
+
+    class L2Bfloat16 {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	return PrimitiveComparator::compareL2((const bfloat16*)a, (const bfloat16*)b, size);
+      }
+    };
+
+    class NormalizedL2Bfloat16 {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	return PrimitiveComparator::compareNormalizedL2((const bfloat16*)a, (const bfloat16*)b, size);
+      }
+    };
+
+    class L1Bfloat16 {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	NGTThrowException("Not supported.");
+      }
+    };
+
+    class CosineSimilarityBfloat16 {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	NGTThrowException("Not supported.");
+      }
+    };
+
+    class NormalizedCosineSimilarityBfloat16 {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	NGTThrowException("Not supported.");
+      }
+    };
+
+    class AngleBfloat16 {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	NGTThrowException("Not supported.");
+      }
+    };
+
+    class NormalizedAngleBfloat16 {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	NGTThrowException("Not supported.");
+      }
+    };
+
+    // added by Nyapicom
+    class PoincareBfloat16 {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	NGTThrowException("Not supported.");
+      }
+    };
+
+    // added by Nyapicom
+    class LorentzBfloat16 {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	NGTThrowException("Not supported.");
+      }
+    };
+#endif
+
+
 };
 
 

@@ -213,7 +213,6 @@ NeighborhoodGraph::Search::lorentzFloat16(NeighborhoodGraph &graph, NGT::SearchC
   graph.searchReadOnlyGraph<PrimitiveComparator::LorentzFloat16, DistanceCheckedSet>(sc, seeds);
 }
 #endif
-
 ////
 
 void
@@ -537,32 +536,27 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
     CHECK_LIST distanceChecked(searchRepository.size());
 
     ResultSet results;
-
     setupDistances(sc, seeds, COMPARATOR::compare);
     setupSeeds(sc, seeds, results, unchecked, distanceChecked);
 
     Distance explorationRadius = sc.explorationCoefficient * sc.radius;
     const size_t dimension = objectSpace->getPaddedDimension();
     ReadOnlyGraphNode *nodes = &searchRepository.front();
-    ReadOnlyGraphNode *neighbors = 0;
     ObjectDistance result;
     ObjectDistance target;
     const size_t prefetchSize = objectSpace->getPrefetchSize();
     const size_t prefetchOffset = objectSpace->getPrefetchOffset();
-    pair<uint64_t, PersistentObject*> *neighborptr;
-    pair<uint64_t, PersistentObject*> *neighborendptr;
     while (!unchecked.empty()) {
       target = unchecked.top();
       unchecked.pop();
       if (target.distance > explorationRadius) {
 	break;
       }
-      neighbors = &nodes[target.id];
-      neighborptr = &(*neighbors)[0];
+      auto *neighbors = &nodes[target.id];
+      auto *neighborptr = &(*neighbors)[0];
       size_t neighborSize = neighbors->size() < edgeSize ? neighbors->size() : edgeSize;
-      neighborendptr = neighborptr + neighborSize;
-
-      pair<uint64_t, PersistentObject*>* nsPtrs[neighborSize];
+      auto *neighborendptr = neighborptr + neighborSize;
+      pair<uint32_t, PersistentObject*>* nsPtrs[neighborSize];
       size_t nsPtrsSize = 0;
       for (; neighborptr < neighborendptr; ++neighborptr) {
 #ifdef NGT_VISIT_COUNT

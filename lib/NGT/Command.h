@@ -49,6 +49,9 @@ public:
       trial      = 1;
       beginOfEpsilon = endOfEpsilon = stepOfEpsilon = 0.1;
       accuracy	 = 0.0;
+#ifdef NGT_REFINEMENT
+      refinementExpansion = 0.0;
+#endif
     }
     SearchParameters(Args &args, const std::string epsilonDefault = "0.1") { parse(args, epsilonDefault); }
     void parse(Args &args, const std::string epsilonDefault) {
@@ -85,6 +88,9 @@ public:
 	if (tokens.size() >= 4) { step = NGT::Common::strtol(tokens[3]); }
       }
       accuracy		= args.getf("a", 0.0);
+#ifdef NGT_REFINEMENT
+      refinementExpansion = args.getf("R", 0.0);
+#endif
     }
     char	openMode;
     std::string	query;
@@ -100,6 +106,9 @@ public:
     float	accuracy;
     size_t	step;
     size_t	trial;
+#ifdef NGT_REFINEMENT
+    float	refinementExpansion;
+#endif
   };
 
   Command():debugLevel(0) {}

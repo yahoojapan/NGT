@@ -55,17 +55,17 @@ typedef struct {
 } NGTQueryParameters;
 
 typedef struct {
-  float					*query;
+  float			*query;
   NGTQueryParameters	params;
 } NGTQueryFloat;
 
 typedef struct {
-  uint8_t				*query;
+  uint8_t		*query;
   NGTQueryParameters	params;
 } NGTQueryUint8;
 
 typedef struct {
-  NGTFloat16			*query;
+  NGTFloat16		*query;
   NGTQueryParameters	params;
 } NGTQueryFloat16;
 
@@ -139,6 +139,8 @@ bool ngt_set_property_distance_type_normalized_l2(NGTProperty, NGTError);
 bool ngt_set_property_distance_type_normalized_angle(NGTProperty, NGTError);
 
 bool ngt_set_property_distance_type_normalized_cosine(NGTProperty, NGTError);
+
+bool ngt_set_property_distance_type_inner_product(NGTProperty, NGTError);
 
 NGTObjectDistances ngt_create_empty_results(NGTError);
 
