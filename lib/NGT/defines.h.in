@@ -27,6 +27,7 @@
 #cmakedefine NGTQG_ZERO_GLOBAL
 #cmakedefine NGTQG_NO_ROTATION
 #cmakedefine NGT_BFLOAT_DISABLED		// not use bfloat
+#cmakedefine NGT_BFLOAT_ENABLED
 // End of cmake defines
 
 //////////////////////////////////////////////////////////////////////////
@@ -44,11 +45,13 @@
 #define		NGT_COMPACT_VECTOR
 #define		NGT_GRAPH_READ_ONLY_GRAPH
 #define		NGT_HALF_FLOAT
-#ifndef	NGT_BFLOAT_DISABLED
+
+#ifdef	NGT_BFLOAT_ENABLED
  #define		NGT_BFLOAT
 #endif
-//#define		NGT_EXPERIMENTAL_QUINT8
-#define		NGT_EXPERIMENTAL_SQINT8
+#ifdef	NGT_BFLOAT_DISABLED
+ #undef			NGT_BFLOAT
+#endif
 
 #ifdef	NGT_LARGE_DATASET
  #define	NGT_GRAPH_CHECK_HASH_BASED_BOOLEAN_SET

@@ -444,13 +444,15 @@ namespace NGT {
     static int getProcessVmPeak() { return strtol(getProcessStatus("VmPeak")); }
     static int getProcessVmRSS() { return strtol(getProcessStatus("VmRSS")); }
     static int getProcessVmHWM() { return strtol(getProcessStatus("VmHWM")); }
-#if __linux__
     static int getSystemHWM() {
+#if __linux__
       struct sysinfo info;
       sysinfo(&info);
       return info.totalram / 1024;
-    }
+#else
+      return 0;
 #endif
+    }
     static std::string sizeToString(float size) {
       char unit = 'K';
       if (size > 1024) {
