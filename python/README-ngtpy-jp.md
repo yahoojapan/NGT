@@ -203,6 +203,7 @@ FUNCTIONS
 - __Normalized Cosine__: 正規化コサイン類似度。指定されたデータは自動的に正規化された上でインデックスに登録されます。
 - __Hamming__: ハミング距離
 - __Jaccard__: ジャッカード距離
+- __Inner Product__: 内積
 
 **object_type**  
 オブジェクトのデータタイプを指定します。

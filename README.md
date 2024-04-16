@@ -10,6 +10,7 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
 News
 ----
+- 04/10/2024 Inner product (or dot product) is now available. (v2.1.0)
 - 08/10/2022 [QBG](https://github.com/yahoojapan/NGT#qbg-quantized-blob-graph-based-method) (Quantized Blob Graph) and [QG](https://github.com/yahoojapan/NGT#qg-quantized-graph-based-method) (renewed NGTQG) are now available. The command-line interface ngtq and ngtqg are now obsolete by replacing [qbg](bin/qbg/README.md). (v2.0.0)
 - 02/04/2022 FP16 (half-precision floating point) is now available. (v1.14.0)
 - 03/12/2021 The results for the quantized graph are added to this README.

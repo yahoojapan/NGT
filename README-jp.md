@@ -10,6 +10,7 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
 ニュース
 -------
+- 2024/04/10 内積が利用可能になりました。(v2.1.0)
 - 2022/08/10 QBG(Quantized Blob Graph)およびQG(NGTQGの改良版)が利用可能となりました。ngtqおよびngtqgは[qbg](https://github.com/yahoojapan/NGT/blob/main/bin/qbg/README.md)で置き換えられました。
 - 2022/02/04 FP16(半精度浮動小数点)が利用可能になりました。(v1.14.0)
 - 2021/03/12 READMEに量子化グラフの結果を追加しました。

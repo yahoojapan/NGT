@@ -107,7 +107,7 @@ Specify the distance function as follows.
 - __j__: Jaccard distance. 1 byte unsigned integer should be specified for the data object type.
 - __p__: Poincare distance
 - __l__: Lorentz distance
-- __i__: Inner product (Dot product)
+- __i__: Inner product (or dot product). Maximum inner-product search. Note that the distance obtained during search is not inner product values.
 
 **-n** *no\_of\_registration\_data*  
 Specify the number of data items to be registered. If not specified, all data in the specified file will be registered.
