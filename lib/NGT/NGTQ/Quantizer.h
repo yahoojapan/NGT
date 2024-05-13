@@ -2558,6 +2558,7 @@ class QuantizedObjectProcessingStream {
     }
   }
 
+#ifdef NGTQ_QBG
   void restoreToInvertedIndex(NGTQ::InvertedIndexEntry<uint16_t> &invertedIndexObjects) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
     std::cerr << "Not implemented." << std::endl;
@@ -2572,6 +2573,7 @@ class QuantizedObjectProcessingStream {
     invertedIndexObjects.resize(numOfObjects);
 #endif
   }
+#endif
 
   uint8_t* getStream() {
     auto s = stream;
