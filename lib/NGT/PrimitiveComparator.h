@@ -454,7 +454,6 @@ namespace NGT {
     template <typename OBJECT_TYPE>
     inline static double compareHammingDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       const uint32_t *last = reinterpret_cast<const uint32_t*>(a + size);
-      
       const uint32_t *uinta = reinterpret_cast<const uint32_t*>(a);
       const uint32_t *uintb = reinterpret_cast<const uint32_t*>(b);
       size_t count = 0;
@@ -465,19 +464,84 @@ namespace NGT {
       return static_cast<double>(count);
     }
 #else
+    #define UNROLL_MACRO_1(MACRO, BIT_SIZE) MACRO(0, 0)
+    #define UNROLL_MACRO_2(MACRO, BIT_SIZE) UNROLL_MACRO_1(MACRO, BIT_SIZE) MACRO(1, BIT_SIZE)
+    #define UNROLL_MACRO_4(MACRO, BIT_SIZE) UNROLL_MACRO_2(MACRO, BIT_SIZE) MACRO(2, BIT_SIZE * 2) MACRO(3, BIT_SIZE * 3)
+    #define UNROLL_MACRO_8(MACRO, BIT_SIZE) UNROLL_MACRO_4(MACRO, BIT_SIZE) MACRO(4, BIT_SIZE * 4) MACRO(5, BIT_SIZE * 5) MACRO(6, BIT_SIZE * 6) MACRO(7, BIT_SIZE * 7)
+
+    #define UNROLL_BODY_SSE2(i, BIT_SIZE) \
+        __m128i vres##i = _mm_xor_si128(_mm_loadu_si128(reinterpret_cast<const __m128i*>(uinta + BIT_SIZE)), _mm_loadu_si128(reinterpret_cast<const __m128i*>(uintb + BIT_SIZE))); \
+        count += _mm_popcnt_u32(_mm_extract_epi32(vres##i, 0)); \
+        count += _mm_popcnt_u32(_mm_extract_epi32(vres##i, 1)); \
+        count += _mm_popcnt_u32(_mm_extract_epi32(vres##i, 2)); \
+        count += _mm_popcnt_u32(_mm_extract_epi32(vres##i, 3));
+
+    #define UNROLL_BODY_AVX2(i, BIT_SIZE) \
+        __m256i vres##i = _mm256_xor_si256(_mm256_loadu_si256(reinterpret_cast<const __m256i*>(uinta + BIT_SIZE)), _mm256_loadu_si256(reinterpret_cast<const __m256i*>(uintb + BIT_SIZE))); \
+        count += _mm_popcnt_u64(_mm256_extract_epi64(vres##i, 0)); \
+        count += _mm_popcnt_u64(_mm256_extract_epi64(vres##i, 1)); \
+        count += _mm_popcnt_u64(_mm256_extract_epi64(vres##i, 2)); \
+        count += _mm_popcnt_u64(_mm256_extract_epi64(vres##i, 3));
+
+    #define UNROLL_BODY_AVX512(i, BIT_SIZE) \
+        __m512i vres##i = _mm512_xor_si512(_mm512_loadu_si512(reinterpret_cast<const __m512i*>(uinta + BIT_SIZE)), _mm512_loadu_si512(reinterpret_cast<const __m512i*>(uintb + BIT_SIZE))); \
+        count += _mm_popcnt_u64(_mm512_extract_epi64(vres##i, 0)); \
+        count += _mm_popcnt_u64(_mm512_extract_epi64(vres##i, 1)); \
+        count += _mm_popcnt_u64(_mm512_extract_epi64(vres##i, 2)); \
+        count += _mm_popcnt_u64(_mm512_extract_epi64(vres##i, 3)); \
+        count += _mm_popcnt_u64(_mm512_extract_epi64(vres##i, 4)); \
+        count += _mm_popcnt_u64(_mm512_extract_epi64(vres##i, 5)); \
+        count += _mm_popcnt_u64(_mm512_extract_epi64(vres##i, 6)); \
+        count += _mm_popcnt_u64(_mm512_extract_epi64(vres##i, 7));
+
+    #define UNROLL_LOOP_SSE2(FACTOR) UNROLL_MACRO_##FACTOR(UNROLL_BODY_SSE2, 16)
+    #define UNROLL_LOOP_AVX2(FACTOR) UNROLL_MACRO_##FACTOR(UNROLL_BODY_AVX2, 32)
+    #define UNROLL_LOOP_AVX512(FACTOR) UNROLL_MACRO_##FACTOR(UNROLL_BODY_AVX512, 64)
+
+    #define PROCESS_LOOP(INSTRUCTION_SET, FACTOR, STEP) \
+        while (uinta + STEP <= last) { \
+            UNROLL_LOOP_##INSTRUCTION_SET(FACTOR) \
+            uinta += STEP; \
+            uintb += STEP; \
+        }
+
+    #define PROCESS_ALL_LOOPS(INSTRUCTION_SET, BIT_SIZE) \
+        PROCESS_LOOP(INSTRUCTION_SET, 8, BIT_SIZE * 8) \
+        PROCESS_LOOP(INSTRUCTION_SET, 4, BIT_SIZE * 4) \
+        PROCESS_LOOP(INSTRUCTION_SET, 2, BIT_SIZE * 2) \
+        PROCESS_LOOP(INSTRUCTION_SET, 1, BIT_SIZE)
+
+    #define PROCESS_REMAINING_DATA_WITH_SSE2_AND_AVX2_AVX512() \
+        if (uinta < last) { \
+            PROCESS_LOOP(AVX2, 1, 32) \
+            PROCESS_LOOP(SSE2, 1, 16) \
+        }
+
+    #define PROCESS_REMAINING_DATA_WITH_SSE2_AVX2() \
+        if (uinta < last) { \
+            PROCESS_LOOP(SSE2, 1, 16) \
+        }
+
+    #define DO_NOTHING()
+
+    #define COMPARE_HAMMING_DISTANCE(INSTRUCTION_SET, BIT_SIZE, PROCESS_REMAINING_DATA) \
+        const uint8_t *last = reinterpret_cast<const uint8_t*>(a + size); \
+        const uint8_t *uinta = reinterpret_cast<const uint8_t*>(a); \
+        const uint8_t *uintb = reinterpret_cast<const uint8_t*>(b); \
+        size_t count = 0; \
+        PROCESS_ALL_LOOPS(INSTRUCTION_SET, BIT_SIZE) \
+        PROCESS_REMAINING_DATA \
+        return static_cast<double>(count);
+
     template <typename OBJECT_TYPE>
-      inline static double compareHammingDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
-      const uint64_t *last = reinterpret_cast<const uint64_t*>(a + size);
-      
-      const uint64_t *uinta = reinterpret_cast<const uint64_t*>(a);
-      const uint64_t *uintb = reinterpret_cast<const uint64_t*>(b);
-      size_t count = 0;
-      while( uinta < last ){
-	count += _mm_popcnt_u64(*uinta++ ^ *uintb++);
-	count += _mm_popcnt_u64(*uinta++ ^ *uintb++);
-      }
-      
-      return static_cast<double>(count);
+    inline static double compareHammingDistance(const OBJECT_TYPE* a, const OBJECT_TYPE* b, size_t size) {
+    #if defined(__AVX512F__)
+        COMPARE_HAMMING_DISTANCE(AVX512, 64, PROCESS_REMAINING_DATA_WITH_SSE2_AND_AVX2_AVX512())
+    #elif defined(__AVX2__)
+        COMPARE_HAMMING_DISTANCE(AVX2, 32, PROCESS_REMAINING_DATA_WITH_SSE2_AVX2())
+    #else
+        COMPARE_HAMMING_DISTANCE(SSE2, 16, DO_NOTHING())
+    #endif
     }
 #endif
 
@@ -537,8 +601,6 @@ namespace NGT {
       abort();
     }
 #endif
-
-
 
     inline static double compareSparseJaccardDistance(const float *a, const float *b, size_t size) {
       size_t loca = 0;
