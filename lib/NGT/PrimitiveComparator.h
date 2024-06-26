@@ -464,84 +464,87 @@ namespace NGT {
       return static_cast<double>(count);
     }
 #else
-    #define UNROLL_MACRO_1(MACRO, BIT_SIZE) MACRO(0, 0)
-    #define UNROLL_MACRO_2(MACRO, BIT_SIZE) UNROLL_MACRO_1(MACRO, BIT_SIZE) MACRO(1, BIT_SIZE)
-    #define UNROLL_MACRO_4(MACRO, BIT_SIZE) UNROLL_MACRO_2(MACRO, BIT_SIZE) MACRO(2, BIT_SIZE * 2) MACRO(3, BIT_SIZE * 3)
-    #define UNROLL_MACRO_8(MACRO, BIT_SIZE) UNROLL_MACRO_4(MACRO, BIT_SIZE) MACRO(4, BIT_SIZE * 4) MACRO(5, BIT_SIZE * 5) MACRO(6, BIT_SIZE * 6) MACRO(7, BIT_SIZE * 7)
+    template <typename VecType, typename ElementType, typename OBJECT_TYPE, typename LoadFunc, typename XorFunc, typename ExtractFunc, typename PopcntFunc>
+    inline size_t processLoop(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size, LoadFunc load, XorFunc xor_func, ExtractFunc extract, PopcntFunc popcnt)
+    {
+          size_t count = 0;
 
-    #define UNROLL_BODY_SSE2(i, BIT_SIZE) \
-        __m128i vres##i = _mm_xor_si128(_mm_loadu_si128(reinterpret_cast<const __m128i*>(uinta + BIT_SIZE)), _mm_loadu_si128(reinterpret_cast<const __m128i*>(uintb + BIT_SIZE))); \
-        count += _mm_popcnt_u32(_mm_extract_epi32(vres##i, 0)); \
-        count += _mm_popcnt_u32(_mm_extract_epi32(vres##i, 1)); \
-        count += _mm_popcnt_u32(_mm_extract_epi32(vres##i, 2)); \
-        count += _mm_popcnt_u32(_mm_extract_epi32(vres##i, 3));
+          const VecType *va_ptr = reinterpret_cast<const VecType *>(a);
+          const VecType *vb_ptr = reinterpret_cast<const VecType *>(b);
+          const VecType *last = va_ptr + size / sizeof(VecType);
+          constexpr size_t numElementsPerVector = sizeof(VecType) / sizeof(ElementType);
 
-    #define UNROLL_BODY_AVX2(i, BIT_SIZE) \
-        __m256i vres##i = _mm256_xor_si256(_mm256_loadu_si256(reinterpret_cast<const __m256i*>(uinta + BIT_SIZE)), _mm256_loadu_si256(reinterpret_cast<const __m256i*>(uintb + BIT_SIZE))); \
-        count += _mm_popcnt_u64(_mm256_extract_epi64(vres##i, 0)); \
-        count += _mm_popcnt_u64(_mm256_extract_epi64(vres##i, 1)); \
-        count += _mm_popcnt_u64(_mm256_extract_epi64(vres##i, 2)); \
-        count += _mm_popcnt_u64(_mm256_extract_epi64(vres##i, 3));
-
-    #define UNROLL_BODY_AVX512(i, BIT_SIZE) \
-        __m512i vres##i = _mm512_xor_si512(_mm512_loadu_si512(reinterpret_cast<const __m512i*>(uinta + BIT_SIZE)), _mm512_loadu_si512(reinterpret_cast<const __m512i*>(uintb + BIT_SIZE))); \
-        count += _mm_popcnt_u64(_mm512_extract_epi64(vres##i, 0)); \
-        count += _mm_popcnt_u64(_mm512_extract_epi64(vres##i, 1)); \
-        count += _mm_popcnt_u64(_mm512_extract_epi64(vres##i, 2)); \
-        count += _mm_popcnt_u64(_mm512_extract_epi64(vres##i, 3)); \
-        count += _mm_popcnt_u64(_mm512_extract_epi64(vres##i, 4)); \
-        count += _mm_popcnt_u64(_mm512_extract_epi64(vres##i, 5)); \
-        count += _mm_popcnt_u64(_mm512_extract_epi64(vres##i, 6)); \
-        count += _mm_popcnt_u64(_mm512_extract_epi64(vres##i, 7));
-
-    #define UNROLL_LOOP_SSE2(FACTOR) UNROLL_MACRO_##FACTOR(UNROLL_BODY_SSE2, 16)
-    #define UNROLL_LOOP_AVX2(FACTOR) UNROLL_MACRO_##FACTOR(UNROLL_BODY_AVX2, 32)
-    #define UNROLL_LOOP_AVX512(FACTOR) UNROLL_MACRO_##FACTOR(UNROLL_BODY_AVX512, 64)
-
-    #define PROCESS_LOOP(INSTRUCTION_SET, FACTOR, STEP) \
-        while (uinta + STEP <= last) { \
-            UNROLL_LOOP_##INSTRUCTION_SET(FACTOR) \
-            uinta += STEP; \
-            uintb += STEP; \
-        }
-
-    #define PROCESS_ALL_LOOPS(INSTRUCTION_SET, BIT_SIZE) \
-        PROCESS_LOOP(INSTRUCTION_SET, 8, BIT_SIZE * 8) \
-        PROCESS_LOOP(INSTRUCTION_SET, 4, BIT_SIZE * 4) \
-        PROCESS_LOOP(INSTRUCTION_SET, 2, BIT_SIZE * 2) \
-        PROCESS_LOOP(INSTRUCTION_SET, 1, BIT_SIZE)
-
-    #define PROCESS_REMAINING_DATA_WITH_SSE2_AND_AVX2_AVX512() \
-        if (uinta < last) { \
-            PROCESS_LOOP(AVX2, 1, 32) \
-            PROCESS_LOOP(SSE2, 1, 16) \
-        }
-
-    #define PROCESS_REMAINING_DATA_WITH_SSE2_AVX2() \
-        if (uinta < last) { \
-            PROCESS_LOOP(SSE2, 1, 16) \
-        }
-
-    #define DO_NOTHING()
-
-    #define COMPARE_HAMMING_DISTANCE(INSTRUCTION_SET, BIT_SIZE, PROCESS_REMAINING_DATA) \
-        const uint8_t *last = reinterpret_cast<const uint8_t*>(a + size); \
-        const uint8_t *uinta = reinterpret_cast<const uint8_t*>(a); \
-        const uint8_t *uintb = reinterpret_cast<const uint8_t*>(b); \
-        size_t count = 0; \
-        PROCESS_ALL_LOOPS(INSTRUCTION_SET, BIT_SIZE) \
-        PROCESS_REMAINING_DATA \
-        return static_cast<double>(count);
+          while (va_ptr + 1 <= last)
+          {
+                VecType vxor = xor_func(load(va_ptr++), load(vb_ptr++));
+                for (size_t j = 0; j < numElementsPerVector; ++j)
+                {
+                      count += popcnt(extract(vxor, j));
+                }
+          }
+          return count;
+    }
 
     template <typename OBJECT_TYPE>
-    inline static double compareHammingDistance(const OBJECT_TYPE* a, const OBJECT_TYPE* b, size_t size) {
-    #if defined(__AVX512F__)
-        COMPARE_HAMMING_DISTANCE(AVX512, 64, PROCESS_REMAINING_DATA_WITH_SSE2_AND_AVX2_AVX512())
-    #elif defined(__AVX2__)
-        COMPARE_HAMMING_DISTANCE(AVX2, 32, PROCESS_REMAINING_DATA_WITH_SSE2_AVX2())
-    #else
-        COMPARE_HAMMING_DISTANCE(SSE2, 16, DO_NOTHING())
-    #endif
+    inline static double compareHammingDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size)
+    {
+          size_t count = 0;
+
+#if defined(__AVX512F__)
+          count += processLoop<__m512i, uint64_t>(
+              a, b, size,
+              [](const __m512i *ptr)
+              { return _mm512_loadu_si512(ptr); },
+              [](const __m512i &x, const __m512i &y)
+              { return _mm512_xor_si512(x, y); },
+              [](const __m512i &x, int idx)
+              { return _mm512_extract_epi64(x, idx); },
+              [](uint64_t x)
+              { return _mm_popcnt_u64(x); });
+          size_t remaining_bytes = size % sizeof(__m512i);
+          if (remaining_bytes == 0)
+          {
+                return static_cast<double>(count);
+          }
+          size_t processed_bytes = size - remaining_bytes;
+          a += processed_bytes;
+          b += processed_bytes;
+          size = remaining_bytes;
+#endif
+
+#if defined(__AVX512F__) || defined(__AVX2__)
+          count += processLoop<__m256i, uint64_t>(
+              a, b, size,
+              [](const __m256i *ptr)
+              { return _mm256_loadu_si256(ptr); },
+              [](const __m256i &x, const __m256i &y)
+              { return _mm256_xor_si256(x, y); },
+              [](const __m256i &x, int idx)
+              { return _mm256_extract_epi64(x, idx); },
+              [](uint64_t x)
+              { return _mm_popcnt_u64(x); });
+          size_t remaining_bytes = size % sizeof(__m256i);
+          if (remaining_bytes == 0)
+          {
+                return static_cast<double>(count);
+          }
+          size_t processed_bytes = size - remaining_bytes;
+          a += processed_bytes;
+          b += processed_bytes;
+          size = remaining_bytes;
+#endif
+
+          count += processLoop<__m128i, uint32_t>(
+              a, b, size,
+              [](const __m128i *ptr)
+              { return _mm_loadu_si128(ptr); },
+              [](const __m128i &x, const __m128i &y)
+              { return _mm_xor_si128(x, y); },
+              [](const __m128i &x, int idx)
+              { return _mm_extract_epi32(x, idx); },
+              [](uint32_t x)
+              { return _mm_popcnt_u32(x); });
+          return static_cast<double>(count);
     }
 #endif
 
