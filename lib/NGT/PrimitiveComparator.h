@@ -454,7 +454,6 @@ namespace NGT {
     template <typename OBJECT_TYPE>
     inline static double compareHammingDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       const uint32_t *last = reinterpret_cast<const uint32_t*>(a + size);
-      
       const uint32_t *uinta = reinterpret_cast<const uint32_t*>(a);
       const uint32_t *uintb = reinterpret_cast<const uint32_t*>(b);
       size_t count = 0;
@@ -465,20 +464,53 @@ namespace NGT {
       return static_cast<double>(count);
     }
 #else
-    template <typename OBJECT_TYPE>
-      inline static double compareHammingDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
-      const uint64_t *last = reinterpret_cast<const uint64_t*>(a + size);
-      
-      const uint64_t *uinta = reinterpret_cast<const uint64_t*>(a);
-      const uint64_t *uintb = reinterpret_cast<const uint64_t*>(b);
-      size_t count = 0;
-      while( uinta < last ){
-	count += _mm_popcnt_u64(*uinta++ ^ *uintb++);
-	count += _mm_popcnt_u64(*uinta++ ^ *uintb++);
-      }
-      
-      return static_cast<double>(count);
+template <typename OBJECT_TYPE>
+inline static double compareHammingDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size)
+{
+    size_t count = 0;
+    const OBJECT_TYPE *last = a + size;
+#if defined(__AVX512F__)
+    while (a + 64 <= last)
+    {
+        __m512i vxor = _mm512_xor_si512(_mm512_loadu_si512(reinterpret_cast<const __m512i *>(a)), _mm512_loadu_si512(reinterpret_cast<const __m512i *>(b)));
+        count += _mm_popcnt_u64(_mm512_extract_epi64(vxor, 0));
+        count += _mm_popcnt_u64(_mm512_extract_epi64(vxor, 1));
+        count += _mm_popcnt_u64(_mm512_extract_epi64(vxor, 2));
+        count += _mm_popcnt_u64(_mm512_extract_epi64(vxor, 3));
+        count += _mm_popcnt_u64(_mm512_extract_epi64(vxor, 4));
+        count += _mm_popcnt_u64(_mm512_extract_epi64(vxor, 5));
+        count += _mm_popcnt_u64(_mm512_extract_epi64(vxor, 6));
+        count += _mm_popcnt_u64(_mm512_extract_epi64(vxor, 7));
+        a += 64;
+        b += 64;
     }
+#endif
+
+#if defined(__AVX512F__) || defined(__AVX2__)
+    while (a + 32 <= last)
+    {
+        __m256i vxor = _mm256_xor_si256(_mm256_loadu_si256(reinterpret_cast<const __m256i *>(a)), _mm256_loadu_si256(reinterpret_cast<const __m256i *>(b)));
+        count += _mm_popcnt_u64(_mm256_extract_epi64(vxor, 0));
+        count += _mm_popcnt_u64(_mm256_extract_epi64(vxor, 1));
+        count += _mm_popcnt_u64(_mm256_extract_epi64(vxor, 2));
+        count += _mm_popcnt_u64(_mm256_extract_epi64(vxor, 3));
+        a += 32;
+        b += 32;
+    }
+#endif
+    while (a < last)
+    {
+        __m128i vxor = _mm_xor_si128(_mm_loadu_si128(reinterpret_cast<const __m128i *>(a)), _mm_loadu_si128(reinterpret_cast<const __m128i *>(b)));
+        count += _mm_popcnt_u32(_mm_extract_epi32(vxor, 0));
+        count += _mm_popcnt_u32(_mm_extract_epi32(vxor, 1));
+        count += _mm_popcnt_u32(_mm_extract_epi32(vxor, 2));
+        count += _mm_popcnt_u32(_mm_extract_epi32(vxor, 3));
+        a += 16;
+        b += 16;
+    }
+    return static_cast<double>(count);
+}
+
 #endif
 
 #if defined(NGT_NO_AVX) || !defined(__POPCNT__)
@@ -537,8 +569,6 @@ namespace NGT {
       abort();
     }
 #endif
-
-
 
     inline static double compareSparseJaccardDistance(const float *a, const float *b, size_t size) {
       size_t loca = 0;
