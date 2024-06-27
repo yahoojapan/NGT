@@ -464,88 +464,53 @@ namespace NGT {
       return static_cast<double>(count);
     }
 #else
-    template <typename VecType, typename ElementType, typename OBJECT_TYPE, typename LoadFunc, typename XorFunc, typename ExtractFunc, typename PopcntFunc>
-    inline size_t processLoop(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size, LoadFunc load, XorFunc xor_func, ExtractFunc extract, PopcntFunc popcnt)
-    {
-          size_t count = 0;
-
-          const VecType *va_ptr = reinterpret_cast<const VecType *>(a);
-          const VecType *vb_ptr = reinterpret_cast<const VecType *>(b);
-          const VecType *last = va_ptr + size / sizeof(VecType);
-          constexpr size_t numElementsPerVector = sizeof(VecType) / sizeof(ElementType);
-
-          while (va_ptr + 1 <= last)
-          {
-                VecType vxor = xor_func(load(va_ptr++), load(vb_ptr++));
-                for (size_t j = 0; j < numElementsPerVector; ++j)
-                {
-                      count += popcnt(extract(vxor, j));
-                }
-          }
-          return count;
-    }
-
-    template <typename OBJECT_TYPE>
-    inline static double compareHammingDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size)
-    {
-          size_t count = 0;
-
+template <typename OBJECT_TYPE>
+inline static double compareHammingDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size)
+{
+    size_t count = 0;
+    const OBJECT_TYPE *last = a + size;
 #if defined(__AVX512F__)
-          count += processLoop<__m512i, uint64_t>(
-              a, b, size,
-              [](const __m512i *ptr)
-              { return _mm512_loadu_si512(ptr); },
-              [](const __m512i &x, const __m512i &y)
-              { return _mm512_xor_si512(x, y); },
-              [](const __m512i &x, int idx)
-              { return _mm512_extract_epi64(x, idx); },
-              [](uint64_t x)
-              { return _mm_popcnt_u64(x); });
-          size_t remaining_bytes = size % sizeof(__m512i);
-          if (remaining_bytes == 0)
-          {
-                return static_cast<double>(count);
-          }
-          size_t processed_bytes = size - remaining_bytes;
-          a += processed_bytes;
-          b += processed_bytes;
-          size = remaining_bytes;
+    while (a + 64 <= last)
+    {
+        __m512i vxor = _mm512_xor_si512(_mm512_loadu_si512(reinterpret_cast<const __m512i *>(a)), _mm512_loadu_si512(reinterpret_cast<const __m512i *>(b)));
+        count += _mm_popcnt_u64(_mm512_extract_epi64(vxor, 0));
+        count += _mm_popcnt_u64(_mm512_extract_epi64(vxor, 1));
+        count += _mm_popcnt_u64(_mm512_extract_epi64(vxor, 2));
+        count += _mm_popcnt_u64(_mm512_extract_epi64(vxor, 3));
+        count += _mm_popcnt_u64(_mm512_extract_epi64(vxor, 4));
+        count += _mm_popcnt_u64(_mm512_extract_epi64(vxor, 5));
+        count += _mm_popcnt_u64(_mm512_extract_epi64(vxor, 6));
+        count += _mm_popcnt_u64(_mm512_extract_epi64(vxor, 7));
+        a += 64;
+        b += 64;
+    }
 #endif
 
 #if defined(__AVX512F__) || defined(__AVX2__)
-          count += processLoop<__m256i, uint64_t>(
-              a, b, size,
-              [](const __m256i *ptr)
-              { return _mm256_loadu_si256(ptr); },
-              [](const __m256i &x, const __m256i &y)
-              { return _mm256_xor_si256(x, y); },
-              [](const __m256i &x, int idx)
-              { return _mm256_extract_epi64(x, idx); },
-              [](uint64_t x)
-              { return _mm_popcnt_u64(x); });
-          size_t remaining_bytes = size % sizeof(__m256i);
-          if (remaining_bytes == 0)
-          {
-                return static_cast<double>(count);
-          }
-          size_t processed_bytes = size - remaining_bytes;
-          a += processed_bytes;
-          b += processed_bytes;
-          size = remaining_bytes;
-#endif
-
-          count += processLoop<__m128i, uint32_t>(
-              a, b, size,
-              [](const __m128i *ptr)
-              { return _mm_loadu_si128(ptr); },
-              [](const __m128i &x, const __m128i &y)
-              { return _mm_xor_si128(x, y); },
-              [](const __m128i &x, int idx)
-              { return _mm_extract_epi32(x, idx); },
-              [](uint32_t x)
-              { return _mm_popcnt_u32(x); });
-          return static_cast<double>(count);
+    while (a + 32 <= last)
+    {
+        __m256i vxor = _mm256_xor_si256(_mm256_loadu_si256(reinterpret_cast<const __m256i *>(a)), _mm256_loadu_si256(reinterpret_cast<const __m256i *>(b)));
+        count += _mm_popcnt_u64(_mm256_extract_epi64(vxor, 0));
+        count += _mm_popcnt_u64(_mm256_extract_epi64(vxor, 1));
+        count += _mm_popcnt_u64(_mm256_extract_epi64(vxor, 2));
+        count += _mm_popcnt_u64(_mm256_extract_epi64(vxor, 3));
+        a += 32;
+        b += 32;
     }
+#endif
+    while (a < last)
+    {
+        __m128i vxor = _mm_xor_si128(_mm_loadu_si128(reinterpret_cast<const __m128i *>(a)), _mm_loadu_si128(reinterpret_cast<const __m128i *>(b)));
+        count += _mm_popcnt_u32(_mm_extract_epi32(vxor, 0));
+        count += _mm_popcnt_u32(_mm_extract_epi32(vxor, 1));
+        count += _mm_popcnt_u32(_mm_extract_epi32(vxor, 2));
+        count += _mm_popcnt_u32(_mm_extract_epi32(vxor, 3));
+        a += 16;
+        b += 16;
+    }
+    return static_cast<double>(count);
+}
+
 #endif
 
 #if defined(NGT_NO_AVX) || !defined(__POPCNT__)
