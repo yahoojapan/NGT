@@ -500,23 +500,121 @@ namespace NGT {
       return 1.0 - static_cast<double>(count) / static_cast<double>(countDe);
     }
 #else
-    template <typename OBJECT_TYPE>
-      inline static double compareJaccardDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
-      const uint64_t *last = reinterpret_cast<const uint64_t*>(a + size);
+      template <typename OBJECT_TYPE>
+      inline static double compareJaccardDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size)
+      {
+            size_t count = 0;
+            size_t countDe = 0;
+            const OBJECT_TYPE *last = a + size;
 
-      const uint64_t *uinta = reinterpret_cast<const uint64_t*>(a);
-      const uint64_t *uintb = reinterpret_cast<const uint64_t*>(b);
-      size_t count = 0;
-      size_t countDe = 0;
-      while( uinta < last ){
-	count   += _mm_popcnt_u64(*uinta   & *uintb);
-	countDe += _mm_popcnt_u64(*uinta++ | *uintb++);
-	count   += _mm_popcnt_u64(*uinta   & *uintb);
-	countDe += _mm_popcnt_u64(*uinta++ | *uintb++);
+#if defined(__AVX512F__)
+            while (a + 64 <= last)
+            {
+                  __m512i va = _mm512_loadu_si512(reinterpret_cast<const __m512i *>(a));
+                  __m512i vb = _mm512_loadu_si512(reinterpret_cast<const __m512i *>(b));
+                  __m512i vand = _mm512_and_si512(va, vb);
+                  __m512i vor = _mm512_or_si512(va, vb);
+
+#if defined(__AVX512VPOPCNTDQ__)
+                  count += _mm512_reduce_add_epi64(_mm512_popcnt_epi64(vand));
+                  countDe += _mm512_reduce_add_epi64(_mm512_popcnt_epi64(vor));
+#else
+                  __m256i lower_and = _mm512_castsi512_si256(vand);
+                  __m256i lower_or = _mm512_castsi512_si256(vor);
+                  count += _mm_popcnt_u64(_mm256_extract_epi64(lower_and, 0));
+                  count += _mm_popcnt_u64(_mm256_extract_epi64(lower_and, 1));
+                  count += _mm_popcnt_u64(_mm256_extract_epi64(lower_and, 2));
+                  count += _mm_popcnt_u64(_mm256_extract_epi64(lower_and, 3));
+
+                  countDe += _mm_popcnt_u64(_mm256_extract_epi64(lower_or, 0));
+                  countDe += _mm_popcnt_u64(_mm256_extract_epi64(lower_or, 1));
+                  countDe += _mm_popcnt_u64(_mm256_extract_epi64(lower_or, 2));
+                  countDe += _mm_popcnt_u64(_mm256_extract_epi64(lower_or, 3));
+
+                  __m256i upper_and = _mm512_extracti64x4_epi64(vand, 1);
+                  __m256i upper_or = _mm512_extracti64x4_epi64(vor, 1);
+                  count += _mm_popcnt_u64(_mm256_extract_epi64(upper_and, 0));
+                  count += _mm_popcnt_u64(_mm256_extract_epi64(upper_and, 1));
+                  count += _mm_popcnt_u64(_mm256_extract_epi64(upper_and, 2));
+                  count += _mm_popcnt_u64(_mm256_extract_epi64(upper_and, 3));
+
+                  countDe += _mm_popcnt_u64(_mm256_extract_epi64(upper_or, 0));
+                  countDe += _mm_popcnt_u64(_mm256_extract_epi64(upper_or, 1));
+                  countDe += _mm_popcnt_u64(_mm256_extract_epi64(upper_or, 2));
+                  countDe += _mm_popcnt_u64(_mm256_extract_epi64(upper_or, 3));
+#endif
+
+                  a += 64;
+                  b += 64;
+            }
+#endif
+
+#if defined(__AVX512F__) || defined(__AVX2__)
+            while (a + 32 <= last)
+            {
+                  __m256i va = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(a));
+                  __m256i vb = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(b));
+                  __m256i vand = _mm256_and_si256(va, vb);
+                  __m256i vor = _mm256_or_si256(va, vb);
+
+#if defined(__AVX512VPOPCNTDQ__) && defined(__AVX512VL__)
+                  __m256i popcnt_and = _mm256_popcnt_epi64(vand);
+                  __m256i popcnt_or = _mm256_popcnt_epi64(vor);
+                  count += _mm256_extract_epi64(popcnt_and, 0);
+                  count += _mm256_extract_epi64(popcnt_and, 1);
+                  count += _mm256_extract_epi64(popcnt_and, 2);
+                  count += _mm256_extract_epi64(popcnt_and, 3);
+
+                  countDe += _mm256_extract_epi64(popcnt_or, 0);
+                  countDe += _mm256_extract_epi64(popcnt_or, 1);
+                  countDe += _mm256_extract_epi64(popcnt_or, 2);
+                  countDe += _mm256_extract_epi64(popcnt_or, 3);
+#else
+                  count += _mm_popcnt_u64(_mm256_extract_epi64(vand, 0));
+                  count += _mm_popcnt_u64(_mm256_extract_epi64(vand, 1));
+                  count += _mm_popcnt_u64(_mm256_extract_epi64(vand, 2));
+                  count += _mm_popcnt_u64(_mm256_extract_epi64(vand, 3));
+
+                  countDe += _mm_popcnt_u64(_mm256_extract_epi64(vor, 0));
+                  countDe += _mm_popcnt_u64(_mm256_extract_epi64(vor, 1));
+                  countDe += _mm_popcnt_u64(_mm256_extract_epi64(vor, 2));
+                  countDe += _mm_popcnt_u64(_mm256_extract_epi64(vor, 3));
+#endif
+                  a += 32;
+                  b += 32;
+            }
+#endif
+
+            while (a < last)
+            {
+                  __m128i va = _mm_loadu_si128(reinterpret_cast<const __m128i *>(a));
+                  __m128i vb = _mm_loadu_si128(reinterpret_cast<const __m128i *>(b));
+                  __m128i vand = _mm_and_si128(va, vb);
+                  __m128i vor = _mm_or_si128(va, vb);
+
+#if defined(__AVX512VPOPCNTDQ__) && defined(__AVX512VL__)
+                  __m128i popcnt_and = _mm_popcnt_epi64(vand);
+                  __m128i popcnt_or = _mm_popcnt_epi64(vor);
+                  count += _mm_extract_epi64(popcnt_and, 0);
+                  count += _mm_extract_epi64(popcnt_and, 1);
+
+                  countDe += _mm_extract_epi64(popcnt_or, 0);
+                  countDe += _mm_extract_epi64(popcnt_or, 1);
+#else
+                  count += _mm_popcnt_u64(_mm_extract_epi64(vand, 0));
+                  count += _mm_popcnt_u64(_mm_extract_epi64(vand, 1));
+
+                  countDe += _mm_popcnt_u64(_mm_extract_epi64(vor, 0));
+                  countDe += _mm_popcnt_u64(_mm_extract_epi64(vor, 1));
+#endif
+                  a += 16;
+                  b += 16;
+            }
+
+            return 1.0 - static_cast<double>(count) / static_cast<double>(countDe);
       }
 
-      return 1.0 - static_cast<double>(count) / static_cast<double>(countDe);
-    }
+
 #endif
 
     inline static double compareSparseJaccardDistance(const unsigned char *a, const unsigned char *b, size_t size) {
