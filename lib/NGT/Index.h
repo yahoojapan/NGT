@@ -728,6 +728,174 @@ namespace NGT {
   class GraphIndex : public Index,
     public NeighborhoodGraph {
   public:
+	  class GraphStatistics
+	  {
+	  public:
+		  size_t getNumberOfObjects() const { return numberOfObjects; }
+		  size_t getNumberOfIndexedObjects() const { return numberOfIndexedObjects; }
+		  size_t getSizeOfObjectRepository() const { return sizeOfObjectRepository; }
+		  size_t getSizeOfRefinementObjectRepository() const { return sizeOfRefinementObjectRepository; }
+		  size_t getNumberOfRemovedObjects() const { return numberOfRemovedObjects; }
+		  size_t getNumberOfNodes() const { return numberOfNodes; }
+		  size_t getNumberOfEdges() const { return numberOfEdges; }
+		  long double getMeanEdgeLength() const { return meanEdgeLength; }
+		  double getMeanNumberOfEdgesPerNode() const { return meanNumberOfEdgesPerNode; }
+		  size_t getNumberOfNodesWithoutEdges() const { return numberOfNodesWithoutEdges; }
+		  size_t getMaxNumberOfOutdegree() const { return maxNumberOfOutdegree; }
+		  size_t getMinNumberOfOutdegree() const { return minNumberOfOutdegree; }
+		  size_t getNumberOfNodesWithoutIndegree() const { return numberOfNodesWithoutIndegree; }
+		  size_t getMaxNumberOfIndegree() const { return maxNumberOfIndegree; }
+		  size_t getMinNumberOfIndegree() const { return minNumberOfIndegree; }
+		  long double getMeanEdgeLengthFor10Edges() const { return meanEdgeLengthFor10Edges; }
+		  size_t getNodesSkippedFor10Edges() const { return nodesSkippedFor10Edges; }
+		  long double getMeanIndegreeDistanceFor10Edges() const { return meanIndegreeDistanceFor10Edges; }
+		  size_t getNodesSkippedForIndegreeDistance() const { return nodesSkippedForIndegreeDistance; }
+		  double getVarianceOfOutdegree() const { return varianceOfOutdegree; }
+		  double getVarianceOfIndegree() const { return varianceOfIndegree; }
+		  int getMedianOutdegree() const { return medianOutdegree; }
+		  size_t getModeOutdegree() const { return modeOutdegree; }
+		  double getC95Outdegree() const { return c95Outdegree; }
+		  double getC99Outdegree() const { return c99Outdegree; }
+		  int getMedianIndegree() const { return medianIndegree; }
+		  size_t getModeIndegree() const { return modeIndegree; }
+		  double getC5Indegree() const { return c5Indegree; }
+		  double getC1Indegree() const { return c1Indegree; }
+		  std::vector<int64_t> getIndegreeCount() const { return indegreeCount; }
+		  std::vector<size_t> getOutdegreeHistogram() const { return outdegreeHistogram; }
+		  std::vector<size_t> getIndegreeHistogram() const { return indegreeHistogram; }
+		  bool isValid() const { return valid; }
+
+		  std::string toString(NGT::GraphIndex &outGraph, char mode) const {
+			  std::ostringstream oss;
+			  oss << "Graph Statistics:" << std::endl;
+			  oss << "Number of objects:\t" << numberOfObjects << std::endl;
+			  oss << "Number of indexed objects:\t" << numberOfIndexedObjects << std::endl;
+			  oss << "Size of object repository (not the number of the objects):\t" << sizeOfObjectRepository << std::endl;
+#ifdef NGT_REFINEMENT
+			  oss << "Size of refinement object repository (not the number of the objects):\t" << sizeOfRefinementObjectRepository << std::endl;
+#endif
+			  oss << "Number of removed objects:\t" << numberOfRemovedObjects << std::endl;
+			  oss << "Number of nodes:\t" << numberOfNodes << std::endl;
+			  oss << "Number of edges:\t" << numberOfEdges << std::endl;
+			  oss << "Mean edge length:\t" << std::setprecision(10) << meanEdgeLength << std::endl;
+			  oss << "Mean number of edges per node:\t" << meanNumberOfEdgesPerNode << std::endl;
+			  oss << "Number of nodes without edges:\t" << numberOfNodesWithoutEdges << std::endl;
+			  oss << "Maximum outdegree:\t" << maxNumberOfOutdegree << std::endl;
+			  if (minNumberOfOutdegree == static_cast<size_t>(-1)) {
+				  oss << "Minimum outdegree:\t-NA-" << std::endl;
+			  } else {
+				  oss << "Minimum outdegree:\t" << minNumberOfOutdegree << std::endl;
+			  }
+			  oss << "Number of nodes without indegree:\t" << numberOfNodesWithoutIndegree << std::endl;
+			  oss << "Maximum indegree:\t" << maxNumberOfIndegree << std::endl;
+			  if (minNumberOfIndegree == static_cast<size_t>(-1)) {
+				  oss << "Minimum indegree:\t-NA-" << std::endl;
+			  } else {
+				  oss << "Minimum indegree:\t" << minNumberOfIndegree << std::endl;
+			  }
+			  oss << "Mean edge length for the first 10 edges:\t" << meanEdgeLengthFor10Edges << std::endl;
+			  oss << "Number of nodes skipped for first 10 edges:\t" << nodesSkippedFor10Edges << std::endl;
+			  oss << "Mean indegree distance for the first 10 edges:\t" << meanIndegreeDistanceFor10Edges << std::endl;
+			  oss << "Number of nodes skipped for indegree distance:\t" << nodesSkippedForIndegreeDistance << std::endl;
+			  oss << "Variance of outdegree:\t" << varianceOfOutdegree << std::endl;
+			  oss << "Variance of indegree:\t" << varianceOfIndegree << std::endl;
+			  oss << "Median outdegree:\t" << medianOutdegree << std::endl;
+			  oss << "Mode outdegree:\t" << modeOutdegree << std::endl;
+			  oss << "95th percentile of outdegree:\t" << c95Outdegree << std::endl;
+			  oss << "99th percentile of outdegree:\t" << c99Outdegree << std::endl;
+			  oss << "Median indegree:\t" << medianIndegree << std::endl;
+			  oss << "Mode indegree:\t" << modeIndegree << std::endl;
+			  oss << "5th percentile of indegree:\t" << c5Indegree << std::endl;
+			  oss << "1st percentile of indegree:\t" << c1Indegree << std::endl;
+			  if (mode == 'h') {
+				  oss << "#\tout\tin" << std::endl;
+				  for (size_t i = 0; i < outdegreeHistogram.size() || i < indegreeHistogram.size(); i++) {
+					  size_t out = outdegreeHistogram.size() <= i ? 0 : outdegreeHistogram[i];
+					  size_t in = indegreeHistogram.size() <= i ? 0 : indegreeHistogram[i];
+					  oss << i << "\t" << out << "\t" << in << std::endl;
+				  }
+			  } else if (mode == 'p') {
+				  oss << "ID\toutdegree\tindegree" << std::endl;
+				  NGT::GraphRepository &graph = outGraph.repository;
+				  for (size_t id = 1; id < graph.size(); id++) {
+					  oss << id << "\t" << outGraph.getNode(id)->size() << "\t" << indegreeCount[id] << std::endl;
+				  }
+			  }
+			  oss << "Is valid:\t" << (valid ? "True" : "False") << std::endl;
+			  return oss.str();
+		  }
+
+	  private:
+		  void setNumberOfObjects(size_t value) { numberOfObjects = value; }
+		  void setNumberOfIndexedObjects(size_t value) { numberOfIndexedObjects = value; }
+		  void setSizeOfObjectRepository(size_t value) { sizeOfObjectRepository = value; }
+		  void setSizeOfRefinementObjectRepository(size_t value) { sizeOfRefinementObjectRepository = value; }
+		  void setNumberOfRemovedObjects(size_t value) { numberOfRemovedObjects = value; }
+		  void setNumberOfNodes(size_t value) { numberOfNodes = value; }
+		  void setNumberOfEdges(size_t value) { numberOfEdges = value; }
+		  void setMeanEdgeLength(long double value) { meanEdgeLength = value; }
+		  void setMeanNumberOfEdgesPerNode(double value) { meanNumberOfEdgesPerNode = value; }
+		  void setNumberOfNodesWithoutEdges(size_t value) { numberOfNodesWithoutEdges = value; }
+		  void setMaxNumberOfOutdegree(size_t value) { maxNumberOfOutdegree = value; }
+		  void setMinNumberOfOutdegree(size_t value) { minNumberOfOutdegree = value; }
+		  void setNumberOfNodesWithoutIndegree(size_t value) { numberOfNodesWithoutIndegree = value; }
+		  void setMaxNumberOfIndegree(size_t value) { maxNumberOfIndegree = value; }
+		  void setMinNumberOfIndegree(size_t value) { minNumberOfIndegree = value; }
+		  void setMeanEdgeLengthFor10Edges(long double value) { meanEdgeLengthFor10Edges = value; }
+		  void setNodesSkippedFor10Edges(size_t value) { nodesSkippedFor10Edges = value; }
+		  void setMeanIndegreeDistanceFor10Edges(long double value) { meanIndegreeDistanceFor10Edges = value; }
+		  void setNodesSkippedForIndegreeDistance(size_t value) { nodesSkippedForIndegreeDistance = value; }
+		  void setVarianceOfOutdegree(double value) { varianceOfOutdegree = value; }
+		  void setVarianceOfIndegree(double value) { varianceOfIndegree = value; }
+		  void setMedianOutdegree(int value) { medianOutdegree = value; }
+		  void setModeOutdegree(size_t value) { modeOutdegree = value; }
+		  void setC95Outdegree(double value) { c95Outdegree = value; }
+		  void setC99Outdegree(double value) { c99Outdegree = value; }
+		  void setMedianIndegree(int value) { medianIndegree = value; }
+		  void setModeIndegree(size_t value) { modeIndegree = value; }
+		  void setC5Indegree(double value) { c5Indegree = value; }
+		  void setC1Indegree(double value) { c1Indegree = value; }
+		  void setIndegreeCount(std::vector<int64_t> value) { indegreeCount = value; }
+		  void setOutdegreeHistogram(std::vector<size_t> value) { outdegreeHistogram = value; }
+		  void setIndegreeHistogram(std::vector<size_t> value) { indegreeHistogram = value; }
+		  void setValid(bool value) { valid = value; }
+
+		  size_t numberOfObjects;
+		  size_t numberOfIndexedObjects;
+		  size_t sizeOfObjectRepository;
+		  size_t sizeOfRefinementObjectRepository;
+		  size_t numberOfRemovedObjects;
+		  size_t numberOfNodes;
+		  size_t numberOfEdges;
+		  long double meanEdgeLength;
+		  double meanNumberOfEdgesPerNode;
+		  size_t numberOfNodesWithoutEdges;
+		  size_t maxNumberOfOutdegree;
+		  size_t minNumberOfOutdegree;
+		  size_t numberOfNodesWithoutIndegree;
+		  size_t maxNumberOfIndegree;
+		  size_t minNumberOfIndegree;
+		  long double meanEdgeLengthFor10Edges;
+		  size_t nodesSkippedFor10Edges;
+		  long double meanIndegreeDistanceFor10Edges;
+		  size_t nodesSkippedForIndegreeDistance;
+		  double varianceOfOutdegree;
+		  double varianceOfIndegree;
+		  int medianOutdegree;
+		  size_t modeOutdegree;
+		  double c95Outdegree;
+		  double c99Outdegree;
+		  int medianIndegree;
+		  size_t modeIndegree;
+		  double c5Indegree;
+		  double c1Indegree;
+		  std::vector<int64_t> indegreeCount;
+		  std::vector<size_t> outdegreeHistogram;
+		  std::vector<size_t> indegreeHistogram;
+		  bool valid;
+
+		  friend class GraphIndex;
+	  };
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
     GraphIndex(const std::string &allocator, bool rdOnly = false);
@@ -1346,6 +1514,7 @@ namespace NGT {
     void extractInsertionOrder(InsertionOrder &insertionOrder);
 
     static bool showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode = '-', size_t edgeSize = UINT_MAX);
+    static NGT::GraphIndex::GraphStatistics getGraphStatistics(NGT::GraphIndex &outGraph, char mode = '-', size_t edgeSize = UINT_MAX);
 
     size_t getNumberOfObjects() { return objectSpace->getRepository().count(); }
     size_t getNumberOfIndexedObjects() {

@@ -14,6 +14,7 @@
 // limitations under the License.
 //
 
+#include <algorithm>
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -105,7 +106,88 @@ NGTIndex ngt_create_graph_and_tree_in_memory(NGTProperty prop, NGTError error) {
 #endif
 }
 
-NGTProperty ngt_create_property(NGTError error) {
+NGTGraphStatistics ngt_get_graph_statistics(const NGTIndex index, char mode, size_t edgeSize, NGTError error) {
+  NGTGraphStatistics cStats;
+  if(index == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index;
+    operate_error_string_(ss, error);
+    return cStats;
+  }
+
+  NGT::Index*		pindex = static_cast<NGT::Index*>(index);
+  NGT::GraphIndex	&graph = static_cast<NGT::GraphIndex&>(pindex->getIndex());
+  NGT::GraphIndex::GraphStatistics stats = NGT::GraphIndex::getGraphStatistics(graph, mode, edgeSize);
+  try {
+    cStats.numberOfObjects = stats.getNumberOfObjects();
+    cStats.numberOfIndexedObjects = stats.getNumberOfIndexedObjects();
+    cStats.sizeOfObjectRepository = stats.getSizeOfObjectRepository();
+    cStats.sizeOfRefinementObjectRepository = stats.getSizeOfRefinementObjectRepository();
+    cStats.numberOfRemovedObjects = stats.getNumberOfRemovedObjects();
+    cStats.numberOfNodes = stats.getNumberOfNodes();
+    cStats.numberOfEdges = stats.getNumberOfEdges();
+    cStats.meanEdgeLength = static_cast<double>(stats.getMeanEdgeLength());
+    cStats.meanNumberOfEdgesPerNode = stats.getMeanNumberOfEdgesPerNode();
+    cStats.numberOfNodesWithoutEdges = stats.getNumberOfNodesWithoutEdges();
+    cStats.maxNumberOfOutdegree = stats.getMaxNumberOfOutdegree();
+    cStats.minNumberOfOutdegree = stats.getMinNumberOfOutdegree();
+    cStats.numberOfNodesWithoutIndegree = stats.getNumberOfNodesWithoutIndegree();
+    cStats.maxNumberOfIndegree = stats.getMaxNumberOfIndegree();
+    cStats.minNumberOfIndegree = stats.getMinNumberOfIndegree();
+    cStats.meanEdgeLengthFor10Edges = static_cast<double>(stats.getMeanEdgeLengthFor10Edges());
+    cStats.nodesSkippedFor10Edges = stats.getNodesSkippedFor10Edges();
+    cStats.meanIndegreeDistanceFor10Edges = static_cast<double>(stats.getMeanIndegreeDistanceFor10Edges());
+    cStats.nodesSkippedForIndegreeDistance = stats.getNodesSkippedForIndegreeDistance();
+    cStats.varianceOfOutdegree = stats.getVarianceOfOutdegree();
+    cStats.varianceOfIndegree = stats.getVarianceOfIndegree();
+    cStats.medianOutdegree = stats.getMedianOutdegree();
+    cStats.modeOutdegree = stats.getModeOutdegree();
+    cStats.c95Outdegree = stats.getC95Outdegree();
+    cStats.c99Outdegree = stats.getC99Outdegree();
+    cStats.medianIndegree = stats.getMedianIndegree();
+    cStats.modeIndegree = stats.getModeIndegree();
+    cStats.c5Indegree = stats.getC5Indegree();
+    cStats.c1Indegree = stats.getC1Indegree();
+
+    cStats.indegreeCountSize = stats.getIndegreeCount().size();
+    cStats.indegreeCount = new int64_t[cStats.indegreeCountSize];
+    std::copy(stats.getIndegreeCount().begin(), stats.getIndegreeCount().end(), cStats.indegreeCount);
+
+    cStats.outdegreeHistogramSize = stats.getOutdegreeHistogram().size();
+    cStats.outdegreeHistogram = new size_t[cStats.outdegreeHistogramSize];
+    std::copy(stats.getOutdegreeHistogram().begin(), stats.getOutdegreeHistogram().end(), cStats.outdegreeHistogram);
+
+    cStats.indegreeHistogramSize = stats.getIndegreeHistogram().size();
+    cStats.indegreeHistogram = new size_t[cStats.indegreeHistogramSize];
+    std::copy(stats.getIndegreeHistogram().begin(), stats.getIndegreeHistogram().end(), cStats.indegreeHistogram);
+
+    cStats.valid = stats.isValid();
+  }catch(std::exception &err){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+   return cStats;
+  }
+
+  return cStats;
+}
+
+void ngt_free_graph_statistics(NGTGraphStatistics *cStats) {
+  delete[] cStats->indegreeCount;
+  cStats->indegreeCount = nullptr;
+  cStats->indegreeCountSize = 0;
+
+  delete[] cStats->outdegreeHistogram;
+  cStats->outdegreeHistogram = nullptr;
+  cStats->outdegreeHistogramSize = 0;
+
+  delete[] cStats->indegreeHistogram;
+  cStats->indegreeHistogram = nullptr;
+  cStats->indegreeHistogramSize = 0;
+}
+
+NGTProperty ngt_create_property(NGTError error)
+{
   try{
     return static_cast<NGTProperty>(new NGT::Property());
   }catch(std::exception &err){
