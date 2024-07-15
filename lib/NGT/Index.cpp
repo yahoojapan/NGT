@@ -14,6 +14,8 @@
 // limitations under the License.
 //
 
+#include	<algorithm>
+
 #include	"NGT/defines.h"
 #include	"NGT/Common.h"
 #include	"NGT/ObjectSpaceRepository.h"
@@ -1491,6 +1493,332 @@ NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode, siz
     }
   }
   return valid;
+}
+
+NGT::GraphIndex::GraphStatistics
+NGT::GraphIndex::getGraphStatistics(NGT::GraphIndex &outGraph, char mode, size_t edgeSize) {
+  NGT::GraphIndex::GraphStatistics stats = {};
+  long double distance = 0.0;
+  size_t numberOfNodes = 0;
+  size_t numberOfOutdegree = 0;
+  size_t numberOfNodesWithoutEdges = 0;
+  size_t maxNumberOfOutdegree = 0;
+  size_t minNumberOfOutdegree = SIZE_MAX;
+  std::vector<int64_t> indegreeCount;
+  std::vector<size_t> outdegreeHistogram;
+  std::vector<size_t> indegreeHistogram;
+  std::vector<std::vector<float>> indegree;
+  NGT::GraphRepository &graph = outGraph.repository;
+  NGT::ObjectRepository &repo = outGraph.objectSpace->getRepository();
+
+#ifdef NGT_REFINEMENT
+  auto &rrepo = outGraph.refinementObjectSpace->getRepository();
+#endif
+
+  indegreeCount.resize(graph.size(), 0);
+  indegree.resize(graph.size());
+  size_t removedObjectCount = 0;
+  bool valid = true;
+
+  for (size_t id = 1; id < graph.size(); id++) {
+    if (repo[id] == 0) {
+      removedObjectCount++;
+      continue;
+    }
+    NGT::GraphNode *node = nullptr;
+    try {
+      node = outGraph.getNode(id);
+    } catch (NGT::Exception &err) {
+      std::cerr << "ngt info: Error. Cannot get the node. ID=" << id << ":" << err.what() << std::endl;
+      valid = false;
+      continue;
+    }
+    numberOfNodes++;
+    size_t esize = std::min(node->size(), edgeSize); // edge size limitation by using edgeSize argument.
+    if (esize == 0) {
+      numberOfNodesWithoutEdges++;
+    }
+    maxNumberOfOutdegree = std::max(maxNumberOfOutdegree, esize);
+    minNumberOfOutdegree = std::min(minNumberOfOutdegree, esize);
+    if (outdegreeHistogram.size() <= esize) {
+      outdegreeHistogram.resize(esize + 1);
+    }
+    outdegreeHistogram[esize]++;
+    for (size_t i = 0; i < esize; i++) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+      NGT::ObjectDistance &n = (*node).at(i, graph.allocator);
+#else
+      NGT::ObjectDistance &n = (*node)[i];
+#endif
+      if (std::isnan(n.distance)) {
+        stringstream msg;
+        msg << "NGT::GraphIndex::getGraphStatistics: Fatal inner error! The graph has a node with nan distance. " << id << ":" << n.id << ":" << n.distance;
+        NGTThrowException(msg);
+      }
+      if (n.id == 0) {
+        std::cerr << "ngt info: Warning. id is zero." << std::endl;
+        valid = false;
+      }
+      indegreeCount[n.id]++;
+      indegree[n.id].push_back(n.distance);
+      numberOfOutdegree++;
+      double d = n.distance;
+      distance += d;
+    }
+  }
+
+  // if mode is 'a' process additional edge checking
+  if (mode == 'a') {
+    size_t count = 0;
+    for (size_t id = 1; id < graph.size(); id++) {
+      if (repo[id] == 0) continue;
+      NGT::GraphNode *n = nullptr;
+      try {
+        n = outGraph.getNode(id);
+      } catch (NGT::Exception &err) {
+        continue;
+      }
+      NGT::GraphNode &node = *n;
+      for (size_t i = 0; i < node.size(); i++) {
+        NGT::GraphNode *nn = nullptr;
+        try {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+          nn = outGraph.getNode(node.at(i, graph.allocator).id);
+#else
+          nn = outGraph.getNode(node[i].id);
+#endif
+        } catch (NGT::Exception &err) {
+          count++;
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+          std::cerr << "Directed edge! " << id << "->" << node.at(i, graph.allocator).id << " no object. "
+                    << node.at(i, graph.allocator).id << std::endl;
+#else
+          std::cerr << "Directed edge! " << id << "->" << node[i].id << " no object. " << node[i].id << std::endl;
+#endif
+          continue;
+        }
+        NGT::GraphNode &nnode = *nn;
+        bool found = false;
+        for (size_t i = 0; i < nnode.size(); i++) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+          if (nnode.at(i, graph.allocator).id == id) {
+#else
+          if (nnode[i].id == id) {
+#endif
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+          std::cerr << "Directed edge! " << id << "->" << node.at(i, graph.allocator).id << " no edge. "
+                    << node.at(i, graph.allocator).id << "->" << id << std::endl;
+#else
+          std::cerr << "Directed edge! " << id << "->" << node[i].id << " no edge. " << node[i].id << "->" << id << std::endl;
+#endif
+          count++;
+        }
+      }
+    }
+    std::cerr << "The number of directed edges=" << count << std::endl;
+  }
+
+  // Calculate outdegree distance for the first 10 edges
+  size_t d10count = 0;
+  long double distance10 = 0.0;
+  size_t d10SkipCount = 0;
+  const size_t dcsize = 10;
+  for (size_t id = 1; id < graph.size(); id++) {
+    if (repo[id] == 0) continue;
+    NGT::GraphNode *n = nullptr;
+    try {
+      n = outGraph.getNode(id);
+    } catch (NGT::Exception &err) {
+      std::cerr << "ngt info: Warning. Cannot get the node. ID=" << id << ":" << err.what() << std::endl;
+      continue;
+    }
+    NGT::GraphNode &node = *n;
+    if (node.size() < dcsize) {
+      d10SkipCount++;
+      continue;
+    }
+    for (size_t i = 0; i < dcsize; i++) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+      distance10 += node.at(i, graph.allocator).distance;
+#else
+      distance10 += node[i].distance;
+#endif
+      d10count++;
+    }
+  }
+  if (d10count != 0) {
+    distance10 /= static_cast<long double>(d10count);
+  }
+
+  // Calculate indegree distance for the first 10 edges
+  size_t ind10count = 0;
+  long double indegreeDistance10 = 0.0;
+  size_t ind10SkipCount = 0;
+  for (size_t id = 1; id < indegree.size(); id++) {
+    std::vector<float> &node = indegree[id];
+    if (node.size() < dcsize) {
+      ind10SkipCount++;
+      continue;
+    }
+    std::sort(node.begin(), node.end());
+    for (size_t i = 0; i < dcsize; i++) {
+      if (i > 0 && node[i - 1] > node[i]) {
+        stringstream msg;
+        msg << "NGT::GraphIndex::getGraphStatistics: Fatal inner error! Wrong distance order " << node[i - 1] << ":" << node[i];
+        NGTThrowException(msg);
+      }
+      indegreeDistance10 += node[i];
+      ind10count++;
+    }
+  }
+  if (ind10count != 0) {
+    indegreeDistance10 /= static_cast<long double>(ind10count);
+  }
+
+  // Calculate variance
+  double averageNumberOfOutdegree = static_cast<double>(numberOfOutdegree) / numberOfNodes;
+  double sumOfSquareOfOutdegree = 0;
+  double sumOfSquareOfIndegree = 0;
+  for (size_t id = 1; id < graph.size(); id++) {
+    if (repo[id] == 0) continue;
+    NGT::GraphNode *node = nullptr;
+    try {
+      node = outGraph.getNode(id);
+    } catch (NGT::Exception &err) {
+      std::cerr << "ngt info: Warning. Cannot get the node. ID=" << id << ":" << err.what() << std::endl;
+      continue;
+    }
+    size_t esize = node->size();
+    sumOfSquareOfOutdegree += (static_cast<double>(esize) - averageNumberOfOutdegree) * (static_cast<double>(esize) - averageNumberOfOutdegree);
+    sumOfSquareOfIndegree += (static_cast<double>(indegreeCount[id]) - averageNumberOfOutdegree) * (static_cast<double>(indegreeCount[id]) - averageNumberOfOutdegree);
+  }
+
+  size_t numberOfNodesWithoutIndegree = 0;
+  size_t maxNumberOfIndegree = 0;
+  size_t minNumberOfIndegree = INT64_MAX;
+  for (size_t id = 1; id < graph.size(); id++) {
+    if (graph[id] == 0) continue;
+    if (indegreeCount[id] == 0) {
+      numberOfNodesWithoutIndegree++;
+      std::cerr << "Warning! The node without incoming edges. " << id << std::endl;
+      valid = false;
+    }
+    maxNumberOfIndegree = std::max(maxNumberOfIndegree, static_cast<size_t>(indegreeCount[id]));
+    minNumberOfIndegree = std::min(minNumberOfIndegree, static_cast<size_t>(indegreeCount[id]));
+    if (indegreeHistogram.size() <= static_cast<size_t>(indegreeCount[id])) {
+      indegreeHistogram.resize(indegreeCount[id] + 1);
+    }
+    indegreeHistogram[indegreeCount[id]]++;
+  }
+
+  size_t count = 0;
+  int medianOutdegree = -1;
+  size_t modeOutdegree = 0;
+  size_t max = 0;
+  double c95 = 0.0;
+  double c99 = 0.0;
+  for (size_t i = 0; i < outdegreeHistogram.size(); i++) {
+    count += outdegreeHistogram[i];
+    if (medianOutdegree == -1 && count >= numberOfNodes / 2) {
+      medianOutdegree = i;
+    }
+    if (max < outdegreeHistogram[i]) {
+      max = outdegreeHistogram[i];
+      modeOutdegree = i;
+    }
+    if (count > numberOfNodes * 0.95) {
+      if (c95 == 0.0) {
+        c95 += i * (count - numberOfNodes * 0.95);
+      } else {
+        c95 += i * outdegreeHistogram[i];
+      }
+    }
+    if (count > numberOfNodes * 0.99) {
+      if (c99 == 0.0) {
+        c99 += i * (count - numberOfNodes * 0.99);
+      } else {
+        c99 += i * outdegreeHistogram[i];
+      }
+    }
+  }
+  c95 /= static_cast<double>(numberOfNodes) * 0.05;
+  c99 /= static_cast<double>(numberOfNodes) * 0.01;
+
+  count = 0;
+  int medianIndegree = -1;
+  size_t modeIndegree = 0;
+  max = 0;
+  double c5 = 0.0;
+  double c1 = 0.0;
+  for (size_t i = 0; i < indegreeHistogram.size(); i++) {
+    if (count < numberOfNodes * 0.05) {
+      if (count + indegreeHistogram[i] >= numberOfNodes * 0.05) {
+        c5 += i * (numberOfNodes * 0.05 - count);
+      } else {
+        c5 += i * indegreeHistogram[i];
+      }
+    }
+    if (count < numberOfNodes * 0.01) {
+      if (count + indegreeHistogram[i] >= numberOfNodes * 0.01) {
+        c1 += i * (numberOfNodes * 0.01 - count);
+      } else {
+        c1 += i * indegreeHistogram[i];
+      }
+    }
+    count += indegreeHistogram[i];
+    if (medianIndegree == -1 && count >= numberOfNodes / 2) {
+      medianIndegree = i;
+    }
+    if (max < indegreeHistogram[i]) {
+      max = indegreeHistogram[i];
+      modeIndegree = i;
+    }
+  }
+  c5 /= static_cast<double>(numberOfNodes) * 0.05;
+  c1 /= static_cast<double>(numberOfNodes) * 0.01;
+
+  stats.setNumberOfObjects(outGraph.getNumberOfObjects());
+  stats.setNumberOfIndexedObjects(outGraph.getNumberOfIndexedObjects());
+  stats.setSizeOfObjectRepository(repo.size() == 0 ? 0 : repo.size() - 1);
+#ifdef NGT_REFINEMENT
+  stats.setSizeOfRefinementObjectRepository(rrepo.size() == 0 ? 0 : rrepo.size() - 1);
+#endif
+  stats.setNumberOfRemovedObjects(removedObjectCount);
+  stats.setNumberOfNodes(numberOfNodes);
+  stats.setNumberOfEdges(numberOfOutdegree);
+  stats.setMeanEdgeLength(numberOfOutdegree != 0.0 ? distance / static_cast<double>(numberOfOutdegree) : 0.0);
+  stats.setMeanNumberOfEdgesPerNode(numberOfNodes != 0.0 ? static_cast<double>(numberOfOutdegree) / static_cast<double>(numberOfNodes) : 0.0);
+  stats.setNumberOfNodesWithoutEdges(numberOfNodesWithoutEdges);
+  stats.setMaxNumberOfOutdegree(maxNumberOfOutdegree);
+  stats.setMinNumberOfOutdegree(minNumberOfOutdegree == SIZE_MAX ? static_cast<size_t>(-1) : minNumberOfOutdegree);
+  stats.setNumberOfNodesWithoutIndegree(numberOfNodesWithoutIndegree);
+  stats.setMaxNumberOfIndegree(maxNumberOfIndegree);
+  stats.setMinNumberOfIndegree(minNumberOfIndegree == INT64_MAX ? static_cast<size_t>(-1) : minNumberOfIndegree);
+  stats.setMeanEdgeLengthFor10Edges(distance10);
+  stats.setNodesSkippedFor10Edges(d10SkipCount);
+  stats.setMeanIndegreeDistanceFor10Edges(indegreeDistance10);
+  stats.setNodesSkippedForIndegreeDistance(ind10SkipCount);
+  stats.setVarianceOfOutdegree(sumOfSquareOfOutdegree / static_cast<double>(numberOfOutdegree));
+  stats.setVarianceOfIndegree(sumOfSquareOfIndegree / static_cast<double>(numberOfOutdegree));
+  stats.setMedianOutdegree(medianOutdegree);
+  stats.setModeOutdegree(modeOutdegree);
+  stats.setC95Outdegree(c95);
+  stats.setC99Outdegree(c99);
+  stats.setMedianIndegree(medianIndegree);
+  stats.setModeIndegree(modeIndegree);
+  stats.setC5Indegree(c5);
+  stats.setC1Indegree(c1);
+  stats.setIndegreeCount(indegreeCount);
+  stats.setOutdegreeHistogram(outdegreeHistogram);
+  stats.setIndegreeHistogram(indegreeHistogram);
+  stats.setValid(valid);
+
+  return stats;
 }
 
 

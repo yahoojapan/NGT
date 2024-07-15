@@ -80,6 +80,45 @@ typedef struct {
   bool		log;
 } NGTAnngEdgeOptimizationParameter;
 
+typedef struct {
+  size_t numberOfObjects;
+  size_t numberOfIndexedObjects;
+  size_t sizeOfObjectRepository;
+  size_t sizeOfRefinementObjectRepository;
+  size_t numberOfRemovedObjects;
+  size_t numberOfNodes;
+  size_t numberOfEdges;
+  double meanEdgeLength;
+  double meanNumberOfEdgesPerNode;
+  size_t numberOfNodesWithoutEdges;
+  size_t maxNumberOfOutdegree;
+  size_t minNumberOfOutdegree;
+  size_t numberOfNodesWithoutIndegree;
+  size_t maxNumberOfIndegree;
+  size_t minNumberOfIndegree;
+  double meanEdgeLengthFor10Edges;
+  size_t nodesSkippedFor10Edges;
+  double meanIndegreeDistanceFor10Edges;
+  size_t nodesSkippedForIndegreeDistance;
+  double varianceOfOutdegree;
+  double varianceOfIndegree;
+  int medianOutdegree;
+  size_t modeOutdegree;
+  double c95Outdegree;
+  double c99Outdegree;
+  int medianIndegree;
+  size_t modeIndegree;
+  double c5Indegree;
+  double c1Indegree;
+  bool valid;
+  int64_t *indegreeCount;
+  size_t indegreeCountSize;
+  size_t *outdegreeHistogram;
+  size_t outdegreeHistogramSize;
+  size_t *indegreeHistogram;
+  size_t indegreeHistogramSize;
+} NGTGraphStatistics;
+
 NGTIndex ngt_open_index(const char *, NGTError);
 
 NGTIndex ngt_open_index_as_read_only(const char *, NGTError);
@@ -87,6 +126,10 @@ NGTIndex ngt_open_index_as_read_only(const char *, NGTError);
 NGTIndex ngt_create_graph_and_tree(const char *, NGTProperty, NGTError);
 
 NGTIndex ngt_create_graph_and_tree_in_memory(NGTProperty, NGTError);
+
+NGTGraphStatistics ngt_get_graph_statistics(const NGTIndex index, char mode, size_t edgeSize, NGTError error);
+
+void ngt_free_graph_statistics(NGTGraphStatistics *cStats);
 
 NGTProperty ngt_create_property(NGTError);
 

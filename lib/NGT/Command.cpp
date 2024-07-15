@@ -1285,7 +1285,7 @@ using namespace std;
   void
   NGT::Command::info(Args &args)
   {
-    const string usage = "Usage: ngt info [-E #-of-edges] [-m h|e] index";
+    const string usage = "Usage: ngt info [-E #-of-edges] [-m a|e|h|p] index";
 
     std::cout << "NGT version: " << NGT::Index::getVersion() << std::endl;
     std::cout << "CPU SIMD types: ";
