@@ -395,6 +395,70 @@ bool ngt_set_property_distance_type_inner_product(NGTProperty prop, NGTError err
   return ngt_set_property_distance_type(prop, NGT::Index::Property::DistanceType::DistanceTypeInnerProduct, error);
 }
 
+NGTPropertyInfo ngt_get_property_info(NGTIndex index, NGTError error) {
+  NGT::Property prop;
+  try {
+    static_cast<NGT::Index*>(index)->getProperty(prop);
+  } catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    NGTPropertyInfo err_val = {0};
+    return err_val;
+  }
+  NGTPropertyInfo info = {
+    prop.dimension,
+    prop.threadPoolSize,
+    prop.objectType,
+    prop.distanceType,
+    prop.indexType,
+    prop.databaseType,
+    prop.objectAlignment,
+    prop.pathAdjustmentInterval,
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+    prop.graphSharedMemorySize,
+    prop.treeSharedMemorySize,
+    prop.objectSharedMemorySize,
+#else
+    -1,
+    -1,
+    -1,
+#endif
+    prop.prefetchOffset,
+    prop.prefetchSize,
+    prop.accuracyTable.c_str(),
+    prop.searchType.c_str(),
+#ifdef NGT_INNER_PRODUCT
+    prop.maxMagnitude,
+#else
+    -1,
+#endif
+    prop.nOfNeighborsForInsertionOrder,
+    prop.epsilonForInsertionOrder,
+#ifdef NGT_REFINEMENT
+    prop.refinementObjectType,
+#else
+    -1,
+#endif
+    prop.truncationThreshold,
+    prop.edgeSizeForCreation,
+    prop.edgeSizeForSearch,
+    prop.edgeSizeLimitForCreation,
+    prop.insertionRadiusCoefficient,
+    prop.seedSize,
+    prop.seedType,
+    prop.truncationThreadPoolSize,
+    prop.batchSizeForCreation,
+    prop.graphType,
+    prop.dynamicEdgeSizeBase,
+    prop.dynamicEdgeSizeRate,
+    prop.buildTimeLimit,
+    prop.outgoingEdge,
+    prop.incomingEdge
+  };
+  return info;
+}
+
 NGTObjectDistances ngt_create_empty_results(NGTError error) {
   try{
     return static_cast<NGTObjectDistances>(new NGT::ObjectDistances());
