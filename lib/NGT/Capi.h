@@ -119,6 +119,43 @@ typedef struct {
   size_t indegreeHistogramSize;
 } NGTGraphStatistics;
 
+typedef struct {
+  int dimension;
+  int thread_pool_size;
+  int object_type;
+  int distance_type;
+  int index_type;
+  int database_type;
+  int object_alignment;
+  int path_adjustment_interval;
+  int graph_shared_memory_size;
+  int tree_shared_memory_size;
+  int object_shared_memory_size;
+  int prefetch_offset;
+  int prefetch_size;
+  const char* accuracy_table;
+  const char* search_type;
+  float max_magnitude;
+  int n_of_neighbors_for_insertion_order;
+  float epsilon_for_insertion_order;
+  int refinement_object_type;
+  int16_t truncation_threshold;
+  int16_t edge_size_for_creation;
+  int16_t edge_size_for_search;
+  int16_t edge_size_limit_for_creation;
+  double insertion_radius_coefficient;
+  int16_t seed_size;
+  int seed_type;
+  int16_t truncation_thread_pool_size;
+  int16_t batch_size_for_creation;
+  int graph_type;
+  int16_t dynamic_edge_size_base;
+  int16_t dynamic_edge_size_rate;
+  float build_time_limit;
+  int16_t outgoing_edge;
+  int16_t incoming_edge;
+} NGTPropertyInfo;
+
 NGTIndex ngt_open_index(const char *, NGTError);
 
 NGTIndex ngt_open_index_as_read_only(const char *, NGTError);
@@ -184,6 +221,8 @@ bool ngt_set_property_distance_type_normalized_angle(NGTProperty, NGTError);
 bool ngt_set_property_distance_type_normalized_cosine(NGTProperty, NGTError);
 
 bool ngt_set_property_distance_type_inner_product(NGTProperty, NGTError);
+
+NGTPropertyInfo ngt_get_property_info(NGTIndex, NGTError);
 
 NGTObjectDistances ngt_create_empty_results(NGTError);
 
