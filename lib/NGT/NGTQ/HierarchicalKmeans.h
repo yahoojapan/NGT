@@ -241,8 +241,8 @@ namespace QBG {
       size_t rootID = 0;
       HKInternalNode &root = static_cast<HKInternalNode&>(*nodes[rootID]);
       std::cerr << "first=" << root.children.size() << std::endl;
-      size_t secondCount = 0;	
-      size_t thirdCount = 0;	
+      size_t secondCount = 0;
+      size_t thirdCount = 0;
       size_t objectCount = 0;
       size_t leafID = 0;
       size_t qID = 0;

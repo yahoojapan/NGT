@@ -46,13 +46,13 @@
 #define NGTQ_OBJECT_IN_MEMORY
 
 #define NGTQ_UINT8_LUT
-#define NGTQ_SIMD_BLOCK_SIZE	16	
-#define NGTQ_BATCH_SIZE		2	
+#define NGTQ_SIMD_BLOCK_SIZE	16
+#define NGTQ_BATCH_SIZE		2
 #define NGTQ_UINT4_OBJECT
 #define NGTQ_TOTAL_SCALE_OFFSET_COMPRESSION
 #define NGTQG_PREFETCH
 #if defined(NGT_AVX512)
-#define NGTQG_AVX512	
+#define NGTQG_AVX512
 #warning "AVX512 is available for NGTQG"
 #elif defined(NGT_AVX2)
 #define NGTQG_AVX2
@@ -66,7 +66,7 @@
 
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-#define	NGTQ_SHARED_INVERTED_INDEX	
+#define	NGTQ_SHARED_INVERTED_INDEX
 #endif
 
 extern "C" {
@@ -466,8 +466,8 @@ public:
       localID[i] = 0;
     }
   }
-  uint32_t	id;		
-  T		localID[1];	
+  uint32_t	id;
+  T		localID[1];
 };
 
 template <typename T>
@@ -672,7 +672,7 @@ public:
 #else
   LocalDatam(size_t iii, size_t iil) : iiIdx(iii), iiLocalIdx(iil) {}
 #endif
-  size_t iiIdx;	
+  size_t iiIdx;
   size_t iiLocalIdx;
 #ifdef NGTQ_QBG
   uint32_t subspaceID;
@@ -701,7 +701,7 @@ public:
    CentroidCreationModeStatic		= 1,
    CentroidCreationModeDynamicKmeans	= 2,
    CentroidCreationModeStaticLayer	= 3,
-   CentroidCreationModeNone		= 9	
+   CentroidCreationModeNone		= 9
  };
 
  enum AggregationMode {
@@ -742,7 +742,7 @@ public:
     localCentroidCreationMode = CentroidCreationModeDynamic;
     localIDByteSize	= 0;		// finally decided by localCentroidLimit
     localCodebookState	= false;	// not completed
-    localClusteringSampleCoefficient = 10;	
+    localClusteringSampleCoefficient = 10;
     quantizerType	= QuantizerTypeNone;
 #ifdef NGTQ_OBJECT_IN_MEMORY
     objectListOnMemory	= false;
@@ -772,7 +772,7 @@ public:
     prop.set("BatchSize", 	(long)batchSize);
     prop.set("CentroidCreationMode", (long)centroidCreationMode);
     prop.set("LocalCentroidCreationMode", (long)localCentroidCreationMode);
-    prop.set("LocalIDByteSize",	(long)localIDByteSize);	
+    prop.set("LocalIDByteSize",	(long)localIDByteSize);
     prop.set("LocalCodebookState", (long)localCodebookState);
     prop.set("LocalSampleCoefficient", (long)localClusteringSampleCoefficient);
     prop.set("QuantizerType",	(long)quantizerType);
@@ -970,7 +970,7 @@ public:
 #endif
     size_t		size;
 #ifndef NGTQ_QBG
-    vector<bool>	flag;	
+    vector<bool>	flag;
 #endif
   };
 
@@ -1235,8 +1235,8 @@ public:
       dlu++;
       for (size_t k = 1; k < localCodebookCentroidNo; k++) {
 	NGT::Object &lcentroid = (NGT::Object&)*localCodebookIndexes[li].getObjectSpace().getRepository().get(k);
-	float *lcptr = (float*)&lcentroid[0];		
-	float *lcendptr = lcptr + localDataSize;	
+	float *lcptr = (float*)&lcentroid[0];
+	float *lcendptr = lcptr + localDataSize;
 	float *toptr = optr + oft;
 	float *tgcptr = gcptr + oft;
 	double normA = 0.0F;
@@ -1288,7 +1288,7 @@ public:
       lut++;
       lcptr += localDataSize;
       for (size_t k = 1; k < localCodebookCentroidNo; k++) {
-	float *lcendptr = lcptr + localDataSize;	
+	float *lcendptr = lcptr + localDataSize;
 	float *toptr = optr + oft;
 	float *tgcptr = gcptr + oft;
 	float d = 0.0;
@@ -1563,7 +1563,7 @@ public:
       *lut++ = 0;
       lcptr += localDataSize;
       for (size_t k = 1; k < localCodebookCentroidNo; k++) {
-	float *lcendptr = lcptr + localDataSize;	
+	float *lcendptr = lcptr + localDataSize;
 	float *toptr = optr + oft;
 #if !defined(NGTQG_ZERO_GLOBAL)
 	float *tgcptr = gcptr + oft;
@@ -1686,8 +1686,8 @@ public:
   vector<float>	globalCentroid;
   QuantizationCodebook<float>	*quantizationCodebook;
   
-  float		*localCentroids;	
-  float		*localCentroidsForSIMD;	
+  float		*localCentroids;
+  float		*localCentroidsForSIMD;
 
   size_t	localCodebookCentroidNoSIMD;
 
@@ -1733,7 +1733,7 @@ public:
     for (size_t li = 0; li < localDivisionNo; li++) {
       distance += distanceLUT.getDistance(li * localCodebookCentroidNo + localID[li]);
     }
-    return sqrt(distance);	
+    return sqrt(distance);
   }
 
   inline double operator()(NGT::Object &object, size_t objectID, void *l) {
@@ -1774,7 +1774,7 @@ public:
 	distanceLUT.set(li * localCodebookCentroidNo + localID[li], d);
       }
     }
-    return sqrt(distance);	
+    return sqrt(distance);
   }
 #ifdef NGTQBG_MIN
   inline float operator()(void *inv, float *distances, size_t size, DistanceLookupTableUint8 &distanceLUT) {
@@ -1831,7 +1831,7 @@ public:
       localID++;
       lut += localCodebookCentroidNo;
     }
-    return sqrt(distance);	
+    return sqrt(distance);
   }
 
 
@@ -2250,7 +2250,7 @@ public:
 	distance += d;
       }
     }
-    return sqrt(distance);	
+    return sqrt(distance);
   }
 #endif
 
@@ -2260,9 +2260,9 @@ public:
 class Quantizer {
 public:
 #ifdef NGTQ_STATIC_OBJECT_FILE
-  typedef StaticObjectFile<NGT::Object>	ObjectList;	
+  typedef StaticObjectFile<NGT::Object>	ObjectList;
 #else
-  typedef ObjectFile	ObjectList;	
+  typedef ObjectFile	ObjectList;
 #endif
 
 
@@ -2399,7 +2399,7 @@ public:
 #else
 #endif
       NGT::ObjectDistances result;
-#define QID_WEIGHT	100	
+#define QID_WEIGHT	100
       {
 #ifdef NGTQ_VECTOR_OBJECT
 	auto *object = globalCodebookIndex.allocateObject(objects[idx].first);
@@ -2491,8 +2491,8 @@ class QuantizedObjectProcessingStream {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
     abort();
 #else
-    size_t blkNo = dataNo / NGTQ_SIMD_BLOCK_SIZE;	
-    size_t oft = dataNo - blkNo * NGTQ_SIMD_BLOCK_SIZE;	
+    size_t blkNo = dataNo / NGTQ_SIMD_BLOCK_SIZE;
+    size_t oft = dataNo - blkNo * NGTQ_SIMD_BLOCK_SIZE;
     stream[blkNo * alignedBlockSize + NGTQ_SIMD_BLOCK_SIZE * subvectorNo + oft] = quantizedObject;
 #endif
   }
@@ -2506,8 +2506,8 @@ class QuantizedObjectProcessingStream {
   }
 
   uint8_t getQuantizedObject(size_t dataNo, size_t subvectorNo) {
-    size_t blkNo = dataNo / NGTQ_SIMD_BLOCK_SIZE;	
-    size_t oft = dataNo - blkNo * NGTQ_SIMD_BLOCK_SIZE;	
+    size_t blkNo = dataNo / NGTQ_SIMD_BLOCK_SIZE;
+    size_t oft = dataNo - blkNo * NGTQ_SIMD_BLOCK_SIZE;
     return stream[blkNo * alignedBlockSize + NGTQ_SIMD_BLOCK_SIZE * subvectorNo + oft];
   }
 #endif
@@ -3304,7 +3304,7 @@ public:
     float lr = property.localRange;
     size_t localCentroidLimit = property.localCentroidLimit;
     if (property.localCodebookState) {
-      lr = FLT_MAX;	
+      lr = FLT_MAX;
       localCentroidLimit = 0;
     }
     vector<NGT::Index::InsertionResult> lids;
@@ -3342,7 +3342,7 @@ public:
 	localCentroidLimit *= property.localClusteringSampleCoefficient;
       }
       if (property.localCodebookState) {
-	lr = FLT_MAX;	
+	lr = FLT_MAX;
 	localCentroidLimit = 0;
       } else {
 	if (property.localCentroidCreationMode == CentroidCreationModeDynamicKmeans) {
@@ -3390,7 +3390,7 @@ public:
 	localCentroidLimit *= property.localClusteringSampleCoefficient;
       }
       if (property.localCodebookState) {
-	lr = FLT_MAX;	
+	lr = FLT_MAX;
 	localCentroidLimit = 0;
       } else {
 	if (property.localCentroidCreationMode == CentroidCreationModeDynamicKmeans) {
@@ -3842,7 +3842,7 @@ public:
     for (size_t i = 0; i < localCodebookNo; i++) {
       lcodebook.push_back(&static_cast<NGT::GraphAndTreeIndex &>(localCodebookIndexes[i].getIndex()));
     }
-    vector<NGT::Index::InsertionResult> ids;	
+    vector<NGT::Index::InsertionResult> ids;
     if (property.centroidCreationMode == CentroidCreationModeStaticLayer ||
 	property.centroidCreationMode == CentroidCreationModeStatic) {
       if (objectToBlobIndex.empty()) {
@@ -3942,11 +3942,11 @@ public:
 	if (property.localCentroidCreationMode == CentroidCreationModeDynamicKmeans) {
 	  buildMultipleLocalCodebooks(localCodebookIndexes.data(), localCodebookNo, property.localCentroidLimit);
 	  (*generateResidualObject).set(localCodebookIndexes.data(), localCodebookNo);
-	  property.localCodebookState = true;	
-	  localCodebookFull = false;		
+	  property.localCodebookState = true;
+	  localCodebookFull = false;
 	  replaceInvertedIndexEntry(localCodebookNo);
 	} else {
-	  property.localCodebookState = true;	
+	  property.localCodebookState = true;
 	  localCodebookFull = false;
 	}
       }
@@ -4155,8 +4155,8 @@ public:
     gp.set(globalProperty);
     lp.set(localProperty);
 
-    gp.edgeSizeForSearch = 40;	
-    lp.edgeSizeForSearch = 40;	
+    gp.edgeSizeForSearch = 40;
+    lp.edgeSizeForSearch = 40;
 
     lp.objectType = NGT::Index::Property::ObjectType::Float;
 #ifdef NGTQ_QBG
@@ -4970,8 +4970,8 @@ public:
 #endif
 
 #ifndef NGTQ_QBG
-  static void rebuild(const string &indexName,		
-		      const string &rebuiltIndexName	
+  static void rebuild(const string &indexName,
+		      const string &rebuiltIndexName
 		     ) {
 
     const string srcObjectList = indexName + "/obj";

@@ -801,7 +801,7 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 	  continue;
 	}
 	objtbl.push_back(getObjectRepository().get((*i).id));
-	GraphNode *n = 0;	
+	GraphNode *n = 0;
 	try {
 	  n = getNode((*i).id);
 	} catch (Exception &err) {
