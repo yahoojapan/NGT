@@ -158,9 +158,6 @@ void QBG::HierarchicalKmeans::threeLayerClustering(std::string prefix, QBG::Inde
 	numOfThirdClusters = index.getQuantizer().property.globalCentroidLimit;
       }
     }
-    if (numOfThirdClusters != 0 && index.getQuantizer().property.globalCentroidLimit != 0 &&
-	numOfThirdClusters != index.getQuantizer().property.globalCentroidLimit) {
-    }
     auto &quantizer = static_cast<NGTQ::QuantizerInstance<uint8_t>&>(index.getQuantizer());
     QBGObjectList &objectList = quantizer.objectList;
     if (numOfObjects == 0) {
@@ -287,7 +284,7 @@ void QBG::HierarchicalKmeans::threeLayerClustering(std::string prefix, QBG::Inde
 	  if (thirdFlatClusters[idx].members.size() == 0) {
 	    std::cerr << "warning. found an empty cluster in thirdFlatClusters. " << idx << std::endl;
 	  } else {
-	    bqindex.push_back(idx1);
+	    bqindex.emplace_back(idx1);
 	  }
 	}
       }
@@ -586,6 +583,8 @@ void QBG::HierarchicalKmeans::clustering(std::string indexPath, std::string pref
   NGT::StdOstreamRedirector redirector(!verbose);
   redirector.begin();
 
+  QBG::Index::setupObjects(indexPath, 0, verbose);
+
   std::cerr << "The specified params=FC:" << numOfFirstClusters << ":FO:" << numOfFirstObjects
 	    << ",SC:" << numOfSecondClusters << ":SO:" << numOfSecondObjects
 	    << ",TC:" << numOfThirdClusters << ":TO:" << numOfThirdObjects << ",O:" << numOfObjects << std::endl;
@@ -637,5 +636,77 @@ void QBG::HierarchicalKmeans::clustering(std::string indexPath, std::string pref
   redirector.end();
 }
 
+void QBG::HierarchicalKmeans::assignAll(std::string indexPath, int64_t lowerBoundOfNoOfObjects, size_t noOfNearestNeighbors) {
+
+  std::cerr << "assignAll " << lowerBoundOfNoOfObjects << ":" << noOfNearestNeighbors << std::endl;
+  bool readOnly = false;
+  QBG::Index index(indexPath, readOnly);
+  if (index.getQuantizer().objectList.size() <= 1) {
+    NGTThrowException("No objects in the index.");
+  }
+
+  auto &quantizer = static_cast<NGTQ::QuantizerInstance<uint8_t>&>(index.getQuantizer());
+  QBGObjectList &objectList = quantizer.objectList;
+  if (numOfObjects == 0) {
+    numOfObjects = objectList.size() - 1;
+  }
+  auto &objectSpace = quantizer.globalCodebookIndex.getObjectSpace();
+  std::vector<NGT::Clustering::Cluster> thirdFlatClusters;
+  std::string prefix = indexPath + "/" + QBG::Index::getWorkspaceName();
+  prefix +="/" + QBG::Index::getHierarchicalClusteringPrefix();
+  NGT::Clustering::loadClusters(prefix + QBG::Index::getThirdCentroidSuffix(), thirdFlatClusters);
+
+  assignWithNGT(thirdFlatClusters, 1, numOfObjects, objectSpace, objectList, epsilonExplorationSize, expectedRecall, noOfNearestNeighbors);
+  size_t remove = 0;
+  size_t max = 0;
+  for (auto it = thirdFlatClusters.begin(); it != thirdFlatClusters.end();) {
+    if ((*it).members.size() > max) {
+      max = (*it).members.size();
+    }
+    if (static_cast<int64_t>((*it).members.size()) <= lowerBoundOfNoOfObjects) {
+      remove++;
+      (*it) = std::move(thirdFlatClusters.back());
+      thirdFlatClusters.pop_back();
+    } else {
+      ++it;
+    }
+  }
+  std::cerr << "max=" << max << " removed=" << remove << std::endl;
+  if (lowerBoundOfNoOfObjects > 0 && remove > 0) {
+    NGT::Clustering::clearMembers(thirdFlatClusters);
+    std::cerr << "the second assignWithNGT." << std::endl;
+    assignWithNGT(thirdFlatClusters, 1, numOfObjects, objectSpace, objectList, epsilonExplorationSize, expectedRecall, noOfNearestNeighbors);
+  }
+  
+  {
+    std::vector<std::vector<uint32_t>> cindex(numOfObjects);
+    for (auto it = thirdFlatClusters.begin(); it != thirdFlatClusters.end(); ++it) {
+      size_t idx = distance(thirdFlatClusters.begin(), it);
+      if (lowerBoundOfNoOfObjects >= 0 && (*it).members.empty()) {
+	std::stringstream msg;
+	msg << "Fatal error! Found empty cluster. " << idx;
+	NGTThrowException(msg);
+      }
+      for (auto mit = (*it).members.begin(); mit != (*it).members.end(); ++mit) {
+	size_t vid = (*mit).vectorID;
+	cindex[vid].emplace_back(idx);
+      }
+    }
+    std::cerr << "save index... " << cindex.size() << std::endl;
+    NGT::Clustering::saveVectors(prefix + QBG::Index::getObjTo3rdSuffix(), cindex);
+  }
+  if (remove > 0) {
+    std::cerr << "found empty clusters. " << remove << std::endl;
+    NGT::Clustering::saveClusters(prefix + QBG::Index::getThirdCentroidSuffix(), thirdFlatClusters);
+    NGT::Clustering::saveClusters(prefix + QBG::Index::getSecondCentroidSuffix(), thirdFlatClusters);
+    std::vector<size_t> bqindex;
+    for (size_t idx = 0; idx < thirdFlatClusters.size(); idx++) {
+      bqindex.emplace_back(idx);
+    }
+    std::cerr << "save the 3rd to the 2nd index..." << std::endl;
+    NGT::Clustering::saveVector(prefix + QBG::Index::get3rdTo2ndSuffix(), bqindex);
+  }
+
+}
 #endif
 

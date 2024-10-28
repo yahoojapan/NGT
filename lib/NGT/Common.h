@@ -32,6 +32,7 @@
 #include	<iomanip>
 #include	<algorithm>
 #include	<typeinfo>
+#include	<limits>
 
 #include	<sys/time.h>
 #include	<fcntl.h>
@@ -55,6 +56,23 @@ namespace NGT {
 #ifdef NGT_HALF_FLOAT
   typedef	half_float::half	float16;
 #endif
+
+  class quint8 {
+  public:
+    quint8(uint8_t v):value(v){}
+    quint8 &operator=(uint8_t v) { value = v; return *this; }
+    operator uint8_t() const { return value; }
+    uint8_t get() { return value; }
+    uint8_t value;
+  };
+  class qsint8 {
+  public:
+    qsint8(int8_t v):value(v){}
+    qsint8 &operator=(int8_t v) { value = v; return *this; }
+    operator int8_t() const { return value; }
+    int8_t get() { return value; }
+    int8_t value;
+  };
 
 #ifdef NGT_BFLOAT
   class bfloat16 {
@@ -1201,6 +1219,7 @@ namespace NGT {
 	vectorSize--;
       }
     }
+
     iterator insert(iterator &i, const TYPE &data, SharedMemoryAllocator &allocator) {
       if (size() == 0) {
 	push_back(data, allocator);
@@ -1766,7 +1785,6 @@ namespace NGT {
       removedList->pop_back();
       return idx;
     }
-
     void removedListPush(size_t id) {
       if (removedList->size() == 0) {
 	removedList->push_back(id, allocator);
@@ -1779,6 +1797,16 @@ namespace NGT {
 	return;
       }
       removedList->insert(rmi, id, allocator);
+    }
+    void removedListRemove(size_t id) {
+      if (removedList->size() == 0) {
+	return;
+      }
+      Vector<size_t>::iterator rmi
+	= std::lower_bound(removedList->begin(allocator), removedList->end(allocator), id, std::greater<size_t>());
+      if ((rmi != removedList->end(allocator)) && ((*rmi) == id)) {
+	removedList->erase(rmi, allocator);
+      }
     }
 #else
     void *construct() {
@@ -1810,6 +1838,14 @@ namespace NGT {
       }
 #endif
       return push(n);
+    }
+
+    size_t insert(size_t idx, TYPE *n) {
+#ifdef ADVANCED_USE_REMOVED_LIST
+      removedListRemove(idx);
+#endif
+      put(idx, n);
+      return idx;
     }
 
     bool isEmpty(size_t idx) {
@@ -2055,6 +2091,29 @@ namespace NGT {
       return std::vector<TYPE*>::size() - 1;
     }
 
+#ifdef ADVANCED_USE_REMOVED_LIST
+    void removedListRemove(size_t id) {
+      if (!removedList.empty()) {
+	std::priority_queue<size_t, std::vector<size_t>, std::greater<size_t>>	rl = removedList;
+	std::priority_queue<size_t, std::vector<size_t>, std::greater<size_t>>	newrl;
+	while (rl.size() != 0) {
+	  if (rl.top() == id) {
+	    rl.pop();
+	    while (rl.size() != 0) {
+	      newrl.push(rl.top());
+	      rl.pop();
+	    }
+	    removedList = newrl;
+	    break;
+	  }
+	  if (rl.top() > id) break;
+	  newrl.push(rl.top());
+	  rl.pop();
+	}
+      }
+    }
+#endif
+
     size_t insert(TYPE *n) {
 #ifdef ADVANCED_USE_REMOVED_LIST
       if (!removedList.empty()) {
@@ -2065,6 +2124,14 @@ namespace NGT {
       }
 #endif
       return push(n);
+    }
+
+    size_t insert(size_t idx, TYPE *n) {
+#ifdef ADVANCED_USE_REMOVED_LIST
+      removedListRemove(idx);
+#endif
+      put(idx, n);
+      return idx;
     }
 
     bool isEmpty(size_t idx) {
@@ -2271,7 +2338,7 @@ namespace NGT {
 #ifdef ADVANCED_USE_REMOVED_LIST
     size_t count() { return std::vector<TYPE*>::size() == 0 ? 0 : std::vector<TYPE*>::size() - removedList.size() - 1; }
   protected:
-    std::priority_queue<size_t, std::vector<size_t>, std::greater<size_t> >	removedList;
+    std::priority_queue<size_t, std::vector<size_t>, std::greater<size_t>>	removedList;
 #endif
   };
 
@@ -2344,7 +2411,7 @@ namespace NGT {
     ObjectID		id;
   };
   
-  typedef std::priority_queue<ObjectDistance, std::vector<ObjectDistance>, std::less<ObjectDistance> > ResultPriorityQueue;
+  typedef std::priority_queue<ObjectDistance, std::vector<ObjectDistance>, std::less<ObjectDistance>> ResultPriorityQueue;
 
   class SearchContainer : public NGT::Container {
   public:
@@ -2365,6 +2432,7 @@ namespace NGT {
       useAllNodesInLeaf = sc.useAllNodesInLeaf;
       expectedAccuracy = sc.expectedAccuracy;
       visitCount = sc.visitCount;
+      insertion = sc.insertion;
       return *this;
     }
     virtual ~SearchContainer() {}
@@ -2376,6 +2444,7 @@ namespace NGT {
       edgeSize = -1;	// dynamically prune the edges during search. -1 means following the index property. 0 means using all edges.
       useAllNodesInLeaf = false;
       expectedAccuracy = -1.0;
+      insertion = false;
     }
     void setSize(size_t s) { size = s; }
     void setResults(ObjectDistances *r) { result = r; }
@@ -2385,6 +2454,7 @@ namespace NGT {
     void setExpectedAccuracy(float a) { expectedAccuracy = a; }
 
     inline bool resultIsAvailable() { return result != 0; }
+    float getEpsilon() { return explorationCoefficient - 1.0; }
     ObjectDistances &getResult() {
       if (result == 0) {
 	NGTThrowException("Inner error: results is not set");
@@ -2406,6 +2476,8 @@ namespace NGT {
     float		expectedAccuracy;
   private:
     ObjectDistances	*result;
+  public:
+    bool		insertion;
   };
 
 
@@ -2496,4 +2568,24 @@ namespace NGT {
   };
 
 } // namespace NGT
+
+namespace std {
+  template<>
+    class numeric_limits<NGT::qsint8> {
+  public:
+    static NGT::qsint8 max() { return NGT::qsint8(127); }
+    static NGT::qsint8 min() { return NGT::qsint8(-128); }
+    static bool is_specialized() { return true; }
+  };
+}
+
+namespace std {
+  template<>
+    class numeric_limits<NGT::quint8> {
+  public:
+    static NGT::quint8 max() { return NGT::quint8(255); }
+    static NGT::quint8 min() { return NGT::quint8(0); }
+    static bool is_specialized() { return true; }
+  };
+}
 

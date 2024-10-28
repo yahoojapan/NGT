@@ -125,7 +125,7 @@ namespace NGT {
     }
 
     static void
-      loadVectors(const std::string &file, std::vector<std::vector<float> > &vectors)
+      loadVectors(const std::string &file, std::vector<std::vector<float>> &vectors)
     {
       std::ifstream is(file);
       if (!is) {
@@ -152,13 +152,29 @@ namespace NGT {
     }
 
     static void
-      saveVectors(const std::string &file, std::vector<std::vector<float> > &vectors)
+      saveVectors(const std::string &file, std::vector<std::vector<float>> &vectors)
     {
       std::ofstream os(file);
       for (auto vit = vectors.begin(); vit != vectors.end(); ++vit) {
 	std::vector<float> &v = *vit;
 	for (auto it = v.begin(); it != v.end(); ++it) {
 	  os << std::setprecision(9) << (*it);
+	  if (it + 1 != v.end()) {
+	    os << "\t";
+	  }
+	}
+	os << std::endl;
+      }
+    }
+
+    static void
+      saveVectors(const std::string &file, std::vector<std::vector<uint32_t>> &vectors)
+    {
+      std::ofstream os(file);
+      for (auto vit = vectors.begin(); vit != vectors.end(); ++vit) {
+	std::vector<uint32_t> &v = *vit;
+	for (auto it = v.begin(); it != v.end(); ++it) {
+	  os << (*it);
 	  if (it + 1 != v.end()) {
 	    os << "\t";
 	  }
@@ -403,7 +419,7 @@ namespace NGT {
 	}
       }
 
-      std::vector<Entry> sortedObjects(vectors.size());
+      std::vector<Entry> sortedObjects(vectors.size());	
 #pragma omp parallel for
       for (size_t vi = 0; vi < vectors.size(); vi++) {
 	auto vit = vectors.begin() + vi;

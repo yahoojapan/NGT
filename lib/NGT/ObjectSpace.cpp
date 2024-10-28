@@ -22,7 +22,9 @@
 NGT::Distance NGT::ObjectSpace::compareWithL1(NGT::Object &o1, NGT::Object &o2) {
   auto dim = getPaddedDimension();
   NGT::Distance d;
-  if (getObjectType() == typeid(uint8_t)) {
+  if (getObjectType() == typeid(uint8_t) ||
+      getObjectType() == typeid(quint8) ||
+      getObjectType() == typeid(qsint8)) {
     d = PrimitiveComparator::compareL1(reinterpret_cast<uint8_t*>(o1.getPointer()), 
 				       reinterpret_cast<uint8_t*>(o2.getPointer()), dim);
 #ifdef NGT_HALF_FLOAT
@@ -35,7 +37,8 @@ NGT::Distance NGT::ObjectSpace::compareWithL1(NGT::Object &o1, NGT::Object &o2) 
 				       reinterpret_cast<float*>(o2.getPointer()), dim);
   } else {
     std::stringstream msg;
-    msg << "ObjectSpace::compareWithL1: Fatal Inner Error! Unexpected object type.";
+    msg << "ObjectSpace::compareWithL1: Fatal Inner Error! Unexpected object type. "
+	<< getObjectType().name();
     NGTThrowException(msg);
   }
   return d;

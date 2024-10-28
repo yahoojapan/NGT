@@ -175,9 +175,8 @@ namespace NGT {
       DistanceTypeJaccard		= 7,
       DistanceTypeSparseJaccard		= 8,
       DistanceTypeNormalizedL2		= 9,
-#ifdef NGT_INNER_PRODUCT
       DistanceTypeInnerProduct		= 10,
-#endif
+      DistanceTypeDotProduct		= 11,
       DistanceTypePoincare		= 100,  // added by Nyapicom
       DistanceTypeLorentz		= 101  // added by Nyapicom
     };
@@ -190,6 +189,8 @@ namespace NGT {
       ,
       Float16		= 3
 #endif
+      ,
+      Qsuint8		= 7
 #ifdef NGT_BFLOAT
       ,
       Bfloat16		= 5
@@ -198,10 +199,15 @@ namespace NGT {
 
 
     typedef std::priority_queue<ObjectDistance, std::vector<ObjectDistance>, std::less<ObjectDistance> > ResultSet;
-  ObjectSpace(size_t d):dimension(d), distanceType(DistanceTypeNone), comparator(0), normalization(false),
-                        prefetchOffset(-1), prefetchSize(-1)
+  ObjectSpace(size_t d):dimension(d), distanceType(DistanceTypeNone), comparator(0), comparatorForSearch(0),
+                        normalization(false),
+                        prefetchOffset(-1), prefetchSize(-1), quantizationScale(0.0), quantizationOffset(0.0),
+		        magnitude(-1)
     {}
-    virtual ~ObjectSpace() { if (comparator != 0) { delete comparator; } }
+    virtual ~ObjectSpace() {
+      if (comparator != 0) { delete comparator; } 
+      if (comparatorForSearch != 0) { delete comparatorForSearch; } 
+    }
     
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
     virtual void open(const std::string &f, size_t shareMemorySize) = 0;
@@ -214,9 +220,17 @@ namespace NGT {
     virtual size_t insert(PersistentObject *obj) = 0;
 #else
     virtual size_t insert(Object *obj) = 0;
+    virtual void deleteAll() = 0;
 #endif
 
     Comparator &getComparator() { return *comparator; }
+    Comparator &getComparatorForSearch() {
+      if (comparatorForSearch != 0) {
+	return *comparatorForSearch;
+      } else {
+	return *comparator;
+      }
+    }
 
     virtual void serialize(const std::string &of) = 0;
     virtual void deserialize(const std::string &ifile) = 0;
@@ -235,6 +249,7 @@ namespace NGT {
 
     virtual void linearSearch(Object &query, double radius, size_t size,
 			      ObjectSpace::ResultSet &results) = 0;
+    virtual std::pair<float, float> getMaxMin(float cut = 0.01, size_t size = 0) = 0;
     virtual const std::type_info &getObjectType() = 0;
     virtual void show(std::ostream &os, Object &object) = 0;
     virtual size_t getSize() = 0;
@@ -265,20 +280,18 @@ namespace NGT {
 #endif
     virtual std::vector<float> getObject(Object &object) = 0;
     virtual void getObjects(const std::vector<size_t> &idxs, std::vector<std::vector<float>> &vs) = 0;
-#ifdef NGT_INNER_PRODUCT
     virtual float computeMaxMagnitude(ObjectID beginId) = 0;
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
     virtual void setMagnitude(float maxMag, NGT::PersistentRepository<void> &graphNodes, NGT::ObjectID beginID) = 0;
 #else
     virtual void setMagnitude(float maxMag, NGT::Repository<void> &graphNodes, ObjectID beginId) = 0;
 #endif
-#endif
     DistanceType getDistanceType() { return distanceType; }
     size_t getDimension() { return dimension; }
     size_t getPaddedDimension() { return ((dimension - 1) / 16 + 1) * 16; }
 
     template <typename T>
-    void normalize(T *data, size_t dim) {
+    static void normalize(T *data, size_t dim) {
       float sum = 0.0;
       for (size_t i = 0; i < dim; i++) {
         sum += static_cast<float>(data[i]) * static_cast<float>(data[i]);
@@ -292,7 +305,8 @@ namespace NGT {
 	  }
 	}
 	std::stringstream msg;
-	msg << "ObjectSpace::normalize: Error! the object is an invalid zero vector for the cosine similarity.";
+	msg << "ObjectSpace::normalize: Error! the object is an invalid zero vector for the cosine similarity. "
+	    << typeid(T).name() << ".";
 	NGTThrowException(msg);
       }
       sum = sqrt(sum);
@@ -300,6 +314,12 @@ namespace NGT {
         data[i] = static_cast<float>(data[i]) / sum;
       }
     }
+
+    template<typename OTYPE>
+    static void normalize(std::vector<OTYPE> &object) {
+      ObjectSpace::normalize(object.data(), object.size());
+    }
+
     int32_t getPrefetchOffset() { return prefetchOffset; }
     int32_t setPrefetchOffset(int offset) {
       if (offset > 0) {
@@ -321,11 +341,153 @@ namespace NGT {
       return prefetchSize;
     }
 
-    bool isNormalizedDistance() {
-      return (getDistanceType() == ObjectSpace::DistanceTypeNormalizedAngle) ||
-	     (getDistanceType() == ObjectSpace::DistanceTypeNormalizedCosine) ||
-	     (getDistanceType() == ObjectSpace::DistanceTypeNormalizedL2);
+    bool quantizationIsEnabled() { return quantizationScale != 0.0; }
+    void setQuantization(float scale, float offset) {
+      quantizationScale = scale;
+      quantizationOffset = offset;
     }
+    std::pair<float, float> getQuantization() {
+      return std::make_pair(quantizationScale, quantizationOffset);
+    }
+
+    template<typename T> static void quantizeSymmetrically(T *vector, size_t dim, float max, float scale) {
+      auto fmax = max + 0.5;
+      for (size_t i = 0; i < dim; i++) {
+	float fv = static_cast<float>(vector[i]);
+        fv = std::round(fv / scale * fmax);
+	fv = fv < -max ? -max : fv;
+	fv = fv > max ? max : fv;
+	vector[i] = static_cast<T>(fv);
+      }
+    }
+
+    template<typename T> static void quantizeSymmetrically(std::vector<T> &vector, float max, float scale) {
+      quantizeSymmetrically(vector.data(), vector.size(), max, scale);
+    }
+
+    template<typename T> static void dequantizeSymmetrically(T *vector, int8_t *cvector, size_t dimension, float max, float scale) {
+      auto fmax = max + 0.5;
+      for (size_t i = 0; i < dimension; i++) {
+        float fv = static_cast<float>(cvector[i]);
+        fv = (fv / fmax) * scale;
+        vector[i] = static_cast<T>(fv);
+      }
+    }
+
+    template<typename T> static void dequantizeSymmetrically(std::vector<T> &vector, int8_t *cvector, size_t dimension, float max, float scale) {
+      vector.resize(dimension);
+      dequantizeSymmetrically(vector.data(), cvector, dimension, max, scale);
+    }
+
+    template<typename T> static void quantize(T *vector, size_t dim, float max, float offset, float scale) {
+      auto fmax = max + 1.0;
+      for (size_t i = 0; i < dim; i++) {
+	float fv = static_cast<float>(vector[i]);
+	fv = floorf((fv - offset) / scale * fmax);
+	fv = fv < 0 ? 0 : fv;
+	fv = fv > max ? max : fv;
+	vector[i] = static_cast<T>(fv);
+      }
+    }
+    
+    template<typename T> static void quantize(std::vector<T> &vector, float max, float offset, float scale) {
+      quantize(vector.data(), vector.size(), max, offset, scale);
+    }
+
+    template<typename T> static void dequantize(T *vector, uint8_t *cvector, size_t dimension, float max, float offset, float scale) {
+      auto fmax = max + 1.0;
+      for (size_t i = 0; i < dimension; i++) {
+        float fv = static_cast<float>(cvector[i]) + 0.5;
+        fv = (fv / fmax) * scale + offset;
+        vector[i] = static_cast<T>(fv);
+      }
+    }
+    
+    template<typename T> static void dequantize(std::vector<T> &vector, uint8_t *cvector, size_t dimension, float max, float offset, float scale) {
+      vector.resize(dimension);
+      dequantize(vector.data(), cvector, vector.size(), max, offset, scale);
+    }
+
+    template<typename T> void quantizeToQint8(std::vector<T> &vector, float offset, float scale, bool shift = false) {
+      quantizeToQint8(vector, getObjectType(), getDimension(), offset, scale, shift);
+    }
+    
+    template<typename T> static void quantizeToQint8(std::vector<T> &vector, const std::type_info &t, size_t dimension,
+						     float offset, float scale, bool shift = false) {
+      if (t == typeid(qsint8)) {
+	quantizeSymmetrically(vector, 127.0, scale);
+	if (shift) {
+	  for (size_t i = 0; i < dimension; i++) {
+	    vector[i] += 127;
+	  }
+	}
+      } else {
+	std::stringstream msg;
+	msg << "not supported type. " << t.name();
+	NGTThrowException(msg);
+      }
+    }
+    template<typename T> void quantizeToQint8(std::vector<T> &vector, bool shift = false) {
+      if (quantizationOffset == 0.0 && quantizationScale == 0.0) {
+	NGTThrowException("Error. Quantization parameters are not set yet.");
+      }
+      quantizeToQint8(vector, quantizationOffset, quantizationScale, shift);
+    }
+    static void quantizeToQint8(float *vector, size_t dimension, uint8_t *cvector,
+				ObjectType type,
+				float offset, float scale, bool shift = false) {
+      if (type == Qsuint8) {
+	quantizeSymmetrically(vector, dimension, 127.0, scale);
+	if (shift) {
+	  auto *cv = reinterpret_cast<uint8_t*>(cvector);
+	  for (size_t i = 0; i < dimension; i++) {
+	    cv[i] = static_cast<uint8_t>(vector[i] + 127);
+	  }
+	} else {
+	  auto *cv = reinterpret_cast<int8_t*>(cvector);
+	  for (size_t i = 0; i < dimension; i++) {
+	    cv[i] = static_cast<int8_t>(vector[i]);
+	  }
+	}
+      } else {
+	std::stringstream msg;
+	msg << "not supported type. " << type;
+	NGTThrowException(msg);
+      }
+    }
+    template<typename T> void dequantizeFromQint8(std::vector<T> &vector, uint8_t *cvector,
+						  bool shift = false) {
+      dequantizeFromQint8(vector, cvector, dimension, getObjectType(), quantizationOffset,
+			  quantizationScale, shift);
+    }
+    template<typename T> static void dequantizeFromQint8(std::vector<T> &vector, uint8_t *cvector, size_t dimension, 
+							 const std::type_info &t,
+							 float offset, float scale, bool shift = false) {
+      if (t == typeid(qsint8)) {
+	dequantizeSymmetrically(vector, reinterpret_cast<int8_t*>(cvector), dimension, 127.0, scale);
+	if (shift) {
+	  auto *cv = reinterpret_cast<uint8_t*>(cvector);
+	  for (size_t i = 0; i < dimension; i++) {
+	    cv[i] = static_cast<uint8_t>(vector[i] + 127);
+	  }
+	} else {
+	  auto *cv = reinterpret_cast<int8_t*>(cvector);
+	  for (size_t i = 0; i < dimension; i++) {
+	    cv[i] = static_cast<int8_t>(vector[i]);
+	  }
+	}
+      } else {
+	std::stringstream msg;
+	msg << "not supported type. " << t.name();
+	NGTThrowException(msg);
+      }
+    }
+    bool isQintObjectType() {
+      const std::type_info &t = getObjectType();
+      if (t == typeid(qsint8)) 	return true;
+      return false;
+    }
+    bool isNormalizedDistance() { return normalization; }
 
     NGT::Distance compareWithL1(NGT::Object &o1, NGT::Object &o2);
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
@@ -336,9 +498,13 @@ namespace NGT {
     const size_t	dimension;
     DistanceType	distanceType;
     Comparator		*comparator;
+    Comparator		*comparatorForSearch;
     bool		normalization;
     int32_t		prefetchOffset;
     int32_t		prefetchSize;
+    float		quantizationScale;
+    float		quantizationOffset;
+    float		magnitude;
   };
 
   class BaseObject {
@@ -360,7 +526,7 @@ namespace NGT {
       NGT::Serializer::read(is, (uint8_t*)&(*this)[0], byteSize);
       if (is.eof()) {
 	std::stringstream msg;
-	msg << "ObjectSpace::BaseObject: Fatal Error! Read beyond the end of the object file. The object file is corrupted?" << byteSize;
+	msg << "ObjectSpace::BaseObject: Fatal Error! Read beyond the end of the object file. The object file is corrupted? " << byteSize;
 	NGTThrowException(msg);
       }
     }
@@ -373,6 +539,8 @@ namespace NGT {
       void *ref = (void*)&(*this)[0];
       if (t == typeid(uint8_t)) {
 	NGT::Serializer::writeAsText(os, (uint8_t*)ref, dimension);
+      } else if (t == typeid(qsint8)) {
+	NGT::Serializer::writeAsText(os, (int8_t*)ref, dimension);
       } else if (t == typeid(float)) {
 	NGT::Serializer::writeAsText(os, (float*)ref, dimension);
 #ifdef NGT_HALF_FLOAT
@@ -428,6 +596,10 @@ namespace NGT {
       if (t == typeid(uint8_t)) {
 	for (size_t d = 0; d < dimension; d++) {
 	  *(static_cast<uint8_t*>(ref) + d) = v[d];
+	}
+      } else if (t == typeid(qsint8)) {
+	for (size_t d = 0; d < dimension; d++) {
+	  *(static_cast<int8_t*>(ref) + d) = v[d];
 	}
       } else if (t == typeid(float)) {
 	for (size_t d = 0; d < dimension; d++) {
@@ -510,7 +682,7 @@ namespace NGT {
 
     void construct(size_t s) {
       assert(vector == 0);
-      size_t allocsize = ((s - 1) / 64 + 1) * 64;
+      size_t allocsize = ((s - 1) / 64 + 1) * 64;	
       vector = static_cast<uint8_t*>(MemoryCache::alignedAlloc(allocsize));
       memset(vector, 0, allocsize);
     }
@@ -582,7 +754,7 @@ namespace NGT {
     void construct(size_t s, SharedMemoryAllocator &allocator) {
       assert(array == 0);
       assert(s != 0);
-      size_t allocsize = ((s - 1) / 64 + 1) * 64;
+      size_t allocsize = ((s - 1) / 64 + 1) * 64;	
       array = allocator.getOffset(new(allocator) uint8_t[allocsize]);
       memset(getPointer(0, allocator), 0, allocsize);
     }

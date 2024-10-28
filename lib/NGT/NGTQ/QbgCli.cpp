@@ -37,12 +37,12 @@ public:
   }
 
   void getCreationParameters() {
-    char objectType = args.getChar("o", 'f');
-    char distanceType = args.getChar("D", '2');
     creation.numOfObjects = args.getl("n", 0);
-
     creation.threadSize = args.getl("p", 24);
     creation.dimension = args.getl("d", 0);
+    auto clusterDataType = args.getString("C", "-");
+    creation.scalarQuantizationClippingRate = args.getf("r", 0.0);
+    creation.scalarQuantizationNoOfSamples = args.getl("V", 0);
 #ifdef NGTQ_QBG
     creation.numOfLocalClusters = args.getl("c", 16);
 #else
@@ -94,39 +94,84 @@ public:
     creation.localInsertionRadiusCoefficient = creation.globalInsertionRadiusCoefficient;
 
 
-    switch (objectType) {
-    case 'f': creation.dataType = NGTQ::DataTypeFloat; break;
-#ifdef NGT_HALF_FLOAT
-    case 'h': creation.dataType = NGTQ::DataTypeFloat16; break;
-#endif
-    case 'c': creation.dataType = NGTQ::DataTypeUint8; break;
-    default:
-      std::stringstream msg;
-      msg << "Command::CreateParameters: Error: Invalid object type. " << objectType;
-      NGTThrowException(msg);
+    transform(clusterDataType.begin(), clusterDataType.end(), clusterDataType.begin(), ::tolower);
+    if (clusterDataType == "-" || clusterDataType == "pq4") {
+      creation.localClusterDataType = NGTQ::ClusterDataTypePQ4;
+    } else if (clusterDataType == "sqsu8" || clusterDataType == "sq8") {
+      creation.localClusterDataType = NGTQ::ClusterDataTypeSQSU8;
+    } else if (clusterDataType == "nq") {
+      creation.localClusterDataType = NGTQ::ClusterDataTypeNQ;
     }
 
-    switch (distanceType) {
-    case '2': creation.distanceType = NGTQ::DistanceType::DistanceTypeL2; break;
-    case '1': creation.distanceType = NGTQ::DistanceType::DistanceTypeL1; break;
-    case 'a': creation.distanceType = NGTQ::DistanceType::DistanceTypeAngle; break;
-    case 'C': creation.distanceType = NGTQ::DistanceType::DistanceTypeNormalizedCosine; break;
-    case 'E': creation.distanceType = NGTQ::DistanceType::DistanceTypeL2; break;
-#ifdef NGT_INNER_PRODUCT
-    case 'i': creation.distanceType = NGTQ::DistanceType::DistanceTypeInnerProduct; break;
+    char objectType = args.getChar("o", 'f');
+    {
+      switch (objectType) {
+      case 'f': creation.dataType = NGTQ::DataTypeFloat; break;
+#ifdef NGT_HALF_FLOAT
+      case 'h': creation.dataType = NGTQ::DataTypeFloat16; break;
 #endif
-    default:
-      std::stringstream msg;
-      msg << "Command::CreateParameters: Error: Invalid distance type. " << distanceType;
-      NGTThrowException(msg);
+      case 'c': creation.dataType = NGTQ::DataTypeUint8; break;
+      default:
+	std::stringstream msg;
+	msg << "Command::CreateParameters: Error: Invalid object type. " << objectType;
+	NGTThrowException(msg);
+      }
+    }
+    {
+      std::string globalObjectType = args.getString("K", "-");
+      std::string objectType;
+      if (globalObjectType == "-") {
+	if (clusterDataType == "-" || clusterDataType == "pq4") {
+	  objectType = "f";
+	} else {
+	  objectType = clusterDataType;
+	}
+      } else {
+	objectType = globalObjectType;
+      }
+      if (objectType == "f") {
+	creation.globalObjectType = NGT::ObjectSpace::ObjectType::Float;
+      } else if (objectType == "h") {
+	creation.globalObjectType = NGT::ObjectSpace::ObjectType::Float16;
+      } else if (objectType == "sqsu8" || objectType == "sq8") {
+	creation.globalObjectType = NGT::ObjectSpace::ObjectType::Qsuint8;
+      } else {
+	std::stringstream msg;
+	msg << "Command::CreateParameters: Error: Invalid global object type. " << objectType;
+	NGTThrowException(msg);
+      }
+    }
+
+    {
+      char distanceType = args.getChar("D", '2');
+      switch (distanceType) {
+      case '2': creation.distanceType = NGTQ::DistanceType::DistanceTypeL2; break;
+      case '1': creation.distanceType = NGTQ::DistanceType::DistanceTypeL1; break;
+      case 'a': creation.distanceType = NGTQ::DistanceType::DistanceTypeAngle; break;
+      case 'C': creation.distanceType = NGTQ::DistanceType::DistanceTypeNormalizedCosine; break;
+      case 'E': creation.distanceType = NGTQ::DistanceType::DistanceTypeL2; break;
+      case 'i': creation.distanceType = NGTQ::DistanceType::DistanceTypeInnerProduct; break;
+      default:
+	std::stringstream msg;
+	msg << "Command::CreateParameters: Error: Invalid distance type. " << distanceType;
+	NGTThrowException(msg);
+      }
     }
 #ifdef NGTQ_QBG
     creation.genuineDimension = creation.dimension;
-    creation.dimension = args.getl("P", creation.genuineDimension);
+    creation.dimension = args.getl("P", 0);
+    if (creation.dimension == 0) {
+      creation.dimension = ((creation.genuineDimension + 15) / 16) * 16;
+    }
     creation.dimensionOfSubvector = args.getl("Q", 0);
+    if (creation.numOfSubvectors == 0 &&
+	(creation.localClusterDataType == NGTQ::ClusterDataTypeSQSU8
+	 )) {
+      creation.numOfSubvectors = creation.dimension;
+    }
     {
-      char objectType = args.getChar("O", 'f');
-      switch (objectType) {
+      char oType = args.getChar("O", objectType);
+      switch (oType) {
       case 'f': creation.genuineDataType = ObjectFile::DataTypeFloat; break;
 #ifdef NGT_HALF_FLOAT
       case 'h': creation.genuineDataType = ObjectFile::DataTypeFloat16; break;
@@ -134,14 +179,24 @@ public:
       case 'c': creation.genuineDataType = ObjectFile::DataTypeUint8; break;
       default:
 	std::stringstream msg;
-	msg << "Command::CreateParameters: Error: Invalid genuine object type. " << objectType;
+	msg << "Command::CreateParameters: Error: Invalid genuine data type. " << objectType;
 	NGTThrowException(msg);
       }
     }
 #endif
     {
-      char objectListOnMemory = args.getChar("R", 'f');
-      creation.objectListOnMemory = (objectListOnMemory == 't' || objectListOnMemory == 'T');
+      char refinementDataType = args.getChar("R", '-');
+      switch (refinementDataType) {
+      case 'f': creation.refinementDataType = NGTQ::DataTypeFloat; break;
+#ifdef NGT_HALF_FLOAT
+      case 'h': creation.refinementDataType = NGTQ::DataTypeFloat16; break;
+#endif
+      case '-': creation.refinementDataType = NGTQ::DataTypeNone; break;
+      default:
+	std::stringstream msg;
+	msg << "Command::CreateParameters: Error: Invalid refinement data type. " << refinementDataType;
+	NGTThrowException(msg);
+      }
     }
 
   }
@@ -364,7 +419,6 @@ protected:
   NGT::Args &args;
 };
 
-
 class SearchParameters : public NGT::Command::SearchParameters {
 public:
   SearchParameters(NGT::Args &args): NGT::Command::SearchParameters(args, "0.02") {
@@ -394,9 +448,10 @@ QBG::CLI::buildQG(NGT::Args &args)
   try {
     indexPath = args.get("#1");
   } catch (...) {
-    cerr << "An index is not specified." << endl;
-    cerr << usage << endl;
-    return;
+    std::stringstream msg;
+    msg << "No index is specified." << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
   }
 
   size_t phase = args.getl("p", 0);
@@ -419,7 +474,7 @@ QBG::CLI::buildQG(NGT::Args &args)
     std::cerr << "optimizing..." << std::endl;
     optimizer.optimize(qgPath);
   }
-  bool verbose = false;
+  auto verbose = buildParameters.optimization.verbose;
   if (phase == 0 || phase == 2) {
     std::cerr << "building the inverted index..." << std::endl;
     QBG::Index::buildNGTQ(qgPath, verbose);
@@ -557,9 +612,10 @@ QBG::CLI::searchQG(NGT::Args &args) {
   try {
     indexPath = args.get("#1");
   } catch (...) {
-    cerr << "An index is not specified." << endl;
-    cerr << usage << endl;
-    return;
+    std::stringstream msg;
+    msg << "No index is specified." << std::endl;;
+    msg << usage << endl;
+    NGTThrowException(msg);
   }
 
   SearchParameters searchParameters(args);
@@ -580,14 +636,20 @@ QBG::CLI::searchQG(NGT::Args &args) {
   try {
     ::searchQG(index, searchParameters, std::cout);
   } catch (NGT::Exception &err) {
-    cerr << "qbg: Error " << err.what() << endl;
-    cerr << usage << endl;
+    std::stringstream msg;
+    msg << "qbg: Error " << err.what() << std::endl;
+    msg << usage << endl;
+    NGTThrowException(msg);
   } catch (std::exception &err) {
-    cerr << "qbg: Error " << err.what() << endl;
-    cerr << usage << endl;
+    std::stringstream msg;
+    msg << "qbg: Error " << err.what() << std::endl;
+    msg << usage << endl;
+    NGTThrowException(msg);
   } catch (...) {
-    cerr << "qbg: Error" << endl;
-    cerr << usage << endl;
+    std::stringstream msg;
+    msg << "qbg: Error ";
+    msg << usage << endl;
+    NGTThrowException(msg);
   }
 
 }
@@ -605,12 +667,14 @@ QBG::CLI::createQG(NGT::Args &args)
   try {
     indexPath = args.get("#1");
   } catch (...) {
-    cerr << "An index is not specified." << endl;
-    cerr << usage << endl;
-    return;
+    std::stringstream msg;
+    msg << "No index is specified." << std::endl;
+    msg << usage << endl;
+    NGTThrowException(msg);
   }
   std::cerr << "creating..."  << std::endl;
   NGTQG::Index::create(indexPath, buildParameters);
+  std::cerr << "appending..."  << std::endl;
   NGTQG::Index::append(indexPath, buildParameters);
 }
 
@@ -622,12 +686,14 @@ QBG::CLI::appendQG(NGT::Args &args)
   try {
     indexPath = args.get("#1");
   } catch (...) {
-    cerr << "An index is not specified." << endl;
-    cerr << usage << endl;
-    return;
+    std::stringstream msg;
+    msg << "No index is specified." << std::endl;
+    msg << usage << endl;
+    NGTThrowException(msg);
   }
   QBG::Index::appendFromObjectRepository(indexPath, indexPath + "/qg", false);
 }
+
 
 
 void
@@ -639,9 +705,10 @@ QBG::CLI::info(NGT::Args &args)
   try {
     indexPath = args.get("#1");
   } catch (...) {
-    cerr << "Index is not specified" << endl;
-    cerr << usage << endl;
-    return;
+    std::stringstream msg;
+    msg << "No index is specified." << std::endl;
+    msg << usage << endl;
+    NGTThrowException(msg);
   }
 
   try {
@@ -663,8 +730,10 @@ QBG::CLI::info(NGT::Args &args)
       NGTQG::Index index(indexPath, 128, readOnly);
       std::cout << "The index type: QG" << std::endl;
     } catch (...) {
-      cerr << "qbg: The specified index is neither QBG nor QG." << std::endl;
-      cerr << usage << endl;
+      std::stringstream msg;
+      msg << "qbg: The specified index is neither QBG nor QG." << std::endl;
+      msg << usage << endl;
+      NGTThrowException(msg);
     }
   }
 
@@ -674,9 +743,11 @@ void
 QBG::CLI::create(NGT::Args &args)
 {
   const string usage = "Usage: qbg create "
-    " -d dimension [-o object-type (f:float|c:unsigned char)] [-D distance-function] [-n data-size] "
+    " -d dimension [-o object-type (object-list-data-type)] "
+    "[-O genuine-data-type (=object-type)] [-C cluster-data-type] [-K graph-data-type] "
+    "[-D distance-function] [-n data-size] "
     "[-p #-of-thread] [-R global-codebook-range] [-r local-codebook-range] "
-    "[-C global-codebook-size-limit] [-c local-codebook-size-limit] [-N local-division-no] "
+    "[-c local-codebook-size-limit] [-N local-division-no] "
     "[-T single-local-centroid (t|f)] [-e epsilon] [-i index-type (t:Tree|g:Graph)] "
     "[-M global-centroid-creation-mode (d|s)] [-L local-centroid-creation-mode (d|k|s)] "
     "[-s local-sample-coefficient] "
@@ -695,9 +766,10 @@ QBG::CLI::create(NGT::Args &args)
 	cerr << "rotation is " << rotationPath << "." << endl;
 	std::ifstream stream(rotationPath);
 	if (!stream) {
-	  std::cerr << "Cannot open the rotation. " << rotationPath << std::endl;
-	  cerr << usage << endl;
-	  return;
+	  std::stringstream msg;
+	  msg << "Cannot open the rotation. " << rotationPath << std::endl;
+	  msg << usage << std::endl;
+	  NGTThrowException(msg);
 	}
 	std::string line;
 	while (getline(stream, line)) {
@@ -720,8 +792,10 @@ QBG::CLI::create(NGT::Args &args)
 
     QBG::Index::create(indexPath, buildParameters, rotation, objectPath);
   } catch(NGT::Exception &err) {
-    std::cerr << err.what() << std::endl;
-    cerr << usage << endl;
+    std::stringstream msg;
+    msg << err.what() << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
   }
 }
 
@@ -737,9 +811,10 @@ QBG::CLI::load(NGT::Args &args)
   try {
     indexPath = args.get("#1");
   } catch (...) {
-    std::cerr << "Not specified the index." << std::endl;
-    std::cerr << usage << std::endl;
-    return;
+     std::stringstream msg;
+    msg << "No index is specified." << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
   }
 
   std::cerr << "qbg: loading the specified blobs..." << std::endl;
@@ -770,7 +845,6 @@ QBG::CLI::load(NGT::Args &args)
 void
 QBG::CLI::search(NGT::Args &args)
 {
-  
   const string usage = "Usage: qbg search [-i g|t|s] [-n result-size] [-e epsilon] [-m mode(r|l|c|a)] "
     "[-E edge-size] [-o output-mode] [-b result expansion(begin:end:[x]step)] "
     "index(input) query.tsv(input)";
@@ -779,18 +853,20 @@ QBG::CLI::search(NGT::Args &args)
   try {
     indexPath = args.get("#1");
   } catch (...) {
-    cerr << "Index is not specified" << endl;
-    cerr << usage << endl;
-    return;
+    std::stringstream msg;
+    msg << "No index is specified." << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
   }
 
   string query;
   try {
     query = args.get("#2");
   } catch (...) {
-    cerr << "Query is not specified" << endl;
-    cerr << usage << endl;
-    return;
+    std::stringstream msg;
+    msg << "Query is not specified" << endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
   }
 
   bool verbose = args.getBool("v");
@@ -799,6 +875,22 @@ QBG::CLI::search(NGT::Args &args)
   float epsilon	= 0.1;
 
   char searchMode	= args.getChar("M", 'n');
+  NGTQ::DataType refinementDataType = NGTQ::DataTypeAny;
+  {
+    char refinement = args.getChar("R", '-');
+    switch (refinement) {
+    case 'f': refinementDataType = NGTQ::DataTypeFloat; break;
+#ifdef NGT_HALF_FLOAT
+    case 'h': refinementDataType = NGTQ::DataTypeFloat16; break;
+#endif
+    case 'x': refinementDataType = NGTQ::DataTypeNone; break;
+    case '-': refinementDataType = NGTQ::DataTypeAny; break;
+    default:
+      std::stringstream msg;
+      msg << "Command::CreateParameters: Error: Invalid refinement data type. " << refinement;
+      NGTThrowException(msg);
+    }
+  }
   if (args.getString("e", "none") == "-") {
     // linear search
     epsilon = FLT_MAX;
@@ -860,11 +952,14 @@ QBG::CLI::search(NGT::Args &args)
     cerr << "parameter=" << beginOfParameter << "->" << endOfParameter << "," << stepOfParameter << endl;
   }
 
-  QBG::Index index(indexPath, true, verbose);
+  auto prebuilt = true;
+  QBG::Index index(indexPath, prebuilt, verbose, refinementDataType);
   std::cerr << "qbg::The index is open." << std::endl;
   std::cerr << "  vmsize=" << NGT::Common::getProcessVmSizeStr() << std::endl;
   std::cerr << "  peak vmsize=" << NGT::Common::getProcessVmPeakStr() << std::endl;
-  auto dimension = index.getQuantizer().globalCodebookIndex.getObjectSpace().getDimension();
+  if (outputMode == 'e') {
+    std::cout << "# Beginning of Evaluation" << endl;
+  }
   try {
     for (size_t trial = 0; trial < nOfTrials; trial++) {
       ifstream		is(query);
@@ -872,7 +967,6 @@ QBG::CLI::search(NGT::Args &args)
 	cerr << "Cannot open the specified file. " << query << endl;
 	return;
       }
-      if (outputMode == 's') { cout << "# Beginning of Evaluation" << endl; }
       string line;
       double totalTime = 0;
       int queryCount = 0;
@@ -884,7 +978,6 @@ QBG::CLI::search(NGT::Args &args)
 	  linestream >> value;
 	  queryVector.push_back(value);
 	}
-	queryVector.resize(dimension);
 	queryCount++;
 	for (auto parameter = beginOfParameter;
 	     parameter <= endOfParameter;
@@ -897,16 +990,11 @@ QBG::CLI::search(NGT::Args &args)
 	  searchContainer.setResults(&objects);
 	  auto re = resultExpansion;
 	  if (re < 0.0) re = parameter;
-	  if (re >= 1.0) {
-	    searchContainer.setSize(static_cast<float>(size) * re);
-	    searchContainer.setExactResultSize(size);
-	  } else {
-	    searchContainer.setSize(size);
-	    searchContainer.setExactResultSize(0);
-	  }
+	  searchContainer.setRefinementExpansion(re);
 	  auto np = nOfProbes;
 	  if (np == 0) np = parameter;
 	  searchContainer.setNumOfProbes(np);
+	  searchContainer.setSize(size);
 	  searchContainer.setEpsilon(epsilon);
 	  searchContainer.setBlobEpsilon(blobEpsilon);
 	  searchContainer.setEdgeSize(edgeSize);
@@ -934,7 +1022,7 @@ QBG::CLI::search(NGT::Args &args)
 	    cout << "# Index Type=" << "----" << endl;
 	    cout << "# Size=" << size << endl;
 	    cout << "# Epsilon=" << epsilon << endl;
-	    cout << "# Result expansion=" << re << endl;
+	    cout << "# Refinement expansion=" << re << endl;
 	    cout << "# # of probes=" << np << endl;
 	    if (nOfProbes == 0) {
 	      cout << "# Factor=" << np << endl;
@@ -943,19 +1031,34 @@ QBG::CLI::search(NGT::Args &args)
 	    }
 	    cout << "# Distance Computation=" << index.getQuantizer().distanceComputationCount << endl;
 	    cout << "# Query Time (msec)=" << timer.time * 1000.0 << endl;
+	  } else if (outputMode == 't' || outputMode =='T') {
+	    cout << queryCount << "\t";
 	  } else {
 	    cout << "Query No." << queryCount << endl;
 	    cout << "Rank\tIN-ID\tID\tDistance" << endl;
 	  }
 
-	  for (size_t i = 0; i < objects.size(); i++) {
-	    cout << i + 1 << "\t" << objects[i].id << "\t";
-	    cout << objects[i].distance << endl;
+	  if (outputMode == 't' || outputMode =='T') {
+	    for (size_t i = 0; i < objects.size(); i++) {
+	      cout << objects[i].id;
+	      if (outputMode == 'T') {
+		cout << "\t" << objects[i].distance;
+	      }
+	      if (i + 1 != objects.size()) {
+		std::cout << "\t";
+	      }
+	    }
+	    std::cout << std::endl;
+	  } else {
+	    for (size_t i = 0; i < objects.size(); i++) {
+	      cout << i + 1 << "\t" << objects[i].id << "\t";
+	      cout << objects[i].distance << endl;
+	    }
 	  }
-
+	    
 	  if (outputMode == 'e' || outputMode == 'E') {
 	    cout << "# End of Search" << endl;
-	  } else {
+	  } else if (!(outputMode == 't' || outputMode =='T')) {
 	    cout << "Query Time= " << timer.time << " (sec), " << timer.time * 1000.0 << " (msec)" << endl;
 	  }
 	}
@@ -968,18 +1071,22 @@ QBG::CLI::search(NGT::Args &args)
 	cout << "# Average Query Time (msec)=" << queryTimes.back() << endl;
 	cout << "# Number of queries=" << queryCount << endl;
 	cout << "# End of Evaluation" << endl;
-      } else {
+      } else if (!(outputMode == 't' || outputMode =='T')) {
 	cout << "Average Query Time= " << totalTime / (double)queryCount  << " (sec), "
 	     << totalTime * 1000.0 / (double)queryCount << " (msec), ("
 	     << totalTime << "/" << queryCount << ")" << endl;
       }
     }
   } catch (NGT::Exception &err) {
-    cerr << "Error " << err.what() << endl;
-    cerr << usage << endl;
+    std::stringstream msg;
+    msg << "Error " << err.what() << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
   } catch (...) {
-    cerr << "Error" << endl;
-    cerr << usage << endl;
+    std::stringstream msg;
+    msg << "Error" << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
   }
   if (outputMode == 'e' || outputMode == 'E') {
     if (nOfTrials >= 1) {
@@ -993,6 +1100,227 @@ QBG::CLI::search(NGT::Args &args)
   index.close();
 }
 
+void
+QBG::CLI::batchSearch(NGT::Args &args)
+{
+  const string usage = "Usage: qbg search [-i g|t|s] [-n result-size] [-e epsilon] [-m mode(r|l|c|a)] "
+    "[-E edge-size] [-o output-mode] [-b result expansion(begin:end:[x]step)] "
+    "index(input) query.tsv(input)";
+  args.parse("v");
+  string indexPath;
+  try {
+    indexPath = args.get("#1");
+  } catch (...) {
+    std::stringstream msg;
+    msg << "No index is specified." << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
+  }
+
+  string query;
+  try {
+    query = args.get("#2");
+  } catch (...) {
+    std::stringstream msg;
+    msg << "Query is not specified" << endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
+  }
+
+  bool verbose = args.getBool("v");
+  size_t size		= args.getl("n", 20);
+  char outputMode	= args.getChar("o", '-');
+  float epsilon	= 0.1;
+
+  NGTQ::DataType refinementDataType = NGTQ::DataTypeAny;
+  {
+    char refinement = args.getChar("R", '-');
+    switch (refinement) {
+    case 'f': refinementDataType = NGTQ::DataTypeFloat; break;
+#ifdef NGT_HALF_FLOAT
+    case 'h': refinementDataType = NGTQ::DataTypeFloat16; break;
+#endif
+    case 'x': refinementDataType = NGTQ::DataTypeNone; break;
+    case '-': refinementDataType = NGTQ::DataTypeAny; break;
+    default:
+      std::stringstream msg;
+      msg << "Command::CreateParameters: Error: Invalid refinement data type. " << refinement;
+      NGTThrowException(msg);
+    }
+  }
+  if (args.getString("e", "none") == "-") {
+    // linear search
+    epsilon = FLT_MAX;
+  } else {
+    epsilon = args.getf("e", 0.1);
+  }
+  float blobEpsilon = args.getf("B", 0.05);
+  size_t edgeSize = args.getl("E", 0);
+  float cutback = args.getf("C", 0.0);
+  size_t explorationSize = args.getf("N", 256);
+  size_t nOfProbes = 0;
+  float resultExpansion = -1;
+  size_t nOfTrials = args.getl("T", 1);
+  if (nOfTrials != 1) {
+    std::cerr << "# of trials=" << nOfTrials << std::endl;
+  }
+  std::vector<double> queryTimes;
+
+  float beginOfParameter, endOfParameter, stepOfParameter;
+  //-/bool mulStep = false;
+  {
+    beginOfParameter = 0.0;
+    endOfParameter = 0.0;
+    stepOfParameter = 1;
+    vector<string> tokens;
+    if (args.getString("p", "-").find_first_of(':') == std::string::npos) {
+      resultExpansion = args.getf("p", 0.0);
+    }
+    if (args.getString("P", "-").find_first_of(':') == std::string::npos) {
+      nOfProbes = args.getl("P", 10);
+    }
+    if (resultExpansion < 0 && nOfProbes == 0) {
+      std::cerr << "Cannot specify both -p and -P as a fluctuating value. -P is prioritized." << std::endl;
+      NGT::Common::tokenize(args.getString("p", "-"), tokens, ":");
+      resultExpansion = NGT::Common::strtod(tokens[0]);
+      tokens.clear();
+    }
+    if (resultExpansion < 0) {
+      NGT::Common::tokenize(args.getString("p", "-"), tokens, ":");
+    } else if (nOfProbes == 0) {
+      NGT::Common::tokenize(args.getString("P", "-"), tokens, ":");
+    }
+    if (tokens.size() >= 2) {
+      beginOfParameter = NGT::Common::strtod(tokens[0]);
+      endOfParameter = beginOfParameter;
+      if (tokens.size() >= 2) { endOfParameter = NGT::Common::strtod(tokens[1]); }
+      if (tokens.size() >= 3) {
+	if (tokens[2][0] == 'x') {
+	  //-/mulStep = true;
+	  stepOfParameter = NGT::Common::strtod(tokens[2].substr(1));
+	} else {
+	  stepOfParameter = NGT::Common::strtod(tokens[2]);
+	}
+      }
+    }
+  }
+  if (debugLevel >= 1) {
+    cerr << "size=" << size << endl;
+    cerr << "parameter=" << beginOfParameter << "->" << endOfParameter << "," << stepOfParameter << endl;
+  }
+
+  QBG::Index index(indexPath, true, verbose, refinementDataType);
+  std::cerr << "qbg::The index is open." << std::endl;
+  std::cerr << "  vmsize=" << NGT::Common::getProcessVmSizeStr() << std::endl;
+  std::cerr << "  peak vmsize=" << NGT::Common::getProcessVmPeakStr() << std::endl;
+  if (outputMode == 'e') {
+    std::cout << "# Beginning of Evaluation" << endl;
+  }
+  try {
+    for (size_t trial = 0; trial < nOfTrials; trial++) {
+      auto pseudoDimension = index.getQuantizer().property.dimension;
+      std::ifstream		is(query);
+      if (!is) {
+        std::cerr << "Cannot open the specified file. " << query << std::endl;
+	return;
+      }
+      string line;
+      std::vector<std::vector<float>> queries;
+      while(getline(is, line)) {
+	std::stringstream	linestream(line);
+	{
+	  vector<float>	queryVector;
+	  while (!linestream.eof()) {
+	    float value;
+	    linestream >> value;
+	    queryVector.emplace_back(value);
+	  }
+	  queryVector.resize(pseudoDimension);
+	  queries.emplace_back(queryVector);
+	}
+      }
+      //auto  qs(new float[queries.size() * pseudoDimension]);
+      // 上記のようにautoで書くとメモリリークが発生する
+      std::unique_ptr<float[]> qs(new float[queries.size() * pseudoDimension]);
+      for (size_t i = 0; i < queries.size(); i++) {
+	memcpy(&qs[i * pseudoDimension], queries[i].data(), pseudoDimension * sizeof(float));
+      }
+      std::cerr << "# of queries=" << queries.size() << std::endl;
+      QBG::BatchSearchContainer searchContainer;
+      searchContainer.setObjectVectors(&qs[0], queries.size(), pseudoDimension);
+      auto re = resultExpansion;
+      //if (re < 0.0) re = parameter;
+      if (re < 0.0) abort();
+      searchContainer.setRefinementExpansion(re);
+      auto np = nOfProbes;
+      //if (np == 0) np = parameter;
+      if (np == 0) abort();
+      searchContainer.setNumOfProbes(np);
+      searchContainer.setEpsilon(epsilon);
+      searchContainer.setBlobEpsilon(blobEpsilon);
+      searchContainer.setEdgeSize(edgeSize);
+      searchContainer.setCutback(cutback);
+      searchContainer.setGraphExplorationSize(explorationSize);
+      index.searchInTwoSteps(searchContainer);
+
+      auto &result = searchContainer.getBatchResult();
+      for (auto it = result.begin(); it != result.end(); ++it) {
+	if (outputMode == 't' || outputMode == 'T') {
+	  auto no = distance(result.begin(), it) + 1;
+	  std::cout << no << "\t";
+	  for (auto r = (*it).begin(); r != (*it).end(); ++r) {
+	    std::cout << (*r).id;
+	    if (outputMode == 'T') {
+	      std::cout << "\t" << (*r).distance;
+	    }
+	    if (r + 1 != (*it).end()) {
+	      std::cout << "\t";
+	    }
+	  }
+	  std::cout << std::endl;;
+	} else {
+	  auto no = distance(result.begin(), it) + 1;
+	  if (outputMode == 'e') {
+	    std::cout << "# Query No.=" << no << endl;
+	    std::cout << "# Epsilon=" << epsilon << endl;
+	  } else {
+	    std::cout << "Query No." << no << std::endl;
+	    std::cout << "Rank\tIN-ID\tDistance" << std::endl;
+	  }
+	  for (auto r = (*it).begin(); r != (*it).end(); ++r) {
+	    auto rank = distance((*it).begin(), r);
+	    std::cout << rank + 1 << "\t" << (*r).id << "\t";
+	    std::cout << (*r).distance << std::endl;
+	  }
+	  if (outputMode == 'e') {
+	    std::cout << "# End of Search" << endl;
+	  }
+	}
+	if (outputMode == 'e') {
+	  std::cout << "# End of Query" << endl;
+	}
+      }
+    }
+  } catch (NGT::Exception &err) {
+    std::stringstream msg;
+    msg << "Error " << err.what() << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
+  } catch (...) {
+    std::stringstream msg;
+    msg << "Error" << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
+  }
+  if (outputMode == 'e' || outputMode == 'E') {
+    if (nOfTrials >= 1) {
+    }
+    std::cout << "# End of Evaluation" << endl;
+    std::cout << "#   vmsize=" << NGT::Common::getProcessVmSizeStr() << std::endl;
+    std::cout << "#   peak vmsize=" << NGT::Common::getProcessVmPeakStr() << std::endl;
+  }
+  index.close();
+}
 
 void
 QBG::CLI::append(NGT::Args &args)
@@ -1003,16 +1331,16 @@ QBG::CLI::append(NGT::Args &args)
   try {
     indexPath = args.get("#1");
   } catch (...) {
-    cerr << "Index is not specified." << endl;
-    cerr << usage << endl;
-    return;
+    std::stringstream msg;
+    msg << "No index is specified." << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
   }
   string data;
   try {
     data = args.get("#2");
   } catch (...) {
-    cerr << usage << endl;
-    cerr << "Data is not specified." << endl;
+    std::cerr << "Data is not specified." << std::endl;
   }
 
   size_t dataSize = args.getl("n", 0);
@@ -1047,29 +1375,30 @@ QBG::CLI::append(NGT::Args &args)
 void
 QBG::CLI::insert(NGT::Args &args)
 {
-  const string usage = "Usage: qbg append [-n data-size] [-m b|e] [-v] index(output) data.tsv(input)";
+  const string usage = "Usage: qbg insert [-n data-size] [-m b|e] [-v] index(output) data.tsv(input)";
   args.parse("v");
   string indexPath;
   try {
     indexPath = args.get("#1");
   } catch (...) {
-    cerr << "Index is not specified." << endl;
-    cerr << usage << endl;
-    return;
+    std::stringstream msg;
+    msg << "No index is specified." << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
   }
   string data;
   try {
     data = args.get("#2");
   } catch (...) {
-    cerr << usage << endl;
-    cerr << "Data is not specified." << endl;
+    std::cerr  << "Data is not specified." << std::endl;
   }
 
   std::ifstream stream(data);
   if (!stream) {
-    std::cerr << "Cannot open the data file. " << data << std::endl;
-    cerr << usage << endl;
-    return;
+    std::stringstream msg;
+    msg << "Cannot open the data file. " << data << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
   }
   bool verbose = args.getBool("v");
 
@@ -1108,16 +1437,19 @@ QBG::CLI::remove(NGT::Args &args)
   try {
     indexPath = args.get("#1");
   } catch (...) {
-    cerr << "Index is not specified." << endl;
-    cerr << usage << endl;
-    return;
+    std::stringstream msg;
+    msg << "No index is specified." << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
   }
   uint32_t ids;
   try {
     ids = args.getl("#2", 0);
   } catch (...) {
-    cerr << usage << endl;
-    cerr << "Data is not specified." << endl;
+    std::stringstream msg;
+    msg << "Data is not specified." << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
   }
 
   auto verbose = args.getBool("v");
@@ -1133,6 +1465,56 @@ QBG::CLI::remove(NGT::Args &args)
 
 }
 
+void
+QBG::CLI::expandBlob(NGT::Args &args)
+{
+  const string usage = "Usage: qbg expand-blob index [centroids-file]";
+  args.parse("v");
+  std::string indexPath;
+  try {
+    indexPath = args.get("#1");
+  } catch (...) {
+    std::stringstream msg;
+    msg << "No index is specified." << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
+  }
+  std::string clusterCentroidsPath;
+  try {
+    clusterCentroidsPath = args.get("#2");
+  } catch (...) {}
+
+  NGTQ::DataType refinementDataType = NGTQ::DataTypeAny;
+  {
+    char dataType = args.getChar("R", '-');
+    switch (dataType) {
+    case 'f': refinementDataType = NGTQ::DataTypeFloat; break;
+#ifdef NGT_HALF_FLOAT
+    case 'h': refinementDataType = NGTQ::DataTypeFloat16; break;
+#endif
+    case 'x': refinementDataType = NGTQ::DataTypeNone; break;
+    case '-': refinementDataType = NGTQ::DataTypeAny; break;
+    default:
+      std::stringstream msg;
+      msg << "Command::CreateParameters: Error: Invalid refinement data type. " << dataType;
+      NGTThrowException(msg);
+    }
+  }
+
+  auto verbose = args.getBool("v");
+
+  NGT::SearchContainer ngtSearchContainer;
+  ngtSearchContainer.setSize(50);
+  QBG::SearchContainer qbgSearchContainer;
+  qbgSearchContainer.setSize(args.getl("n", 20));
+  qbgSearchContainer.setBlobEpsilon(args.getl("b", 0.1));
+  float rate = args.getf("r", -1.0);
+  
+  QBG::Index::expandBlob(indexPath, clusterCentroidsPath, ngtSearchContainer,
+			 qbgSearchContainer, rate, refinementDataType, verbose);
+
+}
+
 
 void
 QBG::CLI::buildIndex(NGT::Args &args)
@@ -1142,9 +1524,10 @@ QBG::CLI::buildIndex(NGT::Args &args)
   try {
     indexPath = args.get("#1");
   } catch (...) {
-    cerr << "An index is not specified." << endl;
-    cerr << usage << endl;
-    return;
+    std::stringstream msg;
+    msg << "No index is specified." << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
   }
   char mode = args.getChar("m", '-');
 
@@ -1154,7 +1537,7 @@ QBG::CLI::buildIndex(NGT::Args &args)
 
   std::vector<std::vector<float>> quantizerCodebook;
   std::vector<uint32_t> codebookIndex;
-  std::vector<uint32_t> objectIndex;
+  std::vector<std::vector<uint32_t>> objectIndex;
 
   if (mode == 'q' || mode == '-') {
     {
@@ -1167,9 +1550,10 @@ QBG::CLI::buildIndex(NGT::Args &args)
 	}
 	std::ifstream stream(codebookPath);
 	if (!stream) {
-	  std::cerr << "Cannot open the codebook. " << codebookPath << std::endl;
-	  cerr << usage << endl;
-	  return;
+	  std::stringstream msg;
+	  msg << "Cannot open the codebook. " << codebookPath << std::endl;
+	  msg << usage << std::endl;
+	  NGTThrowException(msg);
 	}
 	std::string line;
 	while (getline(stream, line)) {
@@ -1180,10 +1564,11 @@ QBG::CLI::buildIndex(NGT::Args &args)
 	    object.push_back(NGT::Common::strtof(token));
 	  }
 	  if (!quantizerCodebook.empty() && quantizerCodebook[0].size() != object.size()) {
-	    cerr << "The specified quantizer codebook is invalid. " << quantizerCodebook[0].size()
-		 << ":" << object.size() << ":" << quantizerCodebook.size() << ":" << line << endl;
-	    cerr << usage << endl;
-	    return;
+	    std::stringstream msg;
+	    msg << "The specified quantizer codebook is invalid. " << quantizerCodebook[0].size()
+		<< ":" << object.size() << ":" << quantizerCodebook.size() << ":" << line << std::endl;
+	    msg << usage << std::endl;
+	    NGTThrowException(msg);
 	  }
 	  if (!object.empty()) {
 	    quantizerCodebook.push_back(object);
@@ -1204,18 +1589,20 @@ QBG::CLI::buildIndex(NGT::Args &args)
 	cerr << "codebook index is " << codebookIndexPath << "." << endl;
 	std::ifstream stream(codebookIndexPath);
 	if (!stream) {
-	  std::cerr << "Cannot open the codebook index. " << codebookIndexPath << std::endl;
-	  cerr << usage << endl;
-	  return;
+	  std::stringstream msg;
+	  msg << "Cannot open the codebook index. " << codebookIndexPath << std::endl;
+	  msg << usage << std::endl;
+	  NGTThrowException(msg);
 	}
 	std::string line;
 	while (getline(stream, line)) {
 	  std::vector<std::string> tokens;
 	  NGT::Common::tokenize(line, tokens, " \t");
 	  if (tokens.size() != 1) {
-	    cerr << "The specified codebook index is invalid. " << line << std::endl;
-	    cerr << usage << endl;
-	    return;
+	    std::stringstream msg;
+	    msg << "The specified codebook index is invalid. " << line << std::endl;
+	    msg << usage << std::endl;
+	    NGTThrowException(msg);
 	  }
 	  codebookIndex.push_back(NGT::Common::strtol(tokens[0]));
 	}
@@ -1231,25 +1618,42 @@ QBG::CLI::buildIndex(NGT::Args &args)
 	} catch (...) {
 	  objectIndexPath = indexPath + "/ws/kmeans-cluster_index.tsv";
 	}
-	std::ifstream stream(objectIndexPath);
-	if (!stream) {
-	  std::cerr << "Cannot open the codebook index. " << objectIndexPath << std::endl;
-	  cerr << usage << endl;
-	  return;
-	}
-	std::string line;
-	while (getline(stream, line)) {
-	  std::vector<std::string> tokens;
-	  NGT::Common::tokenize(line, tokens, " \t");
-	  std::vector<float> object;
-	  if (tokens.size() != 1) {
-	    cerr << "The specified codebook index is invalid. " << line << std::endl;
-	    cerr << usage << endl;
-	    return;
+	{
+	  std::ifstream stream(objectIndexPath);
+	  if (!stream) {
+	    std::stringstream msg;
+	    msg << "Cannot open the codebook index. " << objectIndexPath;
+	    NGTThrowException(msg);
 	  }
-	  objectIndex.push_back(NGT::Common::strtol(tokens[0]));
+	  size_t nOfObjs = 0;
+	  std::string line;
+	  while (getline(stream, line)) nOfObjs++;
+	  objectIndex.resize(nOfObjs);
 	}
-
+	{
+	  std::ifstream stream(objectIndexPath);
+	  if (!stream) {
+	    std::stringstream msg;
+	    msg << "Cannot open the codebook index. " << objectIndexPath << std::endl;
+	    msg << usage << std::endl;
+	    NGTThrowException(msg);
+	  }
+	  {
+	    std::string line;
+	    size_t idx = 0;
+	    while (getline(stream, line)) {
+	      std::vector<std::string> tokens;
+	      NGT::Common::tokenize(line, tokens, " \t");
+	      if (tokens.size() > 0) {
+		objectIndex[idx].reserve(tokens.size());
+		for (auto &token : tokens) {
+		  objectIndex[idx].emplace_back(NGT::Common::strtol(token));
+		}
+	      }
+	      idx++;
+	    }
+	  }
+	}
       } catch (...) {}
     }
 
@@ -1284,13 +1688,29 @@ QBG::CLI::build(NGT::Args &args)
   try {
     indexPath = args.get("#1");
   } catch (...) {
-    cerr << "An index is not specified." << endl;
-    cerr << usage << endl;
-    return;
+    std::stringstream msg;
+    msg << "No index is specified." << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
   }
 
-
   std::string phaseString = args.getString("p", "1-3");
+  if (phaseString.substr(0, 10) == "assign-all") {
+    std::vector<std::string> tokens;
+    NGT::Common::tokenize(phaseString, tokens, ":");
+    int64_t lowerBoundOfObjects = 0;
+    size_t noOfNearestNeighbors = 1;
+    if (tokens.size() >= 2) {
+      lowerBoundOfObjects = NGT::Common::strtod(tokens[1]);
+    }
+    if (tokens.size() >= 3) {
+      noOfNearestNeighbors = NGT::Common::strtod(tokens[2]);
+    }
+    std::cerr << "qbg: assign-all" << std::endl;
+    HierarchicalKmeans hierarchicalKmeans(buildParameters);
+    hierarchicalKmeans.assignAll(indexPath, lowerBoundOfObjects, noOfNearestNeighbors);
+    return;
+  }
   bool phase[3];
   if (phaseString.empty()) {
     phase[0] = phase[1] = phase[2] = true;
@@ -1307,9 +1727,10 @@ QBG::CLI::build(NGT::Args &args)
     }
     if (tokens.size() >= 2) { endOfPhase = NGT::Common::strtod(tokens[1]) - 1;}
     if (tokens.size() >= 3 || tokens.size() == 0) {
-      cerr << "The specified phases are invalid! " << phaseString << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "The specified phases are invalid! " << phaseString << std::endl;
+      msg << usage << std::endl;
+      NGTThrowException(msg);
     }
     phase[0] = phase[1] = phase[2] = false;
     for (int p = beginOfPhase; p <= endOfPhase; p++) {
@@ -1377,14 +1798,17 @@ QBG::CLI::rebuild(NGT::Args &args)
   try {
     indexPath = args.get("#1");
   } catch (...) {
-    cerr << "An index is not specified." << endl;
-    cerr << usage << endl;
-    return;
+    std::stringstream msg;
+    msg << "No index is specified." << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
   }
   auto start = args.getl("s", 0);
   if (start == 0) {
-    std::cerr << "Start ID(-s) should be set. The ID is the smallest ID of the objects that are appended but not indexed." << std::endl;
-    std::cerr << usage << std::endl;
+    std::stringstream msg;
+    msg << "Start ID(-s) should be set. The ID is the smallest ID of the objects that are appended but not indexed." << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
   }
 
   NGT::Timer timer;
@@ -1416,9 +1840,10 @@ QBG::CLI::hierarchicalKmeans(NGT::Args &args)
   try {
     indexPath = args.get("#1");
   } catch (...) {
-    cerr << "Index is not specified" << endl;
-    cerr << usage << endl;
-    return;
+    std::stringstream msg;
+    msg << "No index is specified." << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
   }
 
   std::string prefix;
@@ -1459,9 +1884,10 @@ QBG::CLI::assign(NGT::Args &args)
   try {
     indexPath = args.get("#1");
   } catch (...) {
-    cerr << "Any index is not specified" << endl;
-    cerr << usage << endl;
-    return;
+    std::stringstream msg;
+    msg << "No index is specified." << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
   }
 
   std::string queryPath;
@@ -1469,9 +1895,10 @@ QBG::CLI::assign(NGT::Args &args)
   try {
     queryPath = args.get("#2");
   } catch (...) {
-    cerr << "Any query is not specified" << endl;
-    cerr << usage << endl;
-    return;
+    std::stringstream msg;
+    msg << "No query is specified." << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
   }
 
   auto epsilon = args.getf("e", 0.1);
@@ -1538,9 +1965,10 @@ QBG::CLI::extract(NGT::Args &args)
   try {
     objectPath = args.get("#1");
   } catch (...) {
-    std::cerr << "Object file is not specified." << std::endl;
-    std::cerr << usage << std::endl;
-    return;
+    std::stringstream msg;
+    msg << "Object file is not specified." << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
   }
 
   std::ostream *os;
@@ -1776,9 +2204,10 @@ QBG::CLI::optimize(NGT::Args &args)
   try {
     indexPath = args.get("#1");
   } catch(...) {
-    cerr << "qbg: index is not specified." << endl;
-    cerr << usage << endl;
-    return;
+    std::stringstream msg;
+    msg << "No index is specified." << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
   }
 
   string invector;

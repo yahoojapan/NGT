@@ -66,7 +66,9 @@ namespace NGTQG {
   class QuantizedGraphRepository : public std::vector<QuantizedNode> {
     typedef std::vector<QuantizedNode> PARENT;
   public:
-    QuantizedGraphRepository(NGTQ::Index &quantizedIndex): numOfSubspaces(quantizedIndex.getQuantizer().property.localDivisionNo) {}
+    QuantizedGraphRepository(NGTQ::Index &quantizedIndex) :
+      quantizer(quantizedIndex.getQuantizer()),
+      numOfSubspaces(quantizedIndex.getQuantizer().property.localDivisionNo) {}
     ~QuantizedGraphRepository() {}
 
     void *get(size_t id) {
@@ -86,6 +88,7 @@ namespace NGTQG {
     void construct(NGT::GraphRepository &graphRepository, NGTQ::Index &quantizedIndex, size_t maxNoOfEdges) {
       NGTQ::InvertedIndexEntry<uint16_t> invertedIndexObjects(numOfSubspaces);
       quantizedIndex.getQuantizer().extractInvertedIndexObject(invertedIndexObjects);
+      std::cerr << "inverted index object size=" << invertedIndexObjects.size() << std::endl;
       quantizedIndex.getQuantizer().eraseInvertedIndexObject();
 
 
@@ -101,6 +104,7 @@ namespace NGTQG {
 	size_t numOfEdges = node.size() < maxNoOfEdges ? node.size() : maxNoOfEdges;
 	(*this)[id].ids.reserve(numOfEdges);
 	NGTQ::QuantizedObjectProcessingStream quantizedStream(quantizedIndex.getQuantizer().divisionNo, numOfEdges);
+	std::cerr << "pass XX " << node.size() << ":" << invertedIndexObjects.size() << std::endl;
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
 	for (auto i = node.begin(graphRepository.allocator); i != node.end(graphRepository.allocator); ++i) {
 	  if (distance(node.begin(graphRepository.allocator), i) >= static_cast<int64_t>(numOfEdges)) {
@@ -140,7 +144,10 @@ namespace NGTQG {
     }
 
     void serialize(std::ofstream &os, NGT::ObjectSpace *objspace = 0) {
+#ifdef NGT_IVI
+#else
       NGTQ::QuantizedObjectProcessingStream quantizedObjectProcessingStream(numOfSubspaces);
+#endif
       uint64_t n = numOfSubspaces;
       NGT::Serializer::write(os, n);
       n = PARENT::size();
@@ -149,14 +156,21 @@ namespace NGTQG {
         uint32_t sid = (*i).subspaceID;
         NGT::Serializer::write(os, sid);
 	NGT::Serializer::write(os, (*i).ids);
+#ifdef NGT_IVI
+	size_t streamSize = quantizer.getQuantizedObjectDistance().getSizeOfCluster((*i).ids.size());
+#else
 	size_t streamSize = quantizedObjectProcessingStream.getUint4StreamSize((*i).ids.size());
+#endif
 	NGT::Serializer::write(os, static_cast<uint8_t*>((*i).objects), streamSize);
       }
     }
 
     void deserialize(std::ifstream &is, NGT::ObjectSpace *objectspace = 0) {
       try {
+#ifdef NGT_IVI
+#else
 	NGTQ::QuantizedObjectProcessingStream quantizedObjectProcessingStream(numOfSubspaces);
+#endif
 	uint64_t n;
 	NGT::Serializer::read(is, n);
 	numOfSubspaces = n;
@@ -167,7 +181,11 @@ namespace NGTQG {
 	  NGT::Serializer::read(is, sid);
 	  (*i).subspaceID = sid;
 	  NGT::Serializer::read(is, (*i).ids);
+#ifdef NGT_IVI
+	  size_t streamSize = quantizer.getQuantizedObjectDistance().getSizeOfCluster((*i).ids.size());
+#else
           size_t streamSize = quantizedObjectProcessingStream.getUint4StreamSize((*i).ids.size());
+#endif
 	  uint8_t *objectStream = new uint8_t[streamSize];
 	  NGT::Serializer::read(is, objectStream, streamSize);
 	  (*i).objects = objectStream;
@@ -200,6 +218,7 @@ namespace NGTQG {
       deserialize(is);
     }
 
+    NGTQ::Quantizer &quantizer;
     size_t numOfSubspaces;
   };
 
@@ -451,7 +470,7 @@ namespace NGTQG {
       }
       if (dimension % dimensionOfSubvector != 0) {
 	stringstream msg;
-	msg << "Quantizer::getNumOfSubvectors: dimensionOfSubvector is invalid. " << dimension << " : " << dimensionOfSubvector << std::endl;
+	msg << "Quantizer::getNumOfSubvectors: dimensionOfSubvector is invalid. " << dimension << " : " << dimensionOfSubvector;
 	NGTThrowException(msg);
       }
       return dimension / dimensionOfSubvector;
@@ -465,8 +484,9 @@ namespace NGTQG {
 	struct stat st;
 	std::string qgGraphPath(qgPath + "/grp");
 	if (stat(qgGraphPath.c_str(), &st) == 0) {
-	  std::cerr << "already exists" << std::endl;
-	  abort();
+	  stringstream msg;
+	  msg << "Already exists. " << qgGraphPath;
+	  NGTThrowException(msg);
 	} else {
 	  NGT::GraphRepository graph;
 	  NGT::GraphIndex::loadGraph(indexPath, graph);

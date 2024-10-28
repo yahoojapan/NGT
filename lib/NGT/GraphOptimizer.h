@@ -79,6 +79,7 @@ namespace NGT {
       prefetchParameterOptimization = true;
       accuracyTableGeneration = true;
       shortcutReductionWithLessMemory = false;
+      undirectedGraphConversion = false;
       numOfThreads = 0;
     }
 
@@ -109,10 +110,18 @@ namespace NGT {
       NGT::ObjectSpace &objectSpace = index.getObjectSpace();
       NGT::ObjectRepository &objectRepository = objectSpace.getRepository();
       size_t nQueries = 200;
+      if (objectRepository.size() == 0) {
+	std::stringstream msg;
+	msg << "The object repository is empty. " << objectRepository.size();
+	NGTThrowException(msg);
+      }
       nQueries = objectRepository.size() - 1 < nQueries ? objectRepository.size() - 1 : nQueries;
-
+      if (nQueries == 0) {
+	std::stringstream msg;
+	msg << "# of the queries is unexpected zero value. " << nQueries << ":" << objectRepository.size();
+	NGTThrowException(msg);
+      }
       size_t step = objectRepository.size() / nQueries;
-      assert(step != 0);
       std::vector<size_t> ids;
       for (size_t startID = start; startID < step; startID++) {
 	for (size_t id = startID; id < objectRepository.size(); id += step) {
@@ -311,7 +320,7 @@ namespace NGT {
 	    // extract only edges from the index to reduce the memory usage.
 	    NGT::GraphReconstructor::extractGraph(graph, *graphIndex);
 	    NeighborhoodGraph::Property &prop = graphIndex->getGraphProperty();
-	    if (prop.graphType == NGT::NeighborhoodGraph::GraphTypeONNG) {
+	    if (undirectedGraphConversion) {
 	      NGT::GraphReconstructor::convertToANNG(graph);
 	    }
 	    NGT::GraphReconstructor::reconstructGraph(graph, *graphIndex, numOfOutgoingEdges, numOfIncomingEdges, maxNumOfEdges);
@@ -390,7 +399,7 @@ namespace NGT {
       if (searchParameterOptimization || prefetchParameterOptimization || accuracyTableGeneration) {
 	NGT::StdOstreamRedirector redirector(logDisabled);
 	redirector.begin();
-	NGT::Index	outIndex(outIndexPath, true);
+	NGT::Index	outIndex(outIndexPath, true);	
 	NGT::GraphIndex	&outGraph = static_cast<NGT::GraphIndex&>(outIndex.getIndex());
 	if (prefetchParameterOptimization) {
 	  if (!logDisabled) {
@@ -704,6 +713,7 @@ namespace NGT {
     bool prefetchParameterOptimization;
     bool accuracyTableGeneration;
     bool shortcutReductionWithLessMemory;
+    bool undirectedGraphConversion;
     float shortcutReductionRange;
     size_t numOfThreads;
   };

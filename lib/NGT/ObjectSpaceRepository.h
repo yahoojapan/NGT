@@ -288,30 +288,90 @@ namespace NGT {
 #endif
     };
 
-#ifdef NGT_INNER_PRODUCT
     class ComparatorInnerProduct : public Comparator {
       public:
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
         ComparatorInnerProduct(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
         double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::compareDotProduct((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
+	  return -PrimitiveComparator::compareDotProduct((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
 	}
 	double operator()(Object &objecta, PersistentObject &objectb) {
-	  return PrimitiveComparator::compareDotProduct((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
+	  return -PrimitiveComparator::compareDotProduct((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
         }
 	double operator()(PersistentObject &objecta, PersistentObject &objectb) {
-          return PrimitiveComparator::compareDotProduct((OBJECT_TYPE*)&objecta.at(0, allocator), (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
+          return -PrimitiveComparator::compareDotProduct((OBJECT_TYPE*)&objecta.at(0, allocator), (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
         }
 #else
         ComparatorInnerProduct(size_t d) : Comparator(d) {}
 	double operator()(Object &objecta, Object &objectb) {
-          return PrimitiveComparator::compareDotProduct((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
+          auto d = PrimitiveComparator::compareDotProduct((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
+	  return -d;
         }
 #endif
     };
+    class ComparatorInnerProductQsint8Quint8 : public Comparator {
+      public:
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+        ComparatorInnerProductQsint8Quint8(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
+        double operator()(Object &objecta, Object &objectb) {
+	  return PrimitiveComparator::InnerProductQsint8::compare(&objecta[0], &objectb[0], dimension);
+	}
+	double operator()(Object &objecta, PersistentObject &objectb) {
+	  return PrimitiveComparator::InnerProductQsint8::compare(&objecta[0], &objectb.at(0, allocator), dimension);
+        }
+	double operator()(PersistentObject &objecta, PersistentObject &objectb) {
+          return PrimitiveComparator::InnerProductQsint8::compare(&objecta.at(0, allocator), &objectb.at(0, allocator), dimension);
+        }
+#else
+        ComparatorInnerProductQsint8Quint8(size_t d) : Comparator(d) {}
+	double operator()(Object &objecta, Object &objectb) {
+	  return PrimitiveComparator::InnerProductQsint8::compare(&objecta[0], &objectb[0], dimension);
+        }
 #endif
+    };
+    class ComparatorL2Quint8Quint8 : public Comparator {
+      public:
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+        ComparatorL2Quint8Quint8(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
+	double operator()(Object &objecta, Object &objectb) {
+	  return PrimitiveComparator::compareL2((quint8*)&objecta[0], (quint8*)&objectb[0], dimension);
+	}
+	double operator()(Object &objecta, PersistentObject &objectb) {
+	  return PrimitiveComparator::compareL2((quint8*)&objecta[0], (quint8*)&objectb.at(0, allocator), dimension);
+	}
+	double operator()(PersistentObject &objecta, PersistentObject &objectb) {
+	  return PrimitiveComparator::compareL2((quint8*)&objecta.at(0, allocator), (quint8*)&objectb.at(0, allocator), dimension);
+	}
+#else
+        ComparatorL2Quint8Quint8(size_t d) : Comparator(d) {}
+	double operator()(Object &objecta, Object &objectb) {
+	  return PrimitiveComparator::compareL2((quint8*)&objecta[0], (quint8*)&objectb[0], dimension);
+	}
+#endif
+    };
+    class ComparatorDotProduct : public Comparator {
+      public:
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+        ComparatorDotProduct(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
+        double operator()(Object &objecta, Object &objectb) {
+	  return magnitude - PrimitiveComparator::compareDotProduct((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
+	}
+	double operator()(Object &objecta, PersistentObject &objectb) {
+	  return magnitude - PrimitiveComparator::compareDotProduct((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
+        }
+	double operator()(PersistentObject &objecta, PersistentObject &objectb) {
+          return magnitude - PrimitiveComparator::compareDotProduct((OBJECT_TYPE*)&objecta.at(0, allocator), (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
+        }
+#else
+        ComparatorDotProduct(size_t d) : Comparator(d) {}
+	double operator()(Object &objecta, Object &objectb) {
+	  return magnitude - PrimitiveComparator::compareDotProduct((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
+	}
+#endif
+        float magnitude;
+    };
 
-    ObjectSpaceRepository(size_t d, const std::type_info &ot, DistanceType t) : ObjectSpace(d), ObjectRepository(d, ot) {
+    ObjectSpaceRepository(size_t d, const std::type_info &ot, DistanceType t, float mag = -1) : ObjectSpace(d), ObjectRepository(d, ot) {
      size_t objectSize = 0;
      if (ot == typeid(uint8_t)) {
        objectSize = sizeof(uint8_t);
@@ -321,6 +381,8 @@ namespace NGT {
      } else if (ot == typeid(float16)) {
        objectSize = sizeof(float16);
 #endif
+     } else if (ot == typeid(qsint8)) {
+       objectSize = sizeof(qsint8);
 #ifdef NGT_BFLOAT
      } else if (ot == typeid(bfloat16)) {
        objectSize = sizeof(bfloat16);
@@ -332,8 +394,9 @@ namespace NGT {
      }
      setLength(objectSize * d);
      setPaddedLength(objectSize * ObjectSpace::getPaddedDimension());
+     magnitude = mag;
      setDistanceType(t);
-   }
+    }
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
     void open(const std::string &f, size_t sharedMemorySize) { ObjectRepository::open(f, sharedMemorySize); }
@@ -390,7 +453,12 @@ namespace NGT {
     void setDistanceType(DistanceType t) {
       if (comparator != 0) {
 	delete comparator;
-      }
+	comparator = 0;
+      } 
+      if (comparatorForSearch != 0) {
+	delete comparatorForSearch;
+	comparatorForSearch = 0;
+      } 
       assert(ObjectSpace::dimension != 0);
       distanceType = t;
       switch (distanceType) {
@@ -435,12 +503,25 @@ namespace NGT {
 	comparator = new ObjectSpaceRepository::ComparatorNormalizedCosineSimilarity(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
 	normalization = true;
 	break;
-#ifdef NGT_INNER_PRODUCT
       case DistanceTypeInnerProduct:
-	comparator = new ObjectSpaceRepository::ComparatorL2(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
-	setInnerProduct();
+	{
+	  if (typeid(OBJECT_TYPE) == typeid(qsint8)) {
+	    comparator = new ObjectSpaceRepository::ComparatorL2Quint8Quint8(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
+	    comparatorForSearch = new ObjectSpaceRepository::ComparatorInnerProductQsint8Quint8(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
+	  } else {
+	    comparator = new ObjectSpaceRepository::ComparatorL2(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
+	  }
+	  setInnerProduct();
+	}
         break;
-#endif
+      case DistanceTypeDotProduct:
+	{
+	  auto *comp = new ObjectSpaceRepository::ComparatorDotProduct(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
+	  comp->magnitude = magnitude;
+	  comparator = comp;
+	  setInnerProduct();
+	}
+        break;
 #else
       case DistanceTypeL1:
 	comparator = new ObjectSpaceRepository::ComparatorL1(ObjectSpace::getPaddedDimension());
@@ -482,12 +563,25 @@ namespace NGT {
 	comparator = new ObjectSpaceRepository::ComparatorNormalizedCosineSimilarity(ObjectSpace::getPaddedDimension());
 	normalization = true;
 	break;
-#ifdef NGT_INNER_PRODUCT
       case DistanceTypeInnerProduct:
-	comparator = new ObjectSpaceRepository::ComparatorL2(ObjectSpace::getPaddedDimension());
-	setInnerProduct();
+	{
+	  if (typeid(OBJECT_TYPE) == typeid(qsint8)) {
+	    comparator = new ObjectSpaceRepository::ComparatorL2Quint8Quint8(ObjectSpace::getPaddedDimension());
+	    comparatorForSearch = new ObjectSpaceRepository::ComparatorInnerProductQsint8Quint8(ObjectSpace::getPaddedDimension());
+	  } else {
+	    comparator = new ObjectSpaceRepository::ComparatorL2(ObjectSpace::getPaddedDimension());
+	  }
+	  setInnerProduct();
+	}
         break;
-#endif
+      case DistanceTypeDotProduct:
+	{
+	  auto *comp = new ObjectSpaceRepository::ComparatorDotProduct(ObjectSpace::getPaddedDimension());
+	  comp->magnitude = magnitude;
+	  comparator = comp;
+	  setInnerProduct();
+	}
+        break;
 #endif
       default:
         std::stringstream msg;
@@ -511,6 +605,7 @@ namespace NGT {
     void append(const float16 *data, size_t dataSize) { ObjectRepository::append(data, dataSize); }
 #endif
 
+    void deleteAll() { ObjectRepository::deleteAll(); }
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
     PersistentObject *allocatePersistentObject(Object &obj) {
@@ -524,6 +619,34 @@ namespace NGT {
     void remove(size_t id) { ObjectRepository::remove(id); }
 
     void linearSearch(Object &query, double radius, size_t size, ObjectSpace::ResultSet &results) {
+      if (distanceType == DistanceTypeInnerProduct) {
+	Comparator *comp;
+	if (typeid(OBJECT_TYPE) == typeid(qsint8)) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	  comp = new ObjectSpaceRepository::ComparatorInnerProductQsint8Quint8(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
+#else
+	  comp = new ObjectSpaceRepository::ComparatorInnerProductQsint8Quint8(ObjectSpace::getPaddedDimension());
+#endif
+	} else {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+	  comp = new ObjectSpaceRepository::ComparatorInnerProduct(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
+#else
+	  comp = new ObjectSpaceRepository::ComparatorInnerProduct(ObjectSpace::getPaddedDimension());
+#endif
+	}
+	try {
+	  linearSearch(query, radius, size, results, *comp);
+	} catch(Exception &err) {
+	  delete comp;
+	  throw err;
+	}
+	delete comp;
+      } else {
+	linearSearch(query, radius, size, results, *comparator);
+      }
+    }
+    void linearSearch(Object &query, double radius, size_t size, ObjectSpace::ResultSet &results,
+		      Comparator &comparator) {
       if (!results.empty()) {
 	NGTThrowException("lenearSearch: results is not empty");
       }
@@ -546,9 +669,9 @@ namespace NGT {
 	  continue;
 	}
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-	Distance d = (*comparator)((Object&)query, (PersistentObject&)*rep[idx]);
+	Distance d = comparator((Object&)query, (PersistentObject&)*rep[idx]);
 #else
-	Distance d = (*comparator)((Object&)query, (Object&)*rep[idx]);
+	Distance d = comparator((Object&)query, (Object&)*rep[idx]);
 #endif
 	if (radius < 0.0 || d <= radius) {
 	  NGT::ObjectDistance obj(idx, d);
@@ -561,7 +684,6 @@ namespace NGT {
       return;
     }
 
-#ifdef NGT_INNER_PRODUCT
     float computeMaxMagnitude(NGT::ObjectID beginID = 1) {
       float maxMag = 0.0;
       ObjectRepository &rep = *this;
@@ -594,7 +716,6 @@ namespace NGT {
       return maxMag;
     }
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-    //void setMagnitude(float maxMag, NGT::Vector<off_t> &graphNodes, NGT::ObjectID beginID = 1) {
   void setMagnitude(float maxMag, NGT::PersistentRepository<void> &graphNodes, NGT::ObjectID beginID = 1) {
 #else
   void setMagnitude(float maxMag, NGT::Repository<void> &graphNodes, NGT::ObjectID beginID = 1) {
@@ -630,8 +751,43 @@ namespace NGT {
 #endif
       }
     }
-#endif
 
+    std::pair<float, float> getMaxMin(float clippingRate = 0.02, size_t size = 0) {
+      ObjectRepository &rep = *this;
+      if (size == 0) {
+	size = rep.size();
+      } else {
+	size = size > rep.size() ? size : rep.size();
+      }
+      auto dim = getDimension();
+      auto clippingSize = static_cast<float>(size) * clippingRate;
+      clippingSize = clippingSize == 0 ? 1 : clippingSize;
+      std::priority_queue<float> min;
+      std::priority_queue<float, std::vector<float>, std::greater<float>> max;
+      std::cerr << "repo size=" << rep.size() << " " << clippingSize << std::endl;
+      for (size_t idx = 1; idx < rep.size(); idx++) {
+	try {
+	  OBJECT_TYPE *obj = static_cast<OBJECT_TYPE*>(getObject(idx));
+	  for (size_t i = 0; i < dim; i++) {
+	    float v = static_cast<float>(obj[i]);
+	    if (max.size() < clippingSize) {
+	      max.push(v);
+	    } else if (max.top() <= v) {
+	      max.push(v);
+	      max.pop();
+	    }
+	    if (min.size() < clippingSize) {
+	      min.push(v);
+	    } else if (min.top() >= v) {
+	      min.push(v);
+	      min.pop();
+	    }
+	  }
+	} catch(...) {}
+      }
+      auto ret = std::make_pair(max.top(), min.top());
+      return ret;
+    }
 
     void *getObject(size_t idx) {
       if (isEmpty(idx)) {
@@ -688,12 +844,12 @@ namespace NGT {
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
     void normalize(PersistentObject &object) {
-      OBJECT_TYPE *obj = (OBJECT_TYPE*)&object.at(0, getRepository().getAllocator());
+      auto *obj = reinterpret_cast<OBJECT_TYPE*>(object.getPointer(getRepository().getAllocator()));
       ObjectSpace::normalize(obj, ObjectSpace::dimension);
     }
 #endif
     void normalize(Object &object) {
-      OBJECT_TYPE *obj = (OBJECT_TYPE*)&object[0];
+      auto *obj = reinterpret_cast<OBJECT_TYPE*>(object.getPointer());
       ObjectSpace::normalize(obj, ObjectSpace::dimension);
     }
 
@@ -709,71 +865,177 @@ namespace NGT {
     }
 
     Object *allocateNormalizedObject(const std::vector<double> &obj) {
-      Object *allocatedObject = ObjectRepository::allocateObject(obj);
-      if (normalization) {
-	normalize(*allocatedObject);
+      Object *allocatedObject = 0;
+      if (quantizationIsEnabled()) {
+	std::vector<float> qobj(obj.begin(), obj.end());
+	if (normalization) {
+	  ObjectSpace::normalize(qobj);
+	}
+	quantizeToQint8(qobj);
+	allocatedObject = ObjectRepository::allocateObject(qobj);
+      } else {
+	allocatedObject = ObjectRepository::allocateObject(obj);
+	if (normalization) {
+	  normalize(*allocatedObject);
+	}
       }
       return allocatedObject;
     }
     Object *allocateNormalizedObject(const std::vector<float> &obj) {
-      Object *allocatedObject = ObjectRepository::allocateObject(obj);
-      if (normalization) {
-	normalize(*allocatedObject);
+      Object *allocatedObject = 0;
+      if (quantizationIsEnabled()) {
+	std::vector<float> qobj(obj.begin(), obj.end());
+	if (normalization) {
+	  ObjectSpace::normalize(qobj);
+	}
+	quantizeToQint8(qobj);
+	allocatedObject = ObjectRepository::allocateObject(qobj);
+      } else {
+	allocatedObject = ObjectRepository::allocateObject(obj);
+	if (normalization) {
+	  normalize(*allocatedObject);
+	}
       }
       return allocatedObject;
     }
 #ifdef NGT_HALF_FLOAT
     Object *allocateNormalizedObject(const std::vector<float16> &obj) {
-      Object *allocatedObject = ObjectRepository::allocateObject(obj);
-      if (normalization) {
-	normalize(*allocatedObject);
+      Object *allocatedObject = 0;
+      if (quantizationIsEnabled()) {
+	std::vector<float> qobj(obj.begin(), obj.end());
+	if (normalization) {
+	  ObjectSpace::normalize(qobj);
+	}
+	quantizeToQint8(qobj);
+	allocatedObject = ObjectRepository::allocateObject(qobj);
+      } else {
+	allocatedObject = ObjectRepository::allocateObject(obj);
+	if (normalization) {
+	  normalize(*allocatedObject);
+	}
       }
       return allocatedObject;
     }
 #endif
     Object *allocateNormalizedObject(const std::vector<uint8_t> &obj) {
-      Object *allocatedObject = ObjectRepository::allocateObject(obj);
-      if (normalization) {
-	normalize(*allocatedObject);
+      Object *allocatedObject = 0;
+      if (quantizationIsEnabled()) {
+	std::vector<float> qobj(obj.begin(), obj.end());
+	if (normalization) {
+	  ObjectSpace::normalize(qobj);
+	}
+	quantizeToQint8(qobj);
+	allocatedObject = ObjectRepository::allocateObject(qobj);
+      } else {
+	allocatedObject = ObjectRepository::allocateObject(obj);
+	if (normalization) {
+	  normalize(*allocatedObject);
+	}
       }
       return allocatedObject;
     }
 
     Object *allocateNormalizedObject(const float *obj, size_t size) {
-      Object *allocatedObject = ObjectRepository::allocateObject(obj, size);
-      if (normalization) {
-	normalize(*allocatedObject);
+      Object *allocatedObject = 0;
+      try {
+	if (quantizationIsEnabled()) {
+	  std::vector<float> qobj(obj, obj + size);
+	  if (normalization) {
+	    ObjectSpace::normalize(qobj);
+	  }
+	  quantizeToQint8(qobj);
+	  allocatedObject = ObjectRepository::allocateObject(qobj);
+	} else {
+	  allocatedObject = ObjectRepository::allocateObject(obj, size);
+	  if (normalization) {
+	    normalize(*allocatedObject);
+	  }
+	}
+      } catch (Exception &err) {
+	std::stringstream msg;
+	msg << err.what() << " quantization=" << (quantizationIsEnabled() ? "True" : "False");
+	NGTThrowException(msg);
       }
       return allocatedObject;
     }
 
     PersistentObject *allocateNormalizedPersistentObject(const std::vector<double> &obj) {
-      PersistentObject *allocatedObject = ObjectRepository::allocatePersistentObject(obj);
-      if (normalization) {
-	normalize(*allocatedObject);
+      PersistentObject *allocatedObject = 0;
+      if (quantizationIsEnabled()) {
+	std::vector<float> qobj(obj.begin(), obj.end());
+	if (normalization) {
+	  ObjectSpace::normalize(qobj);
+	}
+	auto shift = distanceType == DistanceTypeInnerProduct && typeid(OBJECT_TYPE) == typeid(qsint8);
+	quantizeToQint8(qobj, shift);
+	allocatedObject = ObjectRepository::allocatePersistentObject(qobj);
+      } else {
+	allocatedObject = ObjectRepository::allocatePersistentObject(obj);
+	if (normalization) {
+	  normalize(*allocatedObject);
+	}
       }
       return allocatedObject;
     }
     PersistentObject *allocateNormalizedPersistentObject(const std::vector<float> &obj) {
-      PersistentObject *allocatedObject = ObjectRepository::allocatePersistentObject(obj);
-      if (normalization) {
-	normalize(*allocatedObject);
+      PersistentObject *allocatedObject = 0;
+      try {
+	if (quantizationIsEnabled()) {
+	  std::vector<float> qobj(obj.begin(), obj.end());
+	  if (normalization) {
+	    ObjectSpace::normalize(qobj);
+	  }
+	  auto shift = distanceType == DistanceTypeInnerProduct && typeid(OBJECT_TYPE) == typeid(qsint8);
+	  quantizeToQint8(qobj, shift);
+	  allocatedObject = ObjectRepository::allocatePersistentObject(qobj);
+	} else {
+	  allocatedObject = ObjectRepository::allocatePersistentObject(obj);
+	  if (normalization) {
+	    normalize(*allocatedObject);
+	  }
+	}
+      } catch (Exception &err) {
+	std::stringstream msg;
+	msg << err.what() << " quantization=" << (quantizationIsEnabled() ? "True" : "False");
+	NGTThrowException(msg);
       }
       return allocatedObject;
     }
 #ifdef NGT_HALF_FLOAT
     PersistentObject *allocateNormalizedPersistentObject(const std::vector<float16> &obj) {
-      PersistentObject *allocatedObject = ObjectRepository::allocatePersistentObject(obj);
-      if (normalization) {
-	normalize(*allocatedObject);
+      PersistentObject *allocatedObject = 0;
+      if (quantizationIsEnabled()) {
+	std::vector<float> qobj(obj.begin(), obj.end());
+	if (normalization) {
+	  ObjectSpace::normalize(qobj);
+	}
+	auto shift = distanceType == DistanceTypeInnerProduct && typeid(OBJECT_TYPE) == typeid(qsint8);
+	quantizeToQint8(qobj, shift);
+	allocatedObject = ObjectRepository::allocatePersistentObject(qobj);
+      } else {
+	allocatedObject = ObjectRepository::allocatePersistentObject(obj);
+	if (normalization) {
+	  normalize(*allocatedObject);
+	}
       }
       return allocatedObject;
     }
 #endif
     PersistentObject *allocateNormalizedPersistentObject(const std::vector<uint8_t> &obj) {
-      PersistentObject *allocatedObject = ObjectRepository::allocatePersistentObject(obj);
-      if (normalization) {
-	normalize(*allocatedObject);
+      PersistentObject *allocatedObject = 0;
+      if (quantizationIsEnabled()) {
+	std::vector<float> qobj(obj.begin(), obj.end());
+	if (normalization) {
+	  ObjectSpace::normalize(qobj);
+	}
+	auto shift = distanceType == DistanceTypeInnerProduct && typeid(OBJECT_TYPE) == typeid(qsint8);
+	quantizeToQint8(qobj, shift);
+	allocatedObject = ObjectRepository::allocatePersistentObject(qobj);
+      } else {
+	allocatedObject = ObjectRepository::allocatePersistentObject(obj);
+	if (normalization) {
+	  normalize(*allocatedObject);
+	}
       }
       return allocatedObject;
     }
@@ -833,6 +1095,8 @@ namespace NGT {
     size_t dimension = objectspace->getDimension();
     if (t == typeid(uint8_t)) {
       NGT::Serializer::writeAsText(os, (uint8_t*)ref, dimension);
+    } else if (t == typeid(qsint8)) {
+      NGT::Serializer::writeAsText(os, (int8_t*)ref, dimension);
     } else if (t == typeid(float)) {
       NGT::Serializer::writeAsText(os, (float*)ref, dimension);
 #ifdef NGT_HALF_FLOAT

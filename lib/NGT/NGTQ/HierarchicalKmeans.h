@@ -241,8 +241,8 @@ namespace QBG {
       size_t rootID = 0;
       HKInternalNode &root = static_cast<HKInternalNode&>(*nodes[rootID]);
       std::cerr << "first=" << root.children.size() << std::endl;
-      size_t secondCount = 0;
-      size_t thirdCount = 0;
+      size_t secondCount = 0;	
+      size_t thirdCount = 0;	
       size_t objectCount = 0;
       size_t leafID = 0;
       size_t qID = 0;
@@ -1020,7 +1020,7 @@ namespace QBG {
 	index.linearSearch(sc);
       }
 
-      float startEpsilon = 0.12;
+      float startEpsilon = 0.02;
       float epsilon;
       std::vector<float> recall(endID - beginID, 0.0);
       for (epsilon = startEpsilon; epsilon < 1.0; epsilon += 0.01) {
@@ -1073,7 +1073,8 @@ namespace QBG {
     static void assignWithNGT(std::vector<NGT::Clustering::Cluster> &clusters, size_t beginID, size_t endID,
 			      NGT::ObjectSpace &objectSpace, QBGObjectList &objectList,
 			      size_t epsilonExplorationSize = 100,
-			      float expectedRecall = 0.98) {
+			      float expectedRecall = 0.98,
+			      size_t noOfNearestNeighbors = 1) {
       if (beginID > endID) {
 	std::cerr << "assignWithNGT::Warning. beginID:" << beginID << " > endID:" << endID << std::endl;
 	return;
@@ -1122,7 +1123,7 @@ namespace QBG {
 	int numOfOutgoingEdges = 10;
 	int numOfIncomingEdges = 120;
 	int numOfQueries = 200;
-	int numOfResultantObjects = 20;
+	int numOfResultantObjects = noOfNearestNeighbors + 19;
 	graphOptimizer.set(numOfOutgoingEdges, numOfIncomingEdges, numOfQueries, numOfResultantObjects);
 	graphOptimizer.execute(anng, onng);
       }
@@ -1147,11 +1148,10 @@ namespace QBG {
 	abort();
       }
 #endif
-      std::vector<std::pair<uint32_t, float>> clusterIDs(endID - beginID);
       std::vector<std::pair<size_t, float>> distances(omp_get_max_threads(), std::make_pair(0, 0.0));
       size_t endOfEval = beginID + epsilonExplorationSize;
       endOfEval = endOfEval > endID ? endID : endOfEval;
-      size_t nOfObjects = 20;
+      size_t nOfObjects = noOfNearestNeighbors + 19;;
       NGT::Timer timer;
       timer.start();
       auto epsilon = optimizeEpsilon(index, beginID, endOfEval, nOfObjects,
@@ -1161,43 +1161,58 @@ namespace QBG {
       timer.start();
       size_t progressStep = (endID - beginID) / 20;;
       progressStep = progressStep < 20 ? 20 : progressStep;
+      size_t step = 1000000;
+      for (size_t bid = beginID; bid < endID; bid += step) {
+	std::vector<std::vector<std::pair<uint32_t, float>>> clusterIDs(step);
+	auto eid = std::min(endID, bid + step);
 #pragma omp parallel for
-      for (size_t id = beginID; id < endID; id++) {
-	std::vector<float> obj;
+	for (size_t id = bid; id < eid; id++) {
+	  std::vector<float> obj;
 #ifdef MULTIPLE_OBJECT_LISTS
-	objectList.get(omp_get_thread_num(), id, obj, &objectSpace);
+	  objectList.get(omp_get_thread_num(), id, obj, &objectSpace);
 #else
-	objectList.get(id, obj, &objectSpace);
+	  objectList.get(id, obj, &objectSpace);
 #endif
-	NGT::SearchQuery	sc(obj);
-	NGT::ObjectDistances	objects;
-	sc.setResults(&objects);
-	sc.setSize(nOfObjects);
-	sc.setEpsilon(epsilon);
-	index.search(sc);
-	clusterIDs[id - beginID] = make_pair(objects[0].id - 1, objects[0].distance);
-	auto threadID = omp_get_thread_num();
-	distances[threadID].first++;
-	distances[threadID].second += objects[0].distance;
-	{
-	  size_t cnt = 0;
-	  for (auto d : distances) {
-	    cnt += d.first;
+	  NGT::SearchQuery	sc(obj);
+	  NGT::ObjectDistances	objects;
+	  sc.setResults(&objects);
+	  sc.setSize(nOfObjects);
+	  sc.setEpsilon(epsilon);
+	  index.search(sc);
+	  if (clusterIDs[id - bid].capacity() < noOfNearestNeighbors) {
+	    clusterIDs[id - bid].reserve(noOfNearestNeighbors);
 	  }
-          if (cnt % progressStep == 0) {
-            timer.stop();
-            float progress = cnt * 100 / (endID - beginID);
-            std::cerr << "assignWithNGT: " << cnt << " objects ("
-                      << progress  << "%) have been assigned. time=" << timer << std::endl;
-            timer.restart();
-          }
+	  for (size_t i = 0; objects.size(); i++) {
+	    if (clusterIDs[id - bid].size() == noOfNearestNeighbors) {
+	      break;
+	    }
+	    clusterIDs[id - bid].emplace_back(make_pair(objects[i].id - 1, objects[0].distance));
+	  }
+	  auto threadID = omp_get_thread_num();
+	  distances[threadID].first++;
+	  distances[threadID].second += objects[0].distance;
+	  {
+	    size_t cnt = 0;
+	    for (auto d : distances) {
+	      cnt += d.first;
+	    }
+	    if (cnt % progressStep == 0) {
+	      timer.stop();
+	      float progress = cnt * 100 / (endID - beginID);
+	      std::cerr << "assignWithNGT: " << cnt << " objects ("
+			<< progress  << "%) have been assigned. time=" << timer << std::endl;
+	      timer.restart();
+	    }
+	  }
 	}
-      }
-      std::cerr << "pushing..." << std::endl;
-      for (size_t id = beginID; id < endID; id++) {
-	auto cid = clusterIDs[id - beginID].first;
-	auto cdistance = clusterIDs[id - beginID].second;
-	clusters[cid].members.push_back(NGT::Clustering::Entry(id - 1, cid, cdistance));
+	std::cerr << "pushing..." << std::endl;
+	for (size_t id = bid; id < eid; id++) {
+	  for (auto &e : clusterIDs[id - bid]) {
+	    auto cid = e.first;
+	    auto cdistance = e.second;
+	    clusters[cid].members.emplace_back(NGT::Clustering::Entry(id - 1, cid, cdistance));
+	  }
+	}
       }
       {
 	size_t n = 0;
@@ -1286,6 +1301,8 @@ namespace QBG {
     void clustering(std::string indexPath, std::string prefix = "", std::string objectIDsFile = "");
 #endif
 
+    void assignAll(std::string indexPath, int64_t lowerBoundOfNoOfObjects, size_t noOfNearestNeighbors = 1);
+  
     size_t	maxSize;
     size_t	numOfObjects;
     size_t	numOfClusters;

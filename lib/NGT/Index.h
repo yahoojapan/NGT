@@ -95,9 +95,10 @@ namespace NGT {
 #endif
 	prefetchOffset	= 0;
 	prefetchSize	= 0;
-#ifdef NGT_INNER_PRODUCT
-        maxMagnitude	= 0.0;
-#endif
+        maxMagnitude	= -1.0;
+	quantizationScale = 0.0;
+	quantizationOffset = 0.0;
+	clippingRate = 0.0;
 	nOfNeighborsForInsertionOrder = 0;
 	epsilonForInsertionOrder = 0.1;
       }
@@ -121,9 +122,10 @@ namespace NGT {
 	prefetchOffset	= -1;
 	prefetchSize	= -1;
 	accuracyTable	= "";
-#ifdef NGT_INNER_PRODUCT
         maxMagnitude	= -1;
-#endif
+	quantizationScale = -1.0;
+	quantizationOffset = -1.0;
+	clippingRate = -1.0;
 	nOfNeighborsForInsertionOrder = -1;
 	epsilonForInsertionOrder = -1;
       }
@@ -137,6 +139,7 @@ namespace NGT {
 #ifdef NGT_HALF_FLOAT
 	case ObjectSpace::ObjectType::Float16: p.set("ObjectType", "Float-2"); break;
 #endif
+	case ObjectSpace::ObjectType::Qsuint8: p.set("ObjectType", "QSUInteger-8B"); break;
 #ifdef NGT_BFLOAT
 	case ObjectSpace::ObjectType::Bfloat16: p.set("ObjectType", "Bfloat-2"); break;
 #endif
@@ -167,9 +170,7 @@ namespace NGT {
 	case DistanceType::DistanceTypeNormalizedAngle:		p.set("DistanceType", "NormalizedAngle"); break;
 	case DistanceType::DistanceTypeNormalizedCosine:	p.set("DistanceType", "NormalizedCosine"); break;
 	case DistanceType::DistanceTypeNormalizedL2:		p.set("DistanceType", "NormalizedL2"); break;
-#ifdef NGT_INNER_PRODUCT
 	case DistanceType::DistanceTypeInnerProduct:		p.set("DistanceType", "InnerProduct"); break;
-#endif
 	case DistanceType::DistanceTypePoincare:		p.set("DistanceType", "Poincare"); break;  // added by Nyapicom
 	case DistanceType::DistanceTypeLorentz:			p.set("DistanceType", "Lorentz"); break;  // added by Nyapicom
 	default : std::cerr << "Fatal error. Invalid distance type. " << distanceType << std::endl; abort();
@@ -199,9 +200,10 @@ namespace NGT {
 	p.set("PrefetchOffset", prefetchOffset);
 	p.set("PrefetchSize", prefetchSize);
 	p.set("AccuracyTable", accuracyTable);
-#ifdef NGT_INNER_PRODUCT
         p.set("MaxMagnitude", maxMagnitude);
-#endif
+        p.set("QuantizationScale", quantizationScale);
+        p.set("QuantizationOffset", quantizationOffset);
+	p.set("QuantizationClippingRate", clippingRate);
 	p.set("NumberOfNeighborsForInsertionOrder", nOfNeighborsForInsertionOrder);
 	p.set("EpsilonForInsertionOrder", epsilonForInsertionOrder);
       }
@@ -220,6 +222,8 @@ namespace NGT {
 	  } else if (it->second == "Float-2") {
 	    objectType = ObjectSpace::ObjectType::Float16;
 #endif
+	  } else if (it->second == "QSUInteger-8B") {
+	    objectType = ObjectSpace::ObjectType::Qsuint8;
 #ifdef NGT_BFLOAT
 	  } else if (it->second == "Bfloat-2") {
 	    objectType = ObjectSpace::ObjectType::Bfloat16;
@@ -282,10 +286,8 @@ namespace NGT {
 	    distanceType = DistanceType::DistanceTypeNormalizedCosine;
 	  } else if (it->second == "NormalizedL2") {
 	    distanceType = DistanceType::DistanceTypeNormalizedL2;
-#ifdef NGT_INNER_PRODUCT
 	  } else if (it->second == "InnerProduct") {
 	    distanceType = DistanceType::DistanceTypeInnerProduct;
-#endif
 	  } else {
 	    std::cerr << "Invalid Distance Type in the property. " << it->first << ":" << it->second << std::endl;
 	  }
@@ -347,9 +349,10 @@ namespace NGT {
 	if (it != p.end()) {
 	  searchType = it->second;
 	}
-#ifdef NGT_INNER_PRODUCT
 	maxMagnitude = p.getf("MaxMagnitude", maxMagnitude);
-#endif
+	quantizationScale = p.getf("QuantizationScale", quantizationScale);
+	quantizationOffset = p.getf("QuantizationOffset", quantizationOffset);
+	clippingRate = p.getf("QuantizationClippingRate", clippingRate);
 	nOfNeighborsForInsertionOrder = p.getl("NumberOfNeighborsForInsertionOrder", nOfNeighborsForInsertionOrder);
 	epsilonForInsertionOrder = p.getf("EpsilonForInsertionOrder", epsilonForInsertionOrder);
       }
@@ -373,9 +376,10 @@ namespace NGT {
       int		prefetchSize;
       std::string	accuracyTable;
       std::string	searchType;	// test
-#ifdef NGT_INNER_PRODUCT
       float		maxMagnitude;
-#endif
+      float		quantizationScale;
+      float		quantizationOffset;
+      float		clippingRate;
       int		nOfNeighborsForInsertionOrder;
       float		epsilonForInsertionOrder;
 #ifdef NGT_REFINEMENT
@@ -538,65 +542,33 @@ namespace NGT {
     static void createGraphAndTree(const std::string &database, NGT::Property &prop, bool redirect = false) { createGraphAndTree(database, prop, "", redirect); }
     static void createGraph(const std::string &database, NGT::Property &prop, const std::string &dataFile, size_t dataSize = 0, bool redirect = false);
     template<typename T> size_t insert(const std::vector<T> &object);
+    template<typename T> size_t insert(ObjectID id, const std::vector<T> &object);
     template<typename T> size_t append(const std::vector<T> &object);
     template<typename T> void update(ObjectID id, const std::vector<T> &object);
 #ifdef NGT_REFINEMENT
     template<typename T> size_t appendToRefinement(const std::vector<T> &object);
+    template<typename T> size_t insertToRefinement(const std::vector<T> &object);
     template<typename T> void updateToRefinement(ObjectID id, const std::vector<T> &object);
 #endif
-    static void append(const std::string &database, const std::string &dataFile, size_t threadSize, size_t dataSize);
-    static void append(const std::string &database, const float *data, size_t dataSize, size_t threadSize);
+    static void append(const std::string &index, const std::string &dataFile, size_t threadSize, size_t dataSize);
+    static void append(const std::string &index, const float *data, size_t dataSize, size_t threadSize);
+    static void appendFromRefinementObjectFile(const std::string &index);
+    void appendFromRefinementObjectFile();
+    void insertFromRefinementObjectFile();
+    static void appendFromTextObjectFile(const std::string &index, const std::string &data,
+					 size_t dataSize, bool append = true, bool refinement = false);
+    void appendFromTextObjectFile(const std::string &data, size_t dataSize, bool append = true, bool refinement = false);
+    static void appendFromBinaryObjectFile(const std::string &index, const std::string &data,
+					   size_t dataSize, bool append = true, bool refinement = false);
+    void appendFromBinaryObjectFile(const std::string &data, size_t dataSize, bool apend = true, bool refinement = false);
     static void remove(const std::string &database, std::vector<ObjectID> &objects, bool force = false);
     static void exportIndex(const std::string &database, const std::string &file);
     static void importIndex(const std::string &database, const std::string &file);
     virtual void load(const std::string &ifile, size_t dataSize) { getIndex().load(ifile, dataSize); }
     virtual void append(const std::string &ifile, size_t dataSize) { getIndex().append(ifile, dataSize); }
-    virtual void append(const float *data, size_t dataSize) {
-      StdOstreamRedirector redirector(redirect);
-      redirector.begin();
-      try {
-	getIndex().append(data, dataSize);
-      } catch(Exception &err) {
-	redirector.end();
-	throw err;
-      }
-      redirector.end();
-    }
-    virtual void append(const double *data, size_t dataSize) {
-      StdOstreamRedirector redirector(redirect);
-      redirector.begin();
-      try {
-	getIndex().append(data, dataSize);
-      } catch(Exception &err) {
-	redirector.end();
-	throw err;
-      }
-      redirector.end();
-    }
-    virtual void append(const uint8_t *data, size_t dataSize) {
-      StdOstreamRedirector redirector(redirect);
-      redirector.begin();
-      try {
-	getIndex().append(data, dataSize);
-      } catch(Exception &err) {
-	redirector.end();
-	throw err;
-      }
-      redirector.end();
-    }
-#ifdef NGT_HALF_FLOAT
-    virtual void append(const float16 *data, size_t dataSize) {
-      StdOstreamRedirector redirector(redirect);
-      redirector.begin();
-      try {
-	getIndex().append(data, dataSize);
-      } catch(Exception &err) {
-	redirector.end();
-	throw err;
-      }
-      redirector.end();
-    }
-#endif
+    template<typename T> void appendWithPreprocessing(const T *data, size_t dataSize, 
+						      bool append = true, bool refinement = false);
+    template<typename T> void append(const T *data, size_t dataSize);
     virtual size_t getNumberOfObjects() { return getIndex().getNumberOfObjects(); }
     virtual size_t getNumberOfIndexedObjects() { return getIndex().getNumberOfIndexedObjects(); }
     virtual size_t getObjectRepositorySize() { return getIndex().getObjectRepositorySize(); }
@@ -633,7 +605,12 @@ namespace NGT {
     virtual void search(NGT::SearchQuery &sc) { getIndex().search(sc); }
     virtual void search(NGT::SearchContainer &sc, ObjectDistances &seeds) { getIndex().search(sc, seeds); }
     virtual void getSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, size_t n) { getIndex().getSeeds(sc, seeds, n); }
-    virtual void remove(ObjectID id, bool force = false) { getIndex().remove(id, force); }
+    virtual void remove(ObjectID id, bool force = false) { 
+    try {
+      getRefinementObjectSpace().remove(id);
+      } catch(...) {}
+      getIndex().remove(id, force);
+    }
     virtual void exportIndex(const std::string &file) { getIndex().exportIndex(file); }
     virtual void importIndex(const std::string &file) { getIndex().importIndex(file); }
     virtual bool verify(std::vector<uint8_t> &status, bool info = false, char mode = '-') { return getIndex().verify(status, info, mode); }
@@ -665,6 +642,8 @@ namespace NGT {
     void disableLog() { redirect = true; }
 
     void extractInsertionOrder(InsertionOrder &insertionOrder);
+    void setQuantizationFromMaxMin(float max, float min);
+    void setQuantization(float scale, float offset);
     static void destroy(const std::string &path) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
       std::remove(std::string(path + "/grp").c_str());
@@ -924,42 +903,20 @@ namespace NGT {
     void destructObjectSpace() {
 #ifdef NGT_REFINEMENT
       if (refinementObjectSpace != 0) {
-	auto *os = (ObjectSpaceRepository<float, double>*)refinementObjectSpace;
 #ifndef NGT_SHARED_MEMORY_ALLOCATOR
-	os->deleteAll();
+	refinementObjectSpace->deleteAll();
 #endif
-	delete os;
+	delete refinementObjectSpace;
         refinementObjectSpace = 0;
       }
 #endif
-      if (objectSpace == 0) {
-	return;
+      if (objectSpace != 0) {
+#ifndef NGT_SHARED_MEMORY_ALLOCATOR
+	objectSpace->deleteAll();
+#endif
+	delete objectSpace;
+	objectSpace = 0;
       }
-      if (property.objectType == NGT::ObjectSpace::ObjectType::Float) {
-	ObjectSpaceRepository<float, double> *os = (ObjectSpaceRepository<float, double>*)objectSpace;
-#ifndef NGT_SHARED_MEMORY_ALLOCATOR
-	os->deleteAll();
-#endif
-	delete os;
-      } else if (property.objectType == NGT::ObjectSpace::ObjectType::Uint8) {
-	ObjectSpaceRepository<unsigned char, int> *os = (ObjectSpaceRepository<unsigned char, int>*)objectSpace;
-#ifndef NGT_SHARED_MEMORY_ALLOCATOR
-	os->deleteAll();
-#endif
-	delete os;
-#ifdef NGT_HALF_FLOAT
-      } else if (property.objectType == NGT::ObjectSpace::ObjectType::Float16) {
-	ObjectSpaceRepository<float16, float> *os = (ObjectSpaceRepository<float16, float>*)objectSpace;
-#ifndef NGT_SHARED_MEMORY_ALLOCATOR
-	os->deleteAll();
-#endif
-	delete os;
-#endif
-      } else {
-	std::cerr << "Cannot find Object Type in the property. " << property.objectType << std::endl;
-	return;
-      }
-      objectSpace = 0;
     }
 
     virtual void load(const std::string &ifile, size_t dataSize = 0) {
@@ -1141,7 +1098,9 @@ namespace NGT {
 	  searchQuery.workingResult = std::move(sc.workingResult);
 	} else {
 	  size_t poffset = 12;
+#ifndef NGT_SHARED_MEMORY_ALLOCATOR
 	  size_t psize = 64;
+#endif
 	  auto size = sc.size;
 	  sc.size *= expansion;
 	  try {
@@ -1238,6 +1197,11 @@ namespace NGT {
       seedSize = seedSize > repositorySize ? repositorySize : seedSize;
       std::vector<ObjectID> deteted;
       size_t emptyCount = 0;
+#ifndef NGT_ENABLE_TIME_SEED_FOR_RANDOM
+      if (seeds.size() != 0) {
+	srand(seeds[0].id);
+      }
+#endif
       while (seedSize > seeds.size()) {
 	double random = ((double)rand() + 1.0) / ((double)RAND_MAX + 2.0);
 	size_t idx = floor(repositorySize * random) + 1;
@@ -1274,6 +1238,7 @@ namespace NGT {
       sc.size = NeighborhoodGraph::property.edgeSizeForCreation;
       sc.radius = FLT_MAX;
       sc.explorationCoefficient = NeighborhoodGraph::property.insertionRadiusCoefficient;
+      sc.insertion = true;
       try {
 	GraphIndex::search(sc);
       } catch(Exception &err) {
@@ -1311,9 +1276,7 @@ namespace NGT {
       }
     }
 
-    virtual void insert(
-			ObjectID id
-			) {
+    virtual void insert(ObjectID id) {
       ObjectRepository &fr = objectSpace->getRepository();
       if (fr[id] == 0) {
 	std::cerr << "NGTIndex::insert empty " << id << std::endl;
@@ -1910,20 +1873,21 @@ namespace NGT {
       so.size = 2;
       so.radius = 0.0;
       so.explorationCoefficient = 1.1;
+      so.insertion = true;
       ObjectDistances	seeds;
       seeds.push_back(ObjectDistance(id, 0.0));
       GraphIndex::search(so, seeds);
       if (results.size() == 0) {
-	if (!GraphIndex::objectSpace->isNormalizedDistance()) {
+	if (!GraphIndex::objectSpace->isNormalizedDistance() && !GraphIndex::objectSpace->isQintObjectType()) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
 	  GraphIndex::objectSpace->deleteObject(obj);
 #endif
 	  std::stringstream msg;
-	  msg << "Not found the specified id. ID=" << id;
+	  msg << "Not found the specified id. (1) ID=" << id;
 	  NGTThrowException(msg);
 	}
 	so.radius = FLT_MAX;
-	so.size = 10;
+	so.size = 50;
 	results.clear();
 	GraphIndex::search(so, seeds);
 	for (size_t i = 0; i < results.size(); i++) {
@@ -1952,7 +1916,7 @@ namespace NGT {
 	  GraphIndex::objectSpace->deleteObject(obj);
 #endif
 	  std::stringstream msg;
-	  msg << "Not found the specified id. ID=" << id;
+	  msg << "Not found the specified id. (2) ID=" << id;
 	  NGTThrowException(msg);
 	}
       }
@@ -1984,6 +1948,7 @@ namespace NGT {
       sc.radius = FLT_MAX;
       sc.explorationCoefficient = NeighborhoodGraph::property.insertionRadiusCoefficient;
       sc.useAllNodesInLeaf = true;
+      sc.insertion = true;
       try {
 	GraphAndTreeIndex::search(sc);
       } catch(Exception &err) {
@@ -2110,7 +2075,9 @@ namespace NGT {
       size_t seedSize = NeighborhoodGraph::property.seedSize == 0 ? sc.size : NeighborhoodGraph::property.seedSize;
       seedSize = seedSize > sc.size ? sc.size : seedSize;
       if (seeds.size() > seedSize) {
+#ifndef NGT_ENABLE_TIME_SEED_FOR_RANDOM
 	srand(tso.nodeID.getID());
+#endif
 	// to accelerate thinning data.
 	for (size_t i = seeds.size(); i > seedSize; i--) {
 	  double random = ((double)rand() + 1.0) / ((double)RAND_MAX + 2.0);
@@ -2146,7 +2113,9 @@ namespace NGT {
 	  searchQuery.workingResult = std::move(sc.workingResult);
 	} else {
 	  size_t poffset = 12;
+#ifndef NGT_SHARED_MEMORY_ALLOCATOR
 	  size_t psize = 64;
+#endif
 	  auto size = sc.size;
 	  sc.size *= expansion;
 	  try {
@@ -2283,6 +2252,7 @@ namespace NGT {
     }
   };
 
+
 } // namespace NGT
 
 template<typename T>
@@ -2293,29 +2263,11 @@ size_t NGT::Index::append(const std::vector<T> &object)
   if (repo.size() == 0) {
     repo.initialize();
   }
-
   auto *o = repo.allocateNormalizedPersistentObject(object);
   repo.push_back(dynamic_cast<PersistentObject*>(o));
   size_t oid = repo.size() - 1;
   return oid;
 }
-
-#ifdef NGT_REFINEMENT
-template<typename T>
-size_t NGT::Index::appendToRefinement(const std::vector<T> &object)
-{
-  auto &os = getRefinementObjectSpace();
-  auto &repo = os.getRepository();
-  if (repo.size() == 0) {
-    repo.initialize();
-  }
-
-  auto *o = repo.allocateNormalizedPersistentObject(object);
-  repo.push_back(dynamic_cast<PersistentObject*>(o));
-  size_t oid = repo.size() - 1;
-  return oid;
-}
-#endif
 
 template<typename T>
 size_t NGT::Index::insert(const std::vector<T> &object)
@@ -2328,6 +2280,20 @@ size_t NGT::Index::insert(const std::vector<T> &object)
 
   auto *o = repo.allocateNormalizedPersistentObject(object);
   size_t oid = repo.insert(dynamic_cast<PersistentObject*>(o));
+  return oid;
+}
+
+template<typename T>
+size_t NGT::Index::insert(ObjectID id,  const std::vector<T> &object)
+{
+  auto &os = getObjectSpace();
+  auto &repo = os.getRepository();
+  if (repo.size() == 0) {
+    repo.initialize();
+  }
+
+  auto *o = repo.allocateNormalizedPersistentObject(object);
+  size_t oid = repo.insert(id, dynamic_cast<PersistentObject*>(o));
   return oid;
 }
 
@@ -2358,6 +2324,35 @@ template<typename T>
 
 #ifdef NGT_REFINEMENT
 template<typename T>
+size_t NGT::Index::appendToRefinement(const std::vector<T> &object)
+{
+  auto &os = getRefinementObjectSpace();
+  auto &repo = os.getRepository();
+  if (repo.size() == 0) {
+    repo.initialize();
+  }
+
+  auto *o = repo.allocateNormalizedPersistentObject(object);
+  repo.push_back(dynamic_cast<PersistentObject*>(o));
+  size_t oid = repo.size() - 1;
+  return oid;
+}
+
+template<typename T>
+size_t NGT::Index::insertToRefinement(const std::vector<T> &object)
+{
+  auto &os = getRefinementObjectSpace();
+  auto &repo = os.getRepository();
+  if (repo.size() == 0) {
+    repo.initialize();
+  }
+
+  auto *o = repo.allocateNormalizedPersistentObject(object);
+  size_t oid = repo.insert(dynamic_cast<PersistentObject*>(o));
+  return oid;
+}
+
+template<typename T>
   void NGT::Index::updateToRefinement(ObjectID id, const std::vector<T> &object)
 {
   auto &os = getRefinementObjectSpace();
@@ -2382,3 +2377,150 @@ template<typename T>
   return;
 }
 #endif
+
+template<typename T>
+  void NGT::Index::appendWithPreprocessing(const T *data, size_t dataSize, bool append, bool refinement) {
+  if (dataSize == 0) {
+    return;
+  }
+  NGT::Property prop;
+  getProperty(prop);
+  float maxMag = prop.maxMagnitude;
+  bool maxMagSkip = false;
+  if (maxMag > 0.0) maxMagSkip = true;
+  std::vector<float> addedElement;
+  auto *obj = data;
+  size_t dim = prop.dimension;
+  if (append && prop.distanceType == NGT::ObjectSpace::DistanceType::DistanceTypeInnerProduct) {
+    NGT::Timer timer;
+    timer.start();
+    size_t counter = 0;
+    for (size_t idx = 0; idx < dataSize; idx++, obj += dim) {
+      std::vector<float> object;
+      object.reserve(dim);
+      for (size_t dataidx = 0; dataidx < dim; dataidx++) {
+	object.push_back(obj[dataidx]);
+      }
+      double mag = 0.0;
+      if (prop.distanceType == NGT::ObjectSpace::DistanceType::DistanceTypeInnerProduct) {
+	for (auto &v : object) {
+	  mag += static_cast<float>(v) * v;
+	}
+	if (!maxMagSkip && mag > maxMag) {
+	  maxMag = mag;
+	}
+	addedElement.emplace_back(mag);
+      }
+      counter++;
+      if (counter % 2000000 == 0) {
+	timer.stop();
+	std::cerr << "processed " << static_cast<float>(counter) / 1000000.0 << "M objects."
+		  << " maxMag=" << maxMag << " time=" << timer << std::endl;
+	timer.restart();
+      }
+    }
+    timer.stop();
+    std::cerr << "time=" << timer << std::endl;
+    std::cerr << "maxMag=" << maxMag << std::endl;
+    std::cerr << "dataSize=" << dataSize << std::endl;
+    if (prop.distanceType == NGT::ObjectSpace::DistanceType::DistanceTypeInnerProduct) {
+      if (static_cast<NGT::GraphIndex&>(getIndex()).property.maxMagnitude <= 0.0 && maxMag > 0.0) {
+	static_cast<NGT::GraphIndex&>(getIndex()).property.maxMagnitude = maxMag;
+      }
+    }
+  }
+
+  if (append && getObjectSpace().isQintObjectType() && prop.clippingRate >= 0.0) {
+    std::priority_queue<float> min;
+    std::priority_queue<float, std::vector<float>, std::greater<float>> max;
+    {
+      NGT::Timer timer;
+      timer.start();
+      auto clippingSize = static_cast<float>(dataSize * dim) * prop.clippingRate;
+      clippingSize = clippingSize == 0 ? 1 : clippingSize;
+      std::string line;
+      size_t counter = 0;
+      obj = data;
+      for (size_t idx = 0; idx < dataSize; idx++, obj += dim) {
+	std::vector<float> object;
+	object.reserve(dim);
+	for (size_t dataidx = 0; dataidx < dim; dataidx++) {
+	  object.push_back(obj[dataidx]);
+	}
+	if (getObjectSpace().isNormalizedDistance()) {
+	  ObjectSpace::normalize(object);
+	}
+	if (prop.distanceType == NGT::ObjectSpace::DistanceType::DistanceTypeInnerProduct) {
+	  float v = maxMag - addedElement[counter];
+	  object.emplace_back(sqrt(v >= 0.0 ? v : 0.0));
+	}
+	for (auto &v : object) {
+	  if (max.size() < clippingSize) {
+	    max.push(v);
+	  } else if (max.top() <= v) {
+	    max.push(v);
+	    max.pop();
+	  }
+	  if (min.size() < clippingSize) {
+	    min.push(v);
+	  } else if (min.top() >= v) {
+	    min.push(v);
+	    min.pop();
+	  }
+	}
+	counter++;
+      }
+      std::cerr << "time=" << timer << std::endl;
+      if (counter != 0) {
+	std::cerr << "max:min=" << max.top() << ":" << min.top() << std::endl;
+	setQuantizationFromMaxMin(max.top(), min.top());
+      }
+    }
+  }
+  if (append || refinement) {
+
+    size_t counter = 0;
+    obj = data;
+    for (size_t idx = 0; idx < dataSize; idx++, obj += dim) {
+      std::vector<float> object;
+      object.reserve(dim);
+      for (size_t dataidx = 0; dataidx < dim; dataidx++) {
+	object.push_back(obj[dataidx]);
+      }
+#ifdef NGT_REFINEMENT
+      if (refinement) {
+	appendToRefinement(object);
+      }
+#endif
+      if (append) {
+	if (prop.distanceType == NGT::ObjectSpace::DistanceType::DistanceTypeInnerProduct) {
+	  object.emplace_back(sqrt(maxMag - addedElement[counter]));
+	}
+	NGT::Index::append(object);
+      }
+      counter++;
+    }
+  }
+
+}
+
+template<typename T>
+void NGT::Index::append(const T *data, size_t dataSize) {
+  StdOstreamRedirector redirector(redirect);
+  redirector.begin();
+  try {
+    NGT::Property prop;
+    getProperty(prop);
+    if (prop.distanceType == NGT::ObjectSpace::DistanceType::DistanceTypeInnerProduct ||
+	getObjectSpace().isQintObjectType()) {
+      appendWithPreprocessing(data, dataSize);
+    } else {
+      auto &index = static_cast<GraphIndex&>(getIndex());
+      index.append(data, dataSize);
+    }
+  } catch(Exception &err) {
+    redirector.end();
+    throw err;
+  }
+  redirector.end();
+}

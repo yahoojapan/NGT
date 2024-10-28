@@ -22,16 +22,16 @@
 #include <climits>
 #include <unordered_set>
 
-class HashBasedBooleanSet{
+template <typename TYPE> class HashBasedBooleanSet{
  private:
-  uint32_t *_table;
+  TYPE *_table;
   uint32_t _tableSize;
   uint32_t _mask;
   
-  std::unordered_set<uint32_t> _stlHash;
+  std::unordered_set<TYPE> _stlHash;
   
   
-  inline uint32_t _hash1(const uint32_t value){
+  inline uint32_t _hash1(const TYPE value){
     return value & _mask;
   }
   
@@ -56,8 +56,8 @@ class HashBasedBooleanSet{
       std::cerr << "[WARN] table size is not 2^N :  " <<  tableSize << std::endl;
     }
     
-    _table = new uint32_t[tableSize];
-    memset(_table, 0, tableSize * sizeof(uint32_t));
+    _table = new TYPE[tableSize];
+    memset(_table, 0, tableSize * sizeof(TYPE));
   }
   
   ~HashBasedBooleanSet(){
@@ -65,7 +65,7 @@ class HashBasedBooleanSet{
     _stlHash.clear();
   }
   
-  inline bool operator[](const uint32_t num){
+  inline bool operator[](const TYPE num){
     const uint32_t hashValue = _hash1(num);
     
     auto v = _table[hashValue];
@@ -81,8 +81,8 @@ class HashBasedBooleanSet{
     return true;
   }
   
-  inline void set(const uint32_t num){
-    uint32_t &value = _table[_hash1(num)];
+  inline void set(const TYPE num){
+    TYPE &value = _table[_hash1(num)];
     if(value == 0){
       value = num;
     }else{
@@ -92,11 +92,11 @@ class HashBasedBooleanSet{
     }
   }
   
-  inline void insert(const uint32_t num){
+  inline void insert(const TYPE num){
     set(num);
   }
 
-  inline void reset(const uint32_t num){
+  inline void reset(const TYPE num){
     const uint32_t hashValue = _hash1(num);
     if(_table[hashValue] != 0){
       if(_table[hashValue] != num){

@@ -310,8 +310,105 @@ namespace NGT {
       return sqrt(s);
     }
 
+    inline static double compareL2(const quint8 *a, const quint8 *b, size_t size) {
 
+      auto *u8a = reinterpret_cast<const uint8_t*>(a);
+      auto *u8b = reinterpret_cast<const uint8_t*>(b);
+
+      const unsigned char *last = u8a + size;
+#if defined(NGT_AVX512)
+      __m512i sum512 = _mm512_setzero_si512();
+      {
+	const unsigned char *lastgroup = last - 63;
+	while (u8a < lastgroup) {
+	  __m512i mu8a = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(u8a));
+	  __m512i mu8b = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(u8b));
+	  __mmask64 m = _mm512_cmplt_epu8_mask(mu8a, mu8b);
+	  __m512i x = _mm512_add_epi8(_mm512_maskz_subs_epu8(m, mu8b, mu8a),
+				      _mm512_maskz_subs_epu8(~m, mu8a, mu8b));
+	  __m512i xi16 = _mm512_cvtepu8_epi16(_mm512_extracti32x8_epi32(x,0));
+	  sum512 = _mm512_add_epi32(sum512, _mm512_madd_epi16(xi16, xi16));
+	  xi16 = _mm512_cvtepu8_epi16(_mm512_extracti32x8_epi32(x,1));
+	  sum512 = _mm512_add_epi32(sum512, _mm512_madd_epi16(xi16, xi16));
+	  u8a += 64;
+	  u8b += 64;
+	}
+      }
+      {
+	const unsigned char *lastgroup = last - 31;
+	while (u8a < lastgroup) {
+	  __m256i mu8a = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(u8a));
+	  __m256i mu8b = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(u8b));
+	  __mmask32 m = _mm256_cmplt_epu8_mask(mu8a, mu8b);
+	  __m256i x = _mm256_add_epi8(_mm256_maskz_subs_epu8(m, mu8b, mu8a),
+				      _mm256_maskz_subs_epu8(~m, mu8a, mu8b));
+	  __m512i xi16 = _mm512_cvtepu8_epi16(x);
+	  sum512 = _mm512_add_epi32(sum512, _mm512_madd_epi16(xi16, xi16));
+	  u8a += 32;
+	  u8b += 32;
+	}
+      }
+      __m256i sum256 = _mm256_add_epi32(_mm512_extracti32x8_epi32(sum512, 0), _mm512_extracti32x8_epi32(sum512, 1));
+#elif defined(NGT_AVX2)
+      __m256i sum256 = _mm256_setzero_si256();
+      {
+	const unsigned char *lastgroup = last - 31;
+	while (u8a < lastgroup) {
+	  __m256i x1 = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)u8a));
+	  __m256i x2 = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)u8b));
+	  __m256i xi16 = _mm256_subs_epi16(x1, x2);
+	  sum256 = _mm256_add_epi32(sum256, _mm256_madd_epi16(xi16, xi16));
+	  u8a += 16;
+	  u8b += 16;
+	  x1 = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)u8a));
+	  x2 = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)u8b));
+	  xi16 = _mm256_subs_epi16(x1, x2);
+	  sum256 = _mm256_add_epi32(sum256, _mm256_madd_epi16(xi16, xi16));
+	  u8a += 16;
+	  u8b += 16;
+	}
+      }
+#else
+      __m256i sum256 = _mm256_setzero_si256();
 #endif
+      {
+	const unsigned char *lastgroup = last - 15;
+
+	while (u8a < lastgroup) {
+	  __m256i x1 = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)u8a));
+	  __m256i x2 = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)u8b));
+	  __m256i xi16 = _mm256_subs_epi16(x1, x2);
+	  sum256 = _mm256_add_epi32(sum256, _mm256_madd_epi16(xi16, xi16));
+	  u8a += 16;
+	  u8b += 16;
+	}
+      }
+
+      const __m256i value0 = _mm256_set1_epi32(0);
+      __m256i tmp1 = _mm256_hadd_epi32(sum256, value0);
+      __m256i tmp2 = _mm256_hadd_epi32(tmp1, value0);
+      double s = _mm256_extract_epi32(tmp2, 0) + _mm256_extract_epi32(tmp2, 4);
+      return s;
+
+    }
+#endif
+    inline static double compareL2(const qsint8 *a, const qsint8 *b, size_t size) {
+      auto *i8a = reinterpret_cast<const int8_t*>(a);
+      auto *i8b = reinterpret_cast<const int8_t*>(b);
+      double sum = 0.0;
+      for (size_t loc = 0; loc < size; loc++) {
+	auto sub = static_cast<double>(*i8a) - static_cast<double>(*i8b);
+	sum += sub * sub;
+	i8a++;
+	i8b++;
+      }
+      return sqrt(sum);
+    }
+
+    inline static double compareL2(const qsint8 *a, const quint8 *b, size_t size) {
+      NGTThrowException("Not supported.");
+      return 0.00;
+    }
 
     template <typename OBJECT_TYPE>
     inline static double compareNormalizedL2(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
@@ -323,8 +420,6 @@ namespace NGT {
       }
     }
 
-
-#if defined(NGT_NO_AVX)
     template <typename OBJECT_TYPE, typename COMPARE_TYPE>
     static double compareL1(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       const OBJECT_TYPE *last = a + size;
@@ -347,8 +442,13 @@ namespace NGT {
       return d;
     }
 
+#if defined(NGT_NO_AVX)
     inline static double compareL1(const uint8_t *a, const uint8_t *b, size_t size) {
       return compareL1<uint8_t, int>(a, b, size);
+    }
+
+    inline static double compareL1(const int8_t *a, const int8_t *b, size_t size) {
+      return compareL1<int8_t, int>(a, b, size);
     }
 
     inline static double compareL1(const float *a, const float *b, size_t size) {
@@ -421,8 +521,8 @@ namespace NGT {
       const unsigned char *lastgroup = last - 7;
       const __m128i zero = _mm_setzero_si128();
       while (a < lastgroup) {
-	__m128i x1 = _mm_cvtepu8_epi16(*reinterpret_cast<__m128i const*>(a));
-	__m128i x2 = _mm_cvtepu8_epi16(*reinterpret_cast<__m128i const*>(b));
+	__m128i x1 = _mm_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)a));
+	__m128i x2 = _mm_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)b));
 	x1 = _mm_subs_epi16(x1, x2);
 	x1 = _mm_sign_epi16(x1, x1);
 	sum = _mm_add_ps(sum, _mm_cvtepi32_ps(_mm_unpacklo_epi16(x1, zero)));
@@ -438,6 +538,12 @@ namespace NGT {
 	s += d;
       }
       return s;
+    }
+    inline static double compareL1(const int8_t *a, const int8_t *b, size_t size) {
+      return compareL1<int8_t, int>(a, b, size);
+    }
+    inline static double compareL1(const qsint8 *a, const qsint8 *b, size_t size) {
+      return compareL1(reinterpret_cast<const int8_t*>(a), reinterpret_cast<const int8_t*>(b), size);
     }
 #endif
 
@@ -592,6 +698,9 @@ namespace NGT {
     }
 #endif
 
+    inline static double compareSparseJaccardDistance(const qsint8 *a, const qsint8 *b, size_t size) {
+      NGTThrowException("Not supported.");
+    }
     inline static double compareSparseJaccardDistance(const float *a, const float *b, size_t size) {
       size_t loca = 0;
       size_t locb = 0;
@@ -721,12 +830,157 @@ namespace NGT {
     }
 #endif
 
-    inline static double compareDotProduct(const unsigned char *a, const unsigned char *b, size_t size) {
+    inline static double compareDotProduct(const uint8_t *a, const uint8_t *b, size_t size) {
       double sum = 0.0;
       for (size_t loc = 0; loc < size; loc++) {
 	sum += static_cast<double>(a[loc]) * static_cast<double>(b[loc]);
       }
       return sum;
+    }
+    inline static double compareDotProduct(const int8_t *a, const int8_t *b, size_t size) {
+#if defined(NGT_NO_AVX)
+      double sum = 0.0;
+      for (size_t loc = 0; loc < size; loc++) {
+	sum += static_cast<double>(a[loc]) * static_cast<double>(b[loc]);
+      }
+      return sum;
+#else
+      const auto *last = a + size;
+#if defined(NGT_AVX512) || defined(NGT_AVX2)
+#if defined(NGT_AVX512)
+      __m512i sum512 = _mm512_setzero_si512();
+      {
+	const auto *lastgroup = last - 63;
+	while (a < lastgroup) {
+	  __m512i ma = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(a));
+	  __m512i mb = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(b));
+	  __m512i malo = _mm512_cvtepi8_epi16(_mm512_extracti64x4_epi64(ma, 0));
+	  __m512i mahi = _mm512_cvtepi8_epi16(_mm512_extracti64x4_epi64(ma, 1));
+	  __m512i mblo = _mm512_cvtepi8_epi16(_mm512_extracti64x4_epi64(mb, 0));
+	  __m512i mbhi = _mm512_cvtepi8_epi16(_mm512_extracti64x4_epi64(mb, 1));
+	  sum512 = _mm512_add_epi32(sum512, _mm512_madd_epi16(malo, mblo));
+	  sum512 = _mm512_add_epi32(sum512, _mm512_madd_epi16(mahi, mbhi));
+	  a += 64;
+	  b += 64;
+	}
+      }
+      __m256i sum256 = _mm256_add_epi32(_mm512_extracti64x4_epi64(sum512, 0), _mm512_extracti64x4_epi64(sum512, 1));
+#else
+      __m256i sum256 = _mm256_setzero_si256();
+#endif
+      {
+	const auto *lastgroup = last - 31;
+	while (a < lastgroup) {
+	  __m256i ma = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(a));
+	  __m256i mb = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(b));
+	  __m256i malo = _mm256_cvtepi8_epi16(_mm256_extracti128_si256(ma, 0));
+	  __m256i mahi = _mm256_cvtepi8_epi16(_mm256_extracti128_si256(ma, 1));
+	  __m256i mblo = _mm256_cvtepi8_epi16(_mm256_extracti128_si256(mb, 0));
+	  __m256i mbhi = _mm256_cvtepi8_epi16(_mm256_extracti128_si256(mb, 1));
+	  sum256 = _mm256_add_epi32(sum256, _mm256_madd_epi16(malo, mblo));
+	  sum256 = _mm256_add_epi32(sum256, _mm256_madd_epi16(mahi, mbhi));
+	  a += 32;
+	  b += 32;
+	}
+      }
+      __m128i sum128 = _mm_add_epi32(_mm256_extracti128_si256(sum256, 0), _mm256_extracti128_si256(sum256, 1));
+#endif
+      //__m128i sum128 = _mm_setzero_si128();
+      {
+	const auto *lastgroup = last - 15;
+	while (a < lastgroup) {
+	  __m128i ma = _mm_loadu_si128(reinterpret_cast<const __m128i*>(a));
+	  __m128i mb = _mm_loadu_si128(reinterpret_cast<const __m128i*>(b));
+	  __m128i malo = _mm_cvtepi8_epi16(ma);
+	  __m128i mahi = _mm_cvtepi8_epi16(_mm_bsrli_si128(ma, 8));
+	  __m128i mblo = _mm_cvtepi8_epi16(mb);
+	  __m128i mbhi = _mm_cvtepi8_epi16(_mm_bsrli_si128(mb, 8));
+	  sum128 = _mm_add_epi32(sum128, _mm_madd_epi16(malo, mblo));
+	  sum128 = _mm_add_epi32(sum128, _mm_madd_epi16(mahi, mbhi));
+	  a += 16;
+	  b += 16;
+	}
+      }
+      __m128i tmp = _mm_hadd_epi32(sum128, _mm_set1_epi32(0));
+      double sum = _mm_extract_epi32(tmp, 0) + _mm_extract_epi32(tmp, 1);
+      return sum;
+#endif
+    }
+    inline static double compareDotProduct(const int8_t *a, const uint8_t *b, size_t size) {
+#if defined(__AVX512VNNI__)
+      const auto *last = a + size;
+#if defined(NGT_AVX512)
+      __m512i sum512 = _mm512_setzero_si512();
+      {
+	const auto *lastgroup = last - 191;
+	while (a < lastgroup) {
+	  __m512i ma = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(a));
+	  __m512i mb = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(b));
+	  sum512 = _mm512_dpbusd_epi32(sum512, mb, ma);
+	  a += 64;
+	  b += 64;
+	  ma = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(a));
+	  mb = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(b));
+	  sum512 = _mm512_dpbusd_epi32(sum512, mb, ma);
+	  a += 64;
+	  b += 64;
+	  ma = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(a));
+	  mb = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(b));
+	  sum512 = _mm512_dpbusd_epi32(sum512, mb, ma);
+	  a += 64;
+	  b += 64;
+	}
+      }
+      __m256i sum256 = _mm256_add_epi32(_mm512_extracti32x8_epi32(sum512, 0),
+					_mm512_extracti32x8_epi32(sum512, 1));
+      __m128i sum128 = _mm_add_epi32(_mm256_extracti32x4_epi32(sum256, 0),
+				     _mm256_extracti32x4_epi32(sum256, 1));
+#elif defined(NGT_AVX2)
+      __m256i sum256 = _mm256_setzero_si256();
+      {
+	const auto *lastgroup = last - 31;
+	while (a < lastgroup) {
+	  __m256i ma = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(a));
+	  __m256i mb = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(b));
+	  sum256 = _mm256_dpbusd_epi32(sum256, mb, ma);
+	  a += 32;
+	  b += 32;
+	}
+      }
+      __m128i sum128 = _mm_add_epi32(_mm256_extracti32x4_epi32(sum256, 0),
+				     _mm256_extracti32x4_epi32(sum256, 1));
+#else
+      __m128i sum128 = _mm_setzero_si128();
+#endif
+      {
+	const auto *lastgroup = last - 15;
+	while (a < lastgroup) {
+	  __m128i ma = _mm_loadu_si128(reinterpret_cast<const __m128i*>(a));
+	  __m128i mb = _mm_loadu_si128(reinterpret_cast<const __m128i*>(b));
+	  sum128 = _mm_dpbusd_epi32(sum128, mb, ma);
+	  a += 16;
+	  b += 16;
+	}
+      }
+      __m128i tmp = _mm_hadd_epi32(sum128, _mm_set1_epi32(0));
+      double sum = _mm_extract_epi32(tmp, 0) + _mm_extract_epi32(tmp, 1);
+#else
+      double sum = 0.0;
+      for (size_t loc = 0; loc < size; loc++) {
+	sum += static_cast<double>(a[loc]) * static_cast<double>(b[loc]);
+      }
+#endif
+      return sum;
+    }
+    inline static double compareDotProduct(const quint8 *a, const quint8 *b, size_t size) {
+      return compareDotProduct(reinterpret_cast<const uint8_t*>(a), reinterpret_cast<const uint8_t*>(b), size);
+    }
+    inline static double compareDotProduct(const qsint8 *a, const qsint8 *b, size_t size) {
+      auto d = compareDotProduct(reinterpret_cast<const int8_t*>(a), reinterpret_cast<const int8_t*>(b), size);
+      return d;
+    }
+    inline static double compareDotProduct(const qsint8 *a, const quint8 *b, size_t size) {
+      return compareDotProduct(reinterpret_cast<const int8_t*>(a), reinterpret_cast<const uint8_t*>(b), size);
     }
     inline static double compareCosine(const float *a, const float *b, size_t size) {
 
@@ -896,7 +1150,38 @@ namespace NGT {
       return cosine;
     }
 
+    inline static double compareCosine(const qsint8 *a, const qsint8 *b, size_t size) {
+      return compareCosine(reinterpret_cast<const uint8_t*>(a), reinterpret_cast<const uint8_t*>(b), size);
+    }
 
+    inline static double compareNormalizedCosineSimilarity(const float *a, const float *b, size_t size) {
+      auto v = 1.0 - compareDotProduct(a, b, size);
+      return v < 0.0 ? -v : v;
+    }
+    inline static double compareNormalizedCosineSimilarity(const float16 *a, const float16 *b, size_t size) {
+      auto v = 1.0 - compareDotProduct(a, b, size);
+      return v < 0.0 ? -v : v;
+    }
+#ifdef NGT_BFLOAT
+    inline static double compareNormalizedCosineSimilarity(const bfloat16 *a, const bfloat16 *b, size_t size) {
+      auto v = 1.0 - compareDotProduct(a, b, size);
+      return v < 0.0 ? -v : v;
+    }
+#endif
+    inline static double compareNormalizedCosineSimilarity(const uint8_t *a, const uint8_t *b, size_t size) {
+      auto v = 1.0 - compareDotProduct(a, b, size);
+      return v < 0.0 ? -v : v;
+    }
+    inline static double compareNormalizedCosineSimilarity(const qsint8 *a, const qsint8 *b, size_t size) {
+      float max = 127.0 * 127.0 / 0.5;
+      auto v = max - compareDotProduct(a, b, size);
+      return v;
+    }
+    inline static double compareNormalizedCosineSimilarity(const quint8 *a, const quint8 *b, size_t size) {
+      float max = 255.0 * 255.0 * size;
+      auto v = max - compareDotProduct(a, b, size);
+      return v;
+    }
 #endif    // #if defined(NGT_NO_AVX)
 
     template <typename OBJECT_TYPE>
@@ -951,12 +1236,6 @@ namespace NGT {
     template <typename OBJECT_TYPE>
     inline static double compareCosineSimilarity(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
       auto v = 1.0 - compareCosine(a, b, size);
-      return v < 0.0 ? -v : v;
-    }
-
-    template <typename OBJECT_TYPE>
-    inline static double compareNormalizedCosineSimilarity(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
-      auto v = 1.0 - compareDotProduct(a, b, size);
       return v < 0.0 ? -v : v;
     }
 
@@ -1208,6 +1487,88 @@ namespace NGT {
 #endif
 
 
+
+    class SparseJaccardQsint8 {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	NGTThrowException("Not supported.");
+      }
+    };
+
+    class L2Qsint8 {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	return PrimitiveComparator::compareL2((const qsint8*)a, (const qsint8*)b, size);
+      }
+    };
+
+    class NormalizedL2Qsint8 {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	return PrimitiveComparator::compareNormalizedL2((const qsint8*)a, (const qsint8*)b, size);
+      }
+    };
+
+    class L1Qsint8 {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	NGTThrowException("Not supported.");
+      }
+    };
+
+    class CosineSimilarityQsint8 {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	NGTThrowException("Not supported.");
+      }
+    };
+
+    class AngleQsint8 {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	NGTThrowException("Not supported.");
+      }
+    };
+
+    class NormalizedAngleQsint8 {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	NGTThrowException("Not supported.");
+      }
+    };
+
+    // added by Nyapicom
+    class PoincareQsint8 {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	NGTThrowException("Not supported.");
+      }
+    };
+
+    // added by Nyapicom
+    class LorentzQsint8 {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	NGTThrowException("Not supported.");
+      }
+    };
+
+    class InnerProductQsint8 {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	auto d = PrimitiveComparator::compareDotProduct((const qsint8*)a, (const quint8*)b, size);
+	return 127.0 * 127.0 * size - d;
+      }
+    };
+
+    class NormalizedCosineSimilarityQsint8 {
+    public:
+      inline static double compare(const void *a, const void *b, size_t size) {
+	float max = 127.0 * 127.0 * size;
+	auto d = max - PrimitiveComparator::compareDotProduct((const qsint8*)a, (const qsint8*)b, size);
+	return d;
+      }
+    };
 };
 
 

@@ -196,6 +196,8 @@ bool ngt_set_property_object_type_float16(NGTProperty, NGTError);
 
 bool ngt_set_property_object_type_integer(NGTProperty, NGTError);
 
+bool ngt_set_property_object_type_qsint8(NGTProperty, NGTError);
+
 bool ngt_set_property_distance_type_l1(NGTProperty, NGTError);
 
 bool ngt_set_property_distance_type_l2(NGTProperty, NGTError);
@@ -271,6 +273,10 @@ ObjectID ngt_append_index_as_uint8(NGTIndex, uint8_t*, uint32_t, NGTError);
 ObjectID ngt_insert_index_as_float16(NGTIndex, NGTFloat16*, uint32_t, NGTError);
 
 ObjectID ngt_append_index_as_float16(NGTIndex, NGTFloat16*, uint32_t, NGTError);
+
+ObjectID ngt_append_to_refinement_as_float(NGTIndex, float*, uint32_t, NGTError);
+
+ObjectID ngt_insert_to_refinement_as_float(NGTIndex, float*, uint32_t, NGTError);
 
 bool ngt_batch_append_index(NGTIndex, float*, uint32_t, NGTError);
 

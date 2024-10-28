@@ -189,6 +189,9 @@ namespace NGT {
     };
 
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
+#ifdef NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
+    typedef std::vector<uint32_t> ReadOnlyGraphNode;
+#else
     class ReadOnlyGraphNode : public std::vector<std::pair<uint32_t, PersistentObject*>> {
       typedef std::vector<std::pair<uint32_t, PersistentObject*>> PARENT;
     public:
@@ -219,6 +222,7 @@ namespace NGT {
       size_t reservedSize;
       size_t usedSize;
     };
+#endif // NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
 
     class SearchGraphRepository : public std::vector<ReadOnlyGraphNode> {
     public:
@@ -252,7 +256,11 @@ namespace NGT {
 	      }
 #else
 	      for (auto ni = node.begin(); ni != node.end(); ni++) {
+#ifdef NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
+		searchNode.push_back((*ni).id);
+#else
 		searchNode.push_back(std::pair<uint32_t, Object*>((*ni).id, objectRepository.get((*ni).id)));
+#endif // NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
 	      }
 #endif
 	    }
@@ -339,6 +347,14 @@ namespace NGT {
 	      }
 	      break;
 #endif
+	    case NGT::ObjectSpace::Qsuint8:
+	      switch (dtype) {
+	      case NGT::ObjectSpace::DistanceTypeL2 : 	            return l2Qsint8;
+	      case NGT::ObjectSpace::DistanceTypeInnerProduct :	    return innerProductQsint8;
+	      case NGT::ObjectSpace::DistanceTypeNormalizedCosine : return normalizedCosineSimilarityQsint8;
+	      default : 				            return l2Qsint8;
+	      }
+	      break;
 	    default:
 	      NGTThrowException("NGT::Graph::Search: Not supported object type.");
 	      break;
@@ -386,6 +402,14 @@ namespace NGT {
 	      default:						    return l2Float16ForLargeDataset;
 	      }
 #endif
+	    case NGT::ObjectSpace::Qsuint8:
+	      switch (dtype) {
+	      case NGT::ObjectSpace::DistanceTypeL2 : 	            return l2Qsint8ForLargeDataset;
+	      case NGT::ObjectSpace::DistanceTypeInnerProduct :     return innerProductQsint8ForLargeDataset;
+	      case NGT::ObjectSpace::DistanceTypeNormalizedCosine : return normalizedCosineSimilarityQsint8ForLargeDataset;
+	      default : 				            return l2Qsint8ForLargeDataset;
+	      }
+	      break;
 	    default:
 	      NGTThrowException("NGT::Graph::Search: Not supported object type.");
 	      break;
@@ -419,7 +443,9 @@ namespace NGT {
 	static void poincareFloat16(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);  // added by Nyapicom
 	static void lorentzFloat16(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);  // added by Nyapicom
 #endif
-
+	static void l2Qsint8(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void innerProductQsint8(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void normalizedCosineSimilarityQsint8(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void l1Uint8ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void l2Uint8ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void l1FloatForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
@@ -446,6 +472,9 @@ namespace NGT {
 	static void poincareFloat16ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 	static void lorentzFloat16ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
 #endif
+	static void l2Qsint8ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void innerProductQsint8ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+	static void normalizedCosineSimilarityQsint8ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
       };
 #endif
 
@@ -599,7 +628,7 @@ namespace NGT {
       NeighborhoodGraph(): objectSpace(0) {
 	property.truncationThreshold = NGT_TRUNCATION_THRESHOLD;
 	// initialize random to generate random seeds
-#ifdef NGT_DISABLE_SRAND_FOR_RANDOM
+#ifdef NGT_ENABLE_TIME_SEED_FOR_RANDOM
 	struct timeval randTime;
 	gettimeofday(&randTime, 0);
 	srand(randTime.tv_usec);
@@ -920,7 +949,7 @@ namespace NGT {
 #elif defined(NGT_GRAPH_CHECK_VECTOR)
       typedef BooleanVector DistanceCheckedSet;
 #elif defined(NGT_GRAPH_CHECK_HASH_BASED_BOOLEAN_SET)
-      typedef HashBasedBooleanSet DistanceCheckedSet;
+      typedef HashBasedBooleanSet<uint32_t> DistanceCheckedSet;
 #else
       class DistanceCheckedSet : public unordered_set<ObjectID> {
       public:
@@ -928,7 +957,7 @@ namespace NGT {
       };
 #endif
 
-      typedef HashBasedBooleanSet DistanceCheckedSetForLargeDataset;
+      typedef HashBasedBooleanSet<uint32_t> DistanceCheckedSetForLargeDataset;
 
       class NodeWithPosition : public ObjectDistance {
        public:
@@ -953,6 +982,7 @@ namespace NGT {
 #endif
 #endif
       void setupDistances(NGT::SearchContainer &sc, ObjectDistances &seeds);
+      void setupDistances(NGT::SearchContainer &sc, ObjectDistances &seeds, NGT::ObjectSpace::Comparator &comp);
       void setupDistances(NGT::SearchContainer &sc, ObjectDistances &seeds, double (&comparator)(const void*, const void*, size_t));
 
       void setupSeeds(SearchContainer &sc, ObjectDistances &seeds, ResultSet &results,

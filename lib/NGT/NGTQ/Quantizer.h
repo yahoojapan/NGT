@@ -21,7 +21,10 @@
 #include	"NGT/Clustering.h"
 #include	<unordered_map>
 #include	"NGT/NGTQ/ObjectFile.h"
+#include	"NGT/HashBasedBooleanSet.h"
 
+
+#define		NGT_IVI
 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR) || defined(NGT_QBG_DISABLED)
 #undef NGTQ_QBG
@@ -46,13 +49,13 @@
 #define NGTQ_OBJECT_IN_MEMORY
 
 #define NGTQ_UINT8_LUT
-#define NGTQ_SIMD_BLOCK_SIZE	16
-#define NGTQ_BATCH_SIZE		2
+#define NGTQ_SIMD_BLOCK_SIZE	16	
+#define NGTQ_BATCH_SIZE		2	
 #define NGTQ_UINT4_OBJECT
 #define NGTQ_TOTAL_SCALE_OFFSET_COMPRESSION
 #define NGTQG_PREFETCH
 #if defined(NGT_AVX512)
-#define NGTQG_AVX512
+#define NGTQG_AVX512	
 #warning "AVX512 is available for NGTQG"
 #elif defined(NGT_AVX2)
 #define NGTQG_AVX2
@@ -66,7 +69,7 @@
 
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-#define	NGTQ_SHARED_INVERTED_INDEX
+#define	NGTQ_SHARED_INVERTED_INDEX	
 #endif
 
 extern "C" {
@@ -77,9 +80,35 @@ extern "C" {
 
 namespace NGTQ {
 
+class BooleanSet {
+ public:
+  virtual bool get(size_t idx) = 0;
+  virtual void set(size_t idx) = 0;
+  virtual bool operator[](size_t idx) = 0;
+};
+
+class BooleanVector : public std::vector<bool>, public BooleanSet {
+ public:
+  BooleanVector(size_t s): std::vector<bool>(s, false){}
+  virtual ~BooleanVector() {}
+  bool get(size_t idx) { return BooleanVector::get(idx); }
+  void set(size_t idx) { std::vector<bool>::operator[](idx) = true; }
+  bool operator[](size_t idx) { return std::vector<bool>::operator[](idx); }
+};
+
+class BooleanHash : public HashBasedBooleanSet<uint32_t>, public BooleanSet {
+ public:
+  BooleanHash(size_t s): HashBasedBooleanSet<uint32_t>(s){}
+  virtual ~BooleanHash() {}
+  bool get(size_t idx) { return BooleanHash::get(idx); }
+  void set(size_t idx) { HashBasedBooleanSet<uint32_t>::set(idx); }
+  bool operator[](size_t idx) { return HashBasedBooleanSet<uint32_t>::operator[](idx); }
+};
+
 class Rotation : public std::vector<float> {
   typedef std::vector<float> PARENT;
  public:
+  Rotation():dim(0) {}
   Rotation& operator=(const std::vector<float> &r) {
     PARENT::operator=(r);
     dim = sqrt(PARENT::size());
@@ -167,9 +196,7 @@ class Rotation : public std::vector<float> {
       std::cerr << "rotation::deserialize: Fatal inner error. Invalid data. " << dim << ":" << dim * dim << ":" << v << std::endl;
       abort();
     }
-
     is.read(reinterpret_cast<char*>(PARENT::data()), PARENT::size() * sizeof(float));
-
   }
 
   bool isIdentity() {
@@ -466,8 +493,8 @@ public:
       localID[i] = 0;
     }
   }
-  uint32_t	id;
-  T		localID[1];
+  uint32_t	id;		
+  T		localID[1];	
 };
 
 template <typename T>
@@ -672,7 +699,7 @@ public:
 #else
   LocalDatam(size_t iii, size_t iil) : iiIdx(iii), iiLocalIdx(iil) {}
 #endif
-  size_t iiIdx;
+  size_t iiIdx;	
   size_t iiLocalIdx;
 #ifdef NGTQ_QBG
   uint32_t subspaceID;
@@ -686,12 +713,13 @@ public:
 };
 
  enum DataType {
-   DataTypeUint8 = 0,
-   DataTypeFloat = 1
+   DataTypeUint8 = ObjectFile::DataTypeUint8,
+   DataTypeFloat = ObjectFile::DataTypeFloat,
 #ifdef NGT_HALF_FLOAT
-   ,
-   DataTypeFloat16 = 2
+   DataTypeFloat16 = ObjectFile::DataTypeFloat16,
 #endif
+   DataTypeNone = ObjectFile::DataTypeNone,
+   DataTypeAny = 100	
  };
 
  typedef NGT::ObjectSpace::DistanceType		DistanceType;
@@ -701,7 +729,7 @@ public:
    CentroidCreationModeStatic		= 1,
    CentroidCreationModeDynamicKmeans	= 2,
    CentroidCreationModeStaticLayer	= 3,
-   CentroidCreationModeNone		= 9
+   CentroidCreationModeNone		= 9	
  };
 
  enum AggregationMode {
@@ -716,6 +744,15 @@ public:
    QuantizerTypeNone	= 0,
    QuantizerTypeQG	= 1,
    QuantizerTypeQBG	= 2
+ };
+
+ enum ClusterDataType {
+   ClusterDataTypeNone	= 0,
+   ClusterDataTypeNQ	= 1,
+   ClusterDataTypePQ4	= 2,
+   ClusterDataTypeSQSU8	= 4,
+   ClusterDataTypeSQU7T	= 7,
+   ClusterDataTypeSQS8T	= 9
  };
  
  class Property {
@@ -742,14 +779,20 @@ public:
     localCentroidCreationMode = CentroidCreationModeDynamic;
     localIDByteSize	= 0;		// finally decided by localCentroidLimit
     localCodebookState	= false;	// not completed
-    localClusteringSampleCoefficient = 10;
+    localClusteringSampleCoefficient = 10;	
     quantizerType	= QuantizerTypeNone;
 #ifdef NGTQ_OBJECT_IN_MEMORY
-    objectListOnMemory	= false;
+    refinementDataType = DataTypeNone;
 #endif
+    localClusterDataType = NGTQ::ClusterDataTypePQ4;
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
     invertedIndexSharedMemorySize = 512; // MB
 #endif
+    scalarQuantizationScale = 0.0;
+    scalarQuantizationOffset = 0.0;
+    scalarQuantizationClippingRate = 0.01;
+    scalarQuantizationNoOfSamples = 0;
+    maxMagnitude = -1.0;
   }
 
   void save(const string &path) {
@@ -772,16 +815,22 @@ public:
     prop.set("BatchSize", 	(long)batchSize);
     prop.set("CentroidCreationMode", (long)centroidCreationMode);
     prop.set("LocalCentroidCreationMode", (long)localCentroidCreationMode);
-    prop.set("LocalIDByteSize",	(long)localIDByteSize);
+    prop.set("LocalIDByteSize",	(long)localIDByteSize);	
     prop.set("LocalCodebookState", (long)localCodebookState);
     prop.set("LocalSampleCoefficient", (long)localClusteringSampleCoefficient);
     prop.set("QuantizerType",	(long)quantizerType);
 #ifdef NGTQ_OBJECT_IN_MEMORY
-    prop.set("ObjectListOnMemory",	(long)objectListOnMemory);
+    prop.set("RefinementDataType",	(long)refinementDataType);
 #endif
+    prop.set("LocalClusterDataType",	(long)localClusterDataType);
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
     prop.set("InvertedIndexSharedMemorySize", 	(long)invertedIndexSharedMemorySize);
 #endif
+    prop.set("ScalarQuantizationScale", scalarQuantizationScale);
+    prop.set("ScalarQuantizationOffset", scalarQuantizationOffset);
+    prop.set("ScalarQuantizationClippingRate", scalarQuantizationClippingRate);
+    prop.set("ScalarQuantizationNoOfSamples", scalarQuantizationNoOfSamples);
+    prop.set("MaxMagnitude", maxMagnitude);
     prop.save(path + "/prf");
   }
 
@@ -835,16 +884,22 @@ public:
     setupLocalIDByteSize();
     quantizerType	= (QuantizerType)prop.getl("QuantizerType", quantizerType);
 #ifdef NGTQ_OBJECT_IN_MEMORY
-    objectListOnMemory	= prop.getl("ObjectListOnMemory", objectListOnMemory);
+    refinementDataType	= (DataType)prop.getl("RefinementDataType", refinementDataType);
 #endif
+    localClusterDataType = (ClusterDataType)prop.getl("LocalClusterDataType", localClusterDataType);
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
     invertedIndexSharedMemorySize
       = prop.getl("InvertedIndexSharedMemorySize", invertedIndexSharedMemorySize);
 #endif
+    scalarQuantizationScale	= prop.getf("ScalarQuantizationScale", scalarQuantizationScale);
+    scalarQuantizationOffset	= prop.getf("ScalarQuantizationOffset", scalarQuantizationOffset);
+    scalarQuantizationClippingRate	= prop.getf("ScalarQuantizationClippingRate", scalarQuantizationClippingRate);
+    scalarQuantizationNoOfSamples	= prop.getl("ScalarQuantizationNoOfSamples", scalarQuantizationNoOfSamples);
+    maxMagnitude	= prop.getf("MaxMagnitude", maxMagnitude);
   }
 
-  void setup(const Property &p) {
-    *this = p;
+  size_t getDataSize() {
+    size_t dataSize = 0;
 #ifdef NGTQ_QBG
     switch (genuineDataType) {
 #else
@@ -877,8 +932,21 @@ public:
       NGTThrowException("Quantizer constructor: Inner error. Invalid data type.");
       break;
     }
+    return dataSize;
+  }
+
+  void setup(const Property &p) {
+    *this = p;
     setupLocalIDByteSize();
     localDivisionNo = getLocalCodebookNo();
+#ifdef NGTQ_QBG
+    if (dimension == 0) {
+      dimension = genuineDimension;
+    }
+    if (dimension % 4 != 0) {
+      dimension = ((dimension - 1) / 4 + 1) * 4;
+    }
+#endif
   }
 
   inline size_t getLocalCodebookNo() { return singleLocalCodebook ? 1 : localDivisionNo; }
@@ -906,11 +974,17 @@ public:
   size_t	localClusteringSampleCoefficient;
   QuantizerType	quantizerType;
 #ifdef NGTQ_OBJECT_IN_MEMORY
-  bool		objectListOnMemory;
+  DataType	refinementDataType;
 #endif
+  ClusterDataType localClusterDataType;
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
   size_t	invertedIndexSharedMemorySize;
 #endif
+  float		scalarQuantizationScale;
+  float		scalarQuantizationOffset;
+  float		scalarQuantizationClippingRate;
+  size_t	scalarQuantizationNoOfSamples;
+  float		maxMagnitude;
 };
 
 #ifdef NGTQ_DISTANCE_ANGLE
@@ -923,6 +997,364 @@ public:
    double sum;
  };
 #endif
+
+
+class QuantizedObjectProcessingStream {
+ public:
+  QuantizedObjectProcessingStream(size_t numOfSubspaces, size_t nOfObjects) {
+     initialize(numOfSubspaces);
+     numOfObjects = nOfObjects;
+     setStreamSize();
+     stream = new uint8_t[streamSize]();
+  }
+
+  QuantizedObjectProcessingStream(size_t numOfSubspaces): stream(0) {
+    initialize(numOfSubspaces);
+  }
+
+  ~QuantizedObjectProcessingStream() {
+    delete[] stream;
+  }
+
+  void initialize(size_t divisionNo) {
+    numOfAlignedSubvectors = ((divisionNo - 1) / NGTQ_BATCH_SIZE + 1) * NGTQ_BATCH_SIZE;
+    alignedBlockSize = NGTQ_SIMD_BLOCK_SIZE * numOfAlignedSubvectors;
+  }
+
+  static size_t getNumOfAlignedObjects(size_t numOfObjects) {
+    return (((numOfObjects - 1) / NGTQ_SIMD_BLOCK_SIZE + 1) * NGTQ_SIMD_BLOCK_SIZE);
+  }
+  
+  void setStreamSize() {
+    numOfAlignedObjects  = getNumOfAlignedObjects(numOfObjects);
+    streamSize = numOfAlignedObjects * numOfAlignedSubvectors;
+    return;
+  }
+#ifdef NGTQ_QBG
+  void arrangeQuantizedObject(size_t dataNo, size_t subvectorNo, uint8_t quantizedObject) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+    abort();
+#else
+    size_t blkNo = dataNo / NGTQ_SIMD_BLOCK_SIZE;	
+    size_t oft = dataNo - blkNo * NGTQ_SIMD_BLOCK_SIZE;	
+    stream[blkNo * alignedBlockSize + NGTQ_SIMD_BLOCK_SIZE * subvectorNo + oft] = quantizedObject;
+#endif
+  }
+
+  void arrange(NGTQ::InvertedIndexEntry<uint16_t> &invertedIndexObjects) {
+    for (size_t oidx = 0; oidx < invertedIndexObjects.size(); oidx++) {
+      for (size_t idx = 0; idx < invertedIndexObjects.numOfSubvectors; idx++) {
+#ifdef NGTQ_UINT8_LUT
+#ifdef NGTQ_SIMD_BLOCK_SIZE
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+	abort();
+#else
+	arrangeQuantizedObject(oidx, idx, invertedIndexObjects[oidx].localID[idx] - 1);
+#endif
+#else
+	objectData[idx * noobjs + oidx] = invertedIndexObjects[oidx].localID[idx] - 1;
+#endif
+#else
+	objectData[idx * noobjs + oidx] = invertedIndexObjects[oidx].localID[idx];
+#endif
+      }
+    }
+  }
+
+  uint8_t getQuantizedObject(size_t dataNo, size_t subvectorNo) {
+    size_t blkNo = dataNo / NGTQ_SIMD_BLOCK_SIZE;	
+    size_t oft = dataNo - blkNo * NGTQ_SIMD_BLOCK_SIZE;	
+    return stream[blkNo * alignedBlockSize + NGTQ_SIMD_BLOCK_SIZE * subvectorNo + oft];
+  }
+#endif
+
+  uint8_t* compressIntoUint4() {
+    size_t idx = 0;
+    size_t uint4StreamSize = streamSize / 2;
+    uint8_t *uint4Objects = new uint8_t[uint4StreamSize]();
+    while (idx < streamSize) {
+      for (size_t lidx = 0; lidx < numOfAlignedSubvectors; lidx++) {
+	for (size_t bidx = 0; bidx < NGTQ_SIMD_BLOCK_SIZE; bidx++) {
+	  if (idx / 2 > uint4StreamSize) {
+	    std::stringstream msg;
+	    msg << "Quantizer::compressIntoUint4: Fatal inner error! " << (idx / 2) << ":" << uint4StreamSize;
+	    NGTThrowException(msg);
+	  }
+	  if (idx % 2 == 0) {
+	    uint4Objects[idx / 2] = stream[idx];
+	  } else {
+	    uint4Objects[idx / 2] |= (stream[idx] << 4);
+	  }
+	  idx++;
+	}
+      }
+    }
+    return uint4Objects;
+  }
+
+  void uncompressFromUint4(uint8_t *uint4Objects) {
+    size_t idx = 0;
+    size_t uint4StreamSize = streamSize / 2;
+    while (idx < streamSize) {
+      for (size_t lidx = 0; lidx < numOfAlignedSubvectors; lidx++) {
+	for (size_t bidx = 0; bidx < NGTQ_SIMD_BLOCK_SIZE; bidx++) {
+	  if (idx / 2 > uint4StreamSize) {
+	    std::stringstream msg;
+	    msg << "Quantizer::uncompressFromUint4: Fatal inner error! " << (idx / 2) << ":" << uint4StreamSize;
+	    NGTThrowException(msg);
+	  }
+	  if (idx % 2 == 0) {
+	    stream[idx] = uint4Objects[idx / 2] & 0x0f;
+	  } else {
+	    stream[idx] = uint4Objects[idx / 2] >> 4;
+	  }
+	  idx++;
+	}
+      }
+    }
+  }
+
+#ifdef NGTQ_QBG
+  void restoreToInvertedIndex(NGTQ::InvertedIndexEntry<uint16_t> &invertedIndexObjects) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+    std::cerr << "Not implemented." << std::endl;
+    abort();
+#else
+    invertedIndexObjects.resize(numOfAlignedObjects);
+    for (size_t oidx = 0; oidx < numOfAlignedObjects; oidx++) {
+      for (size_t lidx = 0; lidx < numOfAlignedSubvectors; lidx++) {
+	invertedIndexObjects[oidx].localID[lidx] = getQuantizedObject(oidx, lidx) + 1;
+      }
+    }
+    invertedIndexObjects.resize(numOfObjects);
+#endif
+  }
+#endif
+
+  uint8_t* getStream() {
+    auto s = stream;
+    stream = 0;
+    return s;
+  }
+
+  size_t getUint4StreamSize(size_t nOfObjects) {
+    numOfObjects = nOfObjects;
+    setStreamSize();
+    return streamSize / 2;
+  }
+
+  size_t getStreamSize(size_t nOfObjects) {
+    numOfObjects = nOfObjects;
+    setStreamSize();
+    return streamSize;
+  }
+
+  uint8_t	*stream;
+  size_t	numOfAlignedSubvectors;
+  size_t	alignedBlockSize;
+  size_t	numOfAlignedObjects;
+  size_t	numOfObjects;
+  size_t	streamSize;
+};
+
+/////
+class Quantizer;
+
+template<typename TYPE> 
+class ObjectProcessingStream {
+ public:
+  ObjectProcessingStream(size_t dimension, size_t nOfObjects, NGTQ::Quantizer &q): quantizer(q) {
+    initialize(dimension);
+    numOfObjects = nOfObjects;
+    setStreamSize();
+    stream = new uint8_t[streamSize]();
+  }
+
+  ObjectProcessingStream(size_t dim): quantizer(*reinterpret_cast<NGTQ::Quantizer*>(0)) {
+    initialize(dim);
+    stream = 0;
+  }
+
+  ~ObjectProcessingStream() {
+    delete[] stream;
+  }
+
+  void initialize(size_t dim) {
+    dimension = dim;
+  }
+
+  void setStreamSize() {
+    streamSize = sizeof(TYPE) * dimension * numOfObjects;
+    return;
+  }
+
+  void arrangeObject(size_t dataNo, void *object) {
+    if (dataNo >= numOfObjects) {
+      std::stringstream msg;
+      msg << "The data index is out of the range. " << dataNo << ":" << numOfObjects;
+      NGTThrowException(msg);
+    }
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+    abort();
+#else
+    memcpy(stream + dataNo * dimension * sizeof(TYPE), object, dimension * sizeof(TYPE));
+#endif
+  }
+
+  void arrange(NGTQ::InvertedIndexEntry<uint16_t> &invertedIndexObjects);
+
+  uint8_t* getStream() {
+    auto s = stream;
+    stream = 0;
+    return s;
+  }
+
+  size_t getStreamSize(size_t nOfObjects) {
+    numOfObjects = nOfObjects;
+    setStreamSize();
+    return streamSize;
+  }
+
+  uint8_t	*stream;
+  Quantizer	&quantizer;
+  size_t	dimension;
+  size_t	numOfObjects ;
+  size_t	streamSize;
+};
+
+class ScalarQuantizedInt8ObjectProcessingStream {
+ public:
+  ScalarQuantizedInt8ObjectProcessingStream(NGTQ::Quantizer &q): quantizer(q) {}
+
+  ScalarQuantizedInt8ObjectProcessingStream(size_t dimension, size_t nOfObjects,
+					    const std::type_info *tinfo, NGTQ::Quantizer &q): quantizer(q) {
+    initialize(dimension, nOfObjects, tinfo);
+    stream = new uint8_t[streamSize]();
+  }
+
+  ScalarQuantizedInt8ObjectProcessingStream(size_t dim): quantizer(*reinterpret_cast<NGTQ::Quantizer*>(0)) {
+    initialize(dim, 0);
+    stream = 0;
+  }
+
+  ~ScalarQuantizedInt8ObjectProcessingStream() {
+    delete[] stream;
+  }
+
+  void initialize(size_t dim, size_t nOfObjects, const std::type_info *typeInfo = 0) {
+    dimension = dim;
+    numOfObjects = nOfObjects;
+    setStreamSize();
+    dataTypeInfo = typeInfo;
+  }
+
+  virtual void arrangeObject(size_t dataNo, std::vector<float> &object, float scale, float offset, bool shift) {
+    if (dataNo >= numOfObjects) {
+      std::stringstream msg;
+      msg << "The data index is out of the range. " << dataNo << ":" << numOfObjects;
+      NGTThrowException(msg);
+    }
+    NGT::ObjectSpace::quantizeToQint8(object, *dataTypeInfo, dimension, offset, scale, shift);
+    for (size_t i = 0; i < object.size(); i++) {
+      *(stream + dataNo * dimension * sizeof(uint8_t) + i) = static_cast<uint8_t>(object[i]);
+    }
+  }
+
+  void arrange(NGTQ::InvertedIndexEntry<uint16_t> &invertedIndexObjects);
+
+  uint8_t* getStream() {
+    auto s = stream;
+    stream = 0;
+    return s;
+  }
+
+  void setStreamSize() {
+    streamSize = sizeof(uint8_t) * dimension * numOfObjects;
+    return;
+  }
+
+  size_t getStreamSize(size_t nOfObjects) {
+    numOfObjects = nOfObjects;
+    setStreamSize();
+    return streamSize;
+  }
+
+  uint8_t	*stream;
+  Quantizer	&quantizer;
+  size_t	dimension;
+  size_t	numOfObjects ;
+  size_t	streamSize;
+  const std::type_info* dataTypeInfo;
+};
+
+class ScalarQuantizedUint8TransposedObjectProcessingStream : public ScalarQuantizedInt8ObjectProcessingStream {
+ public:
+  ScalarQuantizedUint8TransposedObjectProcessingStream(size_t dimension, size_t nOfObjects, NGTQ::Quantizer &q):
+   ScalarQuantizedInt8ObjectProcessingStream(q) {
+    initialize(dimension, nOfObjects);
+    stream = new uint8_t[streamSize]();
+  }
+
+  ScalarQuantizedUint8TransposedObjectProcessingStream(size_t dim):
+   ScalarQuantizedInt8ObjectProcessingStream(*reinterpret_cast<NGTQ::Quantizer*>(0)) {
+    initialize(dim, 0);
+    stream = 0;
+  }
+
+  void initialize(size_t dim, size_t nOfObjects) {
+    dimension = dim;
+    numOfObjects = nOfObjects;
+    smallBlockSize = 16;
+    blockSize = 64;
+    lineSize = blockSize * nOfObjects;
+    setStreamSize();
+  }
+
+  void arrangeObject(size_t dataNo, std::vector<float> &object, float scale, float offset, bool shift) {
+    if (dataNo >= numOfObjects) {
+      std::stringstream msg;
+      msg << "The data index is out of the range. " << dataNo << ":" << numOfObjects;
+      NGTThrowException(msg);
+    }
+    NGT::ObjectSpace::quantizeToQint8(object, *dataTypeInfo, dimension, offset, scale, shift);
+    size_t endOfBlock = ((object.size() - 1) / blockSize) * blockSize;
+    for (size_t i = 0; i < endOfBlock; i++) {
+      size_t idx = lineSize * (i / blockSize) + blockSize * dataNo + i % blockSize;
+      if (idx >= streamSize) {
+	std::stringstream msg;
+	msg << "Fatal inner error! (1) " << idx << ":" << streamSize << " " 
+	    << dataNo << ":" << i << "/" << object.size();
+	NGTThrowException(msg);
+      }
+      stream[idx] = static_cast<uint8_t>(object[i]);
+    }
+    for (size_t i = endOfBlock; i < object.size(); i++) {
+      size_t idx = lineSize * (i / blockSize) + (i - endOfBlock) / smallBlockSize * (smallBlockSize * numOfObjects) + smallBlockSize * dataNo + (i - endOfBlock) % smallBlockSize;
+      if (idx >= streamSize) {
+	std::stringstream msg;
+	msg << "Fatal inner error! (2) " << idx << ":" << streamSize << " " 
+	    << dataNo << ":" << i << "/" << object.size();
+	NGTThrowException(msg);
+      }
+      stream[idx] = static_cast<uint8_t>(object[i]);
+    }
+  }
+
+  void setStreamSize() {
+    streamSize = ((dimension - 1) / smallBlockSize + 1) * smallBlockSize * numOfObjects;
+    return;
+  }
+
+  size_t getStreamSize(size_t nOfObjects) {
+    numOfObjects = nOfObjects;
+    setStreamSize();
+    return streamSize;
+  }
+  size_t smallBlockSize;
+  size_t blockSize;
+  size_t lineSize;
+};
+///// 
 
 class QuantizedObjectDistance {
 public:
@@ -963,6 +1395,7 @@ public:
       flag.resize(size, false);
 #endif
     }
+
 #ifdef NGTQ_DISTANCE_ANGLE
     LocalDistanceLookup	*localDistanceLookup;
 #else
@@ -970,7 +1403,7 @@ public:
 #endif
     size_t		size;
 #ifndef NGTQ_QBG
-    vector<bool>	flag;
+    vector<bool>	flag;	
 #endif
   };
 
@@ -1007,8 +1440,13 @@ public:
     static constexpr size_t		step512 = 32;
     static constexpr size_t		step256 = 16;
   };
-
+#ifdef NGT_IVI
+  QuantizedObjectDistance(Quantizer &q): quantizer(q) {}
+  QuantizedObjectDistance(): quantizer(*reinterpret_cast<Quantizer*>(0)){}
+#else
   QuantizedObjectDistance(){}
+#endif
+
   virtual ~QuantizedObjectDistance() {
     delete[] localCentroids;
     delete[] localCentroidsForSIMD;
@@ -1019,9 +1457,14 @@ public:
   virtual double operator()(void *localID, DistanceLookupTable &distanceLUT) = 0;
 
 #ifdef NGTQBG_MIN
-  virtual float operator()(void *inv, float *distances, size_t size, DistanceLookupTableUint8 &distanceLUT) = 0;
+  virtual float operator()(void *inv, float *distances, size_t size, DistanceLookupTableUint8 &distanceLUT, void *query = 0) = 0;
 #else
-  virtual void operator()(void *inv, float *distances, size_t size, DistanceLookupTableUint8 &distanceLUT) = 0;
+  virtual void operator()(void *inv, float *distances, size_t size, DistanceLookupTableUint8 &distanceLUT, void *query = 0) = 0;
+#endif
+#ifdef NGTQBG_MIN
+  virtual float operator()(void *inv, float *distances, size_t size, DistanceLookupTableUint8 &distanceLUT, void *query, std::vector<uint32_t> &queryList) = 0;
+#else
+  virtual void operator()(void *inv, float *distances, size_t size, DistanceLookupTableUint8 &distanceLUT, void *query, std::vector<uint32_t> &queryList) = 0;
 #endif
   virtual double operator()(NGT::Object &object, size_t objectID, void *localID, DistanceLookupTable &distanceLUT) = 0;
 
@@ -1235,8 +1678,8 @@ public:
       dlu++;
       for (size_t k = 1; k < localCodebookCentroidNo; k++) {
 	NGT::Object &lcentroid = (NGT::Object&)*localCodebookIndexes[li].getObjectSpace().getRepository().get(k);
-	float *lcptr = (float*)&lcentroid[0];
-	float *lcendptr = lcptr + localDataSize;
+	float *lcptr = (float*)&lcentroid[0];		
+	float *lcendptr = lcptr + localDataSize;	
 	float *toptr = optr + oft;
 	float *tgcptr = gcptr + oft;
 	double normA = 0.0F;
@@ -1255,11 +1698,13 @@ public:
     }
   }
 #else
-  inline void createDistanceLookup(NGT::Object &object, size_t objectID, DistanceLookupTable &distanceLUT) {
+
+  virtual void createDistanceLookup(NGT::Object &object, size_t objectID, DistanceLookupTable &distanceLUT) {
     void *objectPtr = &((NGT::Object&)object)[0];
     createDistanceLookup(objectPtr, objectID, distanceLUT);
   }
-  inline void createDistanceLookup(void *objectPtr, size_t objectID, DistanceLookupTable &distanceLUT) {
+
+  virtual void createDistanceLookup(void *objectPtr, size_t objectID, DistanceLookupTable &distanceLUT) {
     assert(globalCodebookIndex != 0);
 #ifdef NGTQ_QBG
     void *globalCentroid = quantizationCodebook->data(objectID);
@@ -1288,7 +1733,7 @@ public:
       lut++;
       lcptr += localDataSize;
       for (size_t k = 1; k < localCodebookCentroidNo; k++) {
-	float *lcendptr = lcptr + localDataSize;
+	float *lcendptr = lcptr + localDataSize;	
 	float *toptr = optr + oft;
 	float *tgcptr = gcptr + oft;
 	float d = 0.0;
@@ -1563,7 +2008,7 @@ public:
       *lut++ = 0;
       lcptr += localDataSize;
       for (size_t k = 1; k < localCodebookCentroidNo; k++) {
-	float *lcendptr = lcptr + localDataSize;
+	float *lcendptr = lcptr + localDataSize;	
 	float *toptr = optr + oft;
 #if !defined(NGTQG_ZERO_GLOBAL)
 	float *tgcptr = gcptr + oft;
@@ -1584,11 +2029,11 @@ public:
 
   }
 
-  inline void createDistanceLookup(NGT::Object &object, size_t objectID, DistanceLookupTableUint8 &distanceLUT) {
+  virtual void createDistanceLookup(NGT::Object &object, size_t objectID, DistanceLookupTableUint8 &distanceLUT) {
     void *objectPtr = &((NGT::Object&)object)[0];
     createDistanceLookup(objectPtr, objectID, distanceLUT);
   }
-  inline void createDistanceLookup(void *objectPtr, size_t objectID, DistanceLookupTableUint8 &distanceLUT) {
+  virtual void createDistanceLookup(void *objectPtr, size_t objectID, DistanceLookupTableUint8 &distanceLUT) {
     assert(globalCodebookIndex != 0);
     size_t sizeOfObject = dimension * sizeOfType;
 #ifdef NGTQG_DOT_PRODUCT
@@ -1674,6 +2119,12 @@ public:
     c.initialize(localCodebookNo, localCodebookCentroidNo);
   }
 
+  virtual uint8_t *generateRearrangedObjects(NGTQ::InvertedIndexEntry<uint16_t> &invertedIndexObjects) = 0;
+  virtual void restoreIntoInvertedIndex(NGTQ::InvertedIndexEntry<uint16_t> &invertedIndexObjects,
+					size_t numOfSubspaces, std::vector<uint32_t> &ids, void *objects) = 0;
+  virtual size_t getNumOfAlignedObjects(size_t noOfObjects) = 0;
+  virtual size_t getSizeOfCluster(size_t noOfObjects) = 0;
+
   NGT::Index	*globalCodebookIndex;
   NGT::Index	*localCodebookIndexes;
   size_t	localDivisionNo;
@@ -1686,12 +2137,16 @@ public:
   vector<float>	globalCentroid;
   QuantizationCodebook<float>	*quantizationCodebook;
   
-  float		*localCentroids;
-  float		*localCentroidsForSIMD;
+  float		*localCentroids;	
+  float		*localCentroidsForSIMD;	
 
   size_t	localCodebookCentroidNoSIMD;
 
   Rotation	*rotation;
+
+#ifdef NGT_IVI
+  Quantizer	&quantizer;
+#endif
 };
 
 template <typename T>
@@ -1733,7 +2188,7 @@ public:
     for (size_t li = 0; li < localDivisionNo; li++) {
       distance += distanceLUT.getDistance(li * localCodebookCentroidNo + localID[li]);
     }
-    return sqrt(distance);
+    return sqrt(distance);	
   }
 
   inline double operator()(NGT::Object &object, size_t objectID, void *l) {
@@ -1774,15 +2229,47 @@ public:
 	distanceLUT.set(li * localCodebookCentroidNo + localID[li], d);
       }
     }
-    return sqrt(distance);
+    return sqrt(distance);	
   }
 #ifdef NGTQBG_MIN
-  inline float operator()(void *inv, float *distances, size_t size, DistanceLookupTableUint8 &distanceLUT) {
+  inline float operator()(void *inv, float *distances, size_t size, DistanceLookupTableUint8 &distanceLUT, void *query = 0) {
 #else
-  inline void operator()(void *inv, float *distances, size_t size, DistanceLookupTableUint8 &distanceLUT) {
+  inline void operator()(void *inv, float *distances, size_t size, DistanceLookupTableUint8 &distanceLUT, void *query = 0) {
 #endif
     cerr << "operator is not implemented" << endl;
     abort();
+  }
+
+#ifdef NGTQBG_MIN
+  inline float operator()(void *inv, float *distances, size_t size, DistanceLookupTableUint8 &distanceLUT, void *query, std::vector<uint32_t> &queryList) {
+#else
+    inline void operator()(void *inv, float *distances, size_t size, DistanceLookupTableUint8 &distanceLUT, void *query, std::vector<uint32_t> &queryList) {
+#endif
+    cerr << "operator is not implemented" << endl;
+    abort();
+  }
+
+  uint8_t *generateRearrangedObjects(NGTQ::InvertedIndexEntry<uint16_t> &invertedIndexObjects) {
+    NGTThrowException("Not implemented");
+#ifdef NGTQ_QBG
+    QuantizedObjectProcessingStream quantizedStream(invertedIndexObjects.numOfSubvectors, invertedIndexObjects.size());
+    quantizedStream.arrange(invertedIndexObjects);
+    return quantizedStream.compressIntoUint4();
+#else
+    return 0;
+#endif
+  }
+  void restoreIntoInvertedIndex(NGTQ::InvertedIndexEntry<uint16_t> &invertedIndexObjects,
+				size_t numOfSubspaces, std::vector<uint32_t> &ids, void *objects) {
+    NGTThrowException("Not implemented");
+  }
+  size_t getNumOfAlignedObjects(size_t noOfObjects) {
+    abort();
+    return 0;
+  }
+  size_t getSizeOfCluster(size_t noOfObjects) {
+    abort();
+    return 0;
   }
 #endif
 
@@ -1831,7 +2318,7 @@ public:
       localID++;
       lut += localCodebookCentroidNo;
     }
-    return sqrt(distance);
+    return sqrt(distance);	
   }
 
 
@@ -1861,9 +2348,9 @@ public:
 #if defined(NGTQG_AVX512) || defined(NGTQG_AVX2)
 #if defined(NGTQ_TOTAL_SCALE_OFFSET_COMPRESSION)
 #ifdef NGTQBG_MIN
-  inline float operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT) {
+  inline float operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT, void *query = 0) {
 #else
-  inline void operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT) {
+  inline void operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT, void *query = 0) {
 #endif
 
 
@@ -1991,15 +2478,14 @@ public:
     return min;
 #endif
   }
-
 #else /// NGTQ_TOTAL_SCALE_OFFSET_COMPRESSION  ////////////////////////////////////////
 #ifndef NGT_AVX512
 #error "AVX512 is *NOT* defined. *INDIVIDUAL* scale offset compression is available only for AVX512!"
 #endif
 #ifdef NGTQBG_MIN
-  inline float operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT) {
+  inline float operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT, void *query = 0) {
 #else
-  inline void operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT) {
+  inline void operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT, void *query = 0) {
 #endif
 
     uint8_t *localID = static_cast<uint8_t*>(inv);
@@ -2150,9 +2636,9 @@ public:
 
 #else
 #ifdef NGTQBG_MIN
-  inline float operator()(void *inv, float *distances, size_t size, DistanceLookupTableUint8 &distanceLUT) {
+  inline float operator()(void *inv, float *distances, size_t size, DistanceLookupTableUint8 &distanceLUT, void *query = 0) {
 #else
-  inline void operator()(void *inv, float *distances, size_t size, DistanceLookupTableUint8 &distanceLUT) {
+  inline void operator()(void *inv, float *distances, size_t size, DistanceLookupTableUint8 &distanceLUT, void *query = 0) {
 #endif
     uint8_t *localID = static_cast<uint8_t*>(inv);
 #ifdef NGTQBG_MIN
@@ -2196,6 +2682,14 @@ public:
   }
 #endif
 
+
+#ifdef NGTQBG_MIN
+  inline float operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT, void *query, std::vector<uint32_t> &queryList) {
+    return 0.0;
+#else
+  inline void operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT, void *query, std::vector<uint32_t> &queryList) {
+#endif
+  }
 
   inline double operator()(NGT::Object &object, size_t objectID, void *l) {
     return getL2DistanceFloat(object, objectID, static_cast<T*>(l));
@@ -2250,19 +2744,461 @@ public:
 	distance += d;
       }
     }
-    return sqrt(distance);
+    return sqrt(distance);	
+  }
+
+  uint8_t *generateRearrangedObjects(NGTQ::InvertedIndexEntry<uint16_t> &invertedIndexObjects) {
+    if (invertedIndexObjects.numOfSubvectors != localDivisionNo) {
+      std::stringstream msg;
+      msg << "Internal fatal error. Invalid # of subvectos. " << invertedIndexObjects.numOfSubvectors << ":" << localDivisionNo;
+      NGTThrowException(msg);
+    }
+#ifdef NGTQ_QBG
+    QuantizedObjectProcessingStream quantizedStream(invertedIndexObjects.numOfSubvectors, invertedIndexObjects.size());
+    quantizedStream.arrange(invertedIndexObjects);
+    return quantizedStream.compressIntoUint4();
+#else
+    return 0;
+#endif
+  }
+  void restoreIntoInvertedIndex(NGTQ::InvertedIndexEntry<uint16_t> &invertedIndexObjects,
+				size_t numOfSubspaces, std::vector<uint32_t> &ids, void *objects) {
+#ifdef NGTQ_QBG
+    NGTQ::QuantizedObjectProcessingStream quantizedStream(numOfSubspaces, ids.size());
+    quantizedStream.uncompressFromUint4(static_cast<uint8_t*>(objects));
+    invertedIndexObjects.initialize(numOfSubspaces);
+    quantizedStream.restoreToInvertedIndex(invertedIndexObjects);
+#endif
+  }
+  size_t getNumOfAlignedObjects(size_t noOfObjects) {
+    return QuantizedObjectProcessingStream::getNumOfAlignedObjects(noOfObjects);
+  }
+  size_t getSizeOfCluster(size_t noOfObjects) {
+    QuantizedObjectProcessingStream quantizedStream(localDivisionNo);
+    return quantizedStream.getUint4StreamSize(noOfObjects);;
   }
 #endif
 
 };
 
+class NonLocalQuantizedObjectDistance : public QuantizedObjectDistance {
+ public:
+  NonLocalQuantizedObjectDistance(Quantizer &q):QuantizedObjectDistance(q){}
+  virtual void restoreIntoInvertedIndex(NGTQ::InvertedIndexEntry<uint16_t> &invertedIndexObjects,
+					size_t numOfSubspaces, std::vector<uint32_t> &ids, void *objects) {
+#ifdef NGTQ_QBG
+    invertedIndexObjects.initialize(0);
+    for (auto &id : ids) {
+      NGTQ::QuantizedObject quantizedObject;
+      quantizedObject.objectID = id;
+      invertedIndexObjects.pushBack(id, quantizedObject);
+    }
+#endif
+  }
+};
+
+#ifdef NGT_IVI
+  ///////////////////////////////////////////////
+template <typename T>
+class NonQuantizedObjectDistance : public NonLocalQuantizedObjectDistance {
+public:
+  NonQuantizedObjectDistance(Quantizer &q):NonLocalQuantizedObjectDistance(q){}
+  inline double operator()(void *l, DistanceLookupTable &distanceLUT) {
+    return 0.0;
+  }
+
+  ///-/ 近似距離計算 /////////////////////////////
+#ifdef NGTQBG_MIN
+  inline float operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT, void *query = 0) {
+#else
+  inline void operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT, void *query = 0) {
+#endif
+#ifdef NGTQBG_MIN
+    float min = std::numeric_limits<float>::max();
+#endif
+    for (size_t idx = 0; idx < noOfObjects; idx++) {
+      distances[idx] = NGT::PrimitiveComparator::compareL2(static_cast<float*>(query),
+							   static_cast<float*>(inv) + (dimension * idx),
+							   dimension);
+#ifdef NGTQBG_MIN
+      if (distances[idx] < min) min = distances[idx];
+#endif
+    }
+#ifdef NGTQBG_MIN
+    return min;
+#endif
+  }
+
+#ifdef NGTQBG_MIN
+  inline float operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT, void *query, std::vector<uint32_t> &queryList) {
+    return 0.0;
+#else
+  inline void operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT, void *query, std::vector<uint32_t> &queryList) {
+#endif
+  }
+
+  inline float operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTable &distanceLUT) {
+    NGTThrowException("Not implemented.");
+    return 0.0;
+  }
+
+  inline double operator()(NGT::Object &object, size_t objectID, void *l) {
+    NGTThrowException("Not implemented.");
+    return getL2DistanceFloat(object, objectID, static_cast<T*>(l));
+  }
+  inline double operator()(NGT::Object &object, size_t objectID, void *l, DistanceLookupTable &distanceLUT) {
+    NGTThrowException("Not implemented.");
+    return 0.0;
+  }
+  void createDistanceLookup(NGT::Object &object, size_t objectID, DistanceLookupTable &distanceLUT) {
+    void *objectPtr = &((NGT::Object&)object)[0];
+    createDistanceLookup(objectPtr, objectID, distanceLUT);
+  }
+
+  void createDistanceLookup(void *objectPtr, size_t objectID, DistanceLookupTable &distanceLUT) {
+  }
+
+  void createDistanceLookup(void *objectPtr, size_t objectID, DistanceLookupTableUint8 &distanceLUT) {
+  }
+
+  uint8_t *generateRearrangedObjects(NGTQ::InvertedIndexEntry<uint16_t> &invertedIndexObjects) {
+    if (invertedIndexObjects.numOfSubvectors != localDivisionNo) {
+      std::stringstream msg;
+      msg << "Internal fatal error. Invalid # of subvectos. " << invertedIndexObjects.numOfSubvectors << ":" << localDivisionNo;
+      NGTThrowException(msg);
+    }
+    ObjectProcessingStream<T> processingStream(invertedIndexObjects.numOfSubvectors, invertedIndexObjects.size(), quantizer);
+    processingStream.arrange(invertedIndexObjects);
+    return processingStream.getStream();
+  }
+  void restoreIntoInvertedIndex(NGTQ::InvertedIndexEntry<uint16_t> &invertedIndexObjects,
+				size_t numOfSubspaces, std::vector<uint32_t> &ids, void *objects) {
+#ifdef NGTQ_QBG
+    invertedIndexObjects.initialize(0);
+    for (auto id : ids) {
+      NGTQ::QuantizedObject quantizedObject;
+      quantizedObject.objectID = id;
+      invertedIndexObjects.pushBack(id, quantizedObject);
+    }
+#endif
+  }
+  size_t getNumOfAlignedObjects(size_t noOfObjects) { return noOfObjects; }
+  size_t getSizeOfCluster(size_t noOfObjects) {
+    ObjectProcessingStream<T> processingStream(localDivisionNo);
+    return processingStream.getStreamSize(noOfObjects);;
+  }
+};
+
+template <typename QT, typename OT>
+class ScalarQuantizedInt8ObjectDistance : public NonLocalQuantizedObjectDistance {
+ public:
+  ScalarQuantizedInt8ObjectDistance(Quantizer &q, DistanceType dt):NonLocalQuantizedObjectDistance(q) {
+    setCompareFunction(dt);
+  }
+  ~ScalarQuantizedInt8ObjectDistance() {}
+
+  inline double operator()(void *l, DistanceLookupTable &distanceLUT) {
+    return 0.0;
+  }
+
+  ///-/ 近似距離計算 /////////////////////////////
+#ifdef NGTQBG_MIN
+  inline float operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT, void *query) {
+#else
+  inline void operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT, void *query) {
+#endif
+    if (query == 0) {
+      NGTThrowException("Fatal inner error! The specified query is invalid..");
+    }
+#ifdef NGTQBG_MIN
+    float min = std::numeric_limits<float>::max();
+#endif
+    for (size_t idx = 0; idx < noOfObjects; idx++) {
+      if (distances[idx] != 0.0) {
+	distances[idx] = std::numeric_limits<float>::max();
+	continue;
+      }
+      distances[idx] = compare(query, static_cast<NGT::quint8*>(inv) + (dimension * idx), dimension);
+#ifdef NGTQBG_MIN
+      if (distances[idx] < min) min = distances[idx];
+#endif
+    }
+#ifdef NGTQBG_MIN
+    return min;
+#endif
+  }
+
+#ifdef NGTQBG_MIN
+  inline float operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT, void *query, std::vector<uint32_t> &queryList) {
+#else
+  inline void operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT, void *query, std::vector<uint32_t> &queryList) {
+#endif
+    if (query == 0) {
+      NGTThrowException("Fatal inner error! The specified query is invalid..");
+    }
+#if 0
+    std::cerr << "q size=" << queryList.size() << std::endl;
+    std::cerr << "qs=";
+    for (size_t i = 0; i < queryList.size(); i++) {
+      std::cerr << queryList[i] << " ";
+    }
+    std::cerr << std::endl;
+#endif
+#ifdef NGTQBG_MIN
+    float min = std::numeric_limits<float>::max();
+#endif
+#define DIST1
+#if defined(DIST0)
+    for (size_t qi = 0; qi < queryList.size(); qi++) {
+      for (size_t idx = 0; idx < noOfObjects; idx++) {
+	auto *q = static_cast<uint8_t*>(query) + dimension * queryList[qi];
+	auto *o = static_cast<uint8_t*>(inv) + dimension * idx;
+	auto d = NGT::PrimitiveComparator::compareL2(reinterpret_cast<NGT::quint8*>(q),
+						     reinterpret_cast<NGT::quint8*>(o),
+						     dimension);
+	distances[noOfObjects * qi + idx] = d;
+      }
+    }
+#elif defined(DIST1)
+    size_t bsize = 192 * 1024 * 0.5 / dimension;
+    //size_t bsize = 20;
+    for (size_t bi = 0; bi < noOfObjects; bi += bsize) {
+      for (size_t qi = 0; qi < queryList.size(); qi++) {
+	if (qi + 1 < queryList.size()) {
+	  NGT::MemoryCache::prefetch(static_cast<uint8_t*>(query) + dimension * queryList[qi + 1], 64);
+	}
+	for (size_t idx = bi; idx < std::min(noOfObjects, bi + bsize); idx++) {
+	  auto *q = static_cast<uint8_t*>(query) + dimension * queryList[qi];
+	  auto *o = static_cast<uint8_t*>(inv) + dimension * idx;
+	  distances[noOfObjects * qi + idx] = compare(q, o, dimension);
+	}
+      }
+    }
+#endif
+#ifdef NGTQBG_MIN
+    return min;
+#endif
+  }
+
+  inline float operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTable &distanceLUT) {
+    NGTThrowException("Not implemented.");
+    return 0.0;
+  }
+
+  inline double operator()(NGT::Object &object, size_t objectID, void *l) {
+    NGTThrowException("Not implemented.");
+    //return getL2DistanceFloat(object, objectID, static_cast<T*>(l));
+    return 0.0;
+  }
+  inline double operator()(NGT::Object &object, size_t objectID, void *l, DistanceLookupTable &distanceLUT) {
+    NGTThrowException("Not implemented.");
+    return 0.0;
+  }
+
+  void createDistanceLookup(NGT::Object &object, size_t objectID, DistanceLookupTable &distanceLUT) {}
+  void createDistanceLookup(void *objectPtr, size_t objectID, DistanceLookupTable &distanceLUT) {}
+  void createDistanceLookup(void *objectPtr, size_t objectID, DistanceLookupTableUint8 &distanceLUT) {}
+
+  uint8_t *generateRearrangedObjects(NGTQ::InvertedIndexEntry<uint16_t> &invertedIndexObjects) {
+    //ScalarQuantizedInt8ObjectProcessingStream processingStream(localDivisionNo, invertedIndexObjects.size(), &typeid(OT), quantizer);
+    ScalarQuantizedInt8ObjectProcessingStream processingStream(localDivisionNo, invertedIndexObjects.size(), &typeid(QT), quantizer);
+    processingStream.arrange(invertedIndexObjects);
+    return processingStream.getStream();
+  }
+
+  size_t getNumOfAlignedObjects(size_t noOfObjects) { return noOfObjects; }
+  size_t getSizeOfCluster(size_t noOfObjects) {
+    ScalarQuantizedInt8ObjectProcessingStream processingStream(localDivisionNo);
+    return processingStream.getStreamSize(noOfObjects);;
+  }
+
+  float compareDotProduct(void *q, void *o, size_t dimension) {
+    double maxmag = 255.0 * 255.0 * dimension;
+    double d = NGT::PrimitiveComparator::compareDotProduct(reinterpret_cast<QT*>(q), reinterpret_cast<OT*>(o), dimension);
+    return maxmag - d;
+  }
+
+  float compareL2(void *q, void *o, size_t dimension) {
+    return NGT::PrimitiveComparator::compareL2(reinterpret_cast<QT*>(q), reinterpret_cast<OT*>(o), dimension);
+  }
+
+  float compare(void *q, void *o, size_t dimension) {
+    return (this->*comparePtr)(q, o, dimension);
+  }
+
+  void setCompareFunction(DistanceType dtype) {
+    switch (dtype) {
+    case DistanceType::DistanceTypeInnerProduct:
+    case DistanceType::DistanceTypeNormalizedCosine:
+      comparePtr = &ScalarQuantizedInt8ObjectDistance<QT, OT>::compareDotProduct; break;
+    case DistanceType::DistanceTypeL2:
+      comparePtr = &ScalarQuantizedInt8ObjectDistance<QT, OT>::compareL2; break;
+    default:
+      {
+	std::stringstream msg;
+	msg << "Invalid distance type. " << dtype;
+	NGTThrowException(msg);
+	break;
+      }
+    }
+  }
+
+  float (ScalarQuantizedInt8ObjectDistance<QT, OT>::*comparePtr)(void *, void*, size_t);
+  //float (*comparePtr)(void *, void*, size_t);
+
+};
+
+class ScalarQuantizedUint8TransposedObjectDistance : public ScalarQuantizedInt8ObjectDistance<NGT::quint8, NGT::quint8> {
+ public:
+  ScalarQuantizedUint8TransposedObjectDistance(Quantizer &q, DistanceType dtype):ScalarQuantizedInt8ObjectDistance<NGT::quint8, NGT::quint8>(q, dtype) {}
+  ~ScalarQuantizedUint8TransposedObjectDistance() {}
+
+#ifdef NGTQBG_MIN
+  inline float operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT, void *query) {
+#else
+  inline void operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT, void *query) {
+#endif
+    if (query == 0) {
+      NGTThrowException("Fatal inner error! The specified query is invalid..");
+    }
+    const uint8_t *object = static_cast<uint8_t*>(inv);
+    const uint8_t *qobject = static_cast<uint8_t*>(query);
+    const unsigned char *last = qobject + dimension;
+    __m256i sum256[noOfObjects];
+#if defined(NGT_AVX512)
+    {
+      __m512i sum512[noOfObjects];
+      for (size_t oi = 0; oi < noOfObjects; oi++) {
+	sum512[oi] = _mm512_setzero_si512();
+      }
+      const unsigned char *lastgroup = last - 63;
+      while (qobject < lastgroup) {
+	__m512i q = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(qobject));
+	for (size_t oi = 0; oi < noOfObjects; oi++) {
+	  __m512i o = _mm512_loadu_si512(reinterpret_cast<const __m512i*>(object));
+	  __mmask64 m = _mm512_cmplt_epu8_mask(q, o);
+	  __m512i x = _mm512_add_epi8(_mm512_maskz_subs_epu8(m, o, q),
+				      _mm512_maskz_subs_epu8(~m, q, o));
+	  __m512i xi16 = _mm512_cvtepu8_epi16(_mm512_extracti32x8_epi32(x,0));
+	  sum512[oi] = _mm512_add_epi32(sum512[oi], _mm512_madd_epi16(xi16, xi16));
+	  xi16 = _mm512_cvtepu8_epi16(_mm512_extracti32x8_epi32(x,1));
+	  sum512[oi] = _mm512_add_epi32(sum512[oi], _mm512_madd_epi16(xi16, xi16));
+	  object += 64;
+        }
+        qobject += 64;
+      }
+      for (size_t oi = 0; oi < noOfObjects; oi++) {
+	sum256[oi] = _mm256_add_epi32(_mm512_extracti32x8_epi32(sum512[oi], 0),
+				      _mm512_extracti32x8_epi32(sum512[oi], 1));
+      }
+    }
+#elif defined(NGT_AVX2)
+    {
+      for (size_t oi = 0; oi < noOfObjects; oi++) {
+	sum256[oi] = _mm256_setzero_si256();
+      }
+      //__attribute__((aligned(32))) uint16_t iv[16];
+      const unsigned char *lastgroup = last - 63;
+      while (qobject < lastgroup) {
+	//std::cerr << "qobj=" << (size_t)qobject << ":" << (size_t)lastgroup << std::endl;
+	__m256i q[4];
+	q[0] = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)qobject));
+	qobject += 16;
+	q[1] = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)qobject));
+	qobject += 16;
+	q[2] = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)qobject));
+	qobject += 16;
+	q[3] = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)qobject));
+	qobject += 16;
+	for (size_t oi = 0; oi < noOfObjects; oi++) {
+	  __m256i o = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)object));
+	  __m256i sub16 = _mm256_subs_epi16(q[0], o);
+	  sum256[oi] = _mm256_add_epi32(sum256[oi], _mm256_madd_epi16(sub16, sub16));
+	  object += 16;
+	  o = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)object));
+	  sub16 = _mm256_subs_epi16(q[1], o);
+	  sum256[oi] = _mm256_add_epi32(sum256[oi], _mm256_madd_epi16(sub16, sub16));
+	  object += 16;
+	  o = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)object));
+	  sub16 = _mm256_subs_epi16(q[2], o);
+	  sum256[oi] = _mm256_add_epi32(sum256[oi], _mm256_madd_epi16(sub16, sub16));
+	  object += 16;
+	  o = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)object));
+	  sub16 = _mm256_subs_epi16(q[3], o);
+	  sum256[oi] = _mm256_add_epi32(sum256[oi], _mm256_madd_epi16(sub16, sub16));
+	  object += 16;
+	}
+      }
+    }
+#endif
+    {
+      //__attribute__((aligned(32))) uint16_t iv[16];
+      const unsigned char *lastgroup = last - 15;
+      while (qobject < lastgroup) {
+	__m256i q = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)qobject));
+	for (size_t oi = 0; oi < noOfObjects; oi++) {
+	  __m256i o = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const*)object));
+	  __m256i sub16 = _mm256_subs_epi16(q, o);
+	  sum256[oi] = _mm256_add_epi32(sum256[oi], _mm256_madd_epi16(sub16, sub16));
+	  object += 16;
+	}
+	qobject += 16;
+      }
+    }
+#ifdef NGTQBG_MIN
+    float min = std::numeric_limits<float>::max();
+#endif
+    const __m256i value0 = _mm256_set1_epi32(0);
+    for (size_t oi = 0; oi < noOfObjects; oi++) {
+      __m256i tmp1 = _mm256_hadd_epi32(sum256[oi], value0);
+      __m256i tmp2 = _mm256_hadd_epi32(tmp1, value0);
+      distances[oi] = _mm256_extract_epi32(tmp2, 0) + _mm256_extract_epi32(tmp2, 4);
+      if (distances[oi] < min) {
+	min = distances[oi];
+      }
+    }
+#ifdef NGTQBG_MIN
+    return min;
+#endif
+  }
+
+#ifdef NGTQBG_MIN
+  inline float operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT, void *query, std::vector<uint32_t> &queryList) {
+    return 0.0;
+#else
+  inline void operator()(void *inv, float *distances, size_t noOfObjects, DistanceLookupTableUint8 &distanceLUT, void *query, std::vector<uint32_t> &queryList) {
+#endif
+  }
+
+  uint8_t *generateRearrangedObjects(NGTQ::InvertedIndexEntry<uint16_t> &invertedIndexObjects) {
+    if (invertedIndexObjects.numOfSubvectors != localDivisionNo) {
+      std::stringstream msg;
+      msg << "Internal fatal error. Invalid # of subvectos. " << invertedIndexObjects.numOfSubvectors << ":" << localDivisionNo;
+      NGTThrowException(msg);
+    }
+    ScalarQuantizedUint8TransposedObjectProcessingStream processingStream(invertedIndexObjects.numOfSubvectors, invertedIndexObjects.size(), quantizer);
+    processingStream.arrange(invertedIndexObjects);
+    return processingStream.getStream();
+  }
+  void restoreIntoInvertedIndex(NGTQ::InvertedIndexEntry<uint16_t> &invertedIndexObjects,
+				size_t numOfSubspaces, std::vector<uint32_t> &ids, void *objects) {
+    NGTThrowException("not implemented");
+  }
+  size_t getSizeOfCluster(size_t noOfObjects) {
+    ScalarQuantizedUint8TransposedObjectProcessingStream processingStream(localDivisionNo);
+    return processingStream.getStreamSize(noOfObjects);;
+  }
+
+};
+
+#endif
 
 class Quantizer {
 public:
 #ifdef NGTQ_STATIC_OBJECT_FILE
-  typedef StaticObjectFile<NGT::Object>	ObjectList;
+  typedef StaticObjectFile<NGT::Object>	ObjectList;	
 #else
-  typedef ObjectFile	ObjectList;
+  typedef ObjectFile	ObjectList;	
 #endif
 
 
@@ -2290,16 +3226,16 @@ public:
 #ifdef NGTQ_QBG
   virtual void createIndex(size_t beginID, size_t endID) = 0;
 #endif
-  virtual void setupInvertedIndex(std::vector<std::vector<float>> &quantizationCodebook,
-					std::vector<uint32_t> &codebookIndex,
-					std::vector<uint32_t> &objectIndex) = 0;
+  virtual void setupInvertedIndex(std::vector<uint32_t> &codebookIndex,
+				  std::vector<std::vector<uint32_t>> &objectIndex) = 0;
 #ifndef NGTQ_QBG
   virtual void rebuildIndex() = 0;
 #endif
   virtual void save() = 0;
   virtual void loadQuantizationCodebookAndRotation(const  std::vector<std::vector<float>> &quantizationCodebook, const std::vector<float> &rotation) = 0;
-  virtual void open(const string &index, NGT::Property &globalProperty, bool readOnly) = 0;
-  virtual void open(const string &index, bool readOnly) = 0;
+  virtual void open(const string &index, NGT::Property &globalProperty, bool readOnly,
+		    DataType refinementDataType = DataTypeAny) = 0;
+  virtual void open(const string &index, bool readOnly, DataType refinementDataType = DataTypeAny) = 0;
   virtual void close() = 0;
   virtual void closeCodebooks() = 0;
 #ifdef NGTQ_SHARED_INVERTED_INDEX
@@ -2380,7 +3316,6 @@ public:
 #endif
   virtual size_t getInvertedIndexSize() = 0;
 
-  //void searchIndex(NGT::GraphAndTreeIndex &codebook,
   static void searchIndex(NGT::GraphAndTreeIndex &globalCodebookIndex,
 #ifdef NGTQ_VECTOR_OBJECT
 		   const vector<pair<std::vector<float>, size_t>> &objects,
@@ -2399,7 +3334,7 @@ public:
 #else
 #endif
       NGT::ObjectDistances result;
-#define QID_WEIGHT	100
+#define QID_WEIGHT	100	
       {
 #ifdef NGTQ_VECTOR_OBJECT
 	auto *object = globalCodebookIndex.allocateObject(objects[idx].first);
@@ -2428,6 +3363,9 @@ public:
   static const std::string getLocalPrefix() { return "local-"; }
   static const std::string getRotationFile() { return "qr"; }
   static const std::string getGlobalToInvertedIndexFile() { return "g2i"; }
+  void saveProperty() {
+    property.save(rootDirectory);
+  }
 
   ObjectList	objectList;
 
@@ -2446,161 +3384,15 @@ public:
   std::vector<NGT::Index>	localCodebookIndexes;
 
   QuantizationCodebook<float>	quantizationCodebook;
-  std::vector<uint32_t>		objectToBlobIndex;
+  std::vector<std::vector<uint32_t>>		objectToBlobIndex;
   Rotation			rotation;
 
 #ifdef NGTQ_OBJECT_IN_MEMORY
-  NGT::Repository<NGT::Object>	objectListOnMemory;
+  NGT::ObjectSpace	*refinementObjectSpace;
 #endif
-};
+  NGT::ObjectSpace	*refinementObjectSpaceForObjectList;
+  };
 
-class QuantizedObjectProcessingStream {
- public:
-  QuantizedObjectProcessingStream(size_t divisionNo, size_t nOfObjects): stream(0) {
-    initialize(divisionNo);
-    numOfObjects = nOfObjects;
-    setStreamSize();
-    stream = new uint8_t[streamSize]();
-  }
-
-  QuantizedObjectProcessingStream(size_t numOfSubspaces): stream(0) {
-    initialize(numOfSubspaces);
-  }
-
-  ~QuantizedObjectProcessingStream() {
-    delete[] stream;
-  }
-
-  void initialize(size_t divisionNo) {
-    numOfAlignedSubvectors = ((divisionNo - 1) / NGTQ_BATCH_SIZE + 1) * NGTQ_BATCH_SIZE;
-    alignedBlockSize = NGTQ_SIMD_BLOCK_SIZE * numOfAlignedSubvectors;
-  }
-
-  static size_t getNumOfAlignedObjects(size_t numOfObjects) {
-    return (((numOfObjects - 1) / NGTQ_SIMD_BLOCK_SIZE + 1) * NGTQ_SIMD_BLOCK_SIZE);
-  }
-  
-  void setStreamSize() {
-    numOfAlignedObjects  = getNumOfAlignedObjects(numOfObjects);
-    streamSize = numOfAlignedObjects * numOfAlignedSubvectors;
-    return;
-  }
-
-#ifdef NGTQ_QBG
-  void arrangeQuantizedObject(size_t dataNo, size_t subvectorNo, uint8_t quantizedObject) {
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    abort();
-#else
-    size_t blkNo = dataNo / NGTQ_SIMD_BLOCK_SIZE;
-    size_t oft = dataNo - blkNo * NGTQ_SIMD_BLOCK_SIZE;
-    stream[blkNo * alignedBlockSize + NGTQ_SIMD_BLOCK_SIZE * subvectorNo + oft] = quantizedObject;
-#endif
-  }
-
-  void arrange(NGTQ::InvertedIndexEntry<uint16_t> &invertedIndexObjects) {
-    for (size_t oidx = 0; oidx < invertedIndexObjects.size(); oidx++) {
-      for (size_t idx = 0; idx < invertedIndexObjects.numOfSubvectors; idx++) {
-	arrangeQuantizedObject(oidx, idx, invertedIndexObjects[oidx].localID[idx] - 1);
-      }
-    }
-  }
-
-  uint8_t getQuantizedObject(size_t dataNo, size_t subvectorNo) {
-    size_t blkNo = dataNo / NGTQ_SIMD_BLOCK_SIZE;
-    size_t oft = dataNo - blkNo * NGTQ_SIMD_BLOCK_SIZE;
-    return stream[blkNo * alignedBlockSize + NGTQ_SIMD_BLOCK_SIZE * subvectorNo + oft];
-  }
-#endif
-
-  uint8_t* compressIntoUint4() {
-    size_t idx = 0;
-    size_t uint4StreamSize = streamSize / 2;
-    uint8_t *uint4Objects = new uint8_t[uint4StreamSize]();
-    while (idx < streamSize) {
-      for (size_t lidx = 0; lidx < numOfAlignedSubvectors; lidx++) {
-	for (size_t bidx = 0; bidx < NGTQ_SIMD_BLOCK_SIZE; bidx++) {
-	  if (idx / 2 > uint4StreamSize) {
-	    std::stringstream msg;
-	    msg << "Quantizer::compressIntoUint4: Fatal inner error! " << (idx / 2) << ":" << uint4StreamSize;
-	    NGTThrowException(msg);
-	  }
-	  if (idx % 2 == 0) {
-	    uint4Objects[idx / 2] = stream[idx];
-	  } else {
-	    uint4Objects[idx / 2] |= (stream[idx] << 4);
-	  }
-	  idx++;
-	}
-      }
-    }
-    return uint4Objects;
-  }
-
-  void uncompressFromUint4(uint8_t *uint4Objects) {
-    size_t idx = 0;
-    size_t uint4StreamSize = streamSize / 2;
-    while (idx < streamSize) {
-      for (size_t lidx = 0; lidx < numOfAlignedSubvectors; lidx++) {
-	for (size_t bidx = 0; bidx < NGTQ_SIMD_BLOCK_SIZE; bidx++) {
-	  if (idx / 2 > uint4StreamSize) {
-	    std::stringstream msg;
-	    msg << "Quantizer::uncompressFromUint4: Fatal inner error! " << (idx / 2) << ":" << uint4StreamSize;
-	    NGTThrowException(msg);
-	  }
-	  if (idx % 2 == 0) {
-	    stream[idx] = uint4Objects[idx / 2] & 0x0f;
-	  } else {
-	    stream[idx] = uint4Objects[idx / 2] >> 4;
-	  }
-	  idx++;
-	}
-      }
-    }
-  }
-
-#ifdef NGTQ_QBG
-  void restoreToInvertedIndex(NGTQ::InvertedIndexEntry<uint16_t> &invertedIndexObjects) {
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    std::cerr << "Not implemented." << std::endl;
-    abort();
-#else
-    invertedIndexObjects.resize(numOfAlignedObjects);
-    for (size_t oidx = 0; oidx < numOfAlignedObjects; oidx++) {
-      for (size_t lidx = 0; lidx < numOfAlignedSubvectors; lidx++) {
-	invertedIndexObjects[oidx].localID[lidx] = getQuantizedObject(oidx, lidx) + 1;
-      }
-    }
-    invertedIndexObjects.resize(numOfObjects);
-#endif
-  }
-#endif
-
-  uint8_t* getStream() {
-    auto s = stream;
-    stream = 0;
-    return s;
-  }
-
-  size_t getUint4StreamSize(size_t nOfObjects) {
-    numOfObjects = nOfObjects;
-    setStreamSize();
-    return streamSize / 2;
-  }
-
-  size_t getStreamSize(size_t nOfObjects) {
-    numOfObjects = nOfObjects;
-    setStreamSize();
-    return streamSize;
-  }
-
-  uint8_t	*stream;
-  size_t	numOfAlignedSubvectors;
-  size_t	alignedBlockSize;
-  size_t	numOfAlignedObjects ;
-  size_t	numOfObjects ;
-  size_t	streamSize;
-};
- 
 class GenerateResidualObject {
 public:
   GenerateResidualObject():globalCodebookIndex(0), objectList(0), quantizationCodebook(0) {}
@@ -2783,6 +3575,8 @@ public:
     generateResidualObject = 0;
     localCodebooks = 0;
     verbose = false;
+    refinementObjectSpace = 0;
+    refinementObjectSpaceForObjectList = 0;
   }
 
   virtual ~QuantizerInstance() { close(); }
@@ -2797,6 +3591,7 @@ public:
 			NGT::Property &localProperty)
 #endif
   {
+
     rootDirectory = index;
     NGT::Index::mkdir(rootDirectory);
     string global = rootDirectory + "/" + getGlobalFile();
@@ -2839,17 +3634,6 @@ public:
     invertedIndex.serialize(of);
 #endif
     string fname = rootDirectory + "/obj";
-    if (property.dataSize == 0) {
-      std::stringstream msg;
-#ifdef NGTQ_QBG
-      msg << "Quantizer: data size of the object is zero. " << property.dataSize << ":" << property.dimension
-	  << ":" << property.dataType << ":" << property.genuineDataType;
-#else
-      msg << "Quantizer: data size of the object is zero. " << property.dataSize << ":" << property.dimension
-	  << ":" << property.dataType;
-#endif
-      NGTThrowException(msg);
-    }
 #ifdef NGTQ_STATIC_OBJECT_FILE
     if (!objectList.create(fname, objectFile)) {
       std::stringstream msg;
@@ -2861,7 +3645,7 @@ public:
     objectList.openMultipleStreams(omp_get_max_threads());
 #endif
 #else
-    objectList.create(fname, property.dataSize);
+    objectList.create(fname, property.getDataSize());
 #endif
 #ifdef NGTQ_QBG
     if (rotation != 0) {
@@ -2887,7 +3671,7 @@ public:
     qCodebook.serialize(ofs);
   }
 
-    void loadQuantizationCodebookAndRotation(const std::vector<std::vector<float>> &qCodebook, const std::vector<float> &rotation) {
+  void loadQuantizationCodebookAndRotation(const std::vector<std::vector<float>> &qCodebook, const std::vector<float> &rotation) {
     QuantizationCodebook<float> qc;
     qc.setPaddedDimension(globalCodebookIndex.getObjectSpace().getPaddedDimension());
     qc = qCodebook;
@@ -2903,12 +3687,12 @@ public:
     saveQuantizationCodebook(qc);
   }
 
-  void open(const string &index, NGT::Property &globalProperty, bool readOnly) {
-    open(index, readOnly);
+  void open(const string &index, NGT::Property &globalProperty, bool readOnly, DataType refinementDataType) {
+    open(index, readOnly, refinementDataType);
     globalCodebookIndex.setProperty(globalProperty);
   }
 
-  void open(const string &index, bool readOnly) {
+  void open(const string &index, bool readOnly, DataType refinementDataType) {
     NGT::StdOstreamRedirector redirector(!verbose);
     redirector.begin();
     rootDirectory = index;
@@ -2967,63 +3751,161 @@ public:
     objectList.openMultipleStreams(omp_get_max_threads());
 #endif
 #ifdef NGTQ_OBJECT_IN_MEMORY
-    if (property.objectListOnMemory) {
-      objectListOnMemory.resize(objectList.size());
-      for (size_t id = 1; id < objectList.size(); id++) {
-	std::vector<float> object;
-	objectList.get(id, object, &globalCodebookIndex.getObjectSpace());
-	NGT::Object *ngtObject = globalCodebookIndex.allocateObject(object);
-	objectListOnMemory.put(id, ngtObject);
+    refinementObjectSpace = 0;
+    refinementDataType = refinementDataType == DataTypeAny ? property. refinementDataType : refinementDataType;
+    if (refinementDataType != DataTypeNone) {
+      auto distanceType = property.distanceType == NGT::ObjectSpace::DistanceTypeInnerProduct
+	                ? NGT::ObjectSpace::DistanceTypeDotProduct : property.distanceType;
+      try {
+	switch (refinementDataType) {
+	case DataTypeFloat:
+	  refinementObjectSpace = new NGT::ObjectSpaceRepository<float, double>(objectList.pseudoDimension, 
+										typeid(float),
+										distanceType,
+										property.maxMagnitude);
+	  break;
+	case DataTypeFloat16:
+	  refinementObjectSpace = new NGT::ObjectSpaceRepository<NGT::float16, double>(objectList.pseudoDimension, 
+										       typeid(NGT::float16),
+										       distanceType,
+										       property.maxMagnitude);
+	  break;
+	default:
+	  stringstream msg;
+	  msg << "Invalid refinement data type. " << refinementDataType;
+	  NGTThrowException(msg);
+	  break;
+	}
+	
+	auto &repo = refinementObjectSpace->getRepository();
+	repo.initialize();
+	for (size_t id = 1; id < objectList.size(); id++) {
+	  std::vector<float> object;
+	  objectList.get(id, object, refinementObjectSpace);
+	  auto *o = repo.allocateNormalizedPersistentObject(object);
+	  repo.push_back(dynamic_cast<NGT::PersistentObject*>(o));
+	}
+      } catch(NGT::Exception &err) {
+	stringstream msg;
+	msg << "Fatal inner error. Cannot set up the refinmentObjectSpace. " << err.what();
+	NGTThrowException(msg);
+      }
+    }
+#endif
+    refinementObjectSpaceForObjectList = 0;
+#ifdef NGTQ_QBG
+    if (property.genuineDataType != ObjectFile::DataTypeNone) {
+      auto distanceType = property.distanceType == NGT::ObjectSpace::DistanceTypeInnerProduct
+	                ? NGT::ObjectSpace::DistanceTypeDotProduct : property.distanceType;
+      try {
+	switch (property.genuineDataType) {
+	case DataTypeFloat:
+	  refinementObjectSpaceForObjectList = new NGT::ObjectSpaceRepository<float, double>(objectList.pseudoDimension, 
+										typeid(float),
+										distanceType,
+										property.maxMagnitude);
+	  break;
+	case DataTypeFloat16:
+	  refinementObjectSpaceForObjectList = new NGT::ObjectSpaceRepository<NGT::float16, double>(objectList.pseudoDimension, 
+										       typeid(NGT::float16),
+										       distanceType,
+										       property.maxMagnitude);
+	  break;
+	default:
+	  stringstream msg;
+	  msg << "Invalid refinement data type for the object list. " << property.genuineDataType;
+	  NGTThrowException(msg);
+	  break;
+	}
+      } catch(NGT::Exception &err) {
+	stringstream msg;
+	msg << "Fatal inner error. Cannot set up the refinmentObjectSpac for the object liste. " << err.what();
+	NGTThrowException(msg);
       }
     }
 #endif
     NGT::Property globalProperty;
     globalCodebookIndex.getProperty(globalProperty);
     size_t sizeoftype = 0;
+    switch (property.localClusterDataType) {
+#ifdef NGT_IVI
+    case ClusterDataTypeNQ:
+      {
+	quantizedObjectDistance = new NonQuantizedObjectDistance<float>(*this);
+	generateResidualObject = new GenerateResidualObjectFloat;
+	sizeoftype = sizeof(float);
+	break;
+      }
+    case ClusterDataTypeSQSU8:
+      {
+	if (property.distanceType == NGT::ObjectSpace::DistanceTypeInnerProduct) {
+	  quantizedObjectDistance = new ScalarQuantizedInt8ObjectDistance<NGT::qsint8, NGT::quint8>(*this, property.distanceType);
+	} else {
+	  quantizedObjectDistance = new ScalarQuantizedInt8ObjectDistance<NGT::qsint8, NGT::qsint8>(*this, property.distanceType);
+	}
+	generateResidualObject = new GenerateResidualObjectFloat;
+	sizeoftype = sizeof(float);
+	break;
+      }
+#endif
+    default:
+      {
 #ifdef NGT_HALF_FLOAT
-    if (globalProperty.objectType == NGT::Property::ObjectType::Float ||
-	globalProperty.objectType == NGT::Property::ObjectType::Float16) {
+	if (globalProperty.objectType == NGT::Property::ObjectType::Float ||
+	    globalProperty.objectType == NGT::Property::ObjectType::Float16) {
 #else
-    if (globalProperty.objectType == NGT::Property::ObjectType::Float) {
+	if (globalProperty.objectType == NGT::Property::ObjectType::Float) {
 #endif
-      if (property.localIDByteSize == 4) {
-	quantizedObjectDistance = new QuantizedObjectDistanceFloat<uint32_t>;
-      } else if (property.localIDByteSize == 2) {
-	quantizedObjectDistance = new QuantizedObjectDistanceFloat<uint16_t>;
+	  if (property.localIDByteSize == 4) {
+	    quantizedObjectDistance = new QuantizedObjectDistanceFloat<uint32_t>;
+	  } else if (property.localIDByteSize == 2) {
+	    quantizedObjectDistance = new QuantizedObjectDistanceFloat<uint16_t>;
 #ifdef NGTQ_QBG
-      } else if (property.localIDByteSize == 1) {
-	quantizedObjectDistance = new QuantizedObjectDistanceFloat<uint8_t>;
+	  } else if (property.localIDByteSize == 1) {
+	    quantizedObjectDistance = new QuantizedObjectDistanceFloat<uint8_t>;
 #endif
-      } else {
-	std::cerr << "Invalid localIDByteSize : " << property.localIDByteSize << std::endl;
-	abort();
-      }
-      generateResidualObject = new GenerateResidualObjectFloat;
-      sizeoftype = sizeof(float);
-    } else if (globalProperty.objectType == NGT::Property::ObjectType::Uint8) {
-      if (property.localIDByteSize == 4) {
-	quantizedObjectDistance = new QuantizedObjectDistanceUint8<uint32_t>;
-      } else if (property.localIDByteSize == 2) {
-	quantizedObjectDistance = new QuantizedObjectDistanceUint8<uint16_t>;
+	  } else {
+	    std::cerr << "Invalid localIDByteSize : " << property.localIDByteSize << std::endl;
+	    abort();
+	  }
+	  generateResidualObject = new GenerateResidualObjectFloat;
+	  sizeoftype = sizeof(float);
+	} else if (globalProperty.objectType == NGT::Property::ObjectType::Uint8) {
+	  if (property.localIDByteSize == 4) {
+	    quantizedObjectDistance = new QuantizedObjectDistanceUint8<uint32_t>;
+	  } else if (property.localIDByteSize == 2) {
+	    quantizedObjectDistance = new QuantizedObjectDistanceUint8<uint16_t>;
 #ifdef NGTQ_QBG
-      } else if (property.localIDByteSize == 1) {
-	quantizedObjectDistance = new QuantizedObjectDistanceFloat<uint8_t>;
+	  } else if (property.localIDByteSize == 1) {
+	    quantizedObjectDistance = new QuantizedObjectDistanceFloat<uint8_t>;
 #endif
-      } else {
-	std::cerr << "Inconsistent localIDByteSize and ObjectType. " << property.localIDByteSize << ":" << globalProperty.objectType << std::endl;
-	abort();
-      }
+	  } else {
+	    std::cerr << "Inconsistent localIDByteSize and ObjectType. " << property.localIDByteSize << ":" << globalProperty.objectType << std::endl;
+	    abort();
+	  }
 #ifdef NGTQ_VECTOR_OBJECT
-      generateResidualObject = new GenerateResidualObjectFloat;
-      sizeoftype = sizeof(float);
+	  generateResidualObject = new GenerateResidualObjectFloat;
+	  sizeoftype = sizeof(float);
 #else
-      generateResidualObject = new GenerateResidualObjectUint8;
-      sizeoftype = sizeof(uint8_t);
+	  generateResidualObject = new GenerateResidualObjectUint8;
+	  sizeoftype = sizeof(uint8_t);
 #endif
-    } else {
-      cerr << "NGTQ::open: Fatal Inner Error: invalid object type. " << globalProperty.objectType << endl;
-      cerr << "   check NGT version consistency between the caller and the library." << endl;
-      abort();
+	} else {
+	  cerr << "NGTQ::open: Fatal Inner Error: invalid object type. " << globalProperty.objectType << endl;
+	  cerr << "   check NGT version consistency between the caller and the library." << endl;
+	  abort();
+	}
+	break;
+      }
+    }
+    if (quantizedObjectDistance == 0) {
+      NGTThrowException("Inner fatal error! quantizeObjectDistance is invalid.");
+    }
+    if (generateResidualObject == 0) {
+      NGTThrowException("Inner fatal error! generateResidualObject is invalid.");
+    }
+    if (sizeoftype == 0) {
+      NGTThrowException("Inner fatal error! sizeoftype is invalid.");
     }
     assert(quantizedObjectDistance != 0);
 #ifdef NGTQ_QBG
@@ -3113,10 +3995,18 @@ public:
   void close() {
     objectList.close();
 #ifdef NGTQ_OBJECT_IN_MEMORY
-    for (size_t i = 1; i < objectListOnMemory.size(); i++) {
-      globalCodebookIndex.deleteObject(objectListOnMemory.get(i));
+    if (refinementObjectSpace != 0) {
+#ifndef NGT_SHARED_MEMORY_ALLOCATOR
+      refinementObjectSpace->deleteAll();
+#endif
+      delete refinementObjectSpace;
+      refinementObjectSpace = 0;
     }
 #endif
+    if (refinementObjectSpaceForObjectList != 0) {
+      delete refinementObjectSpaceForObjectList;
+      refinementObjectSpaceForObjectList = 0;
+    }
     closeCodebooks();
     if (quantizedObjectDistance != 0) {
       delete quantizedObjectDistance;
@@ -3304,7 +4194,7 @@ public:
     float lr = property.localRange;
     size_t localCentroidLimit = property.localCentroidLimit;
     if (property.localCodebookState) {
-      lr = FLT_MAX;
+      lr = FLT_MAX;	
       localCentroidLimit = 0;
     }
     vector<NGT::Index::InsertionResult> lids;
@@ -3342,7 +4232,7 @@ public:
 	localCentroidLimit *= property.localClusteringSampleCoefficient;
       }
       if (property.localCodebookState) {
-	lr = FLT_MAX;
+	lr = FLT_MAX;	
 	localCentroidLimit = 0;
       } else {
 	if (property.localCentroidCreationMode == CentroidCreationModeDynamicKmeans) {
@@ -3390,7 +4280,7 @@ public:
 	localCentroidLimit *= property.localClusteringSampleCoefficient;
       }
       if (property.localCodebookState) {
-	lr = FLT_MAX;
+	lr = FLT_MAX;	
 	localCentroidLimit = 0;
       } else {
 	if (property.localCentroidCreationMode == CentroidCreationModeDynamicKmeans) {
@@ -3605,14 +4495,15 @@ public:
 
 #ifdef NGTQ_VECTOR_OBJECT
   void getBlobIDFromObjectToBlobIndex(const vector<pair<std::vector<float>, size_t>> &objects,
-				      vector<NGT::Index::InsertionResult> &ids)
+				      vector<NGT::Index::InsertionResult> &ids,
+				      vector<uint32_t> &ids2oidx)
 #else
   void getBlobIDFromObjectToBlobIndex(const vector<pair<NGT::Object*, size_t>> &objects,
-				      vector<NGT::Index::InsertionResult> &ids)
+				      vector<NGT::Index::InsertionResult> &ids,
+				      vector<uint32_t> &ids2oidx)
 #endif
   {
     ids.clear();
-    ids.resize(objects.size());
 #ifdef GET_BLOB_EVAL
     size_t identicalObjectCount = 0;
 #endif
@@ -3624,25 +4515,26 @@ public:
 	    << ":" << objects.size();
 	NGTThrowException(msg);
       }
-      ids[idx].id = objectToBlobIndex[objects[idx].second - 1] + 1;
-      ids[idx].distance = 0.0;
-      ids[idx].identical = true;
+      for (auto bid : objectToBlobIndex[objects[idx].second - 1]) {
+	ids.emplace_back(NGT::Index::InsertionResult(bid + 1, true, 0.0));
+	ids2oidx.emplace_back(static_cast<uint32_t>(idx));
 #ifdef GET_BLOB_EVAL
-      {
-	NGT::ObjectDistances result;
-	NGT::SearchContainer sc(*objects[idx].first);
-	sc.setResults(&result);
-	sc.setSize(50);
-	sc.radius = FLT_MAX;
-	sc.setEpsilon(0.1);
-	globalCodebookIndex.search(sc);
-	//std::cerr << "insert:Eval: ";
-	if (result[0].id == ids[idx].id) {
-	  identicalObjectCount++;
-	} else {
+	{
+	  NGT::ObjectDistances result;
+	  NGT::SearchContainer sc(*objects[idx].first);
+	  sc.setResults(&result);
+	  sc.setSize(50);
+	  sc.radius = FLT_MAX;
+	  sc.setEpsilon(0.1);
+	  globalCodebookIndex.search(sc);
+	  //std::cerr << "insert:Eval: ";
+	  if (result[0].id == ids[idx].id) {
+	    identicalObjectCount++;
+	  } else {
+	  }
 	}
-      }
 #endif
+      }
     }
 #ifdef GET_BLOB_EVAL
     std::cerr << identicalObjectCount << "/" << objects.size() << std::endl;
@@ -3691,7 +4583,6 @@ public:
       } catch(NGT::Exception &err) {
 	stringstream msg;
 	msg << "buildGlobalCodebookWithQIDIndex: fatal inner error. " << err.what() << " : ID=" << id << " size=" << invertedIndex.size();
-	NGTThrowException(msg);
 	NGTThrowException(msg);
       }
     }
@@ -3842,7 +4733,8 @@ public:
     for (size_t i = 0; i < localCodebookNo; i++) {
       lcodebook.push_back(&static_cast<NGT::GraphAndTreeIndex &>(localCodebookIndexes[i].getIndex()));
     }
-    vector<NGT::Index::InsertionResult> ids;
+    std::vector<NGT::Index::InsertionResult> ids;	
+    std::vector<uint32_t> ids2oidx;
     if (property.centroidCreationMode == CentroidCreationModeStaticLayer ||
 	property.centroidCreationMode == CentroidCreationModeStatic) {
       if (objectToBlobIndex.empty()) {
@@ -3855,7 +4747,7 @@ public:
 	invertedIndex.reserve(invertedIndex.size() + objects.size());
 #endif
       } else {
-	getBlobIDFromObjectToBlobIndex(objects, ids);
+	getBlobIDFromObjectToBlobIndex(objects, ids, ids2oidx);
       }
     } else {
       std::stringstream msg;
@@ -3863,8 +4755,14 @@ public:
       NGTThrowException(msg);
     }
     vector<LocalDatam> localData;
-    for (size_t i = 0; i < ids.size(); i++) {
-      setGlobalCodeToInvertedEntry(ids[i], objects[i], localData);
+    if (ids2oidx.empty()) {
+      for (size_t i = 0; i < ids.size(); i++) {
+	setGlobalCodeToInvertedEntry(ids[i], objects[i], localData);
+      }
+    } else {
+      for (size_t i = 0; i < ids.size(); i++) {
+	setGlobalCodeToInvertedEntry(ids[i], objects[ids2oidx[i]], localData);
+      }
     }
     float subspaceObjects[localData.size()][globalCodebookIndex.getObjectSpace().getPaddedDimension()];
     bool error = false;
@@ -3872,6 +4770,10 @@ public:
 #pragma omp parallel for
     for (size_t i = 0; i < localData.size(); i++) {
       if (error) continue;
+      size_t objidx = i;
+      if (!ids2oidx.empty()) {
+	objidx = ids2oidx[i];
+      }
       IIEntry &invertedIndexEntry = *invertedIndex.at(localData[i].iiIdx);
 #ifdef NGTQ_SHARED_INVERTED_INDEX
 #ifdef NGTQ_QBG
@@ -3884,25 +4786,24 @@ public:
 #endif
 #else
 #ifdef NGTQ_QBG
-
 #ifdef NGTQG_ROTATED_GLOBAL_CODEBOOKS
       if (!rotation.empty()) {
 #ifdef NGTQ_VECTOR_OBJECT
-	rotation.mul(objects[i].first.data());
+	rotation.mul(objects[objidx].first.data());
 #else
-	rotation.mul(static_cast<float*>(objects[i].first->getPointer()));
+	rotation.mul(static_cast<float*>(objects[objidx].first->getPointer()));
 #endif
       }
 #endif
       try {
 #ifdef NGTQ_VECTOR_OBJECT
-        (*generateResidualObject)(objects[i].first, // object
+        (*generateResidualObject)(objects[objidx].first, // object
 				  invertedIndexEntry.subspaceID,
-				  subspaceObjects[i]); // subspace objects
+				  subspaceObjects[objidx]); // subspace objects
 #else
-        (*generateResidualObject)(*objects[i].first, // object
+        (*generateResidualObject)(*objects[objidx].first, // object
 				  invertedIndexEntry.subspaceID,
-				  subspaceObjects[i]); // subspace objects
+				  subspaceObjects[objidx]); // subspace objects
 #endif
       } catch(NGT::Exception &err) {
 	if (errorMessage.empty()) {
@@ -3912,7 +4813,7 @@ public:
 	continue;
       }
 #ifndef NGTQG_ROTATED_GLOBAL_CODEBOOKS
-      rotation.mul(subspaceObjects[i]);
+      rotation.mul(subspaceObjects[objidx]);
 #endif
 #else
       (*generateResidualObject)(invertedIndexEntry[localData[i].iiLocalIdx].id,
@@ -3942,11 +4843,11 @@ public:
 	if (property.localCentroidCreationMode == CentroidCreationModeDynamicKmeans) {
 	  buildMultipleLocalCodebooks(localCodebookIndexes.data(), localCodebookNo, property.localCentroidLimit);
 	  (*generateResidualObject).set(localCodebookIndexes.data(), localCodebookNo);
-	  property.localCodebookState = true;
-	  localCodebookFull = false;
+	  property.localCodebookState = true;	
+	  localCodebookFull = false;		
 	  replaceInvertedIndexEntry(localCodebookNo);
 	} else {
-	  property.localCodebookState = true;
+	  property.localCodebookState = true;	
 	  localCodebookFull = false;
 	}
       }
@@ -4049,9 +4950,8 @@ public:
   }
 #endif
 
-  void setupInvertedIndex(std::vector<std::vector<float>> &qCodebook,
-			  std::vector<uint32_t> &codebookIndex,
-			  std::vector<uint32_t> &objectIndex) {
+  void setupInvertedIndex(std::vector<uint32_t> &codebookIndex,
+			  std::vector<std::vector<uint32_t>> &objectIndex) {
 #if !defined(NGTQ_QBG)
     std::cerr << "setupInvertedIndex: Not implemented." << std::endl;
     abort();
@@ -4088,7 +4988,9 @@ public:
     objectIndex.clear();
     std::vector<uint32_t> invertedIndexCount(codebookIndex.size());
     for (size_t idx = 0; idx < objectToBlobIndex.size(); idx++) {
-      invertedIndexCount[objectToBlobIndex[idx]]++;
+      for (auto bid : objectToBlobIndex[idx]) {
+	invertedIndexCount[bid]++;
+      }
     }
     for (size_t idx = 0; idx < codebookIndex.size(); idx++) {
       auto gid = idx + 1;
@@ -4155,52 +5057,10 @@ public:
     gp.set(globalProperty);
     lp.set(localProperty);
 
-    gp.edgeSizeForSearch = 40;
-    lp.edgeSizeForSearch = 40;
+    gp.edgeSizeForSearch = 40;	
+    lp.edgeSizeForSearch = 40;	
 
     lp.objectType = NGT::Index::Property::ObjectType::Float;
-#ifdef NGTQ_QBG
-    if (property.genuineDimension > property.dimension) {
-      stringstream msg;
-      msg << "NGTQ::Quantizer::create: dimension must be larger than genuineDimension. " << property.dimension << ":" << property.genuineDimension << std::endl;
-      NGTThrowException(msg);
-    }
-#endif
-    gp.dimension = property.dimension;
-    if (gp.dimension == 0) {
-      stringstream msg;
-      msg << "NGTQ::Quantizer::create: specified dimension is zero!";
-      NGTThrowException(msg);
-    }
-    if (property.localDivisionNo == 0) {
-      NGTThrowException("NGTQ::Quantizer::create: # of subvectors is zero");
-    }
-    if (property.localDivisionNo != 1 && property.dimension % property.localDivisionNo != 0) {
-      stringstream msg;
-      msg << "NGTQ::Quantizer::create: The combination of dimension and localDivisionNo is invalid. "
-	  << "the localDivisionNo must be a divisor of the dimension. "
-	  << property.dimension << ":" << property.localDivisionNo;
-      NGTThrowException(msg);
-    }
-    lp.dimension = property.dimension / property.localDivisionNo;
-
-    switch (property.dataType) {
-    case DataTypeFloat:
-      gp.objectType = NGT::Index::Property::ObjectType::Float;
-      break;
-    case DataTypeFloat16:
-      gp.objectType = NGT::Index::Property::ObjectType::Float16;
-      break;
-    case DataTypeUint8:
-      gp.objectType = NGT::Index::Property::ObjectType::Uint8;
-      break;
-    default:
-      {
-	stringstream msg;
-	msg << "NGTQ::Quantizer::create: Inner error! Invalid data type.";
-	NGTThrowException(msg);
-      }
-    }
 
     switch (property.distanceType) {
     case DistanceType::DistanceTypeL1:
@@ -4245,10 +5105,14 @@ public:
       gp.distanceType = NGT::Index::Property::DistanceType::DistanceTypeNormalizedL2;
       lp.distanceType = NGT::Index::Property::DistanceType::DistanceTypeL2;
       break;
-#ifdef NGT_INNER_PRODUCT
+#ifdef NGTQ_QBG
     case DistanceType::DistanceTypeInnerProduct:
       gp.distanceType = NGT::Index::Property::DistanceType::DistanceTypeL2;
       lp.distanceType = NGT::Index::Property::DistanceType::DistanceTypeL2;
+      if (property.dimension == property.genuineDimension) {
+	property.dimension++;
+      }
+      property.genuineDimension++;
       break;
 #endif
     default:
@@ -4258,6 +5122,31 @@ public:
 	NGTThrowException(msg);
       }
     }
+
+#ifdef NGTQ_QBG
+    if (property.genuineDimension > property.dimension) {
+      stringstream msg;
+      msg << "NGTQ::Quantizer::create: dimension must be larger than genuineDimension. " << property.dimension << ":" << property.genuineDimension << std::endl;
+      NGTThrowException(msg);
+    }
+#endif
+    gp.dimension = property.dimension;
+    if (gp.dimension == 0) {
+      stringstream msg;
+      msg << "NGTQ::Quantizer::create: specified dimension is zero!";
+      NGTThrowException(msg);
+    }
+    if (property.localDivisionNo == 0) {
+      NGTThrowException("NGTQ::Quantizer::create: # of subvectors is zero");
+    }
+    if (property.localDivisionNo != 1 && property.dimension % property.localDivisionNo != 0) {
+      stringstream msg;
+      msg << "NGTQ::Quantizer::create: The combination of dimension and localDivisionNo is invalid. "
+	  << "the localDivisionNo must be a divisor of the dimension. "
+	  << property.dimension << ":" << property.localDivisionNo;
+      NGTThrowException(msg);
+    }
+    lp.dimension = property.dimension / property.localDivisionNo;
 
 #ifdef NGTQ_QBG
     createEmptyIndex(index, gp, lp, rotation, objectFile);
@@ -4908,8 +5797,8 @@ public:
  class Index {
  public:
    Index():quantizer(0) {}
-   Index(const string& index, bool rdOnly = false):quantizer(0) {
-     open(index, rdOnly);
+   Index(const string& index, bool rdOnly = false, DataType refinementDataType = DataTypeAny):quantizer(0) {
+     open(index, rdOnly, refinementDataType);
    }
    ~Index() { close(); }
 
@@ -4930,17 +5819,10 @@ public:
      property.setup(property);
      NGTQ::Quantizer *quantizer = NGTQ::Quantization::generate(property);
      try {
-#ifdef NGTQ_QBG
-       if (property.dimension == 0) {
-	 property.dimension = property.genuineDimension;
-       }
-       if (property.dimension % 4 != 0) {
-	 property.dimension = ((property.dimension - 1) / 4 + 1) * 4;
-       }
        quantizer->property = property;
+#ifdef NGTQ_QBG
        quantizer->create(index, globalProperty, localProperty, rotation, objectFile);
 #else
-       quantizer->property = property;
        quantizer->create(index, globalProperty, localProperty);
 #endif
        if (property.dimension == 0) {
@@ -4970,8 +5852,8 @@ public:
 #endif
 
 #ifndef NGTQ_QBG
-  static void rebuild(const string &indexName,
-		      const string &rebuiltIndexName
+  static void rebuild(const string &indexName,		
+		      const string &rebuiltIndexName	
 		     ) {
 
     const string srcObjectList = indexName + "/obj";
@@ -4998,12 +5880,12 @@ public:
   }
 #endif
 
-  void open(const string &index, bool readOnly = false) {
+  void open(const string &index, bool readOnly = false, DataType refinementDataType = DataTypeAny) {
      close();
      NGT::Property globalProperty;
      globalProperty.clear();
      globalProperty.edgeSizeForSearch = 40;
-     quantizer = getQuantizer(index, globalProperty, readOnly);
+     quantizer = getQuantizer(index, globalProperty, readOnly, refinementDataType);
      if ((quantizer->property.quantizerType == NGTQ::QuantizerTypeQG) && readOnly) {
        quantizer->closeCodebooks();
      }
@@ -5036,19 +5918,17 @@ public:
      getQuantizer().createIndex(beginID, endID);
    }
 
-   void createIndex(std::vector<std::vector<float>> &quantizationCodebook,
-		    std::vector<uint32_t> &codebookIndex,
-		    std::vector<uint32_t> &objectIndex,
+   void createIndex(std::vector<uint32_t> &codebookIndex,
+		    std::vector<std::vector<uint32_t>> &objectIndex,
 		    size_t beginID = 1, size_t endID = 0) {
-     setupInvertedIndex(quantizationCodebook, codebookIndex, objectIndex);
+     setupInvertedIndex(codebookIndex, objectIndex);
      createIndex(beginID, endID);
    }
 #endif
 
-   void setupInvertedIndex(std::vector<std::vector<float>> &quantizationCodebook,
-				 std::vector<uint32_t> &codebookIndex,
-				 std::vector<uint32_t> &objectIndex) {
-     getQuantizer().setupInvertedIndex(quantizationCodebook, codebookIndex, objectIndex);
+   void setupInvertedIndex(std::vector<uint32_t> &codebookIndex,
+			   std::vector<std::vector<uint32_t>> &objectIndex) {
+     getQuantizer().setupInvertedIndex(codebookIndex, objectIndex);
    }
 
 
@@ -5119,8 +5999,35 @@ public:
      return object;
    }
 
+   void setQuantizationFromMaxMin(float max, float min) {
+     float offset;
+     float scale;
+     if (getQuantizer().property.localClusterDataType == ClusterDataTypeSQSU8) {
+       offset = 0.0;
+       scale = std::max(fabs(max), fabs(min));
+     } else {
+       offset = min;
+       scale = max - offset;
+     }
+     setQuantization(scale, offset);
+   }
+
+   void setQuantization(float scale, float offset) {
+     getQuantizer().property.scalarQuantizationScale = scale;
+     getQuantizer().property.scalarQuantizationOffset = offset;
+   }
+
+   void setMaxMagnitude(float maxMagnitude) {
+     getQuantizer().property.maxMagnitude = maxMagnitude;
+   }
+
+   void saveProperty() {
+     getQuantizer().saveProperty();
+   }
+
  protected:
-   static NGTQ::Quantizer *getQuantizer(const string &index, NGT::Property &globalProperty, bool readOnly) {
+   static NGTQ::Quantizer *getQuantizer(const string &index, NGT::Property &globalProperty, bool readOnly,
+					DataType refinementDataType = DataTypeAny) {
      NGTQ::Property property;
      try {
        property.load(index);
@@ -5134,7 +6041,8 @@ public:
        NGTThrowException("NGTQ::Index: Cannot get quantizer.");
      }
      try {
-       quantizer->open(index, globalProperty, property.quantizerType == NGTQ::QuantizerTypeQBG ? readOnly : false);
+       quantizer->open(index, globalProperty, property.quantizerType == NGTQ::QuantizerTypeQBG ? readOnly : false,
+		       refinementDataType);
      } catch(NGT::Exception &err) {
        delete quantizer;
        throw err;
@@ -5146,5 +6054,42 @@ public:
 
    bool verbose;
  };
+
+  template<typename TYPE>
+  void NGTQ::ObjectProcessingStream<TYPE>::arrange(NGTQ::InvertedIndexEntry<uint16_t> &invertedIndexObjects) {
+#ifdef NGTQ_QBG
+    if (&quantizer == 0) {
+      NGTThrowException("quantizer is invalid.");
+    }
+    for (size_t oidx = 0; oidx < invertedIndexObjects.size(); oidx++) {
+      std::vector<float> object;
+      quantizer.objectList.get(invertedIndexObjects[oidx].id, object);
+#ifdef NGTQG_ROTATED_GLOBAL_CODEBOOKS
+      quantizer.rotation.mul(object);
+#endif
+      arrangeObject(oidx, object.data());
+    }
+#endif
+  }
+
+  inline void NGTQ::ScalarQuantizedInt8ObjectProcessingStream::arrange(NGTQ::InvertedIndexEntry<uint16_t> &invertedIndexObjects) {
+#ifdef NGTQ_QBG
+    if (&quantizer == 0) {
+      NGTThrowException("quantizer is invalid.");
+    }
+    float scale = quantizer.property.scalarQuantizationScale;
+    float offset = quantizer.property.scalarQuantizationOffset;
+    auto shift = quantizer.property.distanceType == DistanceType::DistanceTypeInnerProduct &&
+                 *dataTypeInfo == typeid(NGT::qsint8);
+    for (size_t oidx = 0; oidx < invertedIndexObjects.size(); oidx++) {
+      std::vector<float> object;
+      quantizer.objectList.get(invertedIndexObjects[oidx].id, object);
+#ifdef NGTQG_ROTATED_GLOBAL_CODEBOOKS
+      quantizer.rotation.mul(object);
+#endif
+      arrangeObject(oidx, object, scale, offset, shift);
+    }
+#endif
+  }
 
 } // namespace NGTQ

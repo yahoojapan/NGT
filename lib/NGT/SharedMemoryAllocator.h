@@ -62,7 +62,7 @@ class SharedMemoryAllocator {
     if(!isValid){
       return NULL;
     }
-    off_t file_offset = mmanager->alloc(size, true);
+    off_t file_offset = mmanager->alloc(size, true);	
     if (file_offset == -1) {
       std::cerr << "Fatal Error: Allocating memory size is too big for this settings." << std::endl;
       std::cerr << "             Max allocation size should be enlarged." << std::endl;

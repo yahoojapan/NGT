@@ -262,7 +262,7 @@ namespace NGT {
 	NGT::Common::tokenize(line, result, " \t");
 	if (result.size() < 3) {
 	  std::stringstream msg;
-	  msg << "result format is wrong. ";
+	  msg << "result format is wrong. [" << line << "]";
 	  NGTThrowException(msg);
 	}
 	size_t id = NGT::Common::strtol(result[1]);
@@ -320,7 +320,7 @@ namespace NGT {
 	      NGT::Common::tokenize(line, result, " \t");
 	      if (result.size() < 3) {
 		std::stringstream msg;
-		msg << "result format is wrong. ";
+		msg << "result format is wrong. [" << line << "]";
 		NGTThrowException(msg);
 	      }
 	      size_t rank = NGT::Common::strtol(result[0]);
@@ -398,7 +398,7 @@ namespace NGT {
 		    double key;
 		    if (fluctuation != "") {
 		      key = NGT::Common::strtod(fluctuation);
-		      keyValue = "Factor (Epsilon or a fluctuating value)";
+		      keyValue = "Factor (Epsilon or any fluctuating value)";
 		    } else {
 		      std::stringstream msg;
 		      msg << "check: inner error! " << fluctuation;
@@ -480,8 +480,9 @@ namespace NGT {
 		std::vector<std::string> result;
 		NGT::Common::tokenize(line, result, " \t");
 		if (result.size() < 3) {
-		  std::cerr << "result format is wrong. " << std::endl;
-		  abort();
+		  std::stringstream msg;
+		  msg << "result format is wrong. [" << line << "]";
+		  NGTThrowException(msg);
 		}
 		size_t rank = NGT::Common::strtol(result[0]);
 		size_t id = NGT::Common::strtol(result[1]);
@@ -996,41 +997,18 @@ namespace NGT {
 
 
     void outputObject(std::ostream &os, std::vector<float> &v, NGT::Property &prop) {
-      switch (prop.objectType) {
-      case NGT::ObjectSpace::ObjectType::Uint8:
-	{
-	  for (auto i = v.begin(); i != v.end(); ++i) {
-	    int d = *i;
-	    os << d;
-	    if (i + 1 != v.end()) {
-	      os << "\t";
-	    }
-	  }
-	  os << std::endl;
+      for (auto i = v.begin(); i != v.end(); ++i) {
+	os << *i;
+	if (i + 1 != v.end()) {
+	  os << "\t";
 	}
-	break;
-      default:
-#ifdef NGT_HALF_FLOAT
-      case NGT::ObjectSpace::ObjectType::Float16:
-#endif
-      case NGT::ObjectSpace::ObjectType::Float:
-	{
-	  for (auto i = v.begin(); i != v.end(); ++i) {
-	    os << *i;
-	    if (i + 1 != v.end()) {
-	      os << "\t";
-	    }
-	  }
-	  os << std::endl;
-	}
-	break;
       }
+      os << std::endl;
     }
 
     void outputObjects(std::vector<std::vector<float>> &vs, std::ostream &os) {
       NGT::Property prop;
       index.getProperty(prop);
-
       for (auto i = vs.begin(); i != vs.end(); ++i) {
 	outputObject(os, *i, prop);
       }
@@ -1059,7 +1037,6 @@ namespace NGT {
 	}
 	break;
 #endif
-      default:
       case NGT::ObjectSpace::ObjectType::Float:
 	{
 	  auto *obj = static_cast<float*>(index.getObjectSpace().getObject(id));
@@ -1069,46 +1046,26 @@ namespace NGT {
 	  }
 	}
 	break;
+      case NGT::ObjectSpace::ObjectType::Qsuint8:
+	{
+	  auto *obj = static_cast<uint8_t*>(index.getObjectSpace().getObject(id));
+	  index.getObjectSpace().dequantizeFromQint8(v, obj);
+	}
+	break;
+      default:
+	std::stringstream msg;
+	msg << "Fatal error! Invalid object type. (" << prop.objectType << ")" << std::endl;
+	NGTThrowException(msg);
       }
       return v;
     }
 
     std::vector<float> meanObject(size_t id1, size_t id2, NGT::Property &prop) {
       std::vector<float> v;
-      switch (prop.objectType) {
-      case NGT::ObjectSpace::ObjectType::Uint8:
-	{
-	  auto *obj1 = static_cast<uint8_t*>(index.getObjectSpace().getObject(id1));
-	  auto *obj2 = static_cast<uint8_t*>(index.getObjectSpace().getObject(id2));
-	  for (int i = 0; i < prop.dimension; i++) {
-	    int d = (*obj1++ + *obj2++) / 2;
-	    v.push_back(d);
-	  }
-	}
-	break;
-#ifdef NGT_HALF_FLOAT
-      case NGT::ObjectSpace::ObjectType::Float16:
-	{
-	  auto *obj1 = static_cast<NGT::float16*>(index.getObjectSpace().getObject(id1));
-	  auto *obj2 = static_cast<NGT::float16*>(index.getObjectSpace().getObject(id2));
-	  for (int i = 0; i < prop.dimension; i++) {
-	    float d = (*obj1++ + *obj2++) / 2.0F;
-	    v.push_back(d);
-	  }
-	}
-	break;
-#endif
-      default:
-      case NGT::ObjectSpace::ObjectType::Float:
-	{
-	  auto *obj1 = static_cast<float*>(index.getObjectSpace().getObject(id1));
-	  auto *obj2 = static_cast<float*>(index.getObjectSpace().getObject(id2));
-	  for (int i = 0; i < prop.dimension; i++) {
-	    float d = (*obj1++ + *obj2++) / 2.0F;
-	    v.push_back(d);
-	  }
-	}
-	break;
+      auto obj1 = extractObject(id1, prop);
+      auto obj2 = extractObject(id2, prop);
+      for (int i = 0; i < prop.dimension; i++) {
+	v.emplace_back((obj1[i] + obj2[i]) / 2.0);
       }
       return v;
     }
@@ -1116,7 +1073,6 @@ namespace NGT {
     void extractQueries(std::vector<std::vector<float>> &queries, std::ostream &os) {
       NGT::Property prop;
       index.getProperty(prop);
-
       for (auto i = queries.begin(); i != queries.end(); ++i) {
 	outputObject(os, *i, prop);
       }
@@ -1518,7 +1474,6 @@ namespace NGT {
 
     static std::vector<std::pair<float, double>>
       generateAccuracyTable(NGT::Index &index, size_t nOfResults = 50, size_t querySize = 100) {
-
       NGT::Property prop;
       index.getProperty(prop);
       if (prop.edgeSizeForSearch != 0 && prop.edgeSizeForSearch != -2) {
@@ -1528,13 +1483,10 @@ namespace NGT {
       }
 
       NGT::Optimizer optimizer(index, nOfResults);
-
       float maxEpsilon = 0.0;
       std::stringstream queryStream;
       std::stringstream gtStream;
-
       optimizer.generatePseudoGroundTruth(querySize, maxEpsilon, queryStream, gtStream);
-
       std::map<float, double> map;
       {
 	float interval = 0.05;
@@ -1563,7 +1515,7 @@ namespace NGT {
 	    if (accuracy - prev < 0.02) {
 	      interval *= 2.0;
 	    } else if (accuracy - prev > 0.05 && interval > 0.0001) {
-
+	
 	      epsilon -= interval;
 	      interval /= 2.0;
 	      accuracy = prev;

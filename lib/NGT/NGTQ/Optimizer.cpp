@@ -593,4 +593,214 @@ void QBG::Optimizer::optimize(std::string invector, std::string ofile, std::stri
   }
 #endif
 }
+
+size_t QBG::Optimizer::extractScaleAndOffset(const std::string indexPath, float clippingRate, 
+					     int32_t nOfObjects, bool verbose) {
+  NGT::StdOstreamRedirector redirector(!verbose);
+  redirector.begin();
+
+  int32_t n = 0;
+  try {
+    QBG::Index index(indexPath);
+    auto &quantizer = index.getQuantizer();
+    auto dim = quantizer.property.dimension;
+    if (clippingRate < 0.0) {
+      clippingRate = quantizer.property.scalarQuantizationClippingRate;
+    }
+    if (nOfObjects < 0) {
+      nOfObjects = quantizer.property.scalarQuantizationNoOfSamples;
+    }
+    if (clippingRate < 0.0) {
+      std::stringstream msg;
+      msg << "Clipping rate is invalid. " << clippingRate;
+      NGTThrowException(msg);
+    }
+    if (nOfObjects < 0) {
+      return 0;
+    }
+    auto &objectList = quantizer.objectList;
+    if (objectList.size() <= 1) {
+      NGTThrowException("optimize: No objects");
+    }
+    std::priority_queue<float> min;
+    std::priority_queue<float, vector<float>, std::greater<float>> max;
+    if (nOfObjects == 0 || nOfObjects >= static_cast<int32_t>(objectList.size())) {
+      nOfObjects = objectList.size() - 1;
+    }
+    auto cutsize = static_cast<float>(nOfObjects * dim) * clippingRate;
+    cutsize = cutsize == 0 ? 1 : cutsize;
+    for (size_t id = 1; id < objectList.size(); id++) {
+      if (n == nOfObjects) break;
+      auto p = static_cast<double>(nOfObjects - n) / (objectList.size() - id);
+      double random = (rand() + 1.0) / (RAND_MAX + 2.0);
+      if (random > p) continue;
+      std::vector<float> object;
+      objectList.get(id, object, &quantizer.globalCodebookIndex.getObjectSpace());
+      if (!quantizer.rotation.empty()) {
+	quantizer.rotation.mul(object);
+      }
+      for (auto &v : object) {
+	if (max.size() < cutsize) {
+	  max.push(v);
+	} else if (max.top() <= v) {
+	  max.push(v);
+	  max.pop();
+	}
+	if (min.size() < cutsize) {
+	  min.push(v);
+	} else if (min.top() >= v) {
+	  min.push(v);
+	  min.pop();
+	}
+      }
+      n++;
+    }
+    index.setQuantizationFromMaxMin(max.top(), min.top());
+    index.saveProperty();
+  } catch(NGT::Exception &err) {
+    redirector.end();
+    throw err;
+  }
+  redirector.end();
+  return n;
+}
+
+size_t QBG::Optimizer::convertObjectsFromInnerProductToL2(const std::string indexPath, size_t nOfObjects, bool verbose) {
+  NGT::StdOstreamRedirector redirector(!verbose);
+  redirector.begin();
+  NGT::Timer timer;
+  timer.start();
+
+  size_t count = 0;
+  try {
+    QBG::Index index(indexPath);
+    auto &quantizer = index.getQuantizer();
+    auto dim = quantizer.property.genuineDimension;
+    auto &objectList = quantizer.objectList;
+    if (objectList.size() <= 1) {
+      NGTThrowException("optimize: No objects");
+    }
+    if (dim != objectList.genuineDimension) {
+      std::stringstream msg;
+      msg << "Inner fatal error! The dimensions are inconsitent. "
+	  << dim << ":" << objectList.genuineDimension;
+      NGTThrowException(msg);
+    }
+    std::priority_queue<float> min;
+    std::priority_queue<float, vector<float>, std::greater<float>> max;
+    if (nOfObjects == 0 || nOfObjects >= objectList.size()) {
+      nOfObjects = objectList.size() - 1;
+    }
+    std::vector<float> mags(objectList.size());
+
+    float maxMag;
+    if (quantizer.property.maxMagnitude > 0.0) {
+      maxMag = quantizer.property.maxMagnitude;
+    } else {
+      maxMag = 0.0;
+      for (size_t id = 1; id < objectList.size(); id++) {
+	if (count == nOfObjects) break;
+	auto p = static_cast<double>(nOfObjects - count) / (objectList.size() - id);
+	double random = (rand() + 1.0) / (RAND_MAX + 2.0);
+	if (random > p) {
+	  mags[id] = -1.0;
+	  continue;
+	}
+	std::vector<float> object;
+	objectList.get(id, object, &quantizer.globalCodebookIndex.getObjectSpace());
+	float mag = 0.0;
+	for (size_t i = 0; i < dim - 1; i++) {
+	  mag += object[i] * object[i];
+	}
+	if (mag > maxMag) {
+	  maxMag = mag;
+	}
+	mags[id] = mag;
+	count++;
+	if (count % 2000000 == 0) {
+	  timer.stop();
+	  std::cerr << "processed " << static_cast<float>(count) / 1000000.0 << "M objects."
+		    << " maxMag=" << maxMag << " time=" << timer << std::endl;
+	  timer.restart();
+	}
+      }
+      index.setMaxMagnitude(maxMag);
+      index.saveProperty();
+    }
+    for (size_t id = 1; id < objectList.size(); id++) {
+      std::vector<float> object;
+      objectList.get(id, object, &quantizer.globalCodebookIndex.getObjectSpace());
+      float mag = mags[id];
+      if (mag < 0.0) {
+	mag = 0.0;
+	for (size_t i = 0; i < dim - 1; i++) {
+	  mag += object[i] * object[i];
+	}
+      }
+      object[dim - 1] = sqrt(maxMag - mag);
+      object.resize(dim);
+      objectList.put(id, object, &quantizer.globalCodebookIndex.getObjectSpace());
+      if (id % 2000000 == 0) {
+	timer.stop();
+	std::cerr << "processed " << static_cast<float>(id) / 1000000.0 << "M objects."
+		  << " maxMag=" << maxMag << " time=" << timer << std::endl;
+	timer.restart();
+      }
+    }
+  } catch(NGT::Exception &err) {
+    redirector.end();
+    throw err;
+  }
+  redirector.end();
+  return count;
+}
+
+size_t QBG::Optimizer::normalizeObjectsForCosine(const std::string indexPath, size_t nOfObjects, bool verbose) {
+  NGT::StdOstreamRedirector redirector(!verbose);
+  redirector.begin();
+  NGT::Timer timer;
+  timer.start();
+
+  size_t count = 0;
+  try {
+    QBG::Index index(indexPath);
+    auto &quantizer = index.getQuantizer();
+    auto dim = quantizer.property.genuineDimension;
+    auto &objectList = quantizer.objectList;
+    if (objectList.size() <= 1) {
+      NGTThrowException("optimize: No objects");
+    }
+    if (dim != objectList.genuineDimension) {
+      std::stringstream msg;
+      msg << "Inner fatal error! The dimensions are inconsitent. "
+	  << dim << ":" << objectList.genuineDimension;
+      NGTThrowException(msg);
+    }
+    for (size_t id = 1; id < objectList.size(); id++) {
+      std::vector<float> object;
+      objectList.get(id, object, &quantizer.globalCodebookIndex.getObjectSpace());
+      object.resize(dim);
+      float mag = 0.0;
+      for (size_t i = 0; i < dim; i++) {
+	mag += object[i] * object[i];
+      }
+      mag = sqrt(mag);
+      for (size_t i = 0; i < dim; i++) {
+	object[i] /= mag;
+      }
+      objectList.put(id, object, &quantizer.globalCodebookIndex.getObjectSpace());
+      if (id % 2000000 == 0) {
+	timer.stop();
+	std::cerr << "processed " << static_cast<float>(id) / 1000000.0 << "M objects." << std::endl;
+	timer.restart();
+      }
+    }
+  } catch(NGT::Exception &err) {
+    redirector.end();
+    throw err;
+  }
+  redirector.end();
+  return count;
+}
+
 #endif

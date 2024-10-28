@@ -337,18 +337,18 @@ namespace QBG {
 	timer.start();
 	Matrix<float> optr;
 	optimizeRotation(
-			 iteration,
-			 vectors,
-			 xt,
-			 rs[ri],
-			 optr,
+			 iteration,		
+			 vectors,		
+			 xt,			
+			 rs[ri],		
+			 optr,			
 			 localClusters[ri],
 			 clusteringType,
 			 imode,
 			 numberOfClusters,
-			 numberOfSubvectors,
-			 subvectorSize,
-			 clusterIteration,
+			 numberOfSubvectors,	
+			 subvectorSize,		
+			 clusterIteration,	
 			 clusterSizeConstraint,
 			 clusterSizeConstraintCoefficient,
 			 convergenceLimitTimes,
@@ -366,6 +366,9 @@ namespace QBG {
     void optimizeWithinIndex(std::string indexPath);
     void optimize(std::string invector, std::string ofile, std::string global);
     void optimize(vector<vector<float>> &vectors, vector<vector<float>> &globalCentroid, Matrix<float> &r, vector<vector<NGT::Clustering::Cluster>> &localClusters, vector<double> &errors);
+    static size_t extractScaleAndOffset(const std::string indexPath, float clippingRate, int32_t nOfObjects, bool verbose);
+    static size_t convertObjectsFromInnerProductToL2(const std::string indexPath, size_t nOfObjects, bool verbose);
+    static size_t normalizeObjectsForCosine(const std::string indexPath, size_t nOfObjects, bool verbose);
 #endif
     NGT::Timer		timelimitTimer;
     size_t		subvectorSize;
@@ -373,10 +376,10 @@ namespace QBG {
     NGT::Clustering::ClusteringType	clusteringType;
     NGT::Clustering::InitializationMode	initMode;
     size_t		iteration;
-    size_t		clusterIteration;
+    size_t		clusterIteration;		
     bool		clusterSizeConstraint;
     float		clusterSizeConstraintCoefficient;
-    size_t		convergenceLimitTimes;
+    size_t		convergenceLimitTimes;		
     size_t		numberOfObjects;
     size_t		numberOfClusters;
     size_t		numberOfSubvectors;

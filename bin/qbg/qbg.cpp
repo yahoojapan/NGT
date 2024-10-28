@@ -23,7 +23,16 @@ main(int argc, char **argv)
 
   QBG::CLI ngt;
 
-  ngt.execute(args);
+  try {
+    ngt.execute(args);
+  } catch(NGT::Exception &err) {
+    cerr << "qbg: Error: " << err.what() << endl;
+    return 1;
+  } catch(...) {
+    cerr << "qbg: Error: " << endl;
+    return 1;
+  }
+  return 0;
 }
 
 

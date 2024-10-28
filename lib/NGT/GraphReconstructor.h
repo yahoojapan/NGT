@@ -26,7 +26,7 @@
 #warning "*** OMP is *NOT* available! ***"
 #endif
 
-//#define NGT_SHORTCUT_REDUCTION_WITH_ANGLE
+#define NGT_SHORTCUT_REDUCTION_WITH_ANGLE
 //#define NGT_SHORTCUT_REDUCTION_WITH_ADDITIONAL_CONDITION
 
 namespace NGT {
@@ -248,7 +248,7 @@ class GraphReconstructor {
       auto it = tmpGraph.begin() + idx;
       size_t id = idx + 1;
       try {
-	NGT::GraphNode &srcNode = *it;
+	NGT::GraphNode &srcNode = *it;	
 	std::unordered_map<uint32_t, std::pair<uint32_t, float>> neighbors;
 	for (uint32_t sni = 0; sni < srcNode.size(); ++sni) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
@@ -559,11 +559,11 @@ class GraphReconstructor {
 
     for (size_t id = 1; id < outGraph.repository.size(); id++) {
       try {
-	NGT::GraphNode &node = *outGraph.getNode(id);
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
 	std::cerr << "Not implemented yet." << std::endl;
 	abort();
 #else
+	NGT::GraphNode &node = *outGraph.getNode(id);
 	node.erase(std::remove_if(node.begin(), node.end(), [](NGT::ObjectDistance &n){ return (n.id & 0x80000000) != 0; }), node.end());
 #endif
       } catch(...) {}
@@ -833,7 +833,7 @@ class GraphReconstructor {
     }
     NGT::GraphIndex::showStatisticsOfGraph(outGraph);
 
-    std::vector<ObjectDistances> reverse(graph.size() + 1);
+    std::vector<ObjectDistances> reverse(graph.size() + 1);	
     for (size_t id = 1; id <= graph.size(); ++id) {
       try {
 	NGT::GraphNode &node = graph[id - 1];
@@ -849,15 +849,15 @@ class GraphReconstructor {
       }
     }
 
-    std::vector<std::pair<size_t, size_t> > reverseSize(graph.size() + 1);
+    std::vector<std::pair<size_t, size_t> > reverseSize(graph.size() + 1);	
     reverseSize[0] = std::pair<size_t, size_t>(0, 0);
     for (size_t rid = 1; rid <= graph.size(); ++rid) {
       reverseSize[rid] = std::pair<size_t, size_t>(reverse[rid].size(), rid);
     }
-    std::sort(reverseSize.begin(), reverseSize.end());
+    std::sort(reverseSize.begin(), reverseSize.end());		
 
 
-    std::vector<uint32_t> indegreeCount(graph.size(), 0);
+    std::vector<uint32_t> indegreeCount(graph.size(), 0);	
     size_t zeroCount = 0;
     for (size_t sizerank = 0; sizerank <= reverseSize.size(); sizerank++) {
 
@@ -865,17 +865,17 @@ class GraphReconstructor {
 	zeroCount++;
 	continue;
       }
-      size_t rid = reverseSize[sizerank].second;
-      ObjectDistances &rnode = reverse[rid];
+      size_t rid = reverseSize[sizerank].second;	
+      ObjectDistances &rnode = reverse[rid];		
       for (auto rni = rnode.begin(); rni != rnode.end(); ++rni) {
-	if (indegreeCount[(*rni).id] >= reverseEdgeSize) {
+	if (indegreeCount[(*rni).id] >= reverseEdgeSize) {	
 	  continue;
 	}
-	NGT::GraphNode &node = *outGraph.getNode(rid);
+	NGT::GraphNode &node = *outGraph.getNode(rid);	
 	if (indegreeCount[(*rni).id] > 0 && node.size() >= originalEdgeSize) {
 	  continue;
 	}
-
+	
 	node.push_back(NGT::ObjectDistance((*rni).id, (*rni).distance));
 	indegreeCount[(*rni).id]++;
       }

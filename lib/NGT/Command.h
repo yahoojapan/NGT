@@ -119,8 +119,9 @@ public:
   {
     std::ifstream		is(searchParameters.query);
     if (!is) {
-      std::cerr << "Cannot open the specified file. " << searchParameters.query << std::endl;
-      return;
+      std::stringstream msg;
+      msg << "Cannot open the specified query file. " << searchParameters.query;
+      NGTThrowException(msg);
     }
     search(index, searchParameters, is, stream);
   }

@@ -126,6 +126,7 @@ namespace NGT {
       if (dataSize > 0) {
 	reserve(size() + dataSize);
       }
+      size_t dim = innerProduct ? dimension - 1 : dimension;
       std::string line;
       size_t lineNo = 0;
       while (getline(is, line)) {
@@ -136,6 +137,7 @@ namespace NGT {
 	  break;
 	}
 	std::vector<double> object;
+	object.reserve(dim);
 	try {
 	  extractObjectFromText(line, "\t, ", object);
 	  PersistentObject *obj = 0;
@@ -179,7 +181,7 @@ namespace NGT {
 	  try {
 	    obj = allocateNormalizedPersistentObject(object);
 	  } catch (Exception &err) {
-	    std::cerr << err.what() << " continue..." << std::endl;
+	    std::cerr << err.what() << " " << typeid(T).name()  << ". continue..." << std::endl;
 	    obj = allocatePersistentObject(object);
 	  }
 	  push_back(obj);
@@ -250,6 +252,12 @@ namespace NGT {
 	  obj[i] = static_cast<float16>(o[i]);
 	}
 #endif
+      } else if (type == typeid(qsint8)) {
+	uint8_t *obj = static_cast<uint8_t*>(object);
+	for (size_t i = 0; i < size; i++) {
+	  auto i8 = static_cast<int8_t>(o[i]);
+	  obj[i] = *reinterpret_cast<uint8_t*>(&i8);
+	}
 #ifdef NGT_BFLOAT
       } else if (type == typeid(bfloat16)) {
 	bfloat16 *obj = static_cast<bfloat16*>(object);
@@ -273,16 +281,25 @@ namespace NGT {
     template <typename T>
       Object *allocateObject(T *o, size_t size) {
       size_t osize = paddedByteSize;
+      if (size == 0) {
+	  NGTThrowException("ObjectSpace::allocateObject: Fatal error! The specified dimension is zero.");
+      }
       if (sparse) {
 	size_t vsize = size * (type == typeid(float) ? 4 : 1);
 	osize = osize < vsize ? vsize : osize;
-      } else {
-	if (size != 0 && 
-	    ((innerProduct && dimension != size && (dimension - 1) != size) ||
-	     (!innerProduct && dimension != size))) {
+      } else if (innerProduct) {
+	if (dimension != size && (dimension - 1) != size) {
 	  std::stringstream msg;
-	  msg << "ObjectSpace::allocateObject: Fatal error! The specified dimension is invalid. The indexed objects="
-	      << dimension << " The specified object=" << size;
+	  msg << "ObjectSpace::allocateObject: Fatal error! The specified dimension is invalid. "
+	      << "The indexed objects=" << dimension << " The specified object=" << size
+	      << " for Inner product!";
+	  NGTThrowException(msg);
+	}
+      } else {
+	if (dimension != size) {
+	  std::stringstream msg;
+	  msg << "ObjectSpace::allocateObject: Fatal error! The specified dimension is invalid. "
+	      << "The indexed objects=" << dimension << " The specified object=" << size;
 	  NGTThrowException(msg);
 	}
       }
@@ -447,6 +464,7 @@ namespace NGT {
     void setInnerProduct() { innerProduct = true; }
     size_t getByteSize() { return byteSize; }
     size_t insert(PersistentObject *obj) { return Parent::insert(obj); }
+    size_t insert(size_t id, PersistentObject *obj) { return Parent::insert(id, obj); }
     const size_t dimension;
     const std::type_info &type;
    protected:

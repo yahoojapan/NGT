@@ -28,6 +28,8 @@
 #cmakedefine NGTQG_NO_ROTATION
 #cmakedefine NGT_BFLOAT_DISABLED		// not use bfloat
 #cmakedefine NGT_BFLOAT_ENABLED
+#cmakedefine NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
+#cmakedefine NGT_ENABLE_TIME_SEED_FOR_RANDOM
 // End of cmake defines
 
 //////////////////////////////////////////////////////////////////////////
@@ -63,7 +65,7 @@
  #define	NGT_QBG_DISABLED
 #endif
 
-#define NGT_INNER_PRODUCT
+#define NGT_REFINEMENT
 
 
 #if defined(NGT_AVX_DISABLED) 
@@ -72,6 +74,8 @@
 #undef NGT_AVX512
 #else
 #if defined(__AVX512F__) && defined(__AVX512DQ__)
+#if defined(__AVX512VNNI__)
+#endif
 #define NGT_AVX512
 #elif defined(__AVX2__)
 #define NGT_AVX2

@@ -24,8 +24,16 @@
 
 using namespace std;
 
+#define NGT_APPENDING_BINARY
+#ifdef NGT_APPENDING_BINARY
+#include	"NGT/ArrayFile.h"
+#include	"NGT/ObjectSpace.h"
+#include	"NGTQ/ObjectFile.h"
+#endif
+
 
   NGT::Command::CreateParameters::CreateParameters(Args &args) {
+    args.parse("v");
     try {
       index = args.get("#1");
     } catch (...) {
@@ -104,7 +112,7 @@ using namespace std;
     case '-': property.seedType = NGT::Property::SeedType::SeedTypeNone; break;
     }
 
-    char objectType = args.getChar("o", 'f');
+    auto objectType = args.getString("o", "f");
     char distanceType = args.getChar("D", '2');
 #ifdef NGT_REFINEMENT
     char refinementObjectType = args.getChar("R", 'f');
@@ -113,24 +121,21 @@ using namespace std;
     numOfObjects = args.getl("n", 0);
     indexType = args.getChar("i", 't');
 
-    switch (objectType) {
-    case 'f':
+    if (objectType == "f") {
       property.objectType = NGT::Index::Property::ObjectType::Float;
-      break;
-    case 'c':
+    } else if (objectType == "c") {
       property.objectType = NGT::Index::Property::ObjectType::Uint8;
-      break;
 #ifdef NGT_HALF_FLOAT
-    case 'h':
+    } else if (objectType == "h") {
       property.objectType = NGT::Index::Property::ObjectType::Float16;
-      break;
 #endif
+    } else if (objectType == "s8" || objectType == "sqsu8") {
+      property.objectType = NGT::Index::Property::ObjectType::Qsuint8;
 #ifdef NGT_BFLOAT
-    case 'H':
+    } else if (objectType == "H") {
       property.objectType = NGT::Index::Property::ObjectType::Bfloat16;
-      break;
 #endif
-    default:
+    } else {
       std::stringstream msg;
       msg << "Command::CreateParameter: Error: Invalid object type. " << objectType;
       NGTThrowException(msg);
@@ -193,11 +198,9 @@ using namespace std;
     case 'E':
       property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeNormalizedL2;
       break;
-#ifdef NGT_INNER_PRODUCT
     case 'i':
       property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeInnerProduct;
       break;
-#endif
     case 'p':  // added by Nyapicom
       property.distanceType = NGT::Index::Property::DistanceType::DistanceTypePoincare;
       break;
@@ -218,6 +221,8 @@ using namespace std;
 	= property.objectSharedMemorySize = 512 * ceil(maxNoOfObjects / 50000000);
     }
 #endif
+
+    property.clippingRate = args.getf("c", 0.0);
 
     {
       string str = args.getString("l", "-");
@@ -257,6 +262,7 @@ using namespace std;
       "[-N maximum-#-of-inserted-objects] "
 #endif
       "[-l #-of-neighbors-for-insertion-order[:epsilon-for-insertion-order]] "
+      "[-c scalar-quantization-clipping-rate] "
       "index(output) [data.tsv(input)]";
 
     try {
@@ -283,107 +289,24 @@ using namespace std;
 	break;
       }
     } catch(NGT::Exception &err) {
-      std::cerr << err.what() << std::endl;
-      cerr << usage << endl;
+      std::stringstream msg;
+      msg << err.what() << std::endl;
+      msg << usage;
+      NGTThrowException(msg);
     }
   }
 
 
-  void appendTextVectors(NGT::Index &index, const std::string &data, size_t dataSize, char destination) {
-    NGT::Property prop;
-    index.getProperty(prop);
-
-    size_t id = index.getObjectRepositorySize();
-    vector<pair<NGT::Object*, size_t>> objects;
-    NGT::Timer timer;
-    timer.start();
-    ifstream is(data);
-    if (!is) {
-      cerr << "Cannot open the specified data file. " << data << endl;
-      return;
-    }
-    std::string line;
-    size_t counter = 0;
-    float maxMag = 0.0;
-    while (getline(is, line)) {
-      if (is.eof()) break;
-      if (dataSize > 0 && counter > dataSize) break;
-      vector<float> object;
-      vector<string> tokens;
-      NGT::Common::tokenize(line, tokens, "\t, ");
-      for (auto &v : tokens) object.push_back(NGT::Common::strtod(v));
-#ifdef NGT_INNER_PRODUCT
-      if (prop.distanceType == NGT::ObjectSpace::DistanceType::DistanceTypeInnerProduct) {
-	double mag = 0.0;
-	for (auto &v : object) {
-	  mag += v * v;
-	}
-	if (mag > maxMag) {
-	  maxMag = mag;
-	}
-	//object.emplace_back(sqrt(maxMag - mag));
-	object.emplace_back(mag);
-      }
-#endif
-#ifdef NGT_REFINEMENT
-      if (destination == 'r') {
-	index.appendToRefinement(object);
-      } else {
-	index.append(object);
-      }
-#else
-      index.append(object);
-#endif
-      counter++;
-      id++;
-      if (counter % 1000000 == 0) {
-	timer.stop();
-	std::cerr << "appended " << static_cast<float>(counter) / 1000000.0 << "M objects.";
-	if (counter != id) {
-	  std::cerr << " # of the total objects=" << static_cast<float>(id) / 1000000.0 << "M";
-	}
-	cerr << " peak vm size=" << NGT::Common::getProcessVmPeakStr()
-	     << " time=" << timer << std::endl;
-	timer.restart();
-      }
-    }
-#ifdef NGT_INNER_PRODUCT
-    if (prop.distanceType == NGT::ObjectSpace::DistanceType::DistanceTypeInnerProduct) {
-      NGT::ObjectSpace *rep = 0;
-#ifdef NGT_REFINEMENT
-      if (destination == 'r') {
-	rep = &index.getRefinementObjectSpace();
-      } else {
-	rep = &index.getObjectSpace();
-      }
-#else
-      rep = &index.getObjectSpace();
-#endif
-      for (size_t idx = 1; idx < rep->getRepository().size(); idx++) {
-	std::vector<float> object;
-	rep->getObject(idx, object);
-	//object.emplace_back(sqrt(maxMag - mag));
-	object.back() = sqrt(maxMag - object.back());
-#ifdef NGT_REFINEMENT
-	if (destination == 'r') {
-	  index.updateToRefinement(idx, object);
-	} else {
-	  index.update(idx, object);
-	}
-#else
-	index.update(idx, object);
-#endif
-      }
-    }
-#endif
-  }
-
-  void appendTextVectors(std::string &indexPath, std::string &data, size_t dataSize, char appendMode, char destination, size_t ioSearchSize, float ioEpsilon, float cutRate) {
+  void appendTextVectors(std::string &indexPath, std::string &data, size_t dataSize, char appendMode, 
+			 std::string &destination, size_t ioSearchSize, float ioEpsilon) {
     NGT::StdOstreamRedirector redirector(false);
     redirector.begin();
     NGT::Index index(indexPath);
     index.enableLog();
-    appendTextVectors(index, data, dataSize, destination);
+    auto append = destination.find('n') == std::string::npos;
+    auto refinement = destination.find('r') != std::string::npos;
+    index.appendFromTextObjectFile(data, dataSize, append, refinement);
+
     if (appendMode == 't') {
       if (ioSearchSize > 0) {
 	NGT::Index::InsertionOrder insertionOrder;
@@ -402,6 +325,92 @@ using namespace std;
     redirector.end();
   }
 
+  void appendRefinementVectors(std::string &indexPath, char appendMode, size_t ioSearchSize, float ioEpsilon) {
+    NGT::StdOstreamRedirector redirector(false);
+    redirector.begin();
+    NGT::Index index(indexPath);
+    index.enableLog();
+    index.appendFromRefinementObjectFile();
+    if (appendMode == 'r') {
+      if (ioSearchSize > 0) {
+	NGT::Index::InsertionOrder insertionOrder;
+	insertionOrder.nOfNeighboringNodes = ioSearchSize;
+	insertionOrder.epsilon = ioEpsilon;
+	std::cerr << "append: insertion order optimization is enabled. "
+		  << ioSearchSize << ":" << ioEpsilon << std::endl;
+	index.extractInsertionOrder(insertionOrder);
+	index.createIndexWithInsertionOrder(insertionOrder);
+      } else {
+	index.createIndex();
+      }
+    }
+    index.save();
+    index.close();
+    redirector.end();
+  }
+
+  void appendTextVectorsInMemory(std::string &indexPath, std::string &data, size_t dataSize, char appendMode, 
+				 size_t ioSearchSize, float ioEpsilon) {
+    NGT::Index index(indexPath);
+    index.enableLog();
+    {
+      ifstream is(data);
+      if (!is) {
+	std::stringstream msg;
+	msg << "Cannot open the specified data file. " << data;
+	NGTThrowException(msg);
+      }
+      std::string line;
+      size_t counter = 0;
+      std::vector<float> objects;
+      while (getline(is, line)) {
+	if (is.eof()) break;
+	vector<string> tokens;
+	NGT::Common::tokenize(line, tokens, "\t, ");
+	for (auto &v : tokens) objects.emplace_back(NGT::Common::strtod(v));
+	counter++;
+      }
+      index.append(objects.data(), counter);
+      index.save();
+    }
+    if (appendMode == 'm') {
+      if (ioSearchSize > 0) {
+	NGT::Index::InsertionOrder insertionOrder;
+	insertionOrder.nOfNeighboringNodes = ioSearchSize;
+	insertionOrder.epsilon = ioEpsilon;
+	std::cerr << "append: insertion order optimization is enabled. "
+		  << ioSearchSize << ":" << ioEpsilon << std::endl;
+	index.extractInsertionOrder(insertionOrder);
+	index.createIndexWithInsertionOrder(insertionOrder);
+      } else {
+	index.createIndex();
+      }
+    }
+    index.save();
+    index.close();
+  }
+
+#ifdef NGT_APPENDING_BINARY
+
+void appendBinaryVectors(std::string &indexPath, std::string &data, size_t dataSize, char appendMode, std::string &destination) {
+    NGT::StdOstreamRedirector redirector(false);
+    redirector.begin();
+    NGT::Index index(indexPath);
+    index.enableLog();
+    std::vector<std::string> tokens;
+    NGT::Common::tokenize(data, tokens, ".");
+    auto append = destination.find('n') == std::string::npos;
+    auto refinement = destination.find('r') != std::string::npos;
+    index.appendFromBinaryObjectFile(data, dataSize, append, refinement);
+
+    if (appendMode == 'b') {
+      index.createIndex(32);
+    }
+    index.save();
+    index.close();
+    redirector.end();
+  }
+#endif
 
   void
   NGT::Command::append(Args &args)
@@ -413,9 +422,10 @@ using namespace std;
     try {
       indexPath = args.get("#1");
     } catch (...) {
-      cerr << "ngt: Error: DB is not specified." << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "Index is not specified." << endl;
+      msg << usage << endl;
+      NGTThrowException(msg);
     }
     string data;
     try {
@@ -430,7 +440,6 @@ using namespace std;
 
     size_t ioSearchSize = args.getl("S", 0);
     float ioEpsilon = args.getf("E", 0.1);
-    float cutRate = args.getf("c", 0.02);
     
     if (debugLevel >= 1) {
       cerr << "thread size=" << threadSize << endl;
@@ -438,21 +447,34 @@ using namespace std;
     }
 
 
-    char appendMode = args.getChar("m", '-');
-    char destination = args.getChar("D", '-');
-    if (appendMode == '-') {
+    char appendMode = args.getChar("m", 't');
+    auto destination = args.getString("D", "o");
+    if (appendMode == 'n') {
       try {
         NGT::Index::append(indexPath, data, threadSize, dataSize);
       } catch (NGT::Exception &err) {
-        cerr << "ngt: Error. " << err.what() << endl;
-        cerr << usage << endl;
+	std::stringstream msg;
+	msg << err.what() << std::endl;
+	msg << usage;
+	NGTThrowException(msg);
       } catch (...) {
-        cerr << "ngt: Error" << endl;
-        cerr << usage << endl;
+	std::stringstream msg;
+	msg << usage;
+	NGTThrowException(msg);
       }
     } else if (appendMode == 't' || appendMode == 'T') {
-      appendTextVectors(indexPath, data, dataSize, appendMode, destination, ioSearchSize, ioEpsilon, cutRate);
+      appendTextVectors(indexPath, data, dataSize, appendMode, destination, ioSearchSize, ioEpsilon);
+    } else if (appendMode == 'r' || appendMode == 'R') {
+      appendRefinementVectors(indexPath, appendMode, ioSearchSize, ioEpsilon);
+    } else if (appendMode == 'm' || appendMode == 'M') {
+      appendTextVectorsInMemory(indexPath, data, dataSize, appendMode, ioSearchSize, ioEpsilon);
+#ifdef NGT_APPENDING_BINARY
+    } else if (appendMode == 'b' || appendMode == 'B') {
+      appendBinaryVectors(indexPath, data, dataSize, appendMode, destination);
     }
+#else
+    }
+#endif
   }
 
   void
@@ -550,8 +572,11 @@ using namespace std;
 	  stream << "Rank\tID\tDistance" << endl;
 	}
 	for (size_t i = 0; i < objects.size(); i++) {
-	  stream << i + 1 << "\t" << objects[i].id << "\t";
-	  stream << objects[i].distance << endl;
+	  if (searchParameters.outputMode == "e-") {
+	    stream << i + 1 << "\t" << objects[i].id << "\t" << 0.0 << std::endl;
+	  } else {
+	    stream << i + 1 << "\t" << objects[i].id << "\t" << objects[i].distance << std::endl;
+	  }
 	}
 	if (searchParameters.outputMode[0] == 'e') {
 	  stream << "# End of Search" << endl;
@@ -625,9 +650,10 @@ using namespace std;
     try {
       database = args.get("#1");
     } catch (...) {
-      cerr << "ngt: Error: DB is not specified" << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "Index is not specified" << endl;
+      msg << usage;
+      NGTThrowException(msg);
     }
 
     SearchParameters searchParameters(args);
@@ -647,11 +673,14 @@ using namespace std;
 	cerr << "Peak VM size=" << NGT::Common::getProcessVmPeakStr() << std::endl;
       }
     } catch (NGT::Exception &err) {
-      cerr << "ngt: Error. " << err.what() << endl;
-      cerr << usage << endl;
+      std::stringstream msg;
+      msg << err.what() << std::endl;
+      msg << usage;
+      NGTThrowException(msg);
     } catch (...) {
-      cerr << "ngt: Error" << endl;
-      cerr << usage << endl;
+      std::stringstream msg;
+      msg << usage;
+      NGTThrowException(msg);
     }
 
   }
@@ -665,16 +694,18 @@ using namespace std;
     try {
       database = args.get("#1");
     } catch (...) {
-      cerr << "ngt: Error: DB is not specified" << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "Index is not specified" << endl;
+      msg << usage;
+      NGTThrowException(msg);
     }
     try {
       args.get("#2");
     } catch (...) {
-      cerr << "ngt: Error: ID is not specified" << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "ID is not specified" << endl;
+      msg << usage;
+      NGTThrowException(msg);
     }
     char dataType = args.getChar("d", 'f');
     char mode = args.getChar("m", '-');
@@ -693,15 +724,15 @@ using namespace std;
 	try {
 	  ids = args.get("#2");
 	} catch (...) {
-	  cerr << "ngt: Error: Data file is not specified" << endl;
-	  cerr << usage << endl;
-	  return;
+	  std::stringstream msg;
+	  msg << "Data file is not specified" << endl;
+	  NGTThrowException(msg);
 	}
 	ifstream is(ids);
 	if (!is) {
-	  cerr << "ngt: Error: Cannot open the specified file. " << ids << endl;
-	  cerr << usage << endl;
-	  return;
+	  std::stringstream msg;
+	  msg << "Cannot open the specified file. " << ids << endl;
+	  NGTThrowException(msg);
 	}
 	string line;
 	int count = 0;
@@ -732,11 +763,14 @@ using namespace std;
       }
       NGT::Index::remove(database, objects, force);
     } catch (NGT::Exception &err) {
-      cerr << "ngt: Error. " << err.what() << endl;
-      cerr << usage << endl;
+      std::stringstream msg;
+      msg << err.what() << std::endl;
+      msg << usage;
+      NGTThrowException(msg);
     } catch (...) {
-      cerr << "ngt: Error" << endl;
-      cerr << usage << endl;
+      std::stringstream msg;
+      msg << usage;
+      NGTThrowException(msg);
     }
   }
 
@@ -748,26 +782,31 @@ using namespace std;
     try {
       database = args.get("#1");
     } catch (...) {
-      cerr << "ngt: Error: DB is not specified" << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "Index is not specified." << endl;
+      msg << usage;
+      NGTThrowException(msg);
     }
     string exportFile;
     try {
       exportFile = args.get("#2");
     } catch (...) {
-      cerr << "ngt: Error: ID is not specified" << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "ID is not specified" << endl;
+      msg << usage;
+      NGTThrowException(msg);
     }
     try {
       NGT::Index::exportIndex(database, exportFile);
     } catch (NGT::Exception &err) {
-      cerr << "ngt: Error. " << err.what() << endl;
-      cerr << usage << endl;
+      std::stringstream msg;
+      msg << err.what() << std::endl;
+      msg << usage;
+      NGTThrowException(msg);
     } catch (...) {
-      cerr << "ngt: Error" << endl;
-      cerr << usage << endl;
+      std::stringstream msg;
+      msg << usage;
+      NGTThrowException(msg);
     }
   }
 
@@ -779,26 +818,27 @@ using namespace std;
     try {
       database = args.get("#1");
     } catch (...) {
-      cerr << "ngt: Error: DB is not specified" << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "Index is not specified" << endl;
+      msg << usage;
+      NGTThrowException(msg);
     }
     string importFile;
     try {
       importFile = args.get("#2");
     } catch (...) {
-      cerr << "ngt: Error: ID is not specified" << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "ID is not specified" << endl;
+      msg << usage;
+      NGTThrowException(msg);
     }
 
     try {
       NGT::Index::importIndex(database, importFile);
     } catch (NGT::Exception &err) {
-      cerr << "ngt: Error. " << err.what() << endl;
+      cerr << err.what() << endl;
       cerr << usage << endl;
     } catch (...) {
-      cerr << "ngt: Error" << endl;
       cerr << usage << endl;
     }
 
@@ -812,9 +852,10 @@ using namespace std;
     try {
       indexName = args.get("#1");
     } catch (...) {
-      cerr << "Index is not specified" << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "Index is not specified" << endl;
+      msg << usage << endl;
+      NGTThrowException(msg);
     }
 
     // the number of forcedly pruned edges
@@ -826,15 +867,17 @@ using namespace std;
     cerr << "selectively pruned edge size=" << selectivelyPrunedEdgeSize << endl;
 
     if (selectivelyPrunedEdgeSize == 0 && forcedlyPrunedEdgeSize == 0) {
-      cerr << "prune: Error! Either of selective edge size or remaining edge size should be specified." << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "prune: Error! Either of selective edge size or remaining edge size should be specified." << endl;
+      msg << usage << endl;
+      NGTThrowException(msg);
     }
 
     if (forcedlyPrunedEdgeSize != 0 && selectivelyPrunedEdgeSize != 0 && selectivelyPrunedEdgeSize >= forcedlyPrunedEdgeSize) {
-      cerr << "prune: Error! selective edge size is less than remaining edge size." << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg  << "prune: Error! selective edge size is less than remaining edge size." << endl;
+      msg << usage << endl;
+      NGTThrowException(msg);
     }
 
     NGT::Index	index(indexName);
@@ -923,17 +966,19 @@ using namespace std;
     try {
       inIndexPath = args.get("#1");
     } catch (...) {
-      cerr << "ngt::reconstructGraph: Input index is not specified." << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "ngt::reconstructGraph: Input index is not specified." << endl;
+      msg << usage << endl;
+      NGTThrowException(msg);
     }
     string outIndexPath;
     try {
       outIndexPath = args.get("#2");
     } catch (...) {
-      cerr << "ngt::reconstructGraph: Output index is not specified." << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "ngt::reconstructGraph: Output index is not specified." << endl;
+      msg << usage << endl;
+      NGTThrowException(msg);
     }
 
     char mode = args.getChar("m", 'S');
@@ -944,6 +989,7 @@ using namespace std;
     double margin = args.getf("M", 0.2);
     char smode = args.getChar("s", '-');
     bool verbose = args.getBool("v");
+    char graphConversion = args.getChar("C", '-');
 
     // the number (rank) of original edges
     int numOfOutgoingEdges	= args.getl("o", -1);
@@ -972,6 +1018,7 @@ using namespace std;
 #else
     graphOptimizer.shortcutReductionRange = args.getf("R", 18.0);
 #endif
+    graphOptimizer.undirectedGraphConversion = graphConversion == '-' ? false : true;
     graphOptimizer.logDisabled = !verbose;
     
     graphOptimizer.set(numOfOutgoingEdges, numOfIncomingEdges, nOfQueries, nOfResults);
@@ -993,9 +1040,10 @@ using namespace std;
     try {
       indexPath = args.get("#1");
     } catch (...) {
-      cerr << "Index is not specified" << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "Index is not specified" << endl;
+      msg << usage << endl;
+      NGTThrowException(msg);
     }
 
     char mode = args.getChar("m", '-');
@@ -1018,7 +1066,7 @@ using namespace std;
 
       std::cout << "Successfully completed." << std::endl;
     } catch (NGT::Exception &err) {
-      cerr << "ngt: Error. " << err.what() << endl;
+      cerr << err.what() << endl;
       cerr << usage << endl;
     }
 
@@ -1037,18 +1085,20 @@ using namespace std;
     try {
       inIndexPath = args.get("#1");
     } catch (...) {
-      cerr << "Input index is not specified" << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "Input index is not specified" << endl;
+      msg << usage << endl;
+      NGTThrowException(msg);
     }
 
     string outIndexPath;
     try {
       outIndexPath = args.get("#2");
     } catch (...) {
-      cerr << "Output index is not specified" << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "Output index is not specified" << endl;
+      msg << usage << endl;
+      NGTThrowException(msg);
     }
 
     NGT::Index	index(inIndexPath);
@@ -1062,8 +1112,10 @@ using namespace std;
     try {
       GraphReconstructor::refineANNG(index, epsilon, expectedAccuracy, noOfEdges, exploreEdgeSize, batchSize);
     } catch (NGT::Exception &err) {
-      std::cerr << "Error!! Cannot refine the index. " << err.what() << std::endl;
-      return;
+      std::stringstream msg;
+      msg << "Error!! Cannot refine the index. " << err.what() << std::endl;
+      msg << usage << endl;
+      NGTThrowException(msg);
     }
     index.saveIndex(outIndexPath);
 #endif
@@ -1082,9 +1134,10 @@ using namespace std;
     try {
       indexPath = args.get("#1");
     } catch (...) {
-      cerr << "Index is not specified" << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "Index is not specified." << endl;
+      msg << usage << endl;
+      NGTThrowException(msg);
     }
     
     char mode = args.getChar("m", 'c');
@@ -1099,9 +1152,10 @@ using namespace std;
       const string com = "cp -r " + indexPath + " " + path;
       int stat = system(com.c_str());
       if (stat != 0) {
-	std::cerr << "ngt::repair: Cannot create the specified index. " << path << std::endl;
-	cerr << usage << endl;
-	return;
+	std::stringstream msg;
+	msg << "ngt::repair: Cannot create the specified index. " << path << std::endl;
+	msg << usage;
+	NGTThrowException(msg);
       }
     }
 
@@ -1240,9 +1294,10 @@ using namespace std;
 	std::cerr << "Saving index." << std::endl;
 	index.saveIndex(path);
       } catch (NGT::Exception &err) {
-	cerr << "ngt: Error. " << err.what() << endl;
-	cerr << usage << endl;
-	return;
+	std::stringstream msg;
+	msg << err.what() << endl;
+	msg << usage;
+	NGTThrowException(msg);
       }
     }
   }
@@ -1259,9 +1314,10 @@ using namespace std;
     try {
       indexPath = args.get("#1");
     } catch (...) {
-      cerr << "Index is not specified" << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "Index is not specified." << endl;
+      msg << usage;
+      NGTThrowException(msg);
     }
 
     GraphOptimizer::ANNGEdgeOptimizationParameter parameter;
@@ -1295,9 +1351,10 @@ using namespace std;
     try {
       database = args.get("#1");
     } catch (...) {
-      cerr << "ngt: Error: DB is not specified" << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "Index is not specified" << endl;
+      msg << usage;
+      NGTThrowException(msg);
     }
 
     size_t edgeSize = args.getl("E", UINT_MAX);
@@ -1319,7 +1376,6 @@ using namespace std;
       cerr << "ngt: NGT Error. " << err.what() << endl;
       cerr << usage << endl;
     } catch (...) {
-      cerr << "ngt: Error" << endl;
       cerr << usage << endl;
     }
   }
@@ -1327,7 +1383,7 @@ using namespace std;
 
   void NGT::Command::exportGraph(Args &args) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    std::cerr << "ngt: Error: exportGraph is not implemented." << std::endl;
+    std::cerr << "exportGraph is not implemented." << std::endl;
     abort();
 #else
     std::string usage = "ngt export-graph [-k #-of-edges] index";
@@ -1335,9 +1391,10 @@ using namespace std;
     try {
       indexPath = args.get("#1");
     } catch (...) {
-      cerr << "ngt::exportGraph: Index is not specified." << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "Index is not specified" << endl;
+      msg << usage;
+      NGTThrowException(msg);
     }
 
     int k = args.getl("k", 0);
@@ -1371,7 +1428,7 @@ using namespace std;
 
   void NGT::Command::exportObjects(Args &args) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    std::cerr << "ngt: Error: exportObjects is not implemented." << std::endl;
+    std::cerr << "exportObjects is not implemented." << std::endl;
     abort();
 #else
     std::string usage = "ngt export-objects index";
@@ -1379,9 +1436,10 @@ using namespace std;
     try {
       indexPath = args.get("#1");
     } catch (...) {
-      cerr << "ngt::exportGraph: Index is not specified." << endl;
-      cerr << usage << endl;
-      return;
+      std::stringstream msg;
+      msg << "Index is not specified" << endl;
+      msg << usage;
+      NGTThrowException(msg);
     }
 
     NGT::Index		index(indexPath);

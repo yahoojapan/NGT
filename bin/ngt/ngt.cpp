@@ -122,6 +122,8 @@ main(int argc, char **argv)
     }
   } catch(NGT::Exception &err) {
     cerr << "ngt: Error: " << err.what() << endl;
+    return 1;
   }
+  return 0;
 
 }

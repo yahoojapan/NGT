@@ -32,8 +32,10 @@ namespace QBG {
     void append(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
     void insert(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
     void remove(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
+    void expandBlob(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
     void buildIndex(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
     void hierarchicalKmeans(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
+    void batchSearch(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
     void search(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
     void assign(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
     void extract(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
@@ -53,8 +55,10 @@ namespace QBG {
     void append(NGT::Args &args);
     void insert(NGT::Args &args);
     void remove(NGT::Args &args);
+    void expandBlob(NGT::Args &args);
     void buildIndex(NGT::Args &args);
     void hierarchicalKmeans(NGT::Args &args);
+    void batchSearch(NGT::Args &args);
     void search(NGT::Args &args);
     void assign(NGT::Args &args);
     void extract(NGT::Args &args);
@@ -89,55 +93,60 @@ namespace QBG {
 
       debugLevel = args.getl("X", 0);
 
-      try {
-	if (debugLevel >= 1) {
-	  cerr << "ngt::command=" << command << endl;
-	}
-	if (command == "search") {
-	  search(args);
-	} else if (command == "create") {
-	  create(args);
-	} else if (command == "load") {
-	  load(args);
-	} else if (command == "append") {
-	  append(args);
-	} else if (command == "insert") {
-	  insert(args);
-	} else if (command == "remove") {
-	  remove(args);
-	} else if (command == "build-index") {
-	  buildIndex(args);
-	} else if (command == "kmeans") {
-	  hierarchicalKmeans(args);
-	} else if (command == "assign") {
-	  assign(args);
-	} else if (command == "extract") {
-	  extract(args);
-	} else if (command == "gt") {
-	  gt(args);
-	} else if (command == "gt-range") {
-	  gtRange(args);
-	} else if (command == "optimize") {
-	  optimize(args);
-	} else if (command == "build") {
-	  build(args);
-	} else if (command == "rebuild") {
-	  rebuild(args);
-	} else if (command == "create-qg") {
-	  createQG(args);
-	} else if (command == "build-qg") {
-	  buildQG(args);
-	} else if (command == "append-qg") {
-	  appendQG(args);
-	} else if (command == "search-qg") {
-	  searchQG(args);
-	} else if (command == "info") {
-	  info(args);
-	} else {
-	  cerr << "qbg: Illegal command. " << command << endl;
-	}
-      } catch(NGT::Exception &err) {
-	cerr << "qbg: Error: " << err.what() << endl;
+      if (debugLevel >= 1) {
+	cerr << "ngt::command=" << command << endl;
+      }
+      if (command == "search") {
+	search(args);
+      } else if (command == "batch-search") {
+	batchSearch(args);
+      } else if (command == "create") {
+	create(args);
+      } else if (command == "load") {
+	load(args);
+      } else if (command == "append") {
+	append(args);
+      } else if (command == "insert") {
+	insert(args);
+      } else if (command == "remove") {
+	remove(args);
+      } else if (command == "expand-blob") {
+	expandBlob(args);
+      } else if (command == "build-index") {
+	buildIndex(args);
+      } else if (command == "kmeans") {
+	hierarchicalKmeans(args);
+      } else if (command == "assign") {
+	assign(args);
+      } else if (command == "extract") {
+	extract(args);
+      } else if (command == "gt") {
+	gt(args);
+      } else if (command == "gt-range") {
+	gtRange(args);
+      } else if (command == "optimize") {
+	optimize(args);
+      } else if (command == "build") {
+	build(args);
+      } else if (command == "rebuild") {
+	rebuild(args);
+      } else if (command == "create-qg") {
+	createQG(args);
+      } else if (command == "build-qg") {
+	buildQG(args);
+      } else if (command == "append-qg") {
+	appendQG(args);
+      } else if (command == "search-qg") {
+	searchQG(args);
+      } else if (command == "info") {
+	info(args);
+      } else if (command == "-h") {
+	help();
+      } else {
+	help();
+	std::stringstream msg;
+	msg << "qbg: Illegal command. " << command << endl;
+	NGTThrowException(msg);
       }
     }
 

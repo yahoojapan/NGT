@@ -331,6 +331,18 @@ bool ngt_set_property_object_type_integer(NGTProperty prop, NGTError error) {
   return true;
 }
 
+bool ngt_set_property_object_type_qsint8(NGTProperty prop, NGTError error) {
+  if(prop == NULL){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
+    operate_error_string_(ss, error);
+    return false;
+  }
+
+  (*static_cast<NGT::Property*>(prop)).objectType = NGT::ObjectSpace::ObjectType::Qsuint8;
+  return true;
+}
+
 bool ngt_set_property_distance_type(NGTProperty prop, NGT::Index::Property::DistanceType type, NGTError error) {
   if(prop == NULL){
     std::stringstream ss;
@@ -428,11 +440,7 @@ NGTPropertyInfo ngt_get_property_info(NGTIndex index, NGTError error) {
     prop.prefetchSize,
     prop.accuracyTable.c_str(),
     prop.searchType.c_str(),
-#ifdef NGT_INNER_PRODUCT
     prop.maxMagnitude,
-#else
-    -1,
-#endif
     prop.nOfNeighborsForInsertionOrder,
     prop.epsilonForInsertionOrder,
 #ifdef NGT_REFINEMENT
@@ -1054,6 +1062,47 @@ ObjectID ngt_append_index_as_float16(NGTIndex index, NGTFloat16 *obj, uint32_t o
     return 0;
   }
 }
+
+ObjectID ngt_insert_to_refinement_as_float(NGTIndex index, float *obj, uint32_t obj_dim, NGTError error) {
+  if(index == NULL || obj == NULL || obj_dim == 0){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " obj = " << obj << " obj_dim = " << obj_dim;
+    operate_error_string_(ss, error);
+    return 0;
+  }
+
+  try{
+    NGT::Index* pindex = static_cast<NGT::Index*>(index);
+    std::vector<float> vobj(&obj[0], &obj[obj_dim]);
+    return pindex->insertToRefinement(vobj);
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    return 0;
+  }
+}
+
+ObjectID ngt_append_to_refinement_as_float(NGTIndex index, float *obj, uint32_t obj_dim, NGTError error) {
+  if(index == NULL || obj == NULL || obj_dim == 0){
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: index = " << index << " obj = " << obj << " obj_dim = " << obj_dim;
+    operate_error_string_(ss, error);
+    return 0;
+  }
+
+  try{
+    NGT::Index* pindex = static_cast<NGT::Index*>(index);
+    std::vector<float> vobj(&obj[0], &obj[obj_dim]);
+    return pindex->appendToRefinement(vobj);
+  }catch(std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    return 0;
+  }
+}
+
 
 bool ngt_batch_append_index(NGTIndex index, float *obj, uint32_t data_count, NGTError error) {
   try{

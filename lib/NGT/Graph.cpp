@@ -213,6 +213,21 @@ NeighborhoodGraph::Search::lorentzFloat16(NeighborhoodGraph &graph, NGT::SearchC
   graph.searchReadOnlyGraph<PrimitiveComparator::LorentzFloat16, DistanceCheckedSet>(sc, seeds);
 }
 #endif
+void
+NeighborhoodGraph::Search::l2Qsint8(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::L2Qsint8, DistanceCheckedSet>(sc, seeds);
+}
+void
+NeighborhoodGraph::Search::innerProductQsint8(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::InnerProductQsint8, DistanceCheckedSet>(sc, seeds);
+}
+void
+NeighborhoodGraph::Search::normalizedCosineSimilarityQsint8(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::NormalizedCosineSimilarityQsint8, DistanceCheckedSet>(sc, seeds);
+}
 ////
 
 void
@@ -360,14 +375,34 @@ NeighborhoodGraph::Search::lorentzFloat16ForLargeDataset(NeighborhoodGraph &grap
   graph.searchReadOnlyGraph<PrimitiveComparator::LorentzFloat16, DistanceCheckedSetForLargeDataset>(sc, seeds);
 }
 #endif
-
+void
+NeighborhoodGraph::Search::l2Qsint8ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::L2Qsint8, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+void
+NeighborhoodGraph::Search::innerProductQsint8ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::InnerProductQsint8, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+void
+NeighborhoodGraph::Search::normalizedCosineSimilarityQsint8ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds)
+{
+  graph.searchReadOnlyGraph<PrimitiveComparator::NormalizedCosineSimilarityQsint8, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
 #endif
 
 void
 NeighborhoodGraph::setupDistances(NGT::SearchContainer &sc, ObjectDistances &seeds)
 {
-  ObjectRepository &objectRepository = getObjectRepository();
   NGT::ObjectSpace::Comparator &comparator = objectSpace->getComparator();
+  setupDistances(sc, seeds, comparator);
+}
+
+void
+NeighborhoodGraph::setupDistances(NGT::SearchContainer &sc, ObjectDistances &seeds, NGT::ObjectSpace::Comparator &comp)
+{
+  ObjectRepository &objectRepository = getObjectRepository();
   ObjectDistances tmp;
   tmp.reserve(seeds.size());
   size_t seedSize = seeds.size();
@@ -401,9 +436,9 @@ NeighborhoodGraph::setupDistances(NGT::SearchContainer &sc, ObjectDistances &see
       continue;
     }
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    seeds[i].distance = comparator(sc.object, *objectRepository.get(seeds[i].id));
+    seeds[i].distance = comp(sc.object, *objectRepository.get(seeds[i].id));
 #else
-    seeds[i].distance = comparator(sc.object, *objects[seeds[i].id]);
+    seeds[i].distance = comp(sc.object, *objects[seeds[i].id]);
 #endif
   }
 
@@ -519,6 +554,98 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
 
+#ifdef NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
+  template <typename COMPARATOR, typename CHECK_LIST>
+  void
+    NeighborhoodGraph::searchReadOnlyGraph(NGT::SearchContainer &sc, ObjectDistances &seeds)
+  {
+
+    if (sc.explorationCoefficient == 0.0) {
+      sc.explorationCoefficient = NGT_EXPLORATION_COEFFICIENT;
+    }
+
+    // setup edgeSize
+    size_t edgeSize = getEdgeSize(sc);
+
+    UncheckedSet unchecked;
+
+    CHECK_LIST distanceChecked(searchRepository.size());
+
+    ResultSet results;
+
+    setupDistances(sc, seeds, COMPARATOR::compare);
+    setupSeeds(sc, seeds, results, unchecked, distanceChecked);
+
+    Distance explorationRadius = sc.explorationCoefficient * sc.radius;
+    const size_t dimension = objectSpace->getPaddedDimension();
+    ReadOnlyGraphNode *nodes = &searchRepository.front();
+    ObjectDistance result;
+    ObjectDistance target;
+    const size_t prefetchSize = objectSpace->getPrefetchSize();
+    const size_t prefetchOffset = objectSpace->getPrefetchOffset();
+    while (!unchecked.empty()) {
+      target = unchecked.top();
+      unchecked.pop();
+      if (target.distance > explorationRadius) {
+	break;
+      }
+      auto *neighbors = &nodes[target.id];
+      auto *neighborptr = &(*neighbors)[0];
+      size_t neighborSize = neighbors->size() < edgeSize ? neighbors->size() : edgeSize;
+      auto *neighborendptr = neighborptr + neighborSize;
+      ObjectRepository &objectRepository = getObjectRepository();
+      pair<uint32_t, PersistentObject*> nsPtrs[neighborSize];
+      size_t nsPtrsSize = 0;
+      for (; neighborptr < neighborendptr; ++neighborptr) {
+#ifdef NGT_VISIT_COUNT
+	sc.visitCount++;
+#endif
+	if (!distanceChecked[*neighborptr]) {
+	  distanceChecked.insert(*neighborptr);
+          nsPtrs[nsPtrsSize].first = *neighborptr;
+	  nsPtrs[nsPtrsSize].second = objectRepository.get(*neighborptr);
+          if (nsPtrsSize < prefetchOffset) {
+            unsigned char *ptr = reinterpret_cast<unsigned char*>(objectRepository.get(*neighborptr));
+            MemoryCache::prefetch(ptr, prefetchSize);
+          }
+          nsPtrsSize++;
+        }
+      }
+      for (size_t idx = 0; idx < nsPtrsSize; idx++) {
+	auto *neighborptr = &nsPtrs[idx];
+	if (idx + prefetchOffset < nsPtrsSize) {
+	  unsigned char *ptr = reinterpret_cast<unsigned char*>((nsPtrs[idx + prefetchOffset]).second);
+	  MemoryCache::prefetch(ptr, prefetchSize);
+	}
+
+#ifdef NGT_DISTANCE_COMPUTATION_COUNT
+	sc.distanceComputationCount++;
+#endif
+	Distance distance = COMPARATOR::compare((void*)&sc.object[0],
+						(void*)&(*static_cast<PersistentObject*>(neighborptr->second))[0], dimension);
+	if (distance <= explorationRadius) {
+	  result.set(neighborptr->first, distance);
+	  unchecked.push(result);
+	  if (distance <= sc.radius) {
+	    results.push(result);
+	    if (results.size() > sc.size) {
+	      results.pop();
+	      sc.radius = results.top().distance;
+	      explorationRadius = sc.explorationCoefficient * sc.radius;
+	    }
+	  }
+	}
+      }
+    }
+    if (sc.resultIsAvailable()) {
+      ObjectDistances &qresults = sc.getResult();
+      qresults.moveFrom(results);
+    } else {
+      sc.workingResult = std::move(results);
+    }
+
+  }
+#else // NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
   template <typename COMPARATOR, typename CHECK_LIST>
   void
     NeighborhoodGraph::searchReadOnlyGraph(NGT::SearchContainer &sc, ObjectDistances &seeds)
@@ -607,6 +734,7 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
     }
 
   }
+#endif // NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
 
 #endif
 
@@ -616,7 +744,6 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
     if (sc.explorationCoefficient == 0.0) {
       sc.explorationCoefficient = NGT_EXPLORATION_COEFFICIENT;
     }
-
     // setup edgeSize
     size_t edgeSize = getEdgeSize(sc);
 
@@ -634,10 +761,16 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 #endif
 
     ResultSet results;
-    setupDistances(sc, seeds);
+    NGT::ObjectSpace::Comparator *comparatorPtr = 0;
+    if (sc.insertion) {
+      comparatorPtr = &objectSpace->getComparator();
+    } else {
+      comparatorPtr = &objectSpace->getComparatorForSearch();
+    }
+    NGT::ObjectSpace::Comparator &comparator = *comparatorPtr;
+    setupDistances(sc, seeds, comparator);
     setupSeeds(sc, seeds, results, unchecked, distanceChecked);
     Distance explorationRadius = sc.explorationCoefficient * sc.radius;
-    NGT::ObjectSpace::Comparator &comparator = objectSpace->getComparator();
     ObjectRepository &objectRepository = getObjectRepository();
     const size_t prefetchSize = objectSpace->getPrefetchSize();
     ObjectDistance result;
@@ -801,7 +934,7 @@ NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, 
 	  continue;
 	}
 	objtbl.push_back(getObjectRepository().get((*i).id));
-	GraphNode *n = 0;
+	GraphNode *n = 0;	
 	try {
 	  n = getNode((*i).id);
 	} catch (Exception &err) {

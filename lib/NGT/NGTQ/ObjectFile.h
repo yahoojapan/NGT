@@ -24,6 +24,7 @@
 #include <stdexcept>
 #include <cerrno>
 #include <cstring>
+#include "NGT/ArrayFile.h"
 
 namespace NGT {
   class ObjectSpace;
@@ -34,7 +35,8 @@ class ObjectFile : public ArrayFile<NGT::Object> {
   enum DataType {
     DataTypeUint8   = 0,
     DataTypeFloat   = 1,
-    DataTypeFloat16 = 2
+    DataTypeFloat16 = 2,
+    DataTypeNone = 99
   };
 
   ObjectFile():objectSpace(0) {}
@@ -52,6 +54,9 @@ class ObjectFile : public ArrayFile<NGT::Object> {
 
   bool open() {
     if (!ArrayFile<NGT::Object>::open(fileName)) {
+      std::stringstream msg;
+      msg << "ObjectFile::Cannot open the specified file. " << fileName;
+      NGTThrowException(msg);
       return false;
     }
     switch (dataType) {
@@ -70,7 +75,7 @@ class ObjectFile : public ArrayFile<NGT::Object> {
       break;
 #endif
     default:
-      stringstream msg;
+      std::stringstream msg;
       msg << "ObjectFile::Invalid Object Type in the property. " << dataType;
       NGTThrowException(msg);
       break;
@@ -129,7 +134,7 @@ class ObjectFile : public ArrayFile<NGT::Object> {
   template<typename T>
   bool get(const size_t id, std::vector<T> &data, NGT::ObjectSpace *os = 0) {
     if (objectSpace == 0) {
-      stringstream msg;
+      std::stringstream msg;
       msg << "ObjectFile::Fatal Error. objectSpace is not set." << std::endl;
       NGTThrowException(msg);
     }
@@ -169,13 +174,13 @@ class ObjectFile : public ArrayFile<NGT::Object> {
 
   void put(const size_t id, std::vector<float> &data, NGT::ObjectSpace *os = 0) {
     if (objectSpace == 0) {
-      stringstream msg;
+      std::stringstream msg;
       msg << "ObjectFile::Fatal Error. objectSpace is not set." << std::endl;
       NGTThrowException(msg);
     }
     if (objectSpace->getDimension() != data.size()) {
-      stringstream msg;
-      msg << "ObjectFile::Dimensions are inconsistency. " << objectSpace->getDimension() << ":" << data.size();
+      std::stringstream msg;
+      msg << "ObjectFile::Dimensions are inconsistent. " << objectSpace->getDimension() << ":" << data.size();
       NGTThrowException(msg);
     }
     NGT::Object *object = objectSpace->allocateObject();
@@ -304,13 +309,13 @@ public:
       id = noOfObjects - 1;
     }
     size_t headerSize = sizeof(noOfObjects) + sizeof(noOfDimensions);
-    stream.seekg(id * sizeOfObject + headerSize, ios_base::beg);
+    stream.seekg(id * sizeOfObject + headerSize, std::ios_base::beg);
     counter = id;
     return;
   }
 
   std::vector<float> getObject() {
-    vector<float> object;
+    std::vector<float> object;
     if (isEmpty()) {
       return object;
     }
@@ -448,12 +453,12 @@ bool StaticObjectFile<TYPE>::open(const std::string &file, size_t pseudoDimensio
 
   bool ret = _readFileHead();
   if (_fileHead.noOfObjects != noOfObjects) {
-    stringstream msg;
+    std::stringstream msg;
     msg << "Invalid # of objects=" << _fileHead.noOfObjects << ":" << noOfObjects;
     NGTThrowException(msg);
   }
   if (_fileHead.noOfDimensions != noOfDimensions) {
-    stringstream msg;
+    std::stringstream msg;
     msg << "Invalid # of dimensions=" << _fileHead.noOfDimensions << ":" << noOfDimensions;
     NGTThrowException(msg);
   }
