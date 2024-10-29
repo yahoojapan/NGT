@@ -97,7 +97,7 @@ public:
     transform(clusterDataType.begin(), clusterDataType.end(), clusterDataType.begin(), ::tolower);
     if (clusterDataType == "-" || clusterDataType == "pq4") {
       creation.localClusterDataType = NGTQ::ClusterDataTypePQ4;
-    } else if (clusterDataType == "sqsu8" || clusterDataType == "sq8") {
+    } else if (clusterDataType == "sqsu8" || clusterDataType == "sqs8" || clusterDataType == "sq8") {
       creation.localClusterDataType = NGTQ::ClusterDataTypeSQSU8;
     } else if (clusterDataType == "nq") {
       creation.localClusterDataType = NGTQ::ClusterDataTypeNQ;

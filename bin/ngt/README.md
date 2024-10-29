@@ -93,6 +93,7 @@ Specify the data object type.
 - __c__: 1 byte unsigned integer
 - __f__: 4 byte floating point number (default)
 - __h__: 2 byte floating point number
+- __q__: 1 byte scalar quantization
 
 **-D** *distance\_function*  
 Specify the distance function as follows.

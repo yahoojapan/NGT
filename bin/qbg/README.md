@@ -97,7 +97,7 @@ Specify the expansion ratio of the number of approximate inner search objects to
 ### CREATE
 Make and initialize a QBG directory for the quantized blob graph.
 
-      $ qbg create [-d number_of_dimension] [-P number_of_extended_dimensions] [-O object_type] [-D distance_function] [-C number_of_blobs] index
+      $ qbg create [-d number_of_dimension] [-P number_of_extended_dimensions] [-O object_type] [-D distance_function] [-C cluster_data_type] index
 
 *index*  
 Specify the name of the directory for QBG.
@@ -118,8 +118,10 @@ Specify the distance function as follows.
 - __2__: L2 distance (default)
 - __c__: Cosine similarity
 
-**-C** *number_of_blobs*  
-Specify the number of blobs that should be less than or equal to the number of quantization clusters.
+**-C** *cluster_data_type*  
+Specify the cluster data type.
+- __pq4__: 4 bit product quantization (default)
+- __sq8__: 1 byte scalar quantization
 
 **-N** *number_of_subvectors*  
 Specify the number of subvectors that should be a divisor of the number of the extended dimensions.

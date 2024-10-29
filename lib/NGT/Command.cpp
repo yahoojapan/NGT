@@ -129,7 +129,7 @@ using namespace std;
     } else if (objectType == "h") {
       property.objectType = NGT::Index::Property::ObjectType::Float16;
 #endif
-    } else if (objectType == "s8" || objectType == "sqsu8") {
+    } else if (objectType == "qsu8" || objectType == "qs8" || objectType == "q") {
       property.objectType = NGT::Index::Property::ObjectType::Qsuint8;
 #ifdef NGT_BFLOAT
     } else if (objectType == "H") {

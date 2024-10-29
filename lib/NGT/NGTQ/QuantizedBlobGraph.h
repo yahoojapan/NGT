@@ -580,8 +580,9 @@ namespace QBG {
 	ifstream *ifs = new ifstream;
 	ifs->ifstream::open(data);
 	if (!(*ifs)) {
-	  cerr << "Cannot open the specified file. " << data << endl;
-	  return;
+	  std::stringstream msg;
+	  msg << "Cannot open the specified file. " << data;
+	  NGTThrowException(msg);
 	}
 	is = ifs;
       }
