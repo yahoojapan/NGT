@@ -2541,7 +2541,7 @@ GraphAndTreeIndex::createIndex(const vector<pair<NGT::Object*, size_t> > &object
 	}
 	{
 	  size_t size = NeighborhoodGraph::property.edgeSizeForCreation;
-	  sort(output.begin(), output.end());	
+	  sort(output.begin(), output.end());
 	  for (size_t idxi = 0; idxi < cnt; idxi++) {
 	    // add distances
 	    ObjectDistances &objs = *output[idxi].results;
@@ -2568,7 +2568,7 @@ GraphAndTreeIndex::createIndex(const vector<pair<NGT::Object*, size_t> > &object
 	      ids[output[idxi].batchIdx].identical = true;
 	      ids[output[idxi].batchIdx].id = objs[0].id;
 	      ids[output[idxi].batchIdx].distance = objs[0].distance;
-	      output[idxi].id = 0;	
+	      output[idxi].id = 0;
 	    } else {
 	      assert(output[idxi].id == 0);
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
@@ -2625,7 +2625,7 @@ GraphAndTreeIndex::createIndex(const vector<pair<NGT::Object*, size_t> > &object
 	  }
 	  output.pop_front();
 	}
-	
+
 	count += cnt;
 	if (timerCount <= count) {
 	  timer.stop();

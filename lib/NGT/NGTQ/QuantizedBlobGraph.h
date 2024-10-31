@@ -240,10 +240,10 @@ namespace QBG {
 
     float		timelimit;
     size_t		iteration;
-    size_t		clusterIteration;		
+    size_t		clusterIteration;
     bool		clusterSizeConstraint;
     float		clusterSizeConstraintCoefficient;
-    size_t		convergenceLimitTimes;		
+    size_t		convergenceLimitTimes;
     size_t		numOfObjects;
     size_t		numOfClusters;
     size_t		numOfSubvectors;
@@ -710,7 +710,7 @@ namespace QBG {
 	quantizer.objectList.get(id, object, &gcodebook.getObjectSpace());
 	objects.push_back(pair<std::vector<float>, size_t>(object, id));
       }
-      vector<NGT::Index::InsertionResult> gids;	
+      vector<NGT::Index::InsertionResult> gids;
       NGTQ::Quantizer::searchIndex(gcodebook, objects, gids);
 
       for (size_t bidx = 0; bidx < gids.size(); bidx++) {
@@ -838,7 +838,7 @@ namespace QBG {
 	}
       }
       auto &gcodebook = static_cast<NGT::GraphAndTreeIndex &>(quantizer.globalCodebookIndex.getIndex());
-      vector<NGT::Index::InsertionResult> gids;	
+      vector<NGT::Index::InsertionResult> gids;
       NGTQ::Quantizer::searchIndex(gcodebook, floatObjects, gids);
 
       if (gids.size() != floatObjects.size()) {

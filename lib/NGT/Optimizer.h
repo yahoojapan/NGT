@@ -1515,7 +1515,7 @@ namespace NGT {
 	    if (accuracy - prev < 0.02) {
 	      interval *= 2.0;
 	    } else if (accuracy - prev > 0.05 && interval > 0.0001) {
-	
+
 	      epsilon -= interval;
 	      interval /= 2.0;
 	      accuracy = prev;

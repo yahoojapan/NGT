@@ -337,18 +337,18 @@ namespace QBG {
 	timer.start();
 	Matrix<float> optr;
 	optimizeRotation(
-			 iteration,		
-			 vectors,		
-			 xt,			
-			 rs[ri],		
-			 optr,			
+			 iteration,
+			 vectors,
+			 xt,
+			 rs[ri],
+			 optr,
 			 localClusters[ri],
 			 clusteringType,
 			 imode,
 			 numberOfClusters,
-			 numberOfSubvectors,	
-			 subvectorSize,		
-			 clusterIteration,	
+			 numberOfSubvectors,
+			 subvectorSize,
+			 clusterIteration,
 			 clusterSizeConstraint,
 			 clusterSizeConstraintCoefficient,
 			 convergenceLimitTimes,
@@ -376,10 +376,10 @@ namespace QBG {
     NGT::Clustering::ClusteringType	clusteringType;
     NGT::Clustering::InitializationMode	initMode;
     size_t		iteration;
-    size_t		clusterIteration;		
+    size_t		clusterIteration;
     bool		clusterSizeConstraint;
     float		clusterSizeConstraintCoefficient;
-    size_t		convergenceLimitTimes;		
+    size_t		convergenceLimitTimes;
     size_t		numberOfObjects;
     size_t		numberOfClusters;
     size_t		numberOfSubvectors;

@@ -85,7 +85,7 @@ main(int argc, char **argv)
   std::cerr << "building the index..." << std::endl;
   QBGBuildParameters buildParameters;
   qbg_initialize_build_parameters(&buildParameters);
-  buildParameters.number_of_objects = 500;		
+  buildParameters.number_of_objects = 500;
   auto status = qbg_build_index(indexPath.c_str(), &buildParameters, err);
   if (!status) {
     std::cerr << "Cannot build. " << ngt_get_error_string(err) << std::endl;

@@ -762,7 +762,7 @@ public:
 
   py::array_t<uint32_t> batchSearchTmp(
    py::array_t<float> queries,
-   size_t size	 		
+   size_t size
   ) {
     const py::buffer_info &qinfo = queries.request();
     const std::vector<long int> &qshape = qinfo.shape;

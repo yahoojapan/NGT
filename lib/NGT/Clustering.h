@@ -419,7 +419,7 @@ namespace NGT {
 	}
       }
 
-      std::vector<Entry> sortedObjects(vectors.size());	
+      std::vector<Entry> sortedObjects(vectors.size());
 #pragma omp parallel for
       for (size_t vi = 0; vi < vectors.size(); vi++) {
 	auto vit = vectors.begin() + vi;

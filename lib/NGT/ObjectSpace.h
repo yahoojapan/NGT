@@ -682,7 +682,7 @@ namespace NGT {
 
     void construct(size_t s) {
       assert(vector == 0);
-      size_t allocsize = ((s - 1) / 64 + 1) * 64;	
+      size_t allocsize = ((s - 1) / 64 + 1) * 64;
       vector = static_cast<uint8_t*>(MemoryCache::alignedAlloc(allocsize));
       memset(vector, 0, allocsize);
     }
@@ -754,7 +754,7 @@ namespace NGT {
     void construct(size_t s, SharedMemoryAllocator &allocator) {
       assert(array == 0);
       assert(s != 0);
-      size_t allocsize = ((s - 1) / 64 + 1) * 64;	
+      size_t allocsize = ((s - 1) / 64 + 1) * 64;
       array = allocator.getOffset(new(allocator) uint8_t[allocsize]);
       memset(getPointer(0, allocator), 0, allocsize);
     }

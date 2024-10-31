@@ -399,7 +399,7 @@ namespace NGT {
       if (searchParameterOptimization || prefetchParameterOptimization || accuracyTableGeneration) {
 	NGT::StdOstreamRedirector redirector(logDisabled);
 	redirector.begin();
-	NGT::Index	outIndex(outIndexPath, true);	
+	NGT::Index	outIndex(outIndexPath, true);
 	NGT::GraphIndex	&outGraph = static_cast<NGT::GraphIndex&>(outIndex.getIndex());
 	if (prefetchParameterOptimization) {
 	  if (!logDisabled) {
