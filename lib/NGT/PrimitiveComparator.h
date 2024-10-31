@@ -111,21 +111,21 @@ namespace NGT {
 #if defined(NGT_NO_AVX)
     template <typename OBJECT_TYPE, typename COMPARE_TYPE>
     inline static double compareL2(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
-      const OBJECT_TYPE *last = a + size;
-      const OBJECT_TYPE *lastgroup = last - 3;
+      auto *last = a + size;
+      auto *lastgroup = last - 3;
       COMPARE_TYPE diff0, diff1, diff2, diff3;
       double d = 0.0;
       while (a < lastgroup) {
-	diff0 = static_cast<COMPARE_TYPE>(a[0] - b[0]);
-	diff1 = static_cast<COMPARE_TYPE>(a[1] - b[1]);
-	diff2 = static_cast<COMPARE_TYPE>(a[2] - b[2]);
-	diff3 = static_cast<COMPARE_TYPE>(a[3] - b[3]);
+	diff0 = static_cast<COMPARE_TYPE>(a[0]) - b[0];
+	diff1 = static_cast<COMPARE_TYPE>(a[1]) - b[1];
+	diff2 = static_cast<COMPARE_TYPE>(a[2]) - b[2];
+	diff3 = static_cast<COMPARE_TYPE>(a[3]) - b[3];
 	d += diff0 * diff0 + diff1 * diff1 + diff2 * diff2 + diff3 * diff3;
 	a += 4;
 	b += 4;
       }
       while (a < last) {
-	diff0 = static_cast<COMPARE_TYPE>(*a++ - *b++);
+	diff0 = static_cast<COMPARE_TYPE>(*a++) - static_cast<COMPARE_TYPE>(*b++);
 	d += diff0 * diff0;
       }
       return sqrt(static_cast<double>(d));
@@ -148,6 +148,9 @@ namespace NGT {
       return compareL2<bfloat16, float>(a, b, size);
     }
 #endif
+    inline static double compareL2(const quint8 *a, const quint8 *b, size_t size) {
+      return compareL2<quint8, float>(a, b, size);
+    }
 #else
     inline static double compareL2(const float *a, const float *b, size_t size) {
       const float *last = a + size;
@@ -407,7 +410,7 @@ namespace NGT {
 
     inline static double compareL2(const qsint8 *a, const quint8 *b, size_t size) {
       NGTThrowException("Not supported.");
-      return 0.00;
+      return 0.0;
     }
 
     template <typename OBJECT_TYPE>
@@ -422,15 +425,15 @@ namespace NGT {
 
     template <typename OBJECT_TYPE, typename COMPARE_TYPE>
     static double compareL1(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
-      const OBJECT_TYPE *last = a + size;
-      const OBJECT_TYPE *lastgroup = last - 3;
+      auto *last = a + size;
+      auto *lastgroup = last - 3;
       COMPARE_TYPE diff0, diff1, diff2, diff3;
       double d = 0.0;
       while (a < lastgroup) {
-	diff0 = (COMPARE_TYPE)(a[0] - b[0]);
-	diff1 = (COMPARE_TYPE)(a[1] - b[1]);
-	diff2 = (COMPARE_TYPE)(a[2] - b[2]);
-	diff3 = (COMPARE_TYPE)(a[3] - b[3]);
+	diff0 = (COMPARE_TYPE)(a[0]) - b[0];
+	diff1 = (COMPARE_TYPE)(a[1]) - b[1];
+	diff2 = (COMPARE_TYPE)(a[2]) - b[2];
+	diff3 = (COMPARE_TYPE)(a[3]) - b[3];
 	d += absolute(diff0) + absolute(diff1) + absolute(diff2) + absolute(diff3);
 	a += 4;
 	b += 4;
@@ -464,6 +467,12 @@ namespace NGT {
       return compareL1<bfloat16, float>(a, b, size);
     }
 #endif
+    inline static double compareL1(const quint8 *a, const quint8 *b, size_t size) {
+      return compareL1<quint8, float>(a, b, size);
+    }
+    inline static double compareL1(const qsint8 *a, const qsint8 *b, size_t size) {
+      return compareL1<qsint8, float>(a, b, size);
+    }
 #else
     inline static double compareL1(const float *a, const float *b, size_t size) {
       __m256 sum = _mm256_setzero_ps();
@@ -728,6 +737,14 @@ namespace NGT {
       double sum = 0.0;
       for (size_t loc = 0; loc < size; loc++) {
 	sum += static_cast<float>(a[loc]) * static_cast<float>(b[loc]);
+      }
+      return sum;
+    }
+
+    inline static double compareDotProduct(const qsint8 *a, const quint8 *b, size_t size) {
+      double sum = 0.0;
+      for (size_t loc = 0; loc < size; loc++) {
+	sum += static_cast<int32_t>(a[loc]) * static_cast<int32_t>(b[loc]);
       }
       return sum;
     }
@@ -1153,6 +1170,7 @@ namespace NGT {
     inline static double compareCosine(const qsint8 *a, const qsint8 *b, size_t size) {
       return compareCosine(reinterpret_cast<const uint8_t*>(a), reinterpret_cast<const uint8_t*>(b), size);
     }
+#endif    // #if defined(NGT_NO_AVX)
 
     inline static double compareNormalizedCosineSimilarity(const float *a, const float *b, size_t size) {
       auto v = 1.0 - compareDotProduct(a, b, size);
@@ -1182,7 +1200,6 @@ namespace NGT {
       auto v = max - compareDotProduct(a, b, size);
       return v;
     }
-#endif    // #if defined(NGT_NO_AVX)
 
     template <typename OBJECT_TYPE>
     inline static double compareAngleDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
@@ -1512,14 +1529,14 @@ namespace NGT {
     class L1Qsint8 {
     public:
       inline static double compare(const void *a, const void *b, size_t size) {
-	NGTThrowException("Not supported.");
+	return PrimitiveComparator::compareL1((const qsint8*)a, (const qsint8*)b, size);
       }
     };
 
     class CosineSimilarityQsint8 {
     public:
       inline static double compare(const void *a, const void *b, size_t size) {
-	NGTThrowException("Not supported.");
+	return PrimitiveComparator::compareCosineSimilarity((const qsint8*)a, (const qsint8*)b, size);
       }
     };
 
@@ -1564,7 +1581,7 @@ namespace NGT {
     class NormalizedCosineSimilarityQsint8 {
     public:
       inline static double compare(const void *a, const void *b, size_t size) {
-	float max = 127.0 * 127.0 * size;
+	float max = 127.0 * 255.0;
 	auto d = max - PrimitiveComparator::compareDotProduct((const qsint8*)a, (const qsint8*)b, size);
 	return d;
       }

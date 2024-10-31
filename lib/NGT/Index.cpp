@@ -142,7 +142,17 @@ NGT::Index::createGraphAndTree(const string &database, NGT::Property &prop, cons
   StdOstreamRedirector redirector(redirect);
   redirector.begin();
   try {
-    loadAndCreateIndex(*idx, database, dataFile, prop.threadPoolSize, dataSize);
+    if (idx->getObjectSpace().isQintObjectType()) {
+      idx->saveIndex(database);
+      idx->close();
+      auto append = true;
+      auto refinement = false;
+      if (!dataFile.empty()) {
+	appendFromTextObjectFile(database, dataFile, dataSize, append, refinement, prop.threadPoolSize);
+      }
+    } else {
+      loadAndCreateIndex(*idx, database, dataFile, prop.threadPoolSize, dataSize);
+    }
   } catch(Exception &err) {
     delete idx;
     redirector.end();
@@ -169,7 +179,17 @@ NGT::Index::createGraph(const string &database, NGT::Property &prop, const strin
   StdOstreamRedirector redirector(redirect);
   redirector.begin();
   try {
-    loadAndCreateIndex(*idx, database, dataFile, prop.threadPoolSize, dataSize);
+    if (idx->getObjectSpace().isQintObjectType()) {
+      idx->saveIndex(database);
+      idx->close();
+      auto append = true;
+      auto refinement = false;
+      if (!dataFile.empty()) {
+	appendFromTextObjectFile(database, dataFile, dataSize, append, refinement, prop.threadPoolSize);
+      }
+    } else {
+      loadAndCreateIndex(*idx, database, dataFile, prop.threadPoolSize, dataSize);
+    }
   } catch(Exception &err) {
     delete idx;
     redirector.end();
@@ -248,10 +268,10 @@ NGT::Index::append(const string &database, const float *data, size_t dataSize, s
 }
 
 void 
-NGT::Index::appendFromRefinementObjectFile(const std::string &indexPath) {
+NGT::Index::appendFromRefinementObjectFile(const std::string &indexPath, size_t threadSize) {
   NGT::Index index(indexPath);
   index.appendFromRefinementObjectFile();
-  index.createIndex();
+  index.createIndex(threadSize);
   index.save();
   index.close();
 }
@@ -439,12 +459,12 @@ NGT::Index::insertFromRefinementObjectFile() {
 
 void 
 NGT::Index::appendFromTextObjectFile(const std::string &indexPath, const std::string &data, size_t dataSize,
-				     bool append, bool refinement) {
+				     bool append, bool refinement, size_t threadSize) {
 //#define APPEND_TEST
   
   NGT::Index index(indexPath);
   index.appendFromTextObjectFile(data, dataSize, append, refinement);
-  index.createIndex();
+  index.createIndex(threadSize);
   index.save();
   index.close();
 }
@@ -612,10 +632,10 @@ NGT::Index::appendFromTextObjectFile(const std::string &data, size_t dataSize, b
 
 void
 NGT::Index::appendFromBinaryObjectFile(const std::string &indexPath, const std::string &data,
-				       size_t dataSize, bool append, bool refinement) {
+				       size_t dataSize, bool append, bool refinement, size_t threadSize) {
   NGT::Index index(indexPath);
   index.appendFromBinaryObjectFile(data, dataSize, append, refinement);
-  index.createIndex();
+  index.createIndex(threadSize);
   index.save();
   index.close();
 }

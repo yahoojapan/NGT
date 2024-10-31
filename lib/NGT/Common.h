@@ -59,6 +59,7 @@ namespace NGT {
 
   class quint8 {
   public:
+    quint8(){}
     quint8(uint8_t v):value(v){}
     quint8 &operator=(uint8_t v) { value = v; return *this; }
     operator uint8_t() const { return value; }
@@ -67,6 +68,7 @@ namespace NGT {
   };
   class qsint8 {
   public:
+    qsint8(){}
     qsint8(int8_t v):value(v){}
     qsint8 &operator=(int8_t v) { value = v; return *this; }
     operator int8_t() const { return value; }

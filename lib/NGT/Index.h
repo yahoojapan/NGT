@@ -552,14 +552,14 @@ namespace NGT {
 #endif
     static void append(const std::string &index, const std::string &dataFile, size_t threadSize, size_t dataSize);
     static void append(const std::string &index, const float *data, size_t dataSize, size_t threadSize);
-    static void appendFromRefinementObjectFile(const std::string &index);
+    static void appendFromRefinementObjectFile(const std::string &index, size_t threadSize = 0);
     void appendFromRefinementObjectFile();
     void insertFromRefinementObjectFile();
-    static void appendFromTextObjectFile(const std::string &index, const std::string &data,
-					 size_t dataSize, bool append = true, bool refinement = false);
+    static void appendFromTextObjectFile(const std::string &index, const std::string &data, size_t dataSize,
+					 bool append = true, bool refinement = false, size_t threadSize = 0);
     void appendFromTextObjectFile(const std::string &data, size_t dataSize, bool append = true, bool refinement = false);
-    static void appendFromBinaryObjectFile(const std::string &index, const std::string &data,
-					   size_t dataSize, bool append = true, bool refinement = false);
+    static void appendFromBinaryObjectFile(const std::string &index, const std::string &data, size_t dataSize,
+					   bool append = true, bool refinement = false, size_t threadSize = 0);
     void appendFromBinaryObjectFile(const std::string &data, size_t dataSize, bool apend = true, bool refinement = false);
     static void remove(const std::string &database, std::vector<ObjectID> &objects, bool force = false);
     static void exportIndex(const std::string &database, const std::string &file);
