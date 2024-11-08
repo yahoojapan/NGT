@@ -2084,6 +2084,8 @@ NGT::GraphIndex::getGraphStatistics(NGT::GraphIndex &outGraph, char mode, size_t
       valid = false;
       continue;
     }
+    if (node == nullptr)
+      continue;
     numberOfNodes++;
     size_t esize = std::min(node->size(), edgeSize); // edge size limitation by using edgeSize argument.
     if (esize == 0) {
@@ -2102,7 +2104,7 @@ NGT::GraphIndex::getGraphStatistics(NGT::GraphIndex &outGraph, char mode, size_t
       NGT::ObjectDistance &n = (*node)[i];
 #endif
       if (std::isnan(n.distance)) {
-        stringstream msg;
+        std::stringstream msg;
         msg << "NGT::GraphIndex::getGraphStatistics: Fatal inner error! The graph has a node with nan distance. " << id << ":" << n.id << ":" << n.distance;
         NGTThrowException(msg);
       }
@@ -2113,8 +2115,7 @@ NGT::GraphIndex::getGraphStatistics(NGT::GraphIndex &outGraph, char mode, size_t
       indegreeCount[n.id]++;
       indegree[n.id].push_back(n.distance);
       numberOfOutdegree++;
-      double d = n.distance;
-      distance += d;
+      distance += n.distance;
     }
   }
 
@@ -2129,6 +2130,8 @@ NGT::GraphIndex::getGraphStatistics(NGT::GraphIndex &outGraph, char mode, size_t
       } catch (NGT::Exception &err) {
         continue;
       }
+      if (n == nullptr)
+        continue;
       NGT::GraphNode &node = *n;
       for (size_t i = 0; i < node.size(); i++) {
         NGT::GraphNode *nn = nullptr;
@@ -2140,12 +2143,6 @@ NGT::GraphIndex::getGraphStatistics(NGT::GraphIndex &outGraph, char mode, size_t
 #endif
         } catch (NGT::Exception &err) {
           count++;
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-          std::cerr << "Directed edge! " << id << "->" << node.at(i, graph.allocator).id << " no object. "
-                    << node.at(i, graph.allocator).id << std::endl;
-#else
-          std::cerr << "Directed edge! " << id << "->" << node[i].id << " no object. " << node[i].id << std::endl;
-#endif
           continue;
         }
         NGT::GraphNode &nnode = *nn;
@@ -2160,15 +2157,8 @@ NGT::GraphIndex::getGraphStatistics(NGT::GraphIndex &outGraph, char mode, size_t
             break;
           }
         }
-        if (!found) {
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-          std::cerr << "Directed edge! " << id << "->" << node.at(i, graph.allocator).id << " no edge. "
-                    << node.at(i, graph.allocator).id << "->" << id << std::endl;
-#else
-          std::cerr << "Directed edge! " << id << "->" << node[i].id << " no edge. " << node[i].id << "->" << id << std::endl;
-#endif
+        if (!found)
           count++;
-        }
       }
     }
     std::cerr << "The number of directed edges=" << count << std::endl;
@@ -2188,6 +2178,8 @@ NGT::GraphIndex::getGraphStatistics(NGT::GraphIndex &outGraph, char mode, size_t
       std::cerr << "ngt info: Warning. Cannot get the node. ID=" << id << ":" << err.what() << std::endl;
       continue;
     }
+    if (n == nullptr)
+      continue;
     NGT::GraphNode &node = *n;
     if (node.size() < dcsize) {
       d10SkipCount++;
@@ -2364,9 +2356,9 @@ NGT::GraphIndex::getGraphStatistics(NGT::GraphIndex &outGraph, char mode, size_t
   stats.setModeIndegree(modeIndegree);
   stats.setC5Indegree(c5);
   stats.setC1Indegree(c1);
-  stats.setIndegreeCount(indegreeCount);
-  stats.setOutdegreeHistogram(outdegreeHistogram);
-  stats.setIndegreeHistogram(indegreeHistogram);
+  stats.setIndegreeCount(std::move(indegreeCount));
+  stats.setOutdegreeHistogram(std::move(outdegreeHistogram));
+  stats.setIndegreeHistogram(std::move(indegreeHistogram));
   stats.setValid(valid);
 
   return stats;

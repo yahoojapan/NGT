@@ -834,9 +834,9 @@ namespace NGT {
 		  void setModeIndegree(size_t value) { modeIndegree = value; }
 		  void setC5Indegree(double value) { c5Indegree = value; }
 		  void setC1Indegree(double value) { c1Indegree = value; }
-		  void setIndegreeCount(std::vector<int64_t> value) { indegreeCount = value; }
-		  void setOutdegreeHistogram(std::vector<size_t> value) { outdegreeHistogram = value; }
-		  void setIndegreeHistogram(std::vector<size_t> value) { indegreeHistogram = value; }
+		  void setIndegreeCount(std::vector<int64_t>&& value) { indegreeCount = std::move(value); }
+		  void setIndegreeHistogram(std::vector<size_t>&& value) { indegreeHistogram = std::move(value); }
+		  void setOutdegreeHistogram(std::vector<size_t>&& value) { outdegreeHistogram = std::move(value); }
 		  void setValid(bool value) { valid = value; }
 
 		  size_t numberOfObjects;

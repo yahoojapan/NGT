@@ -115,10 +115,10 @@ NGTGraphStatistics ngt_get_graph_statistics(const NGTIndex index, char mode, siz
     return cStats;
   }
 
-  NGT::Index*		pindex = static_cast<NGT::Index*>(index);
-  NGT::GraphIndex	&graph = static_cast<NGT::GraphIndex&>(pindex->getIndex());
-  NGT::GraphIndex::GraphStatistics stats = NGT::GraphIndex::getGraphStatistics(graph, mode, edgeSize);
   try {
+    NGT::Index*		pindex = static_cast<NGT::Index*>(index);
+    NGT::GraphIndex	&graph = static_cast<NGT::GraphIndex&>(pindex->getIndex());
+    NGT::GraphIndex::GraphStatistics stats = NGT::GraphIndex::getGraphStatistics(graph, mode, edgeSize);
     cStats.numberOfObjects = stats.getNumberOfObjects();
     cStats.numberOfIndexedObjects = stats.getNumberOfIndexedObjects();
     cStats.sizeOfObjectRepository = stats.getSizeOfObjectRepository();
@@ -151,15 +151,18 @@ NGTGraphStatistics ngt_get_graph_statistics(const NGTIndex index, char mode, siz
 
     cStats.indegreeCountSize = stats.getIndegreeCount().size();
     cStats.indegreeCount = new int64_t[cStats.indegreeCountSize];
-    std::copy(stats.getIndegreeCount().begin(), stats.getIndegreeCount().end(), cStats.indegreeCount);
+    std::memcpy(cStats.indegreeCount, stats.getIndegreeCount().data(),
+                cStats.indegreeCountSize * sizeof(size_t));
 
     cStats.outdegreeHistogramSize = stats.getOutdegreeHistogram().size();
     cStats.outdegreeHistogram = new size_t[cStats.outdegreeHistogramSize];
-    std::copy(stats.getOutdegreeHistogram().begin(), stats.getOutdegreeHistogram().end(), cStats.outdegreeHistogram);
+    std::memcpy(cStats.outdegreeHistogram, stats.getOutdegreeHistogram().data(),
+                cStats.outdegreeHistogramSize * sizeof(size_t));
 
     cStats.indegreeHistogramSize = stats.getIndegreeHistogram().size();
     cStats.indegreeHistogram = new size_t[cStats.indegreeHistogramSize];
-    std::copy(stats.getIndegreeHistogram().begin(), stats.getIndegreeHistogram().end(), cStats.indegreeHistogram);
+    std::memcpy(cStats.indegreeHistogram, stats.getIndegreeHistogram().data(),
+                cStats.indegreeHistogramSize * sizeof(size_t));
 
     cStats.valid = stats.isValid();
   }catch(std::exception &err){
