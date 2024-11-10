@@ -1928,7 +1928,6 @@ public:
   }
 
 
-    
   inline void createFloatL2DistanceLookup(void *object, size_t sizeOfObject, void *globalCentroid, float *lut) {
     size_t localDataSize = sizeOfObject  / localDivisionNo / sizeof(float);
     float *optr = static_cast<float*>(object);
@@ -4558,7 +4557,7 @@ public:
     float subspaceObjects[localData.size()][globalCodebookIndex.getObjectSpace().getPaddedDimension()];
     bool error = false;
     std::string errorMessage;
-#pragma omp parallel for
+#pragma omp parallel for 
     for (size_t i = 0; i < localData.size(); i++) {
       if (error) continue;
       size_t objidx = i;

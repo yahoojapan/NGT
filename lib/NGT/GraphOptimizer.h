@@ -565,7 +565,6 @@ namespace NGT {
 	estimatedEdge += (parameter.targetAccuracy - estimatedAccuracy) / std::get<2>(transition.back().second);
 	estimatedAccuracy = parameter.targetAccuracy;
       }
-
       if (estimatedEdge == 0) {
       	std::stringstream msg;
 	msg << "Optimizer::optimizeNumberOfEdgesForANNG: Cannot optimize the number of edges. "

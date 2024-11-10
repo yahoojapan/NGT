@@ -84,6 +84,7 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
       $ cd NGT-x.x.x
       $ mkdir build
       $ cd build
+      $ export OpenMP_ROOT=$(brew --prefix)/opt/libomp
       $ cmake ..
       $ make
       $ make install

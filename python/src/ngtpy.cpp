@@ -841,7 +841,7 @@ public:
       sc.setEdgeSize(defaultEdgeSize);
       sc.setNumOfProbes(defaultNumOfProbes);
 #ifdef NGTQBG_FUNCTION_SELECTOR
-      sc.functionSelector = defaultFunctionSelector;	/////////////////
+      sc.functionSelector = defaultFunctionSelector;
 #endif
       QBG::Index::searchInTwoSteps(sc);
       results.results[idx] = std::move(sc.getWorkingResult());
@@ -885,7 +885,7 @@ public:
     sc.setEdgeSize(defaultEdgeSize);
     sc.setNumOfProbes(defaultNumOfProbes);
 #ifdef NGTQBG_FUNCTION_SELECTOR
-    sc.functionSelector = defaultFunctionSelector;	/////////////////
+    sc.functionSelector = defaultFunctionSelector;
 #endif
     QBG::Index::searchInTwoSteps(sc);
     results.resultList = std::move(sc.getBatchResult());
@@ -1031,7 +1031,7 @@ public:
       sc.setGraphExplorationSize(defaultExplorationSize);
       sc.setNumOfProbes(defaultNumOfProbes);
 #ifdef NGTQBG_FUNCTION_SELECTOR
-      sc.functionSelector = defaultFunctionSelector;	/////////////////
+      sc.functionSelector = defaultFunctionSelector;
 #endif
       QBG::Index::searchInTwoSteps(sc);
 
@@ -1093,7 +1093,7 @@ public:
    float exactResultExpansion,
    int numOfProbes
 #ifdef NGTQBG_FUNCTION_SELECTOR
-   , size_t functionSelector ///////////////////
+   , size_t functionSelector
 #endif
   ) {
     defaultNumOfSearchObjects = numOfSearchObjects > 0 ? numOfSearchObjects : defaultNumOfSearchObjects;
@@ -1106,7 +1106,7 @@ public:
     defaultExactResultExpansion = exactResultExpansion > 0.0 ? exactResultExpansion : defaultExactResultExpansion;
     defaultNumOfProbes	      = numOfProbes > 0 ? numOfProbes : defaultNumOfProbes;
 #ifdef NGTQBG_FUNCTION_SELECTOR
-    defaultFunctionSelector   = functionSelector; ////////////////
+    defaultFunctionSelector   = functionSelector;
 #endif
   }
 
@@ -1125,7 +1125,7 @@ public:
   float		defaultExactResultExpansion;
   size_t	defaultNumOfProbes;
 #ifdef NGTQBG_FUNCTION_SELECTOR
-  size_t	defaultFunctionSelector; //////////////////////////
+  size_t	defaultFunctionSelector;
 #endif
 };
 
@@ -1322,7 +1322,7 @@ PYBIND11_MODULE(ngtpy, m) {
            py::arg("exact_result_expansion") = 0.0,
            py::arg("num_of_probes") = INT_MIN
 #ifdef NGTQBG_FUNCTION_SELECTOR
-	   , py::arg("function_selector") = 0 ///////////
+	   , py::arg("function_selector") = 0
 #endif
 	   );
 

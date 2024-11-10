@@ -556,7 +556,6 @@ namespace NGTQG {
 #else
       property.localCentroidCreationMode = NGTQ::CentroidCreationModeDynamicKmeans;
 #endif
-
       property.globalCentroidLimit = 1;
       property.localCentroidLimit = 16;
       property.localClusteringSampleCoefficient = 100;

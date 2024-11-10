@@ -84,6 +84,7 @@ Installation
       $ cd NGT-x.x.x
       $ mkdir build
       $ cd build
+      $ export OpenMP_ROOT=$(brew --prefix)/opt/libomp
       $ cmake ..
       $ make
       $ make install
