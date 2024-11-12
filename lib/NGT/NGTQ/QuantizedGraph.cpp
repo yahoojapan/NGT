@@ -14,14 +14,15 @@
 // limitations under the License.
 //
 
-#include	"NGT/NGTQ/QuantizedGraph.h"
-#include	"NGT/NGTQ/QuantizedBlobGraph.h"
-#include	"NGT/NGTQ/Optimizer.h"
+#include "NGT/NGTQ/QuantizedGraph.h"
+#include "NGT/NGTQ/QuantizedBlobGraph.h"
+#include "NGT/NGTQ/Optimizer.h"
 
 #ifdef NGTQ_QBG
-void NGTQG::Index::quantize(const std::string indexPath, size_t dimensionOfSubvector, size_t maxNumOfEdges, bool verbose) {
+void NGTQG::Index::quantize(const std::string indexPath, size_t dimensionOfSubvector, size_t maxNumOfEdges,
+                            bool verbose) {
   {
-    NGT::Index	index(indexPath);
+    NGT::Index index(indexPath);
     const std::string quantizedIndexPath = indexPath + "/qg";
     struct stat st;
     if (stat(quantizedIndexPath.c_str(), &st) != 0) {
@@ -30,7 +31,7 @@ void NGTQG::Index::quantize(const std::string indexPath, size_t dimensionOfSubve
       QBG::BuildParameters buildParameters;
       buildParameters.creation.dimensionOfSubvector = dimensionOfSubvector;
       buildParameters.setVerbose(verbose);
- 
+
       NGTQG::Index::create(indexPath, buildParameters);
 
       NGTQG::Index::append(indexPath, buildParameters);
@@ -38,15 +39,20 @@ void NGTQG::Index::quantize(const std::string indexPath, size_t dimensionOfSubve
       QBG::Optimizer optimizer(buildParameters);
 #ifdef NGTQG_NO_ROTATION
       if (optimizer.rotation || optimizer.repositioning) {
-	std::cerr << "build-qg: Warning! Although rotation or repositioning is specified, turn off rotation and repositioning because of unavailable options." << std::endl;
-	optimizer.rotation = false;
-	optimizer.repositioning = false;
+        std::cerr << "build-qg: Warning! Although rotation or repositioning is specified, turn off rotation "
+                     "and repositioning because of unavailable options."
+                  << std::endl;
+        optimizer.rotation      = false;
+        optimizer.repositioning = false;
       }
 #endif
 
       if (optimizer.globalType == QBG::Optimizer::GlobalTypeNone) {
-	if (verbose) std::cerr << "build-qg: Warning! None is unavailable for the global type. Zero is set to the global type." << std::endl;
-	optimizer.globalType = QBG::Optimizer::GlobalTypeZero;
+        if (verbose)
+          std::cerr
+              << "build-qg: Warning! None is unavailable for the global type. Zero is set to the global type."
+              << std::endl;
+        optimizer.globalType = QBG::Optimizer::GlobalTypeZero;
       }
 
       optimizer.optimize(quantizedIndexPath);
@@ -56,23 +62,22 @@ void NGTQG::Index::quantize(const std::string indexPath, size_t dimensionOfSubve
       NGTQG::Index::realign(indexPath, maxNumOfEdges, verbose);
     }
   }
-
 }
 
 void NGTQG::Index::create(const std::string indexPath, QBG::BuildParameters &buildParameters) {
   auto dimensionOfSubvector = buildParameters.creation.dimensionOfSubvector;
-  auto dimension = buildParameters.creation.dimension;
+  auto dimension            = buildParameters.creation.dimension;
   if (dimension != 0 && buildParameters.creation.numOfSubvectors != 0) {
     if (dimension % buildParameters.creation.numOfSubvectors != 0) {
       std::stringstream msg;
-      msg << "NGTQBG:Index::create: Invalid dimension and local division No. " << dimension << ":" << buildParameters.creation.numOfSubvectors;
+      msg << "NGTQBG:Index::create: Invalid dimension and local division No. " << dimension << ":"
+          << buildParameters.creation.numOfSubvectors;
       NGTThrowException(msg);
     }
     dimensionOfSubvector = dimension / buildParameters.creation.numOfSubvectors;
   }
   create(indexPath, dimensionOfSubvector, dimension);
 }
-
 
 void NGTQG::Index::append(const std::string indexPath, QBG::BuildParameters &buildParameters) {
   QBG::Index::appendFromObjectRepository(indexPath, indexPath + "/qg", buildParameters.verbose);

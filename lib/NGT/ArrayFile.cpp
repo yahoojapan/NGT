@@ -19,21 +19,14 @@
 #include <assert.h>
 
 class ItemID {
-public:
-  void serialize(std::ostream &os, NGT::ObjectSpace *ospace = 0) {
-    os.write((char*)&value, sizeof(value));
-  }
-  void deserialize(std::istream &is, NGT::ObjectSpace *ospace = 0) {
-    is.read((char*)&value, sizeof(value));
-  }
-  static size_t getSerializedDataSize() {
-    return sizeof(uint64_t);
-  }
+ public:
+  void serialize(std::ostream &os, NGT::ObjectSpace *ospace = 0) { os.write((char *)&value, sizeof(value)); }
+  void deserialize(std::istream &is, NGT::ObjectSpace *ospace = 0) { is.read((char *)&value, sizeof(value)); }
+  static size_t getSerializedDataSize() { return sizeof(uint64_t); }
   uint64_t value;
 };
 
-void
-sampleForUsage() {
+void sampleForUsage() {
   {
     ArrayFile<ItemID> itemIDFile;
     itemIDFile.create("test.data", ItemID::getSerializedDataSize());
@@ -41,7 +34,7 @@ sampleForUsage() {
     ItemID itemID;
     size_t id;
 
-    id = 1;
+    id           = 1;
     itemID.value = 4910002490100;
     itemIDFile.put(id, itemID);
     itemID.value = 0;
@@ -49,7 +42,7 @@ sampleForUsage() {
     std::cerr << "value=" << itemID.value << std::endl;
     assert(itemID.value == 4910002490100);
 
-    id = 2;
+    id           = 2;
     itemID.value = 4910002490101;
     itemIDFile.put(id, itemID);
     itemID.value = 0;
@@ -58,7 +51,7 @@ sampleForUsage() {
     assert(itemID.value == 4910002490101);
 
     itemID.value = 4910002490102;
-    id = itemIDFile.insert(itemID);
+    id           = itemIDFile.insert(itemID);
     itemID.value = 0;
     itemIDFile.get(id, itemID);
     std::cerr << "value=" << itemID.value << std::endl;
@@ -83,7 +76,4 @@ sampleForUsage() {
     std::cerr << "value=" << itemID.value << std::endl;
     assert(itemID.value == 4910002490101);
   }
-
 }
-
-

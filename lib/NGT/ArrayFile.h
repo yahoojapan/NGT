@@ -26,11 +26,10 @@
 #include <cstring>
 
 namespace NGT {
-  class ObjectSpace;
+class ObjectSpace;
 };
 
-template <class TYPE>
-class ArrayFile {
+template <class TYPE> class ArrayFile {
  protected:
   struct FileHeadStruct {
     size_t recordSize;
@@ -48,7 +47,7 @@ class ArrayFile {
 
   bool _readFileHead();
   pthread_mutex_t _mutex;
-  
+
  public:
   ArrayFile();
   ~ArrayFile();
@@ -64,42 +63,37 @@ class ArrayFile {
   size_t getRecordSize() { return _fileHead.recordSize; }
 };
 
-
 // constructor
 template <class TYPE>
-ArrayFile<TYPE>::ArrayFile()
-  : _isOpen(false), _mutex((pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER){
-    if(pthread_mutex_init(&_mutex, NULL) < 0) throw std::runtime_error("pthread init error.");
+ArrayFile<TYPE>::ArrayFile() : _isOpen(false), _mutex((pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER) {
+  if (pthread_mutex_init(&_mutex, NULL) < 0) throw std::runtime_error("pthread init error.");
 }
 
 // destructor
-template <class TYPE>
-ArrayFile<TYPE>::~ArrayFile() {
+template <class TYPE> ArrayFile<TYPE>::~ArrayFile() {
   pthread_mutex_destroy(&_mutex);
   close();
 }
 
-template <class TYPE>
-bool ArrayFile<TYPE>::create(const std::string &file, size_t recordSize) {
+template <class TYPE> bool ArrayFile<TYPE>::create(const std::string &file, size_t recordSize) {
   std::fstream tmpstream;
   tmpstream.open(file.c_str());
-  if(tmpstream){
+  if (tmpstream) {
     return false;
   }
-  
+
   tmpstream.open(file.c_str(), std::ios::out);
   tmpstream.seekp(0, std::ios::beg);
   FileHeadStruct fileHead = {recordSize, 0};
   tmpstream.write((char *)(&fileHead), sizeof(FileHeadStruct));
   tmpstream.close();
-  
+
   return true;
 }
 
-template <class TYPE>
-bool ArrayFile<TYPE>::open(const std::string &file) {
+template <class TYPE> bool ArrayFile<TYPE>::open(const std::string &file) {
   _stream.open(file.c_str(), std::ios::in | std::ios::out);
-  if(!_stream){
+  if (!_stream) {
     _isOpen = false;
     return false;
   }
@@ -109,50 +103,50 @@ bool ArrayFile<TYPE>::open(const std::string &file) {
   return ret;
 }
 
-template <class TYPE>
-void ArrayFile<TYPE>::close(){
+template <class TYPE> void ArrayFile<TYPE>::close() {
   _stream.close();
   _isOpen = false;
 }
 
-template <class TYPE>
-size_t ArrayFile<TYPE>::insert(TYPE &data, NGT::ObjectSpace *objectSpace) {
+template <class TYPE> size_t ArrayFile<TYPE>::insert(TYPE &data, NGT::ObjectSpace *objectSpace) {
   _stream.seekp(sizeof(RecordStruct), std::ios::end);
   int64_t write_pos = _stream.tellg();
-  for(size_t i = 0; i < _fileHead.recordSize; i++) { _stream.write("", 1); }
+  for (size_t i = 0; i < _fileHead.recordSize; i++) {
+    _stream.write("", 1);
+  }
   _stream.seekp(write_pos, std::ios::beg);
   data.serialize(_stream, objectSpace);
-  
+
   int64_t offset_pos = _stream.tellg();
   offset_pos -= sizeof(FileHeadStruct);
   size_t id = offset_pos / (sizeof(RecordStruct) + _fileHead.recordSize);
-  if(offset_pos % (sizeof(RecordStruct) + _fileHead.recordSize) == 0){
+  if (offset_pos % (sizeof(RecordStruct) + _fileHead.recordSize) == 0) {
     id -= 1;
   }
-  
+
   return id;
 }
 
-template <class TYPE>
-void ArrayFile<TYPE>::put(const size_t id, TYPE &data, NGT::ObjectSpace *objectSpace) {
+template <class TYPE> void ArrayFile<TYPE>::put(const size_t id, TYPE &data, NGT::ObjectSpace *objectSpace) {
   uint64_t offset_pos = (id * (sizeof(RecordStruct) + _fileHead.recordSize)) + sizeof(FileHeadStruct);
   offset_pos += sizeof(RecordStruct);
   _stream.seekp(offset_pos, std::ios::beg);
-  
-  for(size_t i = 0; i < _fileHead.recordSize; i++) { _stream.write("", 1); }
+
+  for (size_t i = 0; i < _fileHead.recordSize; i++) {
+    _stream.write("", 1);
+  }
   _stream.seekp(offset_pos, std::ios::beg);
   data.serialize(_stream, objectSpace);
 }
 
-template <class TYPE>
-bool ArrayFile<TYPE>::get(const size_t id, TYPE &data, NGT::ObjectSpace *objectSpace) {
+template <class TYPE> bool ArrayFile<TYPE>::get(const size_t id, TYPE &data, NGT::ObjectSpace *objectSpace) {
   pthread_mutex_lock(&_mutex);
 
-  if( size() <= id ){
+  if (size() <= id) {
     pthread_mutex_unlock(&_mutex);
     return false;
   }
-  
+
   uint64_t offset_pos = (id * (sizeof(RecordStruct) + _fileHead.recordSize)) + sizeof(FileHeadStruct);
   offset_pos += sizeof(RecordStruct);
   _stream.seekg(offset_pos, std::ios::beg);
@@ -165,13 +159,13 @@ bool ArrayFile<TYPE>::get(const size_t id, TYPE &data, NGT::ObjectSpace *objectS
       _stream.clear();
       _stream.seekg(offset_pos, std::ios::beg);
       if (_stream.fail()) {
-	continue;
+        continue;
       }
       data.deserialize(_stream, objectSpace);
       if (_stream.fail()) {
-	continue;
+        continue;
       } else {
-	break;
+        break;
       }
     }
     if (_stream.fail()) {
@@ -183,23 +177,16 @@ bool ArrayFile<TYPE>::get(const size_t id, TYPE &data, NGT::ObjectSpace *objectS
   return true;
 }
 
-template <class TYPE>
-void ArrayFile<TYPE>::remove(const size_t id) {
+template <class TYPE> void ArrayFile<TYPE>::remove(const size_t id) {
   uint64_t offset_pos = (id * (sizeof(RecordStruct) + _fileHead.recordSize)) + sizeof(FileHeadStruct);
   _stream.seekp(offset_pos, std::ios::beg);
   RecordStruct recordHead = {1, 0};
   _stream.write((char *)(&recordHead), sizeof(RecordStruct));
 }
 
-template <class TYPE>
-bool ArrayFile<TYPE>::isOpen() const
-{
-  return _isOpen;
-}
+template <class TYPE> bool ArrayFile<TYPE>::isOpen() const { return _isOpen; }
 
-template <class TYPE>
-size_t ArrayFile<TYPE>::size()
-{
+template <class TYPE> size_t ArrayFile<TYPE>::size() {
   _stream.seekp(0, std::ios::end);
   int64_t offset_pos = _stream.tellg();
   offset_pos -= sizeof(FileHeadStruct);
@@ -208,13 +195,11 @@ size_t ArrayFile<TYPE>::size()
   return num;
 }
 
-template <class TYPE>
-bool ArrayFile<TYPE>::_readFileHead() {
+template <class TYPE> bool ArrayFile<TYPE>::_readFileHead() {
   _stream.seekp(0, std::ios::beg);
   _stream.read((char *)(&_fileHead), sizeof(FileHeadStruct));
-  if(_stream.bad()){
+  if (_stream.bad()) {
     return false;
   }
   return true;
 }
-

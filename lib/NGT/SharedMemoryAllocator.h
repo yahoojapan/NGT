@@ -16,50 +16,48 @@
 
 #pragma once
 
-#include	"NGT/defines.h"
-#include	"NGT/MmapManager.h"
+#include "NGT/defines.h"
+#include "NGT/MmapManager.h"
 
-#include	<unistd.h>
-#include	<cstdlib>
-#include	<cstring>
-#include	<string>
-#include	<iostream>
-#include	<vector>
-#include	<exception>
-#include	<cassert>
+#include <unistd.h>
+#include <cstdlib>
+#include <cstring>
+#include <string>
+#include <iostream>
+#include <vector>
+#include <exception>
+#include <cassert>
 
-#define		MMAP_MANAGER
+#define MMAP_MANAGER
 
 
 
 ///////////////////////////////////////////////////////////////////////
 class SharedMemoryAllocator {
  public:
-  enum GetMemorySizeType {
-    GetTotalMemorySize		= 0,
-    GetAllocatedMemorySize	= 1,
-    GetFreedMemorySize		= 2
-  };
+  enum GetMemorySizeType { GetTotalMemorySize = 0, GetAllocatedMemorySize = 1, GetFreedMemorySize = 2 };
 
-  SharedMemoryAllocator():isValid(false) {
+  SharedMemoryAllocator() : isValid(false) {
 #ifdef SMA_TRACE
     std::cerr << "SharedMemoryAllocatorSiglton::constructor" << std::endl;
 #endif
   }
-  SharedMemoryAllocator(const SharedMemoryAllocator& a){}
-  SharedMemoryAllocator& operator=(const SharedMemoryAllocator& a){ return *this; }
+  SharedMemoryAllocator(const SharedMemoryAllocator &a) {}
+  SharedMemoryAllocator &operator=(const SharedMemoryAllocator &a) { return *this; }
+
  public:
-  void* allocate(size_t size) {
+  void *allocate(size_t size) {
     if (isValid == false) {
       std::cerr << "SharedMemoryAllocator::allocate: Fatal error! " << std::endl;
       assert(isValid);
     }
 #ifdef SMA_TRACE
     std::cerr << "SharedMemoryAllocator::allocate: size=" << size << std::endl;
-    std::cerr << "SharedMemoryAllocator::allocate: before " << getTotalSize() << ":" << getAllocatedSize() << ":" << getFreedSize() << std::endl;
+    std::cerr << "SharedMemoryAllocator::allocate: before " << getTotalSize() << ":" << getAllocatedSize()
+              << ":" << getFreedSize() << std::endl;
 #endif
 #if defined(MMAP_MANAGER) && !defined(NOT_USE_MMAP_ALLOCATOR)
-    if(!isValid){
+    if (!isValid) {
       return NULL;
     }
     off_t file_offset = mmanager->alloc(size, true);
@@ -71,7 +69,7 @@ class SharedMemoryAllocator {
     void *p = mmanager->getAbsAddr(file_offset);
     std::memset(p, 0, size);
 #ifdef SMA_TRACE
-    std::cerr << "SharedMemoryAllocator::allocate: end" <<std::endl;
+    std::cerr << "SharedMemoryAllocator::allocate: end" << std::endl;
 #endif
     return p;
 #else
@@ -99,7 +97,7 @@ class SharedMemoryAllocator {
   }
 
   void *construct(const std::string &filePath, size_t memorysize = 0) {
-    file = filePath;	// debug
+    file = filePath; // debug
 #ifdef SMA_TRACE
     std::cerr << "ObjectSharedMemoryAllocator::construct: file " << filePath << std::endl;
 #endif
@@ -117,8 +115,8 @@ class SharedMemoryAllocator {
     MemoryManager::MmapManager::setDefaultOptionValue(option);
     option.use_expand = true;
     option.reuse_type = MemoryManager::REUSE_DATA_CLASSIFY;
-    bool create = true;
-    if(!mmanager->init(filePath, size, &option)){
+    bool create       = true;
+    if (!mmanager->init(filePath, size, &option)) {
 #ifdef SMA_TRACE
       std::cerr << "SMA: info. already existed." << std::endl;
 #endif
@@ -128,7 +126,7 @@ class SharedMemoryAllocator {
       std::cerr << "SMA::construct: msize=" << msize << ":" << memorysize << std::endl;
 #endif
     }
-    if(!mmanager->openMemory(filePath)){
+    if (!mmanager->openMemory(filePath)) {
       std::cerr << "SMA: open error" << std::endl;
       return 0;
     }
@@ -142,9 +140,9 @@ class SharedMemoryAllocator {
 #endif
     isValid = true;
 #ifdef SMA_TRACE
-    std::cerr << "SharedMemoryAllocator::construct: " << filePath << " total="
-	      << getTotalSize() << " allocated=" << getAllocatedSize() << " freed="
-	      << getFreedSize() << " (" << (double)getFreedSize() / (double)getTotalSize() << ") " << std::endl;
+    std::cerr << "SharedMemoryAllocator::construct: " << filePath << " total=" << getTotalSize()
+              << " allocated=" << getAllocatedSize() << " freed=" << getFreedSize() << " ("
+              << (double)getFreedSize() / (double)getTotalSize() << ") " << std::endl;
 #endif
     return hook;
   }
@@ -171,7 +169,7 @@ class SharedMemoryAllocator {
 #if defined(MMAP_MANAGER) && !defined(NOT_USE_MMAP_ALLOCATOR)
     return mmanager->getAbsAddr(oft);
 #else
-    return (void*)oft;
+    return (void *)oft;
 #endif
   }
   off_t getOffset(void *adr) {
@@ -186,9 +184,9 @@ class SharedMemoryAllocator {
   }
   size_t getMemorySize(GetMemorySizeType t) {
     switch (t) {
-    case GetTotalMemorySize : 	  return getTotalSize();
-    case GetAllocatedMemorySize : return getAllocatedSize();
-    case GetFreedMemorySize :	  return getFreedSize();
+    case GetTotalMemorySize: return getTotalSize();
+    case GetAllocatedMemorySize: return getAllocatedSize();
+    case GetFreedMemorySize: return getFreedSize();
     }
     return getTotalSize();
   }
@@ -205,5 +203,5 @@ class SharedMemoryAllocator {
 
 /////////////////////////////////////////////////////////////////////////
 
-void* operator new(size_t size, SharedMemoryAllocator &allocator);
-void* operator new[](size_t size, SharedMemoryAllocator &allocator);
+void *operator new(size_t size, SharedMemoryAllocator &allocator);
+void *operator new[](size_t size, SharedMemoryAllocator &allocator);

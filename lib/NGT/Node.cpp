@@ -14,12 +14,12 @@
 // limitations under the License.
 //
 
-#include	"NGT/defines.h"
+#include "NGT/defines.h"
 
-#include	"NGT/Node.h"
-#include	"NGT/Tree.h"
+#include "NGT/Node.h"
+#include "NGT/Tree.h"
 
-#include	<algorithm>
+#include <algorithm>
 
 using namespace std;
 
@@ -48,57 +48,53 @@ InternalNode::updateChild(DVPTree &dvptree, Node::ID src, Node::ID dst) {
   }
 }
 
-int
-LeafNode::selectPivotByMaxDistance(Container &c, Node::Objects &fs)
-{
-  DVPTree::InsertContainer &iobj = (DVPTree::InsertContainer&)c;
-  int fsize = fs.size();
-  Distance maxd = 0.0;
-  int maxid = 0;
+int LeafNode::selectPivotByMaxDistance(Container &c, Node::Objects &fs) {
+  DVPTree::InsertContainer &iobj = (DVPTree::InsertContainer &)c;
+  int fsize                      = fs.size();
+  Distance maxd                  = 0.0;
+  int maxid                      = 0;
   for (int i = 1; i < fsize; i++) {
     Distance d = iobj.vptree->objectSpace->getComparator()(*fs[0].object, *fs[i].object);
     if (d >= maxd) {
-      maxd = d;
+      maxd  = d;
       maxid = i;
     }
   }
 
   int aid = maxid;
-  maxd = 0.0;
-  maxid = 0;
+  maxd    = 0.0;
+  maxid   = 0;
   for (int i = 0; i < fsize; i++) {
     Distance d = iobj.vptree->objectSpace->getComparator()(*fs[aid].object, *fs[i].object);
     if (i == aid) {
       continue;
     }
     if (d >= maxd) {
-      maxd = d;
+      maxd  = d;
       maxid = i;
     }
   }
 
   int bid = maxid;
-  maxd = 0.0;
-  maxid = 0;
+  maxd    = 0.0;
+  maxid   = 0;
   for (int i = 0; i < fsize; i++) {
     Distance d = iobj.vptree->objectSpace->getComparator()(*fs[bid].object, *fs[i].object);
     if (i == bid) {
       continue;
     }
     if (d >= maxd) {
-      maxd = d;
+      maxd  = d;
       maxid = i;
     }
   }
   return maxid;
 }
 
-int
-LeafNode::selectPivotByMaxVariance(Container &c, Node::Objects &fs)
-{
-  DVPTree::InsertContainer &iobj = (DVPTree::InsertContainer&)c;
+int LeafNode::selectPivotByMaxVariance(Container &c, Node::Objects &fs) {
+  DVPTree::InsertContainer &iobj = (DVPTree::InsertContainer &)c;
 
-  int fsize = fs.size();
+  int fsize          = fs.size();
   Distance *distance = new Distance[fsize * fsize];
 
   for (int i = 0; i < fsize; i++) {
@@ -107,7 +103,7 @@ LeafNode::selectPivotByMaxVariance(Container &c, Node::Objects &fs)
 
   for (int i = 0; i < fsize; i++) {
     for (int j = i + 1; j < fsize; j++) {
-      Distance d = iobj.vptree->objectSpace->getComparator()(*fs[i].object, *fs[j].object);
+      Distance d              = iobj.vptree->objectSpace->getComparator()(*fs[i].object, *fs[j].object);
       distance[i * fsize + j] = d;
       distance[j * fsize + i] = d;
     }
@@ -129,23 +125,21 @@ LeafNode::selectPivotByMaxVariance(Container &c, Node::Objects &fs)
   }
 
   double maxv = variance[0];
-  int maxid = 0;
+  int maxid   = 0;
   for (int i = 0; i < fsize; i++) {
     if (variance[i] > maxv) {
-      maxv = variance[i];
+      maxv  = variance[i];
       maxid = i;
     }
   }
-  delete [] variance;
-  delete [] distance;
+  delete[] variance;
+  delete[] distance;
 
   return maxid;
 }
 
-void
-LeafNode::splitObjects(Container &c, Objects &fs, int pv)
-{
-  DVPTree::InsertContainer &iobj = (DVPTree::InsertContainer&)c;
+void LeafNode::splitObjects(Container &c, Objects &fs, int pv) {
+  DVPTree::InsertContainer &iobj = (DVPTree::InsertContainer &)c;
 
   // sort the objects by distance
   int fsize = fs.size();
@@ -153,7 +147,7 @@ LeafNode::splitObjects(Container &c, Objects &fs, int pv)
     if (i == pv) {
       fs[i].distance = 0;
     } else {
-      Distance d = iobj.vptree->objectSpace->getComparator()(*fs[pv].object, *fs[i].object);
+      Distance d     = iobj.vptree->objectSpace->getComparator()(*fs[pv].object, *fs[i].object);
       fs[i].distance = d;
     }
   }
@@ -161,8 +155,8 @@ LeafNode::splitObjects(Container &c, Objects &fs, int pv)
   sort(fs.begin(), fs.end());
 
   int childrenSize = iobj.vptree->internalChildrenSize;
-  int cid = childrenSize - 1;
-  int cms = (fsize * cid) / childrenSize;
+  int cid          = childrenSize - 1;
+  int cms          = (fsize * cid) / childrenSize;
 
   // divide the objects into child clusters.
   fs[fsize - 1].clusterID = cid;
@@ -179,7 +173,9 @@ LeafNode::splitObjects(Container &c, Objects &fs, int pv)
   if (cid != 0) {
     // the required number of child nodes could not be acquired
     stringstream msg;
-    msg << "LeafNode::splitObjects: Too many same distances. Reduce internal children size for the tree index or not use the tree index." << endl;
+    msg << "LeafNode::splitObjects: Too many same distances. Reduce internal children size for the tree "
+           "index or not use the tree index."
+        << endl;
     msg << "  internalChildrenSize=" << childrenSize << endl;
     msg << "  # of the children=" << (childrenSize - cid) << endl;
     msg << "  Size=" << fsize << endl;
@@ -194,19 +190,20 @@ LeafNode::splitObjects(Container &c, Objects &fs, int pv)
       msg << endl;
     }
     if (fs[fsize - 1].clusterID == cid) {
-      msg << "LeafNode::splitObjects: All of the object distances are the same!" << endl;;
+      msg << "LeafNode::splitObjects: All of the object distances are the same!" << endl;
+      ;
       NGTThrowException(msg.str());
     } else {
       cerr << msg.str() << endl;
       cerr << "LeafNode::splitObjects: Anyway, continue..." << endl;
       // sift the cluster IDs to start from 0 to continue.
       for (int i = 0; i < fsize; i++) {
-	fs[i].clusterID -= cid;
+        fs[i].clusterID -= cid;
       }
     }
   }
 
-  long long	*pivots = new long long[childrenSize];
+  long long *pivots = new long long[childrenSize];
   for (int i = 0; i < childrenSize; i++) {
     pivots[i] = -1;
   }
@@ -215,9 +212,10 @@ LeafNode::splitObjects(Container &c, Objects &fs, int pv)
   for (int i = 0; i < fsize; i++) {
     if (pivots[fs[i].clusterID] == -1) {
       pivots[fs[i].clusterID] = i;
-      fs[i].leafDistance = Object::Pivot;
+      fs[i].leafDistance      = Object::Pivot;
     } else {
-      Distance d = iobj.vptree->objectSpace->getComparator()(*fs[pivots[fs[i].clusterID]].object, *fs[i].object);
+      Distance d =
+          iobj.vptree->objectSpace->getComparator()(*fs[pivots[fs[i].clusterID]].object, *fs[i].object);
       fs[i].leafDistance = d;
     }
   }
@@ -242,10 +240,11 @@ LeafNode::removeObject(size_t id, size_t replaceId) {
 #else
       if (getObjectIDs()[idx].id == replaceId) {
 #endif
-	std::cerr << " Warning. found the same ID as the replaced ID. " << id << ":" << replaceId << std::endl;
-	std::cerr << "          ignore it, if normalized distance." << std::endl;
-	replaceId = 0;
-	break;
+        std::cerr << " Warning. found the same ID as the replaced ID. " << id << ":" << replaceId
+                  << std::endl;
+        std::cerr << "          ignore it, if normalized distance." << std::endl;
+        replaceId = 0;
+        break;
       }
     }
   }
@@ -253,15 +252,15 @@ LeafNode::removeObject(size_t id, size_t replaceId) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
     if (getObjectIDs(allocator)[idx].id == id) {
       if (replaceId != 0) {
-	getObjectIDs(allocator)[idx].id = replaceId;
+        getObjectIDs(allocator)[idx].id = replaceId;
 #else
     if (getObjectIDs()[idx].id == id) {
       if (replaceId != 0) {
-	getObjectIDs()[idx].id = replaceId;
+        getObjectIDs()[idx].id = replaceId;
 #endif
-	return;
+        return;
       } else {
-	break;
+        break;
       }
     }
   }
@@ -270,7 +269,8 @@ LeafNode::removeObject(size_t id, size_t replaceId) {
       NGTThrowException("LeafNode::removeObject: Internal error!. the pivot is illegal.");
     }
     stringstream msg;
-    msg << "VpTree::Leaf::remove: Warning. Cannot find the specified object. ID=" << id << "," << replaceId << " idx=" << idx << " If the same objects were inserted into the index, ignore this message.";
+    msg << "VpTree::Leaf::remove: Warning. Cannot find the specified object. ID=" << id << "," << replaceId
+        << " idx=" << idx << " If the same objects were inserted into the index, ignore this message.";
     NGTThrowException(msg.str());
   }
 
@@ -294,17 +294,17 @@ LeafNode::removeObject(size_t id, size_t replaceId) {
 }
 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-bool InternalNode::verify(PersistentRepository<InternalNode> &internalNodes, PersistentRepository<LeafNode> &leafNodes,
-			  SharedMemoryAllocator &allocator) {
+bool InternalNode::verify(PersistentRepository<InternalNode> &internalNodes,
+                          PersistentRepository<LeafNode> &leafNodes, SharedMemoryAllocator &allocator) {
 #else
 bool InternalNode::verify(Repository<InternalNode> &internalNodes, Repository<LeafNode> &leafNodes) {
 #endif
   size_t isize = internalNodes.size();
   size_t lsize = leafNodes.size();
-  bool valid = true;
+  bool valid   = true;
   for (size_t i = 0; i < childrenSize; i++) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    size_t nid = getChildren(allocator)[i].getID();
+    size_t nid    = getChildren(allocator)[i].getID();
     ID::Type type = getChildren(allocator)[i].getType();
 #else
     size_t nid = getChildren()[i].getID();
@@ -317,9 +317,9 @@ bool InternalNode::verify(Repository<InternalNode> &internalNodes, Repository<Le
     }
     try {
       if (type == ID::Leaf) {
-	leafNodes.get(nid);
+        leafNodes.get(nid);
       } else {
-	internalNodes.get(nid);
+        internalNodes.get(nid);
       }
     } catch (...) {
       cerr << "Error! Cannot get the node. " << ((type == ID::Leaf) ? "Leaf" : "Internal") << endl;
@@ -343,7 +343,7 @@ bool LeafNode::verify(size_t nobjs, vector<uint8_t> &status) {
 #endif
     if (nid > nobjs) {
       cerr << "Error! Object id is too big. " << nid << ":" << nobjs << endl;
-      valid =false;
+      valid = false;
       continue;
     }
     status[nid] |= 0x04;

@@ -14,31 +14,30 @@
 // limitations under the License.
 //
 
-#include	"NGT/defines.h"
-#include	"NGT/Common.h"
-#include	"NGT/ObjectSpace.h"
-#include	"NGT/ObjectRepository.h"
+#include "NGT/defines.h"
+#include "NGT/Common.h"
+#include "NGT/ObjectSpace.h"
+#include "NGT/ObjectRepository.h"
 
 NGT::Distance NGT::ObjectSpace::compareWithL1(NGT::Object &o1, NGT::Object &o2) {
   auto dim = getPaddedDimension();
   NGT::Distance d;
-  if (getObjectType() == typeid(uint8_t) ||
-      getObjectType() == typeid(quint8) ||
+  if (getObjectType() == typeid(uint8_t) || getObjectType() == typeid(quint8) ||
       getObjectType() == typeid(qsint8)) {
-    d = PrimitiveComparator::compareL1(reinterpret_cast<uint8_t*>(o1.getPointer()), 
-				       reinterpret_cast<uint8_t*>(o2.getPointer()), dim);
+    d = PrimitiveComparator::compareL1(reinterpret_cast<uint8_t *>(o1.getPointer()),
+                                       reinterpret_cast<uint8_t *>(o2.getPointer()), dim);
 #ifdef NGT_HALF_FLOAT
   } else if (getObjectType() == typeid(float16)) {
-    d = PrimitiveComparator::compareL1(reinterpret_cast<float16*>(o1.getPointer()), 
-				       reinterpret_cast<float16*>(o2.getPointer()), dim);
+    d = PrimitiveComparator::compareL1(reinterpret_cast<float16 *>(o1.getPointer()),
+                                       reinterpret_cast<float16 *>(o2.getPointer()), dim);
 #endif
   } else if (getObjectType() == typeid(float)) {
-    d = PrimitiveComparator::compareL1(reinterpret_cast<float*>(o1.getPointer()), 
-				       reinterpret_cast<float*>(o2.getPointer()), dim);
+    d = PrimitiveComparator::compareL1(reinterpret_cast<float *>(o1.getPointer()),
+                                       reinterpret_cast<float *>(o2.getPointer()), dim);
   } else {
     std::stringstream msg;
     msg << "ObjectSpace::compareWithL1: Fatal Inner Error! Unexpected object type. "
-	<< getObjectType().name();
+        << getObjectType().name();
     NGTThrowException(msg);
   }
   return d;
@@ -49,16 +48,19 @@ NGT::Distance NGT::ObjectSpace::compareWithL1(NGT::Object &o1, NGT::PersistentOb
   auto dim = getPaddedDimension();
   NGT::Distance d;
   if (getObjectType() == typeid(uint8_t)) {
-    d = PrimitiveComparator::compareL1(reinterpret_cast<uint8_t*>(o1.getPointer()), 
-				       reinterpret_cast<uint8_t*>(o2.getPointer(getRepository().getAllocator())), dim);
+    d = PrimitiveComparator::compareL1(
+        reinterpret_cast<uint8_t *>(o1.getPointer()),
+        reinterpret_cast<uint8_t *>(o2.getPointer(getRepository().getAllocator())), dim);
 #ifdef NGT_HALF_FLOAT
   } else if (getObjectType() == typeid(float16)) {
-    d = PrimitiveComparator::compareL1(reinterpret_cast<float16*>(o1.getPointer()), 
-				       reinterpret_cast<float16*>(o2.getPointer(getRepository().getAllocator())), dim);
+    d = PrimitiveComparator::compareL1(
+        reinterpret_cast<float16 *>(o1.getPointer()),
+        reinterpret_cast<float16 *>(o2.getPointer(getRepository().getAllocator())), dim);
 #endif
   } else if (getObjectType() == typeid(float)) {
-    d = PrimitiveComparator::compareL1(reinterpret_cast<float*>(o1.getPointer()), 
-				       reinterpret_cast<float*>(o2.getPointer(getRepository().getAllocator())), dim);
+    d = PrimitiveComparator::compareL1(
+        reinterpret_cast<float *>(o1.getPointer()),
+        reinterpret_cast<float *>(o2.getPointer(getRepository().getAllocator())), dim);
   } else {
     std::stringstream msg;
     msg << "ObjectSpace::compareWithL1: Fatal Inner Error! Unexpected object type.";

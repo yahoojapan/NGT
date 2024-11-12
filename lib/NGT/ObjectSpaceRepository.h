@@ -18,1130 +18,1209 @@
 
 
 #ifdef _OPENMP
-#include	<omp.h>
+#include <omp.h>
 #else
 #warning "*** OMP is *NOT* available! ***"
 #endif
 
-#include	"Common.h"
-#include	"ObjectSpace.h"
-#include	"ObjectRepository.h"
-#include	"PrimitiveComparator.h"
+#include "Common.h"
+#include "ObjectSpace.h"
+#include "ObjectRepository.h"
+#include "PrimitiveComparator.h"
 
 class ObjectSpace;
 
 namespace NGT {
 
-  template <typename OBJECT_TYPE, typename COMPARE_TYPE>
-    class ObjectSpaceRepository : public ObjectSpace, public ObjectRepository {
-  public:
+template <typename OBJECT_TYPE, typename COMPARE_TYPE>
+class ObjectSpaceRepository : public ObjectSpace, public ObjectRepository {
+ public:
+  class ComparatorL1 : public Comparator {
+   public:
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+    ComparatorL1(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::compareL1((OBJECT_TYPE *)&objecta[0], (OBJECT_TYPE *)&objectb[0],
+                                            dimension);
+    }
+    double operator()(Object &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::compareL1((OBJECT_TYPE *)&objecta[0],
+                                            (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
+    double operator()(PersistentObject &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::compareL1((OBJECT_TYPE *)&objecta.at(0, allocator),
+                                            (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
+#else
+    ComparatorL1(size_t d) : Comparator(d) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::compareL1((OBJECT_TYPE *)&objecta[0], (OBJECT_TYPE *)&objectb[0],
+                                            dimension);
+    }
+#endif
+  };
 
-    class ComparatorL1 : public Comparator {
-      public:
+  class ComparatorL2 : public Comparator {
+   public:
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-        ComparatorL1(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
-	double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::compareL1((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	}
-	double operator()(Object &objecta, PersistentObject &objectb) {
-	  return PrimitiveComparator::compareL1((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-	}
-	double operator()(PersistentObject &objecta, PersistentObject &objectb) {
-	  return PrimitiveComparator::compareL1((OBJECT_TYPE*)&objecta.at(0, allocator), (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-	}
+    ComparatorL2(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::compareL2((OBJECT_TYPE *)&objecta[0], (OBJECT_TYPE *)&objectb[0],
+                                            dimension);
+    }
+    double operator()(Object &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::compareL2((OBJECT_TYPE *)&objecta[0],
+                                            (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
+    double operator()(PersistentObject &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::compareL2((OBJECT_TYPE *)&objecta.at(0, allocator),
+                                            (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
 #else
-        ComparatorL1(size_t d) : Comparator(d) {}
-	double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::compareL1((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	}
+    ComparatorL2(size_t d) : Comparator(d) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::compareL2((OBJECT_TYPE *)&objecta[0], (OBJECT_TYPE *)&objectb[0],
+                                            dimension);
+    }
 #endif
-    };
+  };
 
-    class ComparatorL2 : public Comparator {
-      public:
+  class ComparatorNormalizedL2 : public Comparator {
+   public:
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-        ComparatorL2(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
-	double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::compareL2((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	}
-	double operator()(Object &objecta, PersistentObject &objectb) {
-	  return PrimitiveComparator::compareL2((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-	}
-	double operator()(PersistentObject &objecta, PersistentObject &objectb) {
-	  return PrimitiveComparator::compareL2((OBJECT_TYPE*)&objecta.at(0, allocator), (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-	}
+    ComparatorNormalizedL2(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::compareNormalizedL2((OBJECT_TYPE *)&objecta[0], (OBJECT_TYPE *)&objectb[0],
+                                                      dimension);
+    }
+    double operator()(Object &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::compareNormalizedL2((OBJECT_TYPE *)&objecta[0],
+                                                      (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
+    double operator()(PersistentObject &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::compareNormalizedL2((OBJECT_TYPE *)&objecta.at(0, allocator),
+                                                      (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
 #else
-        ComparatorL2(size_t d) : Comparator(d) {}
-	double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::compareL2((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	}
+    ComparatorNormalizedL2(size_t d) : Comparator(d) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::compareNormalizedL2((OBJECT_TYPE *)&objecta[0], (OBJECT_TYPE *)&objectb[0],
+                                                      dimension);
+    }
 #endif
-    };
+  };
 
-    class ComparatorNormalizedL2 : public Comparator {
-      public:
+  class ComparatorHammingDistance : public Comparator {
+   public:
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-        ComparatorNormalizedL2(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
-	double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::compareNormalizedL2((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	}
-	double operator()(Object &objecta, PersistentObject &objectb) {
-	  return PrimitiveComparator::compareNormalizedL2((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-	}
-	double operator()(PersistentObject &objecta, PersistentObject &objectb) {
-	  return PrimitiveComparator::compareNormalizedL2((OBJECT_TYPE*)&objecta.at(0, allocator), (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-	}
+    ComparatorHammingDistance(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::compareHammingDistance((OBJECT_TYPE *)&objecta[0],
+                                                         (OBJECT_TYPE *)&objectb[0], dimension);
+    }
+    double operator()(Object &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::compareHammingDistance((OBJECT_TYPE *)&objecta[0],
+                                                         (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
+    double operator()(PersistentObject &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::compareHammingDistance((OBJECT_TYPE *)&objecta.at(0, allocator),
+                                                         (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
 #else
-        ComparatorNormalizedL2(size_t d) : Comparator(d) {}
-	double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::compareNormalizedL2((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	}
+    ComparatorHammingDistance(size_t d) : Comparator(d) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::compareHammingDistance((OBJECT_TYPE *)&objecta[0],
+                                                         (OBJECT_TYPE *)&objectb[0], dimension);
+    }
 #endif
-    };
+  };
 
-    class ComparatorHammingDistance : public Comparator {
-      public:
+  class ComparatorJaccardDistance : public Comparator {
+   public:
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-        ComparatorHammingDistance(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
-	double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::compareHammingDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	}
-	double operator()(Object &objecta, PersistentObject &objectb) {
-	  return PrimitiveComparator::compareHammingDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-	}
-	double operator()(PersistentObject &objecta, PersistentObject &objectb) {
-	  return PrimitiveComparator::compareHammingDistance((OBJECT_TYPE*)&objecta.at(0, allocator), (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-	}
+    ComparatorJaccardDistance(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::compareJaccardDistance((OBJECT_TYPE *)&objecta[0],
+                                                         (OBJECT_TYPE *)&objectb[0], dimension);
+    }
+    double operator()(Object &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::compareJaccardDistance((OBJECT_TYPE *)&objecta[0],
+                                                         (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
+    double operator()(PersistentObject &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::compareJaccardDistance((OBJECT_TYPE *)&objecta.at(0, allocator),
+                                                         (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
 #else
-        ComparatorHammingDistance(size_t d) : Comparator(d) {}
-	double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::compareHammingDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	}
+    ComparatorJaccardDistance(size_t d) : Comparator(d) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::compareJaccardDistance((OBJECT_TYPE *)&objecta[0],
+                                                         (OBJECT_TYPE *)&objectb[0], dimension);
+    }
 #endif
-    };
+  };
 
-    class ComparatorJaccardDistance : public Comparator {
-      public:
+  class ComparatorSparseJaccardDistance : public Comparator {
+   public:
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-        ComparatorJaccardDistance(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
-        double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::compareJaccardDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	}
-	double operator()(Object &objecta, PersistentObject &objectb) {
-	  return PrimitiveComparator::compareJaccardDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-	}
-	double operator()(PersistentObject &objecta, PersistentObject &objectb) {
-	  return PrimitiveComparator::compareJaccardDistance((OBJECT_TYPE*)&objecta.at(0, allocator), (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-	}
+    ComparatorSparseJaccardDistance(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::compareSparseJaccardDistance((OBJECT_TYPE *)&objecta[0],
+                                                               (OBJECT_TYPE *)&objectb[0], dimension);
+    }
+    double operator()(Object &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::compareSparseJaccardDistance(
+          (OBJECT_TYPE *)&objecta[0], (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
+    double operator()(PersistentObject &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::compareSparseJaccardDistance(
+          (OBJECT_TYPE *)&objecta.at(0, allocator), (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
 #else
-        ComparatorJaccardDistance(size_t d) : Comparator(d) {}
-	double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::compareJaccardDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	}
+    ComparatorSparseJaccardDistance(size_t d) : Comparator(d) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::compareSparseJaccardDistance((OBJECT_TYPE *)&objecta[0],
+                                                               (OBJECT_TYPE *)&objectb[0], dimension);
+    }
 #endif
-    };
+  };
 
-    class ComparatorSparseJaccardDistance : public Comparator {
-      public:
+  class ComparatorAngleDistance : public Comparator {
+   public:
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-        ComparatorSparseJaccardDistance(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
-        double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::compareSparseJaccardDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	}
-	double operator()(Object &objecta, PersistentObject &objectb) {
-	  return PrimitiveComparator::compareSparseJaccardDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-	}
-	double operator()(PersistentObject &objecta, PersistentObject &objectb) {
-	  return PrimitiveComparator::compareSparseJaccardDistance((OBJECT_TYPE*)&objecta.at(0, allocator), (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-	}
+    ComparatorAngleDistance(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::compareAngleDistance((OBJECT_TYPE *)&objecta[0], (OBJECT_TYPE *)&objectb[0],
+                                                       dimension);
+    }
+    double operator()(Object &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::compareAngleDistance((OBJECT_TYPE *)&objecta[0],
+                                                       (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
+    double operator()(PersistentObject &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::compareAngleDistance((OBJECT_TYPE *)&objecta.at(0, allocator),
+                                                       (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
 #else
-        ComparatorSparseJaccardDistance(size_t d) : Comparator(d) {}
-	double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::compareSparseJaccardDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	}
+    ComparatorAngleDistance(size_t d) : Comparator(d) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::compareAngleDistance((OBJECT_TYPE *)&objecta[0], (OBJECT_TYPE *)&objectb[0],
+                                                       dimension);
+    }
 #endif
-    };
+  };
 
-    class ComparatorAngleDistance : public Comparator {
-      public:
+  class ComparatorNormalizedAngleDistance : public Comparator {
+   public:
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-        ComparatorAngleDistance(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
-	double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::compareAngleDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	}
-	double operator()(Object &objecta, PersistentObject &objectb) {
-	  return PrimitiveComparator::compareAngleDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-	}
-	double operator()(PersistentObject &objecta, PersistentObject &objectb) {
-	  return PrimitiveComparator::compareAngleDistance((OBJECT_TYPE*)&objecta.at(0, allocator), (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-	}
+    ComparatorNormalizedAngleDistance(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::compareNormalizedAngleDistance((OBJECT_TYPE *)&objecta[0],
+                                                                 (OBJECT_TYPE *)&objectb[0], dimension);
+    }
+    double operator()(Object &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::compareNormalizedAngleDistance(
+          (OBJECT_TYPE *)&objecta[0], (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
+    double operator()(PersistentObject &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::compareNormalizedAngleDistance(
+          (OBJECT_TYPE *)&objecta.at(0, allocator), (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
 #else
-        ComparatorAngleDistance(size_t d) : Comparator(d) {}
-	double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::compareAngleDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	}
+    ComparatorNormalizedAngleDistance(size_t d) : Comparator(d) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::compareNormalizedAngleDistance((OBJECT_TYPE *)&objecta[0],
+                                                                 (OBJECT_TYPE *)&objectb[0], dimension);
+    }
 #endif
-    };
+  };
 
-    class ComparatorNormalizedAngleDistance : public Comparator {
-      public:
+  class ComparatorCosineSimilarity : public Comparator {
+   public:
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-        ComparatorNormalizedAngleDistance(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
-	double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::compareNormalizedAngleDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	}
-	double operator()(Object &objecta, PersistentObject &objectb) {
-	  return PrimitiveComparator::compareNormalizedAngleDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-	}
-	double operator()(PersistentObject &objecta, PersistentObject &objectb) {
-	  return PrimitiveComparator::compareNormalizedAngleDistance((OBJECT_TYPE*)&objecta.at(0, allocator), (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-	}
+    ComparatorCosineSimilarity(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::compareCosineSimilarity((OBJECT_TYPE *)&objecta[0],
+                                                          (OBJECT_TYPE *)&objectb[0], dimension);
+    }
+    double operator()(Object &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::compareCosineSimilarity(
+          (OBJECT_TYPE *)&objecta[0], (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
+    double operator()(PersistentObject &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::compareCosineSimilarity(
+          (OBJECT_TYPE *)&objecta.at(0, allocator), (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
 #else
-        ComparatorNormalizedAngleDistance(size_t d) : Comparator(d) {}
-	double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::compareNormalizedAngleDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	}
+    ComparatorCosineSimilarity(size_t d) : Comparator(d) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::compareCosineSimilarity((OBJECT_TYPE *)&objecta[0],
+                                                          (OBJECT_TYPE *)&objectb[0], dimension);
+    }
 #endif
-    };
+  };
 
-    class ComparatorCosineSimilarity : public Comparator {
-      public:
+  class ComparatorNormalizedCosineSimilarity : public Comparator {
+   public:
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-        ComparatorCosineSimilarity(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
-	double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::compareCosineSimilarity((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	}
-	double operator()(Object &objecta, PersistentObject &objectb) {
-	  return PrimitiveComparator::compareCosineSimilarity((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-	}
-	double operator()(PersistentObject &objecta, PersistentObject &objectb) {
-	  return PrimitiveComparator::compareCosineSimilarity((OBJECT_TYPE*)&objecta.at(0, allocator), (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-	}
+    ComparatorNormalizedCosineSimilarity(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::compareNormalizedCosineSimilarity((OBJECT_TYPE *)&objecta[0],
+                                                                    (OBJECT_TYPE *)&objectb[0], dimension);
+    }
+    double operator()(Object &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::compareNormalizedCosineSimilarity(
+          (OBJECT_TYPE *)&objecta[0], (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
+    double operator()(PersistentObject &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::compareNormalizedCosineSimilarity(
+          (OBJECT_TYPE *)&objecta.at(0, allocator), (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
 #else
-        ComparatorCosineSimilarity(size_t d) : Comparator(d) {}
-	double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::compareCosineSimilarity((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	}
+    ComparatorNormalizedCosineSimilarity(size_t d) : Comparator(d) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::compareNormalizedCosineSimilarity((OBJECT_TYPE *)&objecta[0],
+                                                                    (OBJECT_TYPE *)&objectb[0], dimension);
+    }
 #endif
-    };
+  };
 
-    class ComparatorNormalizedCosineSimilarity : public Comparator {
-      public:
+  class ComparatorPoincareDistance : public Comparator { // added by Nyapicom
+   public:
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-        ComparatorNormalizedCosineSimilarity(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
-	double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::compareNormalizedCosineSimilarity((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	}
-	double operator()(Object &objecta, PersistentObject &objectb) {
-	  return PrimitiveComparator::compareNormalizedCosineSimilarity((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-	}
-	double operator()(PersistentObject &objecta, PersistentObject &objectb) {
-	  return PrimitiveComparator::compareNormalizedCosineSimilarity((OBJECT_TYPE*)&objecta.at(0, allocator), (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-	}
+    ComparatorPoincareDistance(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::comparePoincareDistance((OBJECT_TYPE *)&objecta[0],
+                                                          (OBJECT_TYPE *)&objectb[0], dimension);
+    }
+    double operator()(Object &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::comparePoincareDistance(
+          (OBJECT_TYPE *)&objecta[0], (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
+    double operator()(PersistentObject &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::comparePoincareDistance(
+          (OBJECT_TYPE *)&objecta.at(0, allocator), (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
 #else
-        ComparatorNormalizedCosineSimilarity(size_t d) : Comparator(d) {}
-	double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::compareNormalizedCosineSimilarity((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	}
+    ComparatorPoincareDistance(size_t d) : Comparator(d) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::comparePoincareDistance((OBJECT_TYPE *)&objecta[0],
+                                                          (OBJECT_TYPE *)&objectb[0], dimension);
+    }
 #endif
-    };
+  };
 
-    class ComparatorPoincareDistance : public Comparator {  // added by Nyapicom
-      public:
+  class ComparatorLorentzDistance : public Comparator { // added by Nyapicom
+   public:
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-        ComparatorPoincareDistance(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
-        double operator()(Object &objecta, Object &objectb) {
-          return PrimitiveComparator::comparePoincareDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-        }
-	double operator()(Object &objecta, PersistentObject &objectb) {
-          return PrimitiveComparator::comparePoincareDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-        }
-	double operator()(PersistentObject &objecta, PersistentObject &objectb) {
-          return PrimitiveComparator::comparePoincareDistance((OBJECT_TYPE*)&objecta.at(0, allocator), (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-        }
+    ComparatorLorentzDistance(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::compareLorentzDistance((OBJECT_TYPE *)&objecta[0],
+                                                         (OBJECT_TYPE *)&objectb[0], dimension);
+    }
+    double operator()(Object &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::compareLorentzDistance((OBJECT_TYPE *)&objecta[0],
+                                                         (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
+    double operator()(PersistentObject &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::compareLorentzDistance((OBJECT_TYPE *)&objecta.at(0, allocator),
+                                                         (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
 #else
-        ComparatorPoincareDistance(size_t d) : Comparator(d) {}
-	double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::comparePoincareDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	}
+    ComparatorLorentzDistance(size_t d) : Comparator(d) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::compareLorentzDistance((OBJECT_TYPE *)&objecta[0],
+                                                         (OBJECT_TYPE *)&objectb[0], dimension);
+    }
 #endif
-    };
+  };
 
-    class ComparatorLorentzDistance : public Comparator {  // added by Nyapicom
-      public:
+  class ComparatorInnerProduct : public Comparator {
+   public:
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-        ComparatorLorentzDistance(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
-        double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::compareLorentzDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	}
-	double operator()(Object &objecta, PersistentObject &objectb) {
-	  return PrimitiveComparator::compareLorentzDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-        }
-	double operator()(PersistentObject &objecta, PersistentObject &objectb) {
-          return PrimitiveComparator::compareLorentzDistance((OBJECT_TYPE*)&objecta.at(0, allocator), (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-        }
+    ComparatorInnerProduct(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return -PrimitiveComparator::compareDotProduct((OBJECT_TYPE *)&objecta[0], (OBJECT_TYPE *)&objectb[0],
+                                                     dimension);
+    }
+    double operator()(Object &objecta, PersistentObject &objectb) {
+      return -PrimitiveComparator::compareDotProduct((OBJECT_TYPE *)&objecta[0],
+                                                     (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
+    double operator()(PersistentObject &objecta, PersistentObject &objectb) {
+      return -PrimitiveComparator::compareDotProduct((OBJECT_TYPE *)&objecta.at(0, allocator),
+                                                     (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
 #else
-        ComparatorLorentzDistance(size_t d) : Comparator(d) {}
-	double operator()(Object &objecta, Object &objectb) {
-          return PrimitiveComparator::compareLorentzDistance((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-        }
+    ComparatorInnerProduct(size_t d) : Comparator(d) {}
+    double operator()(Object &objecta, Object &objectb) {
+      auto d = PrimitiveComparator::compareDotProduct((OBJECT_TYPE *)&objecta[0], (OBJECT_TYPE *)&objectb[0],
+                                                      dimension);
+      return -d;
+    }
 #endif
-    };
+  };
+  class ComparatorInnerProductQsint8Quint8 : public Comparator {
+   public:
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+    ComparatorInnerProductQsint8Quint8(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::InnerProductQsint8::compare(&objecta[0], &objectb[0], dimension);
+    }
+    double operator()(Object &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::InnerProductQsint8::compare(&objecta[0], &objectb.at(0, allocator),
+                                                              dimension);
+    }
+    double operator()(PersistentObject &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::InnerProductQsint8::compare(&objecta.at(0, allocator),
+                                                              &objectb.at(0, allocator), dimension);
+    }
+#else
+    ComparatorInnerProductQsint8Quint8(size_t d) : Comparator(d) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::InnerProductQsint8::compare(&objecta[0], &objectb[0], dimension);
+    }
+#endif
+  };
+  class ComparatorL2Quint8Quint8 : public Comparator {
+   public:
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+    ComparatorL2Quint8Quint8(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::compareL2((quint8 *)&objecta[0], (quint8 *)&objectb[0], dimension);
+    }
+    double operator()(Object &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::compareL2((quint8 *)&objecta[0], (quint8 *)&objectb.at(0, allocator),
+                                            dimension);
+    }
+    double operator()(PersistentObject &objecta, PersistentObject &objectb) {
+      return PrimitiveComparator::compareL2((quint8 *)&objecta.at(0, allocator),
+                                            (quint8 *)&objectb.at(0, allocator), dimension);
+    }
+#else
+    ComparatorL2Quint8Quint8(size_t d) : Comparator(d) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return PrimitiveComparator::compareL2((quint8 *)&objecta[0], (quint8 *)&objectb[0], dimension);
+    }
+#endif
+  };
+  class ComparatorDotProduct : public Comparator {
+   public:
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+    ComparatorDotProduct(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return magnitude - PrimitiveComparator::compareDotProduct((OBJECT_TYPE *)&objecta[0],
+                                                                (OBJECT_TYPE *)&objectb[0], dimension);
+    }
+    double operator()(Object &objecta, PersistentObject &objectb) {
+      return magnitude - PrimitiveComparator::compareDotProduct(
+                             (OBJECT_TYPE *)&objecta[0], (OBJECT_TYPE *)&objectb.at(0, allocator), dimension);
+    }
+    double operator()(PersistentObject &objecta, PersistentObject &objectb) {
+      return magnitude - PrimitiveComparator::compareDotProduct((OBJECT_TYPE *)&objecta.at(0, allocator),
+                                                                (OBJECT_TYPE *)&objectb.at(0, allocator),
+                                                                dimension);
+    }
+#else
+    ComparatorDotProduct(size_t d) : Comparator(d) {}
+    double operator()(Object &objecta, Object &objectb) {
+      return magnitude - PrimitiveComparator::compareDotProduct((OBJECT_TYPE *)&objecta[0],
+                                                                (OBJECT_TYPE *)&objectb[0], dimension);
+    }
+#endif
+    float magnitude;
+  };
 
-    class ComparatorInnerProduct : public Comparator {
-      public:
-#ifdef NGT_SHARED_MEMORY_ALLOCATOR
-        ComparatorInnerProduct(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
-        double operator()(Object &objecta, Object &objectb) {
-	  return -PrimitiveComparator::compareDotProduct((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	}
-	double operator()(Object &objecta, PersistentObject &objectb) {
-	  return -PrimitiveComparator::compareDotProduct((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-        }
-	double operator()(PersistentObject &objecta, PersistentObject &objectb) {
-          return -PrimitiveComparator::compareDotProduct((OBJECT_TYPE*)&objecta.at(0, allocator), (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-        }
-#else
-        ComparatorInnerProduct(size_t d) : Comparator(d) {}
-	double operator()(Object &objecta, Object &objectb) {
-          auto d = PrimitiveComparator::compareDotProduct((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	  return -d;
-        }
-#endif
-    };
-    class ComparatorInnerProductQsint8Quint8 : public Comparator {
-      public:
-#ifdef NGT_SHARED_MEMORY_ALLOCATOR
-        ComparatorInnerProductQsint8Quint8(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
-        double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::InnerProductQsint8::compare(&objecta[0], &objectb[0], dimension);
-	}
-	double operator()(Object &objecta, PersistentObject &objectb) {
-	  return PrimitiveComparator::InnerProductQsint8::compare(&objecta[0], &objectb.at(0, allocator), dimension);
-        }
-	double operator()(PersistentObject &objecta, PersistentObject &objectb) {
-          return PrimitiveComparator::InnerProductQsint8::compare(&objecta.at(0, allocator), &objectb.at(0, allocator), dimension);
-        }
-#else
-        ComparatorInnerProductQsint8Quint8(size_t d) : Comparator(d) {}
-	double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::InnerProductQsint8::compare(&objecta[0], &objectb[0], dimension);
-        }
-#endif
-    };
-    class ComparatorL2Quint8Quint8 : public Comparator {
-      public:
-#ifdef NGT_SHARED_MEMORY_ALLOCATOR
-        ComparatorL2Quint8Quint8(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
-	double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::compareL2((quint8*)&objecta[0], (quint8*)&objectb[0], dimension);
-	}
-	double operator()(Object &objecta, PersistentObject &objectb) {
-	  return PrimitiveComparator::compareL2((quint8*)&objecta[0], (quint8*)&objectb.at(0, allocator), dimension);
-	}
-	double operator()(PersistentObject &objecta, PersistentObject &objectb) {
-	  return PrimitiveComparator::compareL2((quint8*)&objecta.at(0, allocator), (quint8*)&objectb.at(0, allocator), dimension);
-	}
-#else
-        ComparatorL2Quint8Quint8(size_t d) : Comparator(d) {}
-	double operator()(Object &objecta, Object &objectb) {
-	  return PrimitiveComparator::compareL2((quint8*)&objecta[0], (quint8*)&objectb[0], dimension);
-	}
-#endif
-    };
-    class ComparatorDotProduct : public Comparator {
-      public:
-#ifdef NGT_SHARED_MEMORY_ALLOCATOR
-        ComparatorDotProduct(size_t d, SharedMemoryAllocator &a) : Comparator(d, a) {}
-        double operator()(Object &objecta, Object &objectb) {
-	  return magnitude - PrimitiveComparator::compareDotProduct((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	}
-	double operator()(Object &objecta, PersistentObject &objectb) {
-	  return magnitude - PrimitiveComparator::compareDotProduct((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-        }
-	double operator()(PersistentObject &objecta, PersistentObject &objectb) {
-          return magnitude - PrimitiveComparator::compareDotProduct((OBJECT_TYPE*)&objecta.at(0, allocator), (OBJECT_TYPE*)&objectb.at(0, allocator), dimension);
-        }
-#else
-        ComparatorDotProduct(size_t d) : Comparator(d) {}
-	double operator()(Object &objecta, Object &objectb) {
-	  return magnitude - PrimitiveComparator::compareDotProduct((OBJECT_TYPE*)&objecta[0], (OBJECT_TYPE*)&objectb[0], dimension);
-	}
-#endif
-        float magnitude;
-    };
-
-    ObjectSpaceRepository(size_t d, const std::type_info &ot, DistanceType t, float mag = -1) : ObjectSpace(d), ObjectRepository(d, ot) {
-     size_t objectSize = 0;
-     if (ot == typeid(uint8_t)) {
-       objectSize = sizeof(uint8_t);
-     } else if (ot == typeid(float)) {
-       objectSize = sizeof(float);
+  ObjectSpaceRepository(size_t d, const std::type_info &ot, DistanceType t, float mag = -1)
+      : ObjectSpace(d), ObjectRepository(d, ot) {
+    size_t objectSize = 0;
+    if (ot == typeid(uint8_t)) {
+      objectSize = sizeof(uint8_t);
+    } else if (ot == typeid(float)) {
+      objectSize = sizeof(float);
 #ifdef NGT_HALF_FLOAT
-     } else if (ot == typeid(float16)) {
-       objectSize = sizeof(float16);
+    } else if (ot == typeid(float16)) {
+      objectSize = sizeof(float16);
 #endif
-     } else if (ot == typeid(qsint8)) {
-       objectSize = sizeof(qsint8);
+    } else if (ot == typeid(qsint8)) {
+      objectSize = sizeof(qsint8);
 #ifdef NGT_BFLOAT
-     } else if (ot == typeid(bfloat16)) {
-       objectSize = sizeof(bfloat16);
+    } else if (ot == typeid(bfloat16)) {
+      objectSize = sizeof(bfloat16);
 #endif
-     } else {
-       std::stringstream msg;
-       msg << "ObjectSpace::constructor: Not supported type. " << ot.name();
-       NGTThrowException(msg);
-     }
-     setLength(objectSize * d);
-     setPaddedLength(objectSize * ObjectSpace::getPaddedDimension());
-     magnitude = mag;
-     setDistanceType(t);
+    } else {
+      std::stringstream msg;
+      msg << "ObjectSpace::constructor: Not supported type. " << ot.name();
+      NGTThrowException(msg);
     }
+    setLength(objectSize * d);
+    setPaddedLength(objectSize * ObjectSpace::getPaddedDimension());
+    magnitude = mag;
+    setDistanceType(t);
+  }
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-    void open(const std::string &f, size_t sharedMemorySize) { ObjectRepository::open(f, sharedMemorySize); }
-    void copy(PersistentObject &objecta, PersistentObject &objectb) { objecta = objectb; }
+  void open(const std::string &f, size_t sharedMemorySize) { ObjectRepository::open(f, sharedMemorySize); }
+  void copy(PersistentObject &objecta, PersistentObject &objectb) { objecta = objectb; }
 
-    void show(std::ostream &os, PersistentObject &object) {
-      const std::type_info &t = getObjectType();
-      if (t == typeid(uint8_t)) {
-	auto *optr = static_cast<unsigned char*>(&object.at(0,allocator));
-	for (size_t i = 0; i < getDimension(); i++) {
-	  os << (int)optr[i] << " ";
-	}
+  void show(std::ostream &os, PersistentObject &object) {
+    const std::type_info &t = getObjectType();
+    if (t == typeid(uint8_t)) {
+      auto *optr = static_cast<unsigned char *>(&object.at(0, allocator));
+      for (size_t i = 0; i < getDimension(); i++) {
+        os << (int)optr[i] << " ";
+      }
 #ifdef NGT_HALF_FLOAT
-      } else if (t == typeid(float16)) {
-	auto *optr = reinterpret_cast<float16*>(&object.at(0,allocator));
-	for (size_t i = 0; i < getDimension(); i++) {
-	  os << optr[i] << " ";
-	}
+    } else if (t == typeid(float16)) {
+      auto *optr = reinterpret_cast<float16 *>(&object.at(0, allocator));
+      for (size_t i = 0; i < getDimension(); i++) {
+        os << optr[i] << " ";
+      }
 #endif
-      } else if (t == typeid(float)) {
-	auto *optr = reinterpret_cast<float*>(&object.at(0,allocator));
-	for (size_t i = 0; i < getDimension(); i++) {
-	  os << optr[i] << " ";
-	}
-      } else {
-	os << " not implement for the type.";
+    } else if (t == typeid(float)) {
+      auto *optr = reinterpret_cast<float *>(&object.at(0, allocator));
+      for (size_t i = 0; i < getDimension(); i++) {
+        os << optr[i] << " ";
       }
+    } else {
+      os << " not implement for the type.";
     }
+  }
 
-    Object *allocateObject(Object &o) {
-      Object *po = new Object(getByteSizeOfObject());
-      for (size_t i = 0; i < getByteSizeOfObject(); i++) {
-	(*po)[i] = o[i];
-      }
-      return po;
+  Object *allocateObject(Object &o) {
+    Object *po = new Object(getByteSizeOfObject());
+    for (size_t i = 0; i < getByteSizeOfObject(); i++) {
+      (*po)[i] = o[i];
     }
-    Object *allocateObject(PersistentObject &o) {
-      PersistentObject &spo = (PersistentObject &)o;
-      Object *po = new Object(getByteSizeOfObject());
-      for (size_t i = 0; i < getByteSizeOfObject(); i++) {
-	(*po)[i] = spo.at(i,ObjectRepository::allocator);
-      }
-      return (Object*)po;
+    return po;
+  }
+  Object *allocateObject(PersistentObject &o) {
+    PersistentObject &spo = (PersistentObject &)o;
+    Object *po            = new Object(getByteSizeOfObject());
+    for (size_t i = 0; i < getByteSizeOfObject(); i++) {
+      (*po)[i] = spo.at(i, ObjectRepository::allocator);
     }
-    void deleteObject(PersistentObject *po) {
-      delete po;
-    }
+    return (Object *)po;
+  }
+  void deleteObject(PersistentObject *po) {
+    delete po;
+  }
 #endif // NGT_SHARED_MEMORY_ALLOCATOR
 
-    void copy(Object &objecta, Object &objectb) {
-      objecta.copy(objectb, getByteSizeOfObject());
+  void copy(Object &objecta, Object &objectb) { objecta.copy(objectb, getByteSizeOfObject()); }
+
+  void setDistanceType(DistanceType t) {
+    if (comparator != 0) {
+      delete comparator;
+      comparator = 0;
     }
-
-    void setDistanceType(DistanceType t) {
-      if (comparator != 0) {
-	delete comparator;
-	comparator = 0;
-      } 
-      if (comparatorForSearch != 0) {
-	delete comparatorForSearch;
-	comparatorForSearch = 0;
-      } 
-      assert(ObjectSpace::dimension != 0);
-      distanceType = t;
-      switch (distanceType) {
-#ifdef NGT_SHARED_MEMORY_ALLOCATOR
-      case DistanceTypeL1:
-	comparator = new ObjectSpaceRepository::ComparatorL1(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
-	break;
-      case DistanceTypeL2:
-	comparator = new ObjectSpaceRepository::ComparatorL2(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
-	break;
-      case DistanceTypeNormalizedL2:
-	comparator = new ObjectSpaceRepository::ComparatorNormalizedL2(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
-	normalization = true;
-	break;
-      case DistanceTypeHamming:
-	comparator = new ObjectSpaceRepository::ComparatorHammingDistance(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
-	break;
-      case DistanceTypeJaccard:
-	comparator = new ObjectSpaceRepository::ComparatorJaccardDistance(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
-	break;
-      case DistanceTypeSparseJaccard:
-	comparator = new ObjectSpaceRepository::ComparatorSparseJaccardDistance(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
-	setSparse();
-	break;
-      case DistanceTypeAngle:
-	comparator = new ObjectSpaceRepository::ComparatorAngleDistance(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
-	break;
-      case DistanceTypeCosine:
-	comparator = new ObjectSpaceRepository::ComparatorCosineSimilarity(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
-	break;
-      case DistanceTypePoincare:  // added by Nyapicom
-	comparator = new ObjectSpaceRepository::ComparatorPoincareDistance(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
-	break;
-      case DistanceTypeLorentz:  // added by Nyapicom
-	comparator = new ObjectSpaceRepository::ComparatorLorentzDistance(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
-	break;
-      case DistanceTypeNormalizedAngle:
-	comparator = new ObjectSpaceRepository::ComparatorNormalizedAngleDistance(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
-	normalization = true;
-	break;
-      case DistanceTypeNormalizedCosine:
-	comparator = new ObjectSpaceRepository::ComparatorNormalizedCosineSimilarity(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
-	normalization = true;
-	break;
-      case DistanceTypeInnerProduct:
-	{
-	  if (typeid(OBJECT_TYPE) == typeid(qsint8)) {
-	    comparator = new ObjectSpaceRepository::ComparatorL2Quint8Quint8(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
-	    comparatorForSearch = new ObjectSpaceRepository::ComparatorInnerProductQsint8Quint8(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
-	  } else {
-	    comparator = new ObjectSpaceRepository::ComparatorL2(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
-	  }
-	  setInnerProduct();
-	}
-        break;
-      case DistanceTypeDotProduct:
-	{
-	  auto *comp = new ObjectSpaceRepository::ComparatorDotProduct(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
-	  comp->magnitude = magnitude;
-	  comparator = comp;
-	  setInnerProduct();
-	}
-        break;
-#else
-      case DistanceTypeL1:
-	comparator = new ObjectSpaceRepository::ComparatorL1(ObjectSpace::getPaddedDimension());
-	break;
-      case DistanceTypeL2:
-	comparator = new ObjectSpaceRepository::ComparatorL2(ObjectSpace::getPaddedDimension());
-	break;
-      case DistanceTypeNormalizedL2:
-	comparator = new ObjectSpaceRepository::ComparatorNormalizedL2(ObjectSpace::getPaddedDimension());
-	normalization = true;
-	break;
-      case DistanceTypeHamming:
-	comparator = new ObjectSpaceRepository::ComparatorHammingDistance(ObjectSpace::getPaddedDimension());
-	break;
-      case DistanceTypeJaccard:
-	comparator = new ObjectSpaceRepository::ComparatorJaccardDistance(ObjectSpace::getPaddedDimension());
-	break;
-      case DistanceTypeSparseJaccard:
-	comparator = new ObjectSpaceRepository::ComparatorSparseJaccardDistance(ObjectSpace::getPaddedDimension());
-	setSparse();
-	break;
-      case DistanceTypeAngle:
-	comparator = new ObjectSpaceRepository::ComparatorAngleDistance(ObjectSpace::getPaddedDimension());
-	break;
-      case DistanceTypeCosine:
-	comparator = new ObjectSpaceRepository::ComparatorCosineSimilarity(ObjectSpace::getPaddedDimension());
-	break;
-      case DistanceTypePoincare:  // added by Nyapicom
-	comparator = new ObjectSpaceRepository::ComparatorPoincareDistance(ObjectSpace::getPaddedDimension());
-	break;
-      case DistanceTypeLorentz:  // added by Nyapicom
-	comparator = new ObjectSpaceRepository::ComparatorLorentzDistance(ObjectSpace::getPaddedDimension());
-	break;
-      case DistanceTypeNormalizedAngle:
-	comparator = new ObjectSpaceRepository::ComparatorNormalizedAngleDistance(ObjectSpace::getPaddedDimension());
-	normalization = true;
-	break;
-      case DistanceTypeNormalizedCosine:
-	comparator = new ObjectSpaceRepository::ComparatorNormalizedCosineSimilarity(ObjectSpace::getPaddedDimension());
-	normalization = true;
-	break;
-      case DistanceTypeInnerProduct:
-	{
-	  if (typeid(OBJECT_TYPE) == typeid(qsint8)) {
-	    comparator = new ObjectSpaceRepository::ComparatorL2Quint8Quint8(ObjectSpace::getPaddedDimension());
-	    comparatorForSearch = new ObjectSpaceRepository::ComparatorInnerProductQsint8Quint8(ObjectSpace::getPaddedDimension());
-	  } else {
-	    comparator = new ObjectSpaceRepository::ComparatorL2(ObjectSpace::getPaddedDimension());
-	  }
-	  setInnerProduct();
-	}
-        break;
-      case DistanceTypeDotProduct:
-	{
-	  auto *comp = new ObjectSpaceRepository::ComparatorDotProduct(ObjectSpace::getPaddedDimension());
-	  comp->magnitude = magnitude;
-	  comparator = comp;
-	  setInnerProduct();
-	}
-        break;
-#endif
-      default:
-        std::stringstream msg;
-	msg << "NGT::ObjectSpaceRepository: The distance type is invalid. " << distanceType;
-	NGTThrowException(msg);
-      }
+    if (comparatorForSearch != 0) {
+      delete comparatorForSearch;
+      comparatorForSearch = 0;
     }
-
-
-    void serialize(const std::string &ofile) { ObjectRepository::serialize(ofile, this); }
-    void deserialize(const std::string &ifile) { ObjectRepository::deserialize(ifile, this); }
-    void serializeAsText(const std::string &ofile) { ObjectRepository::serializeAsText(ofile, this); }
-    void deserializeAsText(const std::string &ifile) { ObjectRepository::deserializeAsText(ifile, this); }
-    void readText(std::istream &is, size_t dataSize) { ObjectRepository::readText(is, dataSize); }
-    void appendText(std::istream &is, size_t dataSize) { ObjectRepository::appendText(is, dataSize); }
-
-    void append(const float *data, size_t dataSize) { ObjectRepository::append(data, dataSize); }
-    void append(const double *data, size_t dataSize) { ObjectRepository::append(data, dataSize); }
-    void append(const uint8_t *data, size_t dataSize) { ObjectRepository::append(data, dataSize); }
-#ifdef NGT_HALF_FLOAT
-    void append(const float16 *data, size_t dataSize) { ObjectRepository::append(data, dataSize); }
-#endif
-
-    void deleteAll() { ObjectRepository::deleteAll(); }
-
+    assert(ObjectSpace::dimension != 0);
+    distanceType = t;
+    switch (distanceType) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-    PersistentObject *allocatePersistentObject(Object &obj) {
-      return ObjectRepository::allocatePersistentObject(obj);
-    }
-    size_t insert(PersistentObject *obj) { return ObjectRepository::insert(obj); }
-#else
-    size_t insert(Object *obj) { return ObjectRepository::insert(obj); }
-#endif
-
-    void remove(size_t id) { ObjectRepository::remove(id); }
-
-    void linearSearch(Object &query, double radius, size_t size, ObjectSpace::ResultSet &results) {
-      if (distanceType == DistanceTypeInnerProduct) {
-	Comparator *comp;
-	if (typeid(OBJECT_TYPE) == typeid(qsint8)) {
-#ifdef NGT_SHARED_MEMORY_ALLOCATOR
-	  comp = new ObjectSpaceRepository::ComparatorInnerProductQsint8Quint8(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
-#else
-	  comp = new ObjectSpaceRepository::ComparatorInnerProductQsint8Quint8(ObjectSpace::getPaddedDimension());
-#endif
-	} else {
-#ifdef NGT_SHARED_MEMORY_ALLOCATOR
-	  comp = new ObjectSpaceRepository::ComparatorInnerProduct(ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
-#else
-	  comp = new ObjectSpaceRepository::ComparatorInnerProduct(ObjectSpace::getPaddedDimension());
-#endif
-	}
-	try {
-	  linearSearch(query, radius, size, results, *comp);
-	} catch(Exception &err) {
-	  delete comp;
-	  throw err;
-	}
-	delete comp;
+    case DistanceTypeL1:
+      comparator = new ObjectSpaceRepository::ComparatorL1(ObjectSpace::getPaddedDimension(),
+                                                           ObjectRepository::allocator);
+      break;
+    case DistanceTypeL2:
+      comparator = new ObjectSpaceRepository::ComparatorL2(ObjectSpace::getPaddedDimension(),
+                                                           ObjectRepository::allocator);
+      break;
+    case DistanceTypeNormalizedL2:
+      comparator    = new ObjectSpaceRepository::ComparatorNormalizedL2(ObjectSpace::getPaddedDimension(),
+                                                                     ObjectRepository::allocator);
+      normalization = true;
+      break;
+    case DistanceTypeHamming:
+      comparator = new ObjectSpaceRepository::ComparatorHammingDistance(ObjectSpace::getPaddedDimension(),
+                                                                        ObjectRepository::allocator);
+      break;
+    case DistanceTypeJaccard:
+      comparator = new ObjectSpaceRepository::ComparatorJaccardDistance(ObjectSpace::getPaddedDimension(),
+                                                                        ObjectRepository::allocator);
+      break;
+    case DistanceTypeSparseJaccard:
+      comparator = new ObjectSpaceRepository::ComparatorSparseJaccardDistance(
+          ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
+      setSparse();
+      break;
+    case DistanceTypeAngle:
+      comparator = new ObjectSpaceRepository::ComparatorAngleDistance(ObjectSpace::getPaddedDimension(),
+                                                                      ObjectRepository::allocator);
+      break;
+    case DistanceTypeCosine:
+      comparator = new ObjectSpaceRepository::ComparatorCosineSimilarity(ObjectSpace::getPaddedDimension(),
+                                                                         ObjectRepository::allocator);
+      break;
+    case DistanceTypePoincare: // added by Nyapicom
+      comparator = new ObjectSpaceRepository::ComparatorPoincareDistance(ObjectSpace::getPaddedDimension(),
+                                                                         ObjectRepository::allocator);
+      break;
+    case DistanceTypeLorentz: // added by Nyapicom
+      comparator = new ObjectSpaceRepository::ComparatorLorentzDistance(ObjectSpace::getPaddedDimension(),
+                                                                        ObjectRepository::allocator);
+      break;
+    case DistanceTypeNormalizedAngle:
+      comparator = new ObjectSpaceRepository::ComparatorNormalizedAngleDistance(
+          ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
+      normalization = true;
+      break;
+    case DistanceTypeNormalizedCosine:
+      comparator = new ObjectSpaceRepository::ComparatorNormalizedCosineSimilarity(
+          ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
+      normalization = true;
+      break;
+    case DistanceTypeInnerProduct: {
+      if (typeid(OBJECT_TYPE) == typeid(qsint8)) {
+        comparator = new ObjectSpaceRepository::ComparatorL2Quint8Quint8(ObjectSpace::getPaddedDimension(),
+                                                                         ObjectRepository::allocator);
+        comparatorForSearch = new ObjectSpaceRepository::ComparatorInnerProductQsint8Quint8(
+            ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
       } else {
-	linearSearch(query, radius, size, results, *comparator);
+        comparator = new ObjectSpaceRepository::ComparatorL2(ObjectSpace::getPaddedDimension(),
+                                                             ObjectRepository::allocator);
       }
-    }
-    void linearSearch(Object &query, double radius, size_t size, ObjectSpace::ResultSet &results,
-		      Comparator &comparator) {
-      if (!results.empty()) {
-	NGTThrowException("lenearSearch: results is not empty");
-      }
-#ifndef NGT_PREFETCH_DISABLED
-      size_t byteSizeOfObject = getByteSizeOfObject();
-      const size_t prefetchOffset = getPrefetchOffset();
-#endif
-      ObjectRepository &rep = *this;
-      for (size_t idx = 0; idx < rep.size(); idx++) {
-#ifndef NGT_PREFETCH_DISABLED
-	if (idx + prefetchOffset < rep.size() && rep[idx + prefetchOffset] != 0) {
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-	  MemoryCache::prefetch((unsigned char*)&(*static_cast<PersistentObject*>(ObjectRepository::get(idx + prefetchOffset))), byteSizeOfObject);
+      setInnerProduct();
+    } break;
+    case DistanceTypeDotProduct: {
+      auto *comp      = new ObjectSpaceRepository::ComparatorDotProduct(ObjectSpace::getPaddedDimension(),
+                                                                   ObjectRepository::allocator);
+      comp->magnitude = magnitude;
+      comparator      = comp;
+      setInnerProduct();
+    } break;
 #else
-	  MemoryCache::prefetch((unsigned char*)&(*static_cast<PersistentObject*>(rep[idx + prefetchOffset]))[0], byteSizeOfObject);
-#endif
-	}
-#endif
-	if (rep[idx] == 0) {
-	  continue;
-	}
-#ifdef NGT_SHARED_MEMORY_ALLOCATOR
-	Distance d = comparator((Object&)query, (PersistentObject&)*rep[idx]);
-#else
-	Distance d = comparator((Object&)query, (Object&)*rep[idx]);
-#endif
-	if (radius < 0.0 || d <= radius) {
-	  NGT::ObjectDistance obj(idx, d);
-	  results.push(obj);
-	  if (results.size() > size) {
-	    results.pop();
-	  }
-	}
+    case DistanceTypeL1:
+      comparator = new ObjectSpaceRepository::ComparatorL1(ObjectSpace::getPaddedDimension());
+      break;
+    case DistanceTypeL2:
+      comparator = new ObjectSpaceRepository::ComparatorL2(ObjectSpace::getPaddedDimension());
+      break;
+    case DistanceTypeNormalizedL2:
+      comparator    = new ObjectSpaceRepository::ComparatorNormalizedL2(ObjectSpace::getPaddedDimension());
+      normalization = true;
+      break;
+    case DistanceTypeHamming:
+      comparator = new ObjectSpaceRepository::ComparatorHammingDistance(ObjectSpace::getPaddedDimension());
+      break;
+    case DistanceTypeJaccard:
+      comparator = new ObjectSpaceRepository::ComparatorJaccardDistance(ObjectSpace::getPaddedDimension());
+      break;
+    case DistanceTypeSparseJaccard:
+      comparator =
+          new ObjectSpaceRepository::ComparatorSparseJaccardDistance(ObjectSpace::getPaddedDimension());
+      setSparse();
+      break;
+    case DistanceTypeAngle:
+      comparator = new ObjectSpaceRepository::ComparatorAngleDistance(ObjectSpace::getPaddedDimension());
+      break;
+    case DistanceTypeCosine:
+      comparator = new ObjectSpaceRepository::ComparatorCosineSimilarity(ObjectSpace::getPaddedDimension());
+      break;
+    case DistanceTypePoincare: // added by Nyapicom
+      comparator = new ObjectSpaceRepository::ComparatorPoincareDistance(ObjectSpace::getPaddedDimension());
+      break;
+    case DistanceTypeLorentz: // added by Nyapicom
+      comparator = new ObjectSpaceRepository::ComparatorLorentzDistance(ObjectSpace::getPaddedDimension());
+      break;
+    case DistanceTypeNormalizedAngle:
+      comparator =
+          new ObjectSpaceRepository::ComparatorNormalizedAngleDistance(ObjectSpace::getPaddedDimension());
+      normalization = true;
+      break;
+    case DistanceTypeNormalizedCosine:
+      comparator =
+          new ObjectSpaceRepository::ComparatorNormalizedCosineSimilarity(ObjectSpace::getPaddedDimension());
+      normalization = true;
+      break;
+    case DistanceTypeInnerProduct: {
+      if (typeid(OBJECT_TYPE) == typeid(qsint8)) {
+        comparator = new ObjectSpaceRepository::ComparatorL2Quint8Quint8(ObjectSpace::getPaddedDimension());
+        comparatorForSearch =
+            new ObjectSpaceRepository::ComparatorInnerProductQsint8Quint8(ObjectSpace::getPaddedDimension());
+      } else {
+        comparator = new ObjectSpaceRepository::ComparatorL2(ObjectSpace::getPaddedDimension());
       }
-      return;
+      setInnerProduct();
+    } break;
+    case DistanceTypeDotProduct: {
+      auto *comp      = new ObjectSpaceRepository::ComparatorDotProduct(ObjectSpace::getPaddedDimension());
+      comp->magnitude = magnitude;
+      comparator      = comp;
+      setInnerProduct();
+    } break;
+#endif
+    default:
+      std::stringstream msg;
+      msg << "NGT::ObjectSpaceRepository: The distance type is invalid. " << distanceType;
+      NGTThrowException(msg);
     }
+  }
 
-    float computeMaxMagnitude(NGT::ObjectID beginID = 1) {
-      float maxMag = 0.0;
-      ObjectRepository &rep = *this;
-      auto nOfThreads = omp_get_max_threads();
-      std::vector<float> maxm(nOfThreads, 0.0);
-#pragma omp parallel for
-      for (size_t idx = beginID; idx < rep.size(); idx++) {
-	if (rep[idx] == 0) {
-	  continue;
-	}
-	auto thdID = omp_get_thread_num();
-#ifdef NGT_SHARED_MEMORY_ALLOCATOR
-	auto object = getObject(*rep[idx], allocator);
-#else
-	auto object = getObject(*rep[idx]);
+  void serialize(const std::string &ofile) { ObjectRepository::serialize(ofile, this); }
+  void deserialize(const std::string &ifile) { ObjectRepository::deserialize(ifile, this); }
+  void serializeAsText(const std::string &ofile) { ObjectRepository::serializeAsText(ofile, this); }
+  void deserializeAsText(const std::string &ifile) { ObjectRepository::deserializeAsText(ifile, this); }
+  void readText(std::istream &is, size_t dataSize) { ObjectRepository::readText(is, dataSize); }
+  void appendText(std::istream &is, size_t dataSize) { ObjectRepository::appendText(is, dataSize); }
+
+  void append(const float *data, size_t dataSize) { ObjectRepository::append(data, dataSize); }
+  void append(const double *data, size_t dataSize) { ObjectRepository::append(data, dataSize); }
+  void append(const uint8_t *data, size_t dataSize) { ObjectRepository::append(data, dataSize); }
+#ifdef NGT_HALF_FLOAT
+  void append(const float16 *data, size_t dataSize) { ObjectRepository::append(data, dataSize); }
 #endif
-	double mag = 0.0;
-	for (size_t i = 0; i < object.size() - 1; i++) {
-	  mag += object[i] * object[i];
-	}
-	if (mag > maxm[thdID]) {
-	  maxm[thdID] = mag;
-	}
+
+  void deleteAll() { ObjectRepository::deleteAll(); }
+
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+  PersistentObject *allocatePersistentObject(Object &obj) {
+    return ObjectRepository::allocatePersistentObject(obj);
+  }
+  size_t insert(PersistentObject *obj) { return ObjectRepository::insert(obj); }
+#else
+  size_t insert(Object *obj) { return ObjectRepository::insert(obj); }
+#endif
+
+  void remove(size_t id) { ObjectRepository::remove(id); }
+
+  void linearSearch(Object &query, double radius, size_t size, ObjectSpace::ResultSet &results) {
+    if (distanceType == DistanceTypeInnerProduct) {
+      Comparator *comp;
+      if (typeid(OBJECT_TYPE) == typeid(qsint8)) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+        comp = new ObjectSpaceRepository::ComparatorInnerProductQsint8Quint8(
+            ObjectSpace::getPaddedDimension(), ObjectRepository::allocator);
+#else
+        comp =
+            new ObjectSpaceRepository::ComparatorInnerProductQsint8Quint8(ObjectSpace::getPaddedDimension());
+#endif
+      } else {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+        comp = new ObjectSpaceRepository::ComparatorInnerProduct(ObjectSpace::getPaddedDimension(),
+                                                                 ObjectRepository::allocator);
+#else
+        comp = new ObjectSpaceRepository::ComparatorInnerProduct(ObjectSpace::getPaddedDimension());
+#endif
       }
-      for (int ti = 0; ti < nOfThreads; ti++) {
-	if (maxm[ti] > maxMag) {
-          maxMag = maxm[ti];
-	}
+      try {
+        linearSearch(query, radius, size, results, *comp);
+      } catch (Exception &err) {
+        delete comp;
+        throw err;
       }
-      return maxMag;
+      delete comp;
+    } else {
+      linearSearch(query, radius, size, results, *comparator);
     }
+  }
+  void linearSearch(Object &query, double radius, size_t size, ObjectSpace::ResultSet &results,
+                    Comparator &comparator) {
+    if (!results.empty()) {
+      NGTThrowException("lenearSearch: results is not empty");
+    }
+#ifndef NGT_PREFETCH_DISABLED
+    size_t byteSizeOfObject     = getByteSizeOfObject();
+    const size_t prefetchOffset = getPrefetchOffset();
+#endif
+    ObjectRepository &rep = *this;
+    for (size_t idx = 0; idx < rep.size(); idx++) {
+#ifndef NGT_PREFETCH_DISABLED
+      if (idx + prefetchOffset < rep.size() && rep[idx + prefetchOffset] != 0) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+        MemoryCache::prefetch(
+            (unsigned char *)&(*static_cast<PersistentObject *>(ObjectRepository::get(idx + prefetchOffset))),
+            byteSizeOfObject);
+#else
+        MemoryCache::prefetch(
+            (unsigned char *)&(*static_cast<PersistentObject *>(rep[idx + prefetchOffset]))[0],
+            byteSizeOfObject);
+#endif
+      }
+#endif
+      if (rep[idx] == 0) {
+        continue;
+      }
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+      Distance d = comparator((Object &)query, (PersistentObject &)*rep[idx]);
+#else
+      Distance d = comparator((Object &)query, (Object &)*rep[idx]);
+#endif
+      if (radius < 0.0 || d <= radius) {
+        NGT::ObjectDistance obj(idx, d);
+        results.push(obj);
+        if (results.size() > size) {
+          results.pop();
+        }
+      }
+    }
+    return;
+  }
+
+  float computeMaxMagnitude(NGT::ObjectID beginID = 1) {
+    float maxMag          = 0.0;
+    ObjectRepository &rep = *this;
+    auto nOfThreads = omp_get_max_threads();
+    std::vector<float> maxm(nOfThreads, 0.0);
+#pragma omp parallel for
+    for (size_t idx = beginID; idx < rep.size(); idx++) {
+      if (rep[idx] == 0) {
+        continue;
+      }
+      auto thdID = omp_get_thread_num();
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+      auto object = getObject(*rep[idx], allocator);
+#else
+      auto object = getObject(*rep[idx]);
+#endif
+      double mag = 0.0;
+      for (size_t i = 0; i < object.size() - 1; i++) {
+        mag += object[i] * object[i];
+      }
+      if (mag > maxm[thdID]) {
+        maxm[thdID] = mag;
+      }
+    }
+    for (int ti = 0; ti < nOfThreads; ti++) {
+      if (maxm[ti] > maxMag) {
+        maxMag = maxm[ti];
+      }
+    }
+    return maxMag;
+  }
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
   void setMagnitude(float maxMag, NGT::PersistentRepository<void> &graphNodes, NGT::ObjectID beginID = 1) {
 #else
   void setMagnitude(float maxMag, NGT::Repository<void> &graphNodes, NGT::ObjectID beginID = 1) {
 #endif
-      ObjectRepository &rep = *this;
+    ObjectRepository &rep = *this;
 #pragma omp parallel for
-      for (size_t idx = beginID; idx < rep.size(); idx++) {
-	if (rep[idx] == 0) {
-	  continue;
-	}
-	if (idx < graphNodes.size() && graphNodes[idx] != 0) {
-	  continue;
-	}
+    for (size_t idx = beginID; idx < rep.size(); idx++) {
+      if (rep[idx] == 0) {
+        continue;
+      }
+      if (idx < graphNodes.size() && graphNodes[idx] != 0) {
+        continue;
+      }
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-	auto object = getObject(*rep[idx], allocator);
+      auto object = getObject(*rep[idx], allocator);
 #else
-	auto object = getObject(*rep[idx]);
+      auto object = getObject(*rep[idx]);
 #endif
-	double mag = 0.0;
-	for (size_t i = 0; i < object.size() - 1; i++) {
-	  mag += object[i] * object[i];
-	}
-	auto v = maxMag - static_cast<float>(mag);
-	if (v < 0.0) {
-          std::cerr << "Warning! magnitude is larger than the current max magnitude. " << idx << ":" << v << ":" << maxMag << ":" << static_cast<float>(mag) << std::endl;
-          v = 0.0;
+      double mag = 0.0;
+      for (size_t i = 0; i < object.size() - 1; i++) {
+        mag += object[i] * object[i];
+      }
+      auto v = maxMag - static_cast<float>(mag);
+      if (v < 0.0) {
+        std::cerr << "Warning! magnitude is larger than the current max magnitude. " << idx << ":" << v << ":"
+                  << maxMag << ":" << static_cast<float>(mag) << std::endl;
+        v = 0.0;
+      }
+      object.back() = sqrt(v);
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+      setObject(*rep[idx], object, allocator);
+#else
+      setObject(*rep[idx], object);
+#endif
+    }
+  }
+
+  std::pair<float, float> getMaxMin(float clippingRate = 0.02, size_t size = 0) {
+    ObjectRepository &rep = *this;
+    if (size == 0) {
+      size = rep.size();
+    } else {
+      size = size > rep.size() ? size : rep.size();
+    }
+    auto dim          = getDimension();
+    auto clippingSize = static_cast<float>(size) * clippingRate;
+    clippingSize      = clippingSize == 0 ? 1 : clippingSize;
+    std::priority_queue<float> min;
+    std::priority_queue<float, std::vector<float>, std::greater<float>> max;
+    std::cerr << "repo size=" << rep.size() << " " << clippingSize << std::endl;
+    for (size_t idx = 1; idx < rep.size(); idx++) {
+      try {
+        OBJECT_TYPE *obj = static_cast<OBJECT_TYPE *>(getObject(idx));
+        for (size_t i = 0; i < dim; i++) {
+          float v = static_cast<float>(obj[i]);
+          if (max.size() < clippingSize) {
+            max.push(v);
+          } else if (max.top() <= v) {
+            max.push(v);
+            max.pop();
+          }
+          if (min.size() < clippingSize) {
+            min.push(v);
+          } else if (min.top() >= v) {
+            min.push(v);
+            min.pop();
+          }
         }
-	object.back() = sqrt(v);
+      } catch (...) {
+      }
+    }
+    auto ret = std::make_pair(max.top(), min.top());
+    return ret;
+  }
+
+  void *getObject(size_t idx) {
+    if (isEmpty(idx)) {
+      std::stringstream msg;
+      msg << "NGT::ObjectSpaceRepository: The specified ID is out of the range. The object ID should be "
+             "greater than zero. "
+          << idx << ":" << ObjectRepository::size() << ".";
+      NGTThrowException(msg);
+    }
+    PersistentObject &obj = *(*this)[idx];
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-        setObject(*rep[idx], object, allocator);
+    return reinterpret_cast<OBJECT_TYPE *>(&obj.at(0, allocator));
 #else
-	setObject(*rep[idx], object);
+    return reinterpret_cast<OBJECT_TYPE *>(&obj[0]);
 #endif
-      }
-    }
+  }
 
-    std::pair<float, float> getMaxMin(float clippingRate = 0.02, size_t size = 0) {
-      ObjectRepository &rep = *this;
-      if (size == 0) {
-	size = rep.size();
-      } else {
-	size = size > rep.size() ? size : rep.size();
-      }
-      auto dim = getDimension();
-      auto clippingSize = static_cast<float>(size) * clippingRate;
-      clippingSize = clippingSize == 0 ? 1 : clippingSize;
-      std::priority_queue<float> min;
-      std::priority_queue<float, std::vector<float>, std::greater<float>> max;
-      std::cerr << "repo size=" << rep.size() << " " << clippingSize << std::endl;
-      for (size_t idx = 1; idx < rep.size(); idx++) {
-	try {
-	  OBJECT_TYPE *obj = static_cast<OBJECT_TYPE*>(getObject(idx));
-	  for (size_t i = 0; i < dim; i++) {
-	    float v = static_cast<float>(obj[i]);
-	    if (max.size() < clippingSize) {
-	      max.push(v);
-	    } else if (max.top() <= v) {
-	      max.push(v);
-	      max.pop();
-	    }
-	    if (min.size() < clippingSize) {
-	      min.push(v);
-	    } else if (min.top() >= v) {
-	      min.push(v);
-	      min.pop();
-	    }
-	  }
-	} catch(...) {}
-      }
-      auto ret = std::make_pair(max.top(), min.top());
-      return ret;
+  void getObject(size_t idx, std::vector<float> &v) {
+    OBJECT_TYPE *obj = static_cast<OBJECT_TYPE *>(getObject(idx));
+    size_t dim       = getDimension();
+    v.resize(dim);
+    for (size_t i = 0; i < dim; i++) {
+      v[i] = static_cast<float>(obj[i]);
     }
-
-    void *getObject(size_t idx) {
-      if (isEmpty(idx)) {
-	std::stringstream msg;
-	msg << "NGT::ObjectSpaceRepository: The specified ID is out of the range. The object ID should be greater than zero. " << idx << ":" << ObjectRepository::size() << ".";
-	NGTThrowException(msg);
-      }
-      PersistentObject &obj = *(*this)[idx];
+  }
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-      return reinterpret_cast<OBJECT_TYPE*>(&obj.at(0, allocator));
-#else
-      return reinterpret_cast<OBJECT_TYPE*>(&obj[0]);
+  std::vector<float> getObject(PersistentObject &object, SharedMemoryAllocator &allocator) {
+    std::vector<float> v;
+    OBJECT_TYPE *obj = static_cast<OBJECT_TYPE *>(object.getPointer(allocator));
+    size_t dim       = getDimension();
+    v.resize(dim);
+    for (size_t i = 0; i < dim; i++) {
+      v[i] = static_cast<float>(obj[i]);
+    }
+    return v;
+  }
 #endif
+  std::vector<float> getObject(Object &object) {
+    std::vector<float> v;
+    OBJECT_TYPE *obj = static_cast<OBJECT_TYPE *>(object.getPointer());
+    size_t dim       = getDimension();
+    v.resize(dim);
+    for (size_t i = 0; i < dim; i++) {
+      v[i] = static_cast<float>(obj[i]);
     }
+    return v;
+  }
 
-    void getObject(size_t idx, std::vector<float> &v) {
-      OBJECT_TYPE *obj = static_cast<OBJECT_TYPE*>(getObject(idx));
-      size_t dim = getDimension();
-      v.resize(dim);
-      for (size_t i = 0; i < dim; i++) {
-	v[i] = static_cast<float>(obj[i]);
-      }
+  void getObjects(const std::vector<size_t> &idxs, std::vector<std::vector<float>> &vs) {
+    vs.resize(idxs.size());
+    auto v = vs.begin();
+    for (auto idx = idxs.begin(); idx != idxs.end(); idx++, v++) {
+      getObject(*idx, *v);
     }
-#ifdef NGT_SHARED_MEMORY_ALLOCATOR
-    std::vector<float> getObject(PersistentObject &object, SharedMemoryAllocator &allocator) {
-      std::vector<float> v;
-      OBJECT_TYPE *obj = static_cast<OBJECT_TYPE*>(object.getPointer(allocator));
-      size_t dim = getDimension();
-      v.resize(dim);
-      for (size_t i = 0; i < dim; i++) {
-	v[i] = static_cast<float>(obj[i]);
-      }
-      return v;
-    }
-#endif
-    std::vector<float> getObject(Object &object) {
-      std::vector<float> v;
-      OBJECT_TYPE *obj = static_cast<OBJECT_TYPE*>(object.getPointer());
-      size_t dim = getDimension();
-      v.resize(dim);
-      for (size_t i = 0; i < dim; i++) {
-	v[i] = static_cast<float>(obj[i]);
-      }
-      return v;
-    }
-
-    void getObjects(const std::vector<size_t> &idxs, std::vector<std::vector<float>> &vs) {
-      vs.resize(idxs.size());
-      auto v = vs.begin();
-      for (auto idx = idxs.begin(); idx != idxs.end(); idx++, v++) {
-	getObject(*idx, *v);
-      }
-    }
+  }
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-    void normalize(PersistentObject &object) {
-      auto *obj = reinterpret_cast<OBJECT_TYPE*>(object.getPointer(getRepository().getAllocator()));
-      ObjectSpace::normalize(obj, ObjectSpace::dimension);
-    }
+  void normalize(PersistentObject &object) {
+    auto *obj = reinterpret_cast<OBJECT_TYPE *>(object.getPointer(getRepository().getAllocator()));
+    ObjectSpace::normalize(obj, ObjectSpace::dimension);
+  }
 #endif
-    void normalize(Object &object) {
-      auto *obj = reinterpret_cast<OBJECT_TYPE*>(object.getPointer());
-      ObjectSpace::normalize(obj, ObjectSpace::dimension);
+  void normalize(Object &object) {
+    auto *obj = reinterpret_cast<OBJECT_TYPE *>(object.getPointer());
+    ObjectSpace::normalize(obj, ObjectSpace::dimension);
+  }
+
+  Object *allocateObject() { return ObjectRepository::allocateObject(); }
+  void deleteObject(Object *po) { ObjectRepository::deleteObject(po); }
+
+  Object *allocateNormalizedObject(const std::string &textLine, const std::string &sep) {
+    Object *allocatedObject = ObjectRepository::allocateObject(textLine, sep);
+    if (normalization) {
+      normalize(*allocatedObject);
     }
+    return allocatedObject;
+  }
 
-    Object *allocateObject() { return ObjectRepository::allocateObject(); }
-    void deleteObject(Object *po) { ObjectRepository::deleteObject(po); }
-
-    Object *allocateNormalizedObject(const std::string &textLine, const std::string &sep) {
-      Object *allocatedObject = ObjectRepository::allocateObject(textLine, sep);
+  Object *allocateNormalizedObject(const std::vector<double> &obj) {
+    Object *allocatedObject = 0;
+    if (quantizationIsEnabled()) {
+      std::vector<float> qobj(obj.begin(), obj.end());
       if (normalization) {
-	normalize(*allocatedObject);
+        ObjectSpace::normalize(qobj);
       }
-      return allocatedObject;
-    }
-
-    Object *allocateNormalizedObject(const std::vector<double> &obj) {
-      Object *allocatedObject = 0;
-      if (quantizationIsEnabled()) {
-	std::vector<float> qobj(obj.begin(), obj.end());
-	if (normalization) {
-	  ObjectSpace::normalize(qobj);
-	}
-	quantizeToQint8(qobj);
-	allocatedObject = ObjectRepository::allocateObject(qobj);
-      } else {
-	allocatedObject = ObjectRepository::allocateObject(obj);
-	if (normalization) {
-	  normalize(*allocatedObject);
-	}
+      quantizeToQint8(qobj);
+      allocatedObject = ObjectRepository::allocateObject(qobj);
+    } else {
+      allocatedObject = ObjectRepository::allocateObject(obj);
+      if (normalization) {
+        normalize(*allocatedObject);
       }
-      return allocatedObject;
     }
-    Object *allocateNormalizedObject(const std::vector<float> &obj) {
-      Object *allocatedObject = 0;
-      if (quantizationIsEnabled()) {
-	std::vector<float> qobj(obj.begin(), obj.end());
-	if (normalization) {
-	  ObjectSpace::normalize(qobj);
-	}
-	quantizeToQint8(qobj);
-	allocatedObject = ObjectRepository::allocateObject(qobj);
-      } else {
-	allocatedObject = ObjectRepository::allocateObject(obj);
-	if (normalization) {
-	  normalize(*allocatedObject);
-	}
+    return allocatedObject;
+  }
+  Object *allocateNormalizedObject(const std::vector<float> &obj) {
+    Object *allocatedObject = 0;
+    if (quantizationIsEnabled()) {
+      std::vector<float> qobj(obj.begin(), obj.end());
+      if (normalization) {
+        ObjectSpace::normalize(qobj);
       }
-      return allocatedObject;
+      quantizeToQint8(qobj);
+      allocatedObject = ObjectRepository::allocateObject(qobj);
+    } else {
+      allocatedObject = ObjectRepository::allocateObject(obj);
+      if (normalization) {
+        normalize(*allocatedObject);
+      }
     }
+    return allocatedObject;
+  }
 #ifdef NGT_HALF_FLOAT
-    Object *allocateNormalizedObject(const std::vector<float16> &obj) {
-      Object *allocatedObject = 0;
-      if (quantizationIsEnabled()) {
-	std::vector<float> qobj(obj.begin(), obj.end());
-	if (normalization) {
-	  ObjectSpace::normalize(qobj);
-	}
-	quantizeToQint8(qobj);
-	allocatedObject = ObjectRepository::allocateObject(qobj);
-      } else {
-	allocatedObject = ObjectRepository::allocateObject(obj);
-	if (normalization) {
-	  normalize(*allocatedObject);
-	}
+  Object *allocateNormalizedObject(const std::vector<float16> &obj) {
+    Object *allocatedObject = 0;
+    if (quantizationIsEnabled()) {
+      std::vector<float> qobj(obj.begin(), obj.end());
+      if (normalization) {
+        ObjectSpace::normalize(qobj);
       }
-      return allocatedObject;
+      quantizeToQint8(qobj);
+      allocatedObject = ObjectRepository::allocateObject(qobj);
+    } else {
+      allocatedObject = ObjectRepository::allocateObject(obj);
+      if (normalization) {
+        normalize(*allocatedObject);
+      }
     }
+    return allocatedObject;
+  }
 #endif
-    Object *allocateNormalizedObject(const std::vector<uint8_t> &obj) {
-      Object *allocatedObject = 0;
-      if (quantizationIsEnabled()) {
-	std::vector<float> qobj(obj.begin(), obj.end());
-	if (normalization) {
-	  ObjectSpace::normalize(qobj);
-	}
-	quantizeToQint8(qobj);
-	allocatedObject = ObjectRepository::allocateObject(qobj);
-      } else {
-	allocatedObject = ObjectRepository::allocateObject(obj);
-	if (normalization) {
-	  normalize(*allocatedObject);
-	}
+  Object *allocateNormalizedObject(const std::vector<uint8_t> &obj) {
+    Object *allocatedObject = 0;
+    if (quantizationIsEnabled()) {
+      std::vector<float> qobj(obj.begin(), obj.end());
+      if (normalization) {
+        ObjectSpace::normalize(qobj);
       }
-      return allocatedObject;
+      quantizeToQint8(qobj);
+      allocatedObject = ObjectRepository::allocateObject(qobj);
+    } else {
+      allocatedObject = ObjectRepository::allocateObject(obj);
+      if (normalization) {
+        normalize(*allocatedObject);
+      }
     }
+    return allocatedObject;
+  }
 
-    Object *allocateNormalizedObject(const float *obj, size_t size) {
-      Object *allocatedObject = 0;
-      try {
-	if (quantizationIsEnabled()) {
-	  std::vector<float> qobj(obj, obj + size);
-	  if (normalization) {
-	    ObjectSpace::normalize(qobj);
-	  }
-	  quantizeToQint8(qobj);
-	  allocatedObject = ObjectRepository::allocateObject(qobj);
-	} else {
-	  allocatedObject = ObjectRepository::allocateObject(obj, size);
-	  if (normalization) {
-	    normalize(*allocatedObject);
-	  }
-	}
-      } catch (Exception &err) {
-	std::stringstream msg;
-	msg << err.what() << " quantization=" << (quantizationIsEnabled() ? "True" : "False");
-	NGTThrowException(msg);
-      }
-      return allocatedObject;
-    }
-
-    PersistentObject *allocateNormalizedPersistentObject(const std::vector<double> &obj) {
-      PersistentObject *allocatedObject = 0;
+  Object *allocateNormalizedObject(const float *obj, size_t size) {
+    Object *allocatedObject = 0;
+    try {
       if (quantizationIsEnabled()) {
-	std::vector<float> qobj(obj.begin(), obj.end());
-	if (normalization) {
-	  ObjectSpace::normalize(qobj);
-	}
-	auto shift = distanceType == DistanceTypeInnerProduct && typeid(OBJECT_TYPE) == typeid(qsint8);
-	quantizeToQint8(qobj, shift);
-	allocatedObject = ObjectRepository::allocatePersistentObject(qobj);
+        std::vector<float> qobj(obj, obj + size);
+        if (normalization) {
+          ObjectSpace::normalize(qobj);
+        }
+        quantizeToQint8(qobj);
+        allocatedObject = ObjectRepository::allocateObject(qobj);
       } else {
-	allocatedObject = ObjectRepository::allocatePersistentObject(obj);
-	if (normalization) {
-	  normalize(*allocatedObject);
-	}
+        allocatedObject = ObjectRepository::allocateObject(obj, size);
+        if (normalization) {
+          normalize(*allocatedObject);
+        }
       }
-      return allocatedObject;
+    } catch (Exception &err) {
+      std::stringstream msg;
+      msg << err.what() << " quantization=" << (quantizationIsEnabled() ? "True" : "False");
+      NGTThrowException(msg);
     }
-    PersistentObject *allocateNormalizedPersistentObject(const std::vector<float> &obj) {
-      PersistentObject *allocatedObject = 0;
-      try {
-	if (quantizationIsEnabled()) {
-	  std::vector<float> qobj(obj.begin(), obj.end());
-	  if (normalization) {
-	    ObjectSpace::normalize(qobj);
-	  }
-	  auto shift = distanceType == DistanceTypeInnerProduct && typeid(OBJECT_TYPE) == typeid(qsint8);
-	  quantizeToQint8(qobj, shift);
-	  allocatedObject = ObjectRepository::allocatePersistentObject(qobj);
-	} else {
-	  allocatedObject = ObjectRepository::allocatePersistentObject(obj);
-	  if (normalization) {
-	    normalize(*allocatedObject);
-	  }
-	}
-      } catch (Exception &err) {
-	std::stringstream msg;
-	msg << err.what() << " quantization=" << (quantizationIsEnabled() ? "True" : "False");
-	NGTThrowException(msg);
+    return allocatedObject;
+  }
+
+  PersistentObject *allocateNormalizedPersistentObject(const std::vector<double> &obj) {
+    PersistentObject *allocatedObject = 0;
+    if (quantizationIsEnabled()) {
+      std::vector<float> qobj(obj.begin(), obj.end());
+      if (normalization) {
+        ObjectSpace::normalize(qobj);
       }
-      return allocatedObject;
+      auto shift = distanceType == DistanceTypeInnerProduct && typeid(OBJECT_TYPE) == typeid(qsint8);
+      quantizeToQint8(qobj, shift);
+      allocatedObject = ObjectRepository::allocatePersistentObject(qobj);
+    } else {
+      allocatedObject = ObjectRepository::allocatePersistentObject(obj);
+      if (normalization) {
+        normalize(*allocatedObject);
+      }
     }
+    return allocatedObject;
+  }
+  PersistentObject *allocateNormalizedPersistentObject(const std::vector<float> &obj) {
+    PersistentObject *allocatedObject = 0;
+    try {
+      if (quantizationIsEnabled()) {
+        std::vector<float> qobj(obj.begin(), obj.end());
+        if (normalization) {
+          ObjectSpace::normalize(qobj);
+        }
+        auto shift = distanceType == DistanceTypeInnerProduct && typeid(OBJECT_TYPE) == typeid(qsint8);
+        quantizeToQint8(qobj, shift);
+        allocatedObject = ObjectRepository::allocatePersistentObject(qobj);
+      } else {
+        allocatedObject = ObjectRepository::allocatePersistentObject(obj);
+        if (normalization) {
+          normalize(*allocatedObject);
+        }
+      }
+    } catch (Exception &err) {
+      std::stringstream msg;
+      msg << err.what() << " quantization=" << (quantizationIsEnabled() ? "True" : "False");
+      NGTThrowException(msg);
+    }
+    return allocatedObject;
+  }
 #ifdef NGT_HALF_FLOAT
-    PersistentObject *allocateNormalizedPersistentObject(const std::vector<float16> &obj) {
-      PersistentObject *allocatedObject = 0;
-      if (quantizationIsEnabled()) {
-	std::vector<float> qobj(obj.begin(), obj.end());
-	if (normalization) {
-	  ObjectSpace::normalize(qobj);
-	}
-	auto shift = distanceType == DistanceTypeInnerProduct && typeid(OBJECT_TYPE) == typeid(qsint8);
-	quantizeToQint8(qobj, shift);
-	allocatedObject = ObjectRepository::allocatePersistentObject(qobj);
-      } else {
-	allocatedObject = ObjectRepository::allocatePersistentObject(obj);
-	if (normalization) {
-	  normalize(*allocatedObject);
-	}
+  PersistentObject *allocateNormalizedPersistentObject(const std::vector<float16> &obj) {
+    PersistentObject *allocatedObject = 0;
+    if (quantizationIsEnabled()) {
+      std::vector<float> qobj(obj.begin(), obj.end());
+      if (normalization) {
+        ObjectSpace::normalize(qobj);
       }
-      return allocatedObject;
+      auto shift = distanceType == DistanceTypeInnerProduct && typeid(OBJECT_TYPE) == typeid(qsint8);
+      quantizeToQint8(qobj, shift);
+      allocatedObject = ObjectRepository::allocatePersistentObject(qobj);
+    } else {
+      allocatedObject = ObjectRepository::allocatePersistentObject(obj);
+      if (normalization) {
+        normalize(*allocatedObject);
+      }
     }
+    return allocatedObject;
+  }
 #endif
-    PersistentObject *allocateNormalizedPersistentObject(const std::vector<uint8_t> &obj) {
-      PersistentObject *allocatedObject = 0;
-      if (quantizationIsEnabled()) {
-	std::vector<float> qobj(obj.begin(), obj.end());
-	if (normalization) {
-	  ObjectSpace::normalize(qobj);
-	}
-	auto shift = distanceType == DistanceTypeInnerProduct && typeid(OBJECT_TYPE) == typeid(qsint8);
-	quantizeToQint8(qobj, shift);
-	allocatedObject = ObjectRepository::allocatePersistentObject(qobj);
-      } else {
-	allocatedObject = ObjectRepository::allocatePersistentObject(obj);
-	if (normalization) {
-	  normalize(*allocatedObject);
-	}
+  PersistentObject *allocateNormalizedPersistentObject(const std::vector<uint8_t> &obj) {
+    PersistentObject *allocatedObject = 0;
+    if (quantizationIsEnabled()) {
+      std::vector<float> qobj(obj.begin(), obj.end());
+      if (normalization) {
+        ObjectSpace::normalize(qobj);
       }
-      return allocatedObject;
+      auto shift = distanceType == DistanceTypeInnerProduct && typeid(OBJECT_TYPE) == typeid(qsint8);
+      quantizeToQint8(qobj, shift);
+      allocatedObject = ObjectRepository::allocatePersistentObject(qobj);
+    } else {
+      allocatedObject = ObjectRepository::allocatePersistentObject(obj);
+      if (normalization) {
+        normalize(*allocatedObject);
+      }
     }
+    return allocatedObject;
+  }
 
-    size_t getSize() { return ObjectRepository::size(); }
-    size_t getSizeOfElement() { return sizeof(OBJECT_TYPE); }
-    const std::type_info &getObjectType() { return typeid(OBJECT_TYPE); };
-    size_t getByteSizeOfObject() { return getByteSize(); }
+  size_t getSize() { return ObjectRepository::size(); }
+  size_t getSizeOfElement() { return sizeof(OBJECT_TYPE); }
+  const std::type_info &getObjectType() { return typeid(OBJECT_TYPE); };
+  size_t getByteSizeOfObject() { return getByteSize(); }
 
-    ObjectRepository &getRepository() { return *this; };
+  ObjectRepository &getRepository() { return *this; };
 
-    void show(std::ostream &os, Object &object) {
-      const std::type_info &t = getObjectType();
-      if (t == typeid(uint8_t)) {
-	unsigned char *optr = static_cast<unsigned char*>(&object[0]);
-	for (size_t i = 0; i < getDimension(); i++) {
-	  os << (int)optr[i] << " ";
-	}
-      } else if (t == typeid(float)) {
-	float *optr = reinterpret_cast<float*>(&object[0]);
-	for (size_t i = 0; i < getDimension(); i++) {
-	  os << optr[i] << " ";
-	}
+  void show(std::ostream &os, Object &object) {
+    const std::type_info &t = getObjectType();
+    if (t == typeid(uint8_t)) {
+      unsigned char *optr = static_cast<unsigned char *>(&object[0]);
+      for (size_t i = 0; i < getDimension(); i++) {
+        os << (int)optr[i] << " ";
+      }
+    } else if (t == typeid(float)) {
+      float *optr = reinterpret_cast<float *>(&object[0]);
+      for (size_t i = 0; i < getDimension(); i++) {
+        os << optr[i] << " ";
+      }
 #ifdef NGT_HALF_FLOAT
-      } else if (t == typeid(float16)) {
-	float16 *optr = reinterpret_cast<float16*>(&object[0]);
-	for (size_t i = 0; i < getDimension(); i++) {
-	  os << optr[i] << " ";
-	}
-#endif
-      } else {
-	os << " not implement for the type.";
+    } else if (t == typeid(float16)) {
+      float16 *optr = reinterpret_cast<float16 *>(&object[0]);
+      for (size_t i = 0; i < getDimension(); i++) {
+        os << optr[i] << " ";
       }
+#endif
+    } else {
+      os << " not implement for the type.";
     }
-
-  };
+  }
+};
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-  // set v in objectspace to this object using allocator.
-  inline void PersistentObject::set(PersistentObject &po, ObjectSpace &objectspace) {
-    SharedMemoryAllocator &allocator = objectspace.getRepository().getAllocator();
-    uint8_t *src = (uint8_t *)&po.at(0, allocator);
-    uint8_t *dst = (uint8_t *)&(*this).at(0, allocator);
-    memcpy(dst, src, objectspace.getByteSizeOfObject());
-  }
+// set v in objectspace to this object using allocator.
+inline void PersistentObject::set(PersistentObject &po, ObjectSpace &objectspace) {
+  SharedMemoryAllocator &allocator = objectspace.getRepository().getAllocator();
+  uint8_t *src                     = (uint8_t *)&po.at(0, allocator);
+  uint8_t *dst                     = (uint8_t *)&(*this).at(0, allocator);
+  memcpy(dst, src, objectspace.getByteSizeOfObject());
+}
 
-  inline off_t PersistentObject::allocate(ObjectSpace &objectspace) {
-    SharedMemoryAllocator &allocator = objectspace.getRepository().getAllocator();
-    return allocator.getOffset(new(allocator) PersistentObject(allocator, &objectspace));
-  }
+inline off_t PersistentObject::allocate(ObjectSpace &objectspace) {
+  SharedMemoryAllocator &allocator = objectspace.getRepository().getAllocator();
+  return allocator.getOffset(new (allocator) PersistentObject(allocator, &objectspace));
+}
 
-  inline void PersistentObject::serializeAsText(std::ostream &os, ObjectSpace *objectspace) {
-    assert(objectspace != 0);
-    SharedMemoryAllocator &allocator = objectspace->getRepository().getAllocator();
-    const std::type_info &t = objectspace->getObjectType();
-    void *ref = &(*this).at(0, allocator);
-    size_t dimension = objectspace->getDimension();
-    if (t == typeid(uint8_t)) {
-      NGT::Serializer::writeAsText(os, (uint8_t*)ref, dimension);
-    } else if (t == typeid(qsint8)) {
-      NGT::Serializer::writeAsText(os, (int8_t*)ref, dimension);
-    } else if (t == typeid(float)) {
-      NGT::Serializer::writeAsText(os, (float*)ref, dimension);
+inline void PersistentObject::serializeAsText(std::ostream &os, ObjectSpace *objectspace) {
+  assert(objectspace != 0);
+  SharedMemoryAllocator &allocator = objectspace->getRepository().getAllocator();
+  const std::type_info &t          = objectspace->getObjectType();
+  void *ref                        = &(*this).at(0, allocator);
+  size_t dimension                 = objectspace->getDimension();
+  if (t == typeid(uint8_t)) {
+    NGT::Serializer::writeAsText(os, (uint8_t *)ref, dimension);
+  } else if (t == typeid(qsint8)) {
+    NGT::Serializer::writeAsText(os, (int8_t *)ref, dimension);
+  } else if (t == typeid(float)) {
+    NGT::Serializer::writeAsText(os, (float *)ref, dimension);
 #ifdef NGT_HALF_FLOAT
-    } else if (t == typeid(float16)) {
-      NGT::Serializer::writeAsText(os, (float16*)ref, dimension);
+  } else if (t == typeid(float16)) {
+    NGT::Serializer::writeAsText(os, (float16 *)ref, dimension);
 #endif
-    } else if (t == typeid(double)) {
-      NGT::Serializer::writeAsText(os, (double*)ref, dimension);
-    } else if (t == typeid(uint16_t)) {
-      NGT::Serializer::writeAsText(os, (uint16_t*)ref, dimension);
-    } else if (t == typeid(uint32_t)) {
-      NGT::Serializer::writeAsText(os, (uint32_t*)ref, dimension);
-    } else {
-      std::cerr << "ObjectT::serializeAsText: not supported data type. [" << t.name() << "]" << std::endl;
-      assert(0);
-    }
+  } else if (t == typeid(double)) {
+    NGT::Serializer::writeAsText(os, (double *)ref, dimension);
+  } else if (t == typeid(uint16_t)) {
+    NGT::Serializer::writeAsText(os, (uint16_t *)ref, dimension);
+  } else if (t == typeid(uint32_t)) {
+    NGT::Serializer::writeAsText(os, (uint32_t *)ref, dimension);
+  } else {
+    std::cerr << "ObjectT::serializeAsText: not supported data type. [" << t.name() << "]" << std::endl;
+    assert(0);
   }
+}
 
-  inline void PersistentObject::deserializeAsText(std::ifstream &is, ObjectSpace *objectspace) {
-    assert(objectspace != 0);
-    SharedMemoryAllocator &allocator = objectspace->getRepository().getAllocator();
-    const std::type_info &t = objectspace->getObjectType();
-    size_t dimension = objectspace->getDimension();
-    void *ref = &(*this).at(0, allocator);
-    assert(ref != 0);
-    if (t == typeid(uint8_t)) {
-      NGT::Serializer::readAsText(is, (uint8_t*)ref, dimension);
-    } else if (t == typeid(float)) {
-      NGT::Serializer::readAsText(is, (float*)ref, dimension);
+inline void PersistentObject::deserializeAsText(std::ifstream &is, ObjectSpace *objectspace) {
+  assert(objectspace != 0);
+  SharedMemoryAllocator &allocator = objectspace->getRepository().getAllocator();
+  const std::type_info &t          = objectspace->getObjectType();
+  size_t dimension                 = objectspace->getDimension();
+  void *ref                        = &(*this).at(0, allocator);
+  assert(ref != 0);
+  if (t == typeid(uint8_t)) {
+    NGT::Serializer::readAsText(is, (uint8_t *)ref, dimension);
+  } else if (t == typeid(float)) {
+    NGT::Serializer::readAsText(is, (float *)ref, dimension);
 #ifdef NGT_HALF_FLOAT
-    } else if (t == typeid(float16)) {
-      NGT::Serializer::readAsText(is, (float16*)ref, dimension);
+  } else if (t == typeid(float16)) {
+    NGT::Serializer::readAsText(is, (float16 *)ref, dimension);
 #endif
-    } else if (t == typeid(double)) {
-      NGT::Serializer::readAsText(is, (double*)ref, dimension);
-    } else if (t == typeid(uint16_t)) {
-      NGT::Serializer::readAsText(is, (uint16_t*)ref, dimension);
-    } else if (t == typeid(uint32_t)) {
-      NGT::Serializer::readAsText(is, (uint32_t*)ref, dimension);
-    } else {
-      std::cerr << "Object::deserializeAsText: not supported data type. [" << t.name() << "]" << std::endl;
-      assert(0);
-    }
+  } else if (t == typeid(double)) {
+    NGT::Serializer::readAsText(is, (double *)ref, dimension);
+  } else if (t == typeid(uint16_t)) {
+    NGT::Serializer::readAsText(is, (uint16_t *)ref, dimension);
+  } else if (t == typeid(uint32_t)) {
+    NGT::Serializer::readAsText(is, (uint32_t *)ref, dimension);
+  } else {
+    std::cerr << "Object::deserializeAsText: not supported data type. [" << t.name() << "]" << std::endl;
+    assert(0);
   }
+}
 
 #endif
 } // namespace NGT
-

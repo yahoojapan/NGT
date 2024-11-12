@@ -14,20 +14,19 @@
 // limitations under the License.
 //
 
-#include	"NGT/defines.h"
+#include "NGT/defines.h"
 
-#include	"NGT/Tree.h"
-#include	"NGT/Node.h"
+#include "NGT/Tree.h"
+#include "NGT/Node.h"
 
-#include	<vector>
+#include <vector>
 
 using namespace std;
 using namespace NGT;
 
-void
-DVPTree::insert(InsertContainer &iobj) {
+void DVPTree::insert(InsertContainer &iobj) {
   SearchContainer q(iobj.object);
-  q.mode = SearchContainer::SearchLeaf;
+  q.mode   = SearchContainer::SearchLeaf;
   q.vptree = this;
   q.radius = 0.0;
 
@@ -36,23 +35,21 @@ DVPTree::insert(InsertContainer &iobj) {
   iobj.vptree = this;
 
   assert(q.nodeID.getType() == Node::ID::Leaf);
-  LeafNode *ln = (LeafNode*)getNode(q.nodeID);
+  LeafNode *ln = (LeafNode *)getNode(q.nodeID);
   insert(iobj, ln);
 
   return;
 }
 
-void
-DVPTree::insert(InsertContainer &iobj,  LeafNode *leafNode)
-{
+void DVPTree::insert(InsertContainer &iobj, LeafNode *leafNode) {
   LeafNode &leaf = *leafNode;
-  size_t fsize = leaf.getObjectSize();
+  size_t fsize   = leaf.getObjectSize();
   if (fsize != 0) {
     NGT::ObjectSpace::Comparator &comparator = objectSpace->getComparator();
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
     Distance d = comparator(iobj.object, leaf.getPivot(*objectSpace));
 #else
-    Distance d = comparator(iobj.object, leaf.getPivot());
+    Distance d                   = comparator(iobj.object, leaf.getPivot());
 #endif
 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
@@ -63,28 +60,28 @@ DVPTree::insert(InsertContainer &iobj,  LeafNode *leafNode)
 
     for (size_t i = 0; i < fsize; i++) {
       if (objects[i].distance == d) {
-	Distance idd = 0.0;
-	ObjectID loid;
+        Distance idd = 0.0;
+        ObjectID loid;
         try {
-	  loid = objects[i].id;
-	  if (objectSpace->isNormalizedDistance()) {
-	    idd = objectSpace->compareWithL1(iobj.object, *getObjectRepository().get(loid));
-	  } else {
-	    idd = comparator(iobj.object, *getObjectRepository().get(loid));
-	  }
+          loid = objects[i].id;
+          if (objectSpace->isNormalizedDistance()) {
+            idd = objectSpace->compareWithL1(iobj.object, *getObjectRepository().get(loid));
+          } else {
+            idd = comparator(iobj.object, *getObjectRepository().get(loid));
+          }
         } catch (Exception &e) {
           stringstream msg;
-          msg << "LeafNode::insert: Cannot find object which belongs to a leaf node. id="
-              << objects[i].id << ":" << e.what() << endl;
+          msg << "LeafNode::insert: Cannot find object which belongs to a leaf node. id=" << objects[i].id
+              << ":" << e.what() << endl;
           NGTThrowException(msg.str());
         }
         if (idd == 0.0) {
-	  if (loid == iobj.id) {
-	    stringstream msg;
-	    msg << "DVPTree::insert:already existed. " << iobj.id;
-	    NGTThrowException(msg);
-	  }
-	  return;
+          if (loid == iobj.id) {
+            stringstream msg;
+            msg << "DVPTree::insert:already existed. " << iobj.id;
+            NGTThrowException(msg);
+          }
+          return;
         }
       }
     }
@@ -98,18 +95,12 @@ DVPTree::insert(InsertContainer &iobj,  LeafNode *leafNode)
 
   return;
 }
-Node::ID
-DVPTree::split(InsertContainer &iobj, LeafNode &leaf)
-{
+Node::ID DVPTree::split(InsertContainer &iobj, LeafNode &leaf) {
   Node::Objects *fs = getObjects(leaf, iobj);
-  int pv = DVPTree::MaxVariance;
+  int pv            = DVPTree::MaxVariance;
   switch (splitMode) {
-  case DVPTree::MaxVariance:
-    pv = LeafNode::selectPivotByMaxVariance(iobj, *fs);
-    break;
-  case DVPTree::MaxDistance:
-    pv = LeafNode::selectPivotByMaxDistance(iobj, *fs);
-    break;
+  case DVPTree::MaxVariance: pv = LeafNode::selectPivotByMaxVariance(iobj, *fs); break;
+  case DVPTree::MaxDistance: pv = LeafNode::selectPivotByMaxDistance(iobj, *fs); break;
   }
 
   LeafNode::splitObjects(iobj, *fs, pv);
@@ -120,17 +111,15 @@ DVPTree::split(InsertContainer &iobj, LeafNode &leaf)
   return nid;
 }
 
-Node::ID
-DVPTree::recombineNodes(InsertContainer &ic, Node::Objects &fs, LeafNode &leaf)
-{
+Node::ID DVPTree::recombineNodes(InsertContainer &ic, Node::Objects &fs, LeafNode &leaf) {
   LeafNode *ln[internalChildrenSize];
   Node::ID targetParent = leaf.parent;
-  Node::ID targetId = leaf.id;
-  ln[0] = &leaf;
-  ln[0]->objectSize = 0;
+  Node::ID targetId     = leaf.id;
+  ln[0]                 = &leaf;
+  ln[0]->objectSize     = 0;
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
   for (size_t i = 1; i < internalChildrenSize; i++) {
-    ln[i] = new(leafNodes.allocator) LeafNode(leafNodes.allocator);
+    ln[i] = new (leafNodes.allocator) LeafNode(leafNodes.allocator);
   }
 #else
   for (size_t i = 1; i < internalChildrenSize; i++) {
@@ -138,20 +127,20 @@ DVPTree::recombineNodes(InsertContainer &ic, Node::Objects &fs, LeafNode &leaf)
   }
 #endif
   InternalNode *in = createInternalNode();
-  Node::ID inid = in->id;
+  Node::ID inid    = in->id;
   try {
     if (targetParent.getID() != 0) {
-      InternalNode &pnode = *(InternalNode*)getNode(targetParent);
+      InternalNode &pnode = *(InternalNode *)getNode(targetParent);
       for (size_t i = 0; i < internalChildrenSize; i++) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-	if (pnode.getChildren(internalNodes.allocator)[i] == targetId) {
-	  pnode.getChildren(internalNodes.allocator)[i] = inid;
+        if (pnode.getChildren(internalNodes.allocator)[i] == targetId) {
+          pnode.getChildren(internalNodes.allocator)[i] = inid;
 #else
-	if (pnode.getChildren()[i] == targetId) {
-	  pnode.getChildren()[i] = inid;
+        if (pnode.getChildren()[i] == targetId) {
+          pnode.getChildren()[i] = inid;
 #endif
-	  break;
-	}
+          break;
+        }
       }
     }
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
@@ -163,10 +152,10 @@ DVPTree::recombineNodes(InsertContainer &ic, Node::Objects &fs, LeafNode &leaf)
     in->parent = targetParent;
 
     int fsize = fs.size();
-    int cid = fs[0].clusterID;
+    int cid   = fs[0].clusterID;
 #ifdef NGT_NODE_USE_VECTOR
     LeafNode::ObjectIDs fid;
-    fid.id = fs[0].id;
+    fid.id       = fs[0].id;
     fid.distance = 0.0;
     ln[cid]->objectIDs.push_back(fid);
 #else
@@ -174,7 +163,7 @@ DVPTree::recombineNodes(InsertContainer &ic, Node::Objects &fs, LeafNode &leaf)
     ln[cid]->getObjectIDs(leafNodes.allocator)[ln[cid]->objectSize].id = fs[0].id;
     ln[cid]->getObjectIDs(leafNodes.allocator)[ln[cid]->objectSize++].distance = 0.0;
 #else
-    ln[cid]->getObjectIDs()[ln[cid]->objectSize].id = fs[0].id;
+    ln[cid]->getObjectIDs()[ln[cid]->objectSize].id         = fs[0].id;
     ln[cid]->getObjectIDs()[ln[cid]->objectSize++].distance = 0.0;
 #endif
 #endif
@@ -187,20 +176,20 @@ DVPTree::recombineNodes(InsertContainer &ic, Node::Objects &fs, LeafNode &leaf)
     } else {
       NGTThrowException("recombineNodes: internal error : illegal pivot.");
     }
-    ln[cid]->parent = inid;
+    ln[cid]->parent  = inid;
     int maxClusterID = cid;
     for (int i = 1; i < fsize; i++) {
       int clusterID = fs[i].clusterID;
       if (clusterID > maxClusterID) {
-	maxClusterID = clusterID;
+        maxClusterID = clusterID;
       }
       Distance ld;
       if (fs[i].leafDistance == Node::Object::Pivot) {
         // pivot
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-	ln[clusterID]->setPivot(*getObjectRepository().get(fs[i].id), *objectSpace, leafNodes.allocator);
+        ln[clusterID]->setPivot(*getObjectRepository().get(fs[i].id), *objectSpace, leafNodes.allocator);
 #else
-	ln[clusterID]->setPivot(*getObjectRepository().get(fs[i].id), *objectSpace);
+        ln[clusterID]->setPivot(*getObjectRepository().get(fs[i].id), *objectSpace);
 #endif
         ld = 0.0;
       } else {
@@ -208,7 +197,7 @@ DVPTree::recombineNodes(InsertContainer &ic, Node::Objects &fs, LeafNode &leaf)
       }
 
 #ifdef NGT_NODE_USE_VECTOR
-      fid.id = fs[i].id;
+      fid.id       = fs[i].id;
       fid.distance = ld;
       ln[clusterID]->objectIDs.push_back(fid);
 #else
@@ -216,7 +205,7 @@ DVPTree::recombineNodes(InsertContainer &ic, Node::Objects &fs, LeafNode &leaf)
       ln[clusterID]->getObjectIDs(leafNodes.allocator)[ln[clusterID]->objectSize].id = fs[i].id;
       ln[clusterID]->getObjectIDs(leafNodes.allocator)[ln[clusterID]->objectSize++].distance = ld;
 #else
-      ln[clusterID]->getObjectIDs()[ln[clusterID]->objectSize].id = fs[i].id;
+      ln[clusterID]->getObjectIDs()[ln[clusterID]->objectSize].id         = fs[i].id;
       ln[clusterID]->getObjectIDs()[ln[clusterID]->objectSize++].distance = ld;
 #endif
 #endif
@@ -242,9 +231,9 @@ DVPTree::recombineNodes(InsertContainer &ic, Node::Objects &fs, LeafNode &leaf)
 #endif
       if (i < (internalChildrenSize - 1)) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-	in->getBorders(internalNodes.allocator)[i] = FLT_MAX;
+        in->getBorders(internalNodes.allocator)[i] = FLT_MAX;
 #else
-	in->getBorders()[i] = FLT_MAX;
+        in->getBorders()[i] = FLT_MAX;
 #endif
       }
     }
@@ -262,14 +251,13 @@ DVPTree::recombineNodes(InsertContainer &ic, Node::Objects &fs, LeafNode &leaf)
       in->getChildren()[i] = ln[i]->id;
 #endif
     }
-  } catch(Exception &e) {
+  } catch (Exception &e) {
     throw e;
   }
   return inid;
 }
 
-void
-DVPTree::insertObject(InsertContainer &ic, LeafNode &leaf) {
+void DVPTree::insertObject(InsertContainer &ic, LeafNode &leaf) {
   if (leaf.getObjectSize() == 0) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
     leaf.setPivot(*getObjectRepository().get(ic.id), *objectSpace, leafNodes.allocator);
@@ -278,7 +266,7 @@ DVPTree::insertObject(InsertContainer &ic, LeafNode &leaf) {
 #endif
 #ifdef NGT_NODE_USE_VECTOR
     LeafNode::ObjectIDs fid;
-    fid.id = ic.id;
+    fid.id       = ic.id;
     fid.distance = 0;
     leaf.objectIDs.push_back(fid);
 #else
@@ -286,7 +274,7 @@ DVPTree::insertObject(InsertContainer &ic, LeafNode &leaf) {
     leaf.getObjectIDs(leafNodes.allocator)[leaf.objectSize].id = ic.id;
     leaf.getObjectIDs(leafNodes.allocator)[leaf.objectSize++].distance = 0;
 #else
-    leaf.getObjectIDs()[leaf.objectSize].id = ic.id;
+    leaf.getObjectIDs()[leaf.objectSize].id         = ic.id;
     leaf.getObjectIDs()[leaf.objectSize++].distance = 0;
 #endif
 #endif
@@ -299,7 +287,7 @@ DVPTree::insertObject(InsertContainer &ic, LeafNode &leaf) {
 
 #ifdef NGT_NODE_USE_VECTOR
     LeafNode::ObjectIDs fid;
-    fid.id = ic.id;
+    fid.id       = ic.id;
     fid.distance = d;
     leaf.objectIDs.push_back(fid);
     std::sort(leaf.objectIDs.begin(), leaf.objectIDs.end(), LeafNode::ObjectIDs());
@@ -308,23 +296,21 @@ DVPTree::insertObject(InsertContainer &ic, LeafNode &leaf) {
     leaf.getObjectIDs(leafNodes.allocator)[leaf.objectSize].id = ic.id;
     leaf.getObjectIDs(leafNodes.allocator)[leaf.objectSize++].distance = d;
 #else
-    leaf.getObjectIDs()[leaf.objectSize].id = ic.id;
+    leaf.getObjectIDs()[leaf.objectSize].id         = ic.id;
     leaf.getObjectIDs()[leaf.objectSize++].distance = d;
 #endif
 #endif
   }
 }
 
-Node::Objects *
-DVPTree::getObjects(LeafNode &n, Container &iobj)
-{
+Node::Objects *DVPTree::getObjects(LeafNode &n, Container &iobj) {
   int size = n.getObjectSize() + 1;
 
   Node::Objects *fs = new Node::Objects(size);
   for (size_t i = 0; i < n.getObjectSize(); i++) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
     (*fs)[i].object = getObjectRepository().get(n.getObjectIDs(leafNodes.allocator)[i].id);
-    (*fs)[i].id = n.getObjectIDs(leafNodes.allocator)[i].id;
+    (*fs)[i].id     = n.getObjectIDs(leafNodes.allocator)[i].id;
 #else
     (*fs)[i].object = getObjectRepository().get(n.getObjectIDs()[i].id);
     (*fs)[i].id = n.getObjectIDs()[i].id;
@@ -339,13 +325,12 @@ DVPTree::getObjects(LeafNode &n, Container &iobj)
   return fs;
 }
 
-void
-DVPTree::removeEmptyNodes(InternalNode &inode) {
+void DVPTree::removeEmptyNodes(InternalNode &inode) {
 
-  int csize = internalChildrenSize;
+  int csize            = internalChildrenSize;
   InternalNode *target = &inode;
 
-  for(;;) {
+  for (;;) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
     Node::ID *children = target->getChildren(internalNodes.allocator);
 #else
@@ -353,11 +338,11 @@ DVPTree::removeEmptyNodes(InternalNode &inode) {
 #endif
     for (int i = 0; i < csize; i++) {
       if (children[i].getType() == Node::ID::Internal) {
-	return;
+        return;
       }
-      LeafNode &ln = *static_cast<LeafNode*>(getNode(children[i]));
+      LeafNode &ln = *static_cast<LeafNode *>(getNode(children[i]));
       if (ln.getObjectSize() != 0) {
-	return;
+        return;
       }
     }
 
@@ -367,26 +352,26 @@ DVPTree::removeEmptyNodes(InternalNode &inode) {
     if (target->parent.getID() == 0) {
       removeNode(target->id);
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-      LeafNode *root = new(leafNodes.allocator) LeafNode(leafNodes.allocator);
+      LeafNode *root = new (leafNodes.allocator) LeafNode(leafNodes.allocator);
 #else
       LeafNode *root = new LeafNode;
 #endif
       insertNode(root);
       if (root->id.getID() != 1) {
-	NGTThrowException("Root id Error");
+        NGTThrowException("Root id Error");
       }
       return;
     }
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-    LeafNode *ln = new(leafNodes.allocator) LeafNode(leafNodes.allocator);
+    LeafNode *ln = new (leafNodes.allocator) LeafNode(leafNodes.allocator);
 #else
     LeafNode *ln = new LeafNode;
 #endif
     ln->parent = target->parent;
     insertNode(ln);
 
-    InternalNode &in = *(InternalNode*)getNode(ln->parent);
+    InternalNode &in = *(InternalNode *)getNode(ln->parent);
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
     in.updateChild(*this, target->id, ln->id, internalNodes.allocator);
 #else
@@ -399,10 +384,7 @@ DVPTree::removeEmptyNodes(InternalNode &inode) {
   return;
 }
 
-
-void
-DVPTree::search(SearchContainer &sc, InternalNode &node, UncheckedNode &uncheckedNode)
-{
+void DVPTree::search(SearchContainer &sc, InternalNode &node, UncheckedNode &uncheckedNode) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
   Distance d = objectSpace->getComparator()(sc.object, node.getPivot(*objectSpace));
 #else
@@ -426,9 +408,9 @@ DVPTree::search(SearchContainer &sc, InternalNode &node, UncheckedNode &unchecke
   int mid;
   for (mid = 0; mid < bsize; mid++) {
     if (d < borders[mid]) {
-        child.id = mid;
-        child.distance = 0.0;
-        regions.push_back(child);
+      child.id       = mid;
+      child.distance = 0.0;
+      regions.push_back(child);
       if (d + sc.radius < borders[mid]) {
         break;
       } else {
@@ -436,7 +418,7 @@ DVPTree::search(SearchContainer &sc, InternalNode &node, UncheckedNode &unchecke
       }
     } else {
       if (d < borders[mid] + sc.radius) {
-        child.id = mid;
+        child.id       = mid;
         child.distance = d - borders[mid];
         regions.push_back(child);
         continue;
@@ -448,11 +430,11 @@ DVPTree::search(SearchContainer &sc, InternalNode &node, UncheckedNode &unchecke
 
   if (mid == bsize) {
     if (d >= borders[mid - 1]) {
-      child.id = mid;
+      child.id       = mid;
       child.distance = 0.0;
       regions.push_back(child);
     } else {
-      child.id = mid;
+      child.id       = mid;
       child.distance = borders[mid - 1] - d;
       regions.push_back(child);
     }
@@ -479,13 +461,10 @@ DVPTree::search(SearchContainer &sc, InternalNode &node, UncheckedNode &unchecke
       uncheckedNode.push(children[i->id]);
     }
   }
-  
 }
 
-void
-DVPTree::search(SearchContainer &so, LeafNode &node, UncheckedNode &uncheckedNode)
-{
-  DVPTree::SearchContainer &q = (DVPTree::SearchContainer&)so;
+void DVPTree::search(SearchContainer &so, LeafNode &node, UncheckedNode &uncheckedNode) {
+  DVPTree::SearchContainer &q = (DVPTree::SearchContainer &)so;
 
   if (node.getObjectSize() == 0) {
     return;
@@ -507,34 +486,32 @@ DVPTree::search(SearchContainer &so, LeafNode &node, UncheckedNode &uncheckedNod
 #endif
 
   for (size_t i = 0; i < node.getObjectSize(); i++) {
-    if ((objects[i].distance <= pq + q.radius) &&
-        (objects[i].distance >= pq - q.radius)) {
+    if ((objects[i].distance <= pq + q.radius) && (objects[i].distance >= pq - q.radius)) {
       Distance d = 0;
       try {
-	d = objectSpace->getComparator()(q.object, *q.vptree->getObjectRepository().get(objects[i].id));
+        d = objectSpace->getComparator()(q.object, *q.vptree->getObjectRepository().get(objects[i].id));
 #ifdef NGT_DISTANCE_COMPUTATION_COUNT
-	so.distanceComputationCount++;
+        so.distanceComputationCount++;
 #endif
-      } catch(...) {
+      } catch (...) {
         NGTThrowException("VpTree::LeafNode::search: Internal fatal error : Cannot get object");
       }
       if (d <= q.radius) {
-        r.id = objects[i].id;
+        r.id       = objects[i].id;
         r.distance = d;
-	so.getResult().push_back(r);
-	std::sort(so.getResult().begin(), so.getResult().end());
-	if (so.getResult().size() > q.size) {
-	  so.getResult().resize(q.size);
-	}
+        so.getResult().push_back(r);
+        std::sort(so.getResult().begin(), so.getResult().end());
+        if (so.getResult().size() > q.size) {
+          so.getResult().resize(q.size);
+        }
       }
     }
   }
 }
 
-void
-DVPTree::search(SearchContainer &sc) {
-  ((SearchContainer&)sc).vptree = this;
-  Node *root = getRootNode();
+void DVPTree::search(SearchContainer &sc) {
+  ((SearchContainer &)sc).vptree = this;
+  Node *root                     = getRootNode();
   assert(root != 0);
   if (sc.mode == DVPTree::SearchContainer::SearchLeaf) {
     if (root->id.getType() == Node::ID::Leaf) {
@@ -555,13 +532,12 @@ DVPTree::search(SearchContainer &sc) {
       continue;
     }
     if (cnode->id.getType() == Node::ID::Internal) {
-      search(sc, (InternalNode&)*cnode, uncheckedNode);
+      search(sc, (InternalNode &)*cnode, uncheckedNode);
     } else if (cnode->id.getType() == Node::ID::Leaf) {
-      search(sc, (LeafNode&)*cnode, uncheckedNode);
+      search(sc, (LeafNode &)*cnode, uncheckedNode);
     } else {
       cerr << "Tree: Inner fatal error!: Node type error!" << endl;
       abort();
     }
   }
 }
-

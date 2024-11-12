@@ -20,9 +20,9 @@
 #include <exception>
 #include <stdexcept>
 
-namespace MemoryManager{
-  class MmapManagerException : public std::domain_error{
-  public:
-  MmapManagerException(const std::string &msg) : std::domain_error(msg){}
-  };
-}
+namespace MemoryManager {
+class MmapManagerException : public std::domain_error {
+ public:
+  MmapManagerException(const std::string &msg) : std::domain_error(msg) {}
+};
+} // namespace MemoryManager

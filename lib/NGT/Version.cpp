@@ -14,11 +14,9 @@
 // limitations under the License.
 //
 
-#include	"NGT/Version.h"
+#include "NGT/Version.h"
 
-void
-NGT::Version::get(std::ostream &os)
-{
+void NGT::Version::get(std::ostream &os) {
   os << "  Version:" << NGT::Version::getVersion() << std::endl;
   os << "  Built date:" << NGT::Version::getBuildDate() << std::endl;
   os << "  The last git tag:" << Version::getGitTag() << std::endl;
@@ -26,33 +24,12 @@ NGT::Version::get(std::ostream &os)
   os << "  The last git commit date:" << Version::getGitDate() << std::endl;
 }
 
-const std::string
-NGT::Version::getVersion()
-{
-  return NGT_VERSION;
-}
+const std::string NGT::Version::getVersion() { return NGT_VERSION; }
 
-const std::string
-NGT::Version::getBuildDate()
-{
-  return NGT_BUILD_DATE;
-}
+const std::string NGT::Version::getBuildDate() { return NGT_BUILD_DATE; }
 
-const std::string
-NGT::Version::getGitHash()
-{
-  return NGT_GIT_HASH;
-}
+const std::string NGT::Version::getGitHash() { return NGT_GIT_HASH; }
 
-const std::string
-NGT::Version::getGitDate()
-{
-  return NGT_GIT_DATE;
-}
+const std::string NGT::Version::getGitDate() { return NGT_GIT_DATE; }
 
-const std::string
-NGT::Version::getGitTag()
-{
-  return NGT_GIT_TAG;
-}
-
+const std::string NGT::Version::getGitTag() { return NGT_GIT_TAG; }

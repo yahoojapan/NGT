@@ -14,38 +14,38 @@
 // limitations under the License.
 //
 
-#include	"NGT/Command.h"
-#include	"NGT/Optimizer.h"
+#include "NGT/Command.h"
+#include "NGT/Optimizer.h"
 
 #define NGT_VERSION_FOR_HEADER
-#include	"NGT/Version.h"
+#include "NGT/Version.h"
 
 
 #ifndef BUILD_DATE
-#define BUILD_DATE	"-"
+#define BUILD_DATE "-"
 #endif
 #ifndef GIT_HASH
-#define GIT_HASH	"-"
+#define GIT_HASH "-"
 #endif
 #ifndef GIT_DATE
-#define GIT_DATE	"-"
+#define GIT_DATE "-"
 #endif
 #ifndef GIT_TAG
-#define GIT_TAG	"-"
+#define GIT_TAG "-"
 #endif
 
 using namespace std;
 
-static void
-version(ostream &os)
-{
+static void version(ostream &os) {
   os << "ngt:" << endl;
   NGT::Version::get(os);
 }
 
 void help() {
   cerr << "Usage : ngt command [options] index [data]" << endl;
-  cerr << "           command : info create search remove append export import prune reconstruct-graph optimize-search-parameters optimize-#-of-edges repair" << endl;
+  cerr << "           command : info create search remove append export import prune reconstruct-graph "
+          "optimize-search-parameters optimize-#-of-edges repair"
+       << endl;
   cerr << "Version : " << NGT::Index::getVersion() << endl;
   if (NGT::Index::getVersion() != NGT::Version::getVersion()) {
     version(cerr);
@@ -53,9 +53,7 @@ void help() {
   }
 }
 
-int
-main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
   NGT::Args args(argc, argv);
 
   NGT::Command ngt;
@@ -63,7 +61,7 @@ main(int argc, char **argv)
   string command;
   try {
     command = args.get("#0");
-  } catch(...) {
+  } catch (...) {
     help();
     return 0;
   }
@@ -112,18 +110,17 @@ main(int argc, char **argv)
 #endif
     } else if (command == "info") {
       if (NGT::Index::getVersion() != NGT::Version::getVersion()) {
-	version(cerr);
-	NGT::Index::version(cerr);
+        version(cerr);
+        NGT::Index::version(cerr);
       }
       ngt.info(args);
     } else {
       cerr << "ngt: Error: Illegal command. " << command << endl;
       help();
     }
-  } catch(NGT::Exception &err) {
+  } catch (NGT::Exception &err) {
     cerr << "ngt: Error: " << err.what() << endl;
     return 1;
   }
   return 0;
-
 }

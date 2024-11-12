@@ -25,12 +25,12 @@ extern "C" {
 #include <stdbool.h>
 
 typedef unsigned int ObjectID;
-typedef void* NGTIndex;
-typedef void* NGTProperty;
-typedef void* NGTObjectSpace;
-typedef void* NGTObjectDistances;
-typedef void* NGTError;
-typedef void* NGTOptimizer;
+typedef void *NGTIndex;
+typedef void *NGTProperty;
+typedef void *NGTObjectSpace;
+typedef void *NGTObjectDistances;
+typedef void *NGTError;
+typedef void *NGTOptimizer;
 typedef void NGTFloat16;
 
 typedef struct {
@@ -39,45 +39,45 @@ typedef struct {
 } NGTObjectDistance;
 
 typedef struct {
-  float		*query;
-  size_t	size;		// # of returned objects
-  float		epsilon;
-  float		accuracy;	// expected accuracy
-  float		radius;
-  size_t	edge_size;	// # of edges to explore for each node
+  float *query;
+  size_t size; // # of returned objects
+  float epsilon;
+  float accuracy; // expected accuracy
+  float radius;
+  size_t edge_size; // # of edges to explore for each node
 } NGTQuery;
 
 typedef struct {
-  size_t	size;		// # of returned objects
-  float		epsilon;
-  float		radius;
-  size_t	edge_size;	// # of edges to explore for each node
+  size_t size; // # of returned objects
+  float epsilon;
+  float radius;
+  size_t edge_size; // # of edges to explore for each node
 } NGTQueryParameters;
 
 typedef struct {
-  float			*query;
-  NGTQueryParameters	params;
+  float *query;
+  NGTQueryParameters params;
 } NGTQueryFloat;
 
 typedef struct {
-  uint8_t		*query;
-  NGTQueryParameters	params;
+  uint8_t *query;
+  NGTQueryParameters params;
 } NGTQueryUint8;
 
 typedef struct {
-  NGTFloat16		*query;
-  NGTQueryParameters	params;
+  NGTFloat16 *query;
+  NGTQueryParameters params;
 } NGTQueryFloat16;
 
 typedef struct {
-  size_t	no_of_queries;
-  size_t	no_of_results;
-  size_t	no_of_threads;
-  float		target_accuracy;
-  size_t	target_no_of_objects;
-  size_t	no_of_sample_objects;
-  size_t	max_of_no_of_edges;
-  bool		log;
+  size_t no_of_queries;
+  size_t no_of_results;
+  size_t no_of_threads;
+  float target_accuracy;
+  size_t target_no_of_objects;
+  size_t no_of_sample_objects;
+  size_t max_of_no_of_edges;
+  bool log;
 } NGTAnngEdgeOptimizationParameter;
 
 typedef struct {
@@ -133,8 +133,8 @@ typedef struct {
   int object_shared_memory_size;
   int prefetch_offset;
   int prefetch_size;
-  const char* accuracy_table;
-  const char* search_type;
+  const char *accuracy_table;
+  const char *search_type;
   float max_magnitude;
   int n_of_neighbors_for_insertion_order;
   float epsilon_for_insertion_order;
@@ -228,13 +228,16 @@ NGTPropertyInfo ngt_get_property_info(NGTIndex, NGTError);
 
 NGTObjectDistances ngt_create_empty_results(NGTError);
 
-bool ngt_search_index(NGTIndex, double*, int32_t, size_t, float, float, NGTObjectDistances, NGTError);
+bool ngt_search_index(NGTIndex, double *, int32_t, size_t, float, float, NGTObjectDistances, NGTError);
 
-bool ngt_search_index_as_float(NGTIndex, float*, int32_t, size_t, float, float, NGTObjectDistances, NGTError);
+bool ngt_search_index_as_float(NGTIndex, float *, int32_t, size_t, float, float, NGTObjectDistances,
+                               NGTError);
 
-bool ngt_search_index_as_uint8(NGTIndex, uint8_t*, int32_t, size_t, float, float, NGTObjectDistances, NGTError);
+bool ngt_search_index_as_uint8(NGTIndex, uint8_t *, int32_t, size_t, float, float, NGTObjectDistances,
+                               NGTError);
 
-bool ngt_search_index_as_float16(NGTIndex, NGTFloat16*, int32_t, size_t, float, float, NGTObjectDistances, NGTError);
+bool ngt_search_index_as_float16(NGTIndex, NGTFloat16 *, int32_t, size_t, float, float, NGTObjectDistances,
+                                 NGTError);
 
 bool ngt_search_index_with_query(NGTIndex, NGTQuery, NGTObjectDistances, NGTError);
 
@@ -246,9 +249,9 @@ bool ngt_search_index_with_query_uint8(NGTIndex, NGTQueryUint8, NGTObjectDistanc
 
 bool ngt_search_index_with_query_float16(NGTIndex, NGTQueryFloat16, NGTObjectDistances, NGTError);
 
-bool ngt_linear_search_index(NGTIndex, double*, int32_t, size_t, NGTObjectDistances, NGTError);
+bool ngt_linear_search_index(NGTIndex, double *, int32_t, size_t, NGTObjectDistances, NGTError);
 
-bool ngt_linear_search_index_as_float(NGTIndex, float*, int32_t, size_t, NGTObjectDistances, NGTError);
+bool ngt_linear_search_index_as_float(NGTIndex, float *, int32_t, size_t, NGTObjectDistances, NGTError);
 
 bool ngt_linear_search_index_with_query(NGTIndex, NGTQuery, NGTObjectDistances, NGTError);
 
@@ -258,37 +261,37 @@ uint32_t ngt_get_result_size(NGTObjectDistances, NGTError);
 
 NGTObjectDistance ngt_get_result(const NGTObjectDistances, const uint32_t, NGTError);
 
-ObjectID ngt_insert_index(NGTIndex, double*, uint32_t, NGTError);
+ObjectID ngt_insert_index(NGTIndex, double *, uint32_t, NGTError);
 
-ObjectID ngt_append_index(NGTIndex, double*, uint32_t, NGTError);
+ObjectID ngt_append_index(NGTIndex, double *, uint32_t, NGTError);
 
-ObjectID ngt_insert_index_as_float(NGTIndex, float*, uint32_t, NGTError);
+ObjectID ngt_insert_index_as_float(NGTIndex, float *, uint32_t, NGTError);
 
-ObjectID ngt_append_index_as_float(NGTIndex, float*, uint32_t, NGTError);
+ObjectID ngt_append_index_as_float(NGTIndex, float *, uint32_t, NGTError);
 
-ObjectID ngt_insert_index_as_uint8(NGTIndex, uint8_t*, uint32_t, NGTError);
+ObjectID ngt_insert_index_as_uint8(NGTIndex, uint8_t *, uint32_t, NGTError);
 
-ObjectID ngt_append_index_as_uint8(NGTIndex, uint8_t*, uint32_t, NGTError);
+ObjectID ngt_append_index_as_uint8(NGTIndex, uint8_t *, uint32_t, NGTError);
 
-ObjectID ngt_insert_index_as_float16(NGTIndex, NGTFloat16*, uint32_t, NGTError);
+ObjectID ngt_insert_index_as_float16(NGTIndex, NGTFloat16 *, uint32_t, NGTError);
 
-ObjectID ngt_append_index_as_float16(NGTIndex, NGTFloat16*, uint32_t, NGTError);
+ObjectID ngt_append_index_as_float16(NGTIndex, NGTFloat16 *, uint32_t, NGTError);
 
-ObjectID ngt_append_to_refinement_as_float(NGTIndex, float*, uint32_t, NGTError);
+ObjectID ngt_append_to_refinement_as_float(NGTIndex, float *, uint32_t, NGTError);
 
-ObjectID ngt_insert_to_refinement_as_float(NGTIndex, float*, uint32_t, NGTError);
+ObjectID ngt_insert_to_refinement_as_float(NGTIndex, float *, uint32_t, NGTError);
 
-bool ngt_batch_append_index(NGTIndex, float*, uint32_t, NGTError);
+bool ngt_batch_append_index(NGTIndex, float *, uint32_t, NGTError);
 
-bool ngt_batch_insert_index(NGTIndex, float*, uint32_t, uint32_t *, NGTError);
+bool ngt_batch_insert_index(NGTIndex, float *, uint32_t, uint32_t *, NGTError);
 
-bool ngt_batch_append_index_as_uint8(NGTIndex, uint8_t*, uint32_t, NGTError);
+bool ngt_batch_append_index_as_uint8(NGTIndex, uint8_t *, uint32_t, NGTError);
 
-bool ngt_batch_insert_index_as_uint8(NGTIndex, uint8_t*, uint32_t, uint32_t *, NGTError);
+bool ngt_batch_insert_index_as_uint8(NGTIndex, uint8_t *, uint32_t, uint32_t *, NGTError);
 
-bool ngt_batch_append_index_as_float16(NGTIndex, NGTFloat16*, uint32_t, NGTError);
+bool ngt_batch_append_index_as_float16(NGTIndex, NGTFloat16 *, uint32_t, NGTError);
 
-bool ngt_batch_insert_index_as_float16(NGTIndex, NGTFloat16*, uint32_t, uint32_t *, NGTError);
+bool ngt_batch_insert_index_as_float16(NGTIndex, NGTFloat16 *, uint32_t, uint32_t *, NGTError);
 
 bool ngt_create_index(NGTIndex, uint32_t, NGTError);
 
@@ -296,16 +299,16 @@ bool ngt_remove_index(NGTIndex, ObjectID, NGTError);
 
 NGTObjectSpace ngt_get_object_space(NGTIndex, NGTError);
 
-void* ngt_get_object(NGTObjectSpace, ObjectID, NGTError);
+void *ngt_get_object(NGTObjectSpace, ObjectID, NGTError);
 
-float* ngt_get_object_as_float(NGTObjectSpace, ObjectID, NGTError);
+float *ngt_get_object_as_float(NGTObjectSpace, ObjectID, NGTError);
 
-NGTFloat16* ngt_get_object_as_float16(NGTObjectSpace, ObjectID, NGTError);
+NGTFloat16 *ngt_get_object_as_float16(NGTObjectSpace, ObjectID, NGTError);
 
-uint8_t* ngt_get_object_as_integer(NGTObjectSpace, ObjectID, NGTError);
+uint8_t *ngt_get_object_as_integer(NGTObjectSpace, ObjectID, NGTError);
 
 // return an object as a float vector whatever the data type of the object.
-float* ngt_get_allocated_object_as_float(NGTObjectSpace, ObjectID, NGTError);
+float *ngt_get_allocated_object_as_float(NGTObjectSpace, ObjectID, NGTError);
 
 void ngt_destroy_results(NGTObjectDistances);
 
@@ -333,21 +336,19 @@ bool ngt_optimizer_adjust_search_coefficients(NGTOptimizer, const char *, NGTErr
 
 bool ngt_optimizer_execute(NGTOptimizer, const char *, const char *, NGTError);
 
-bool ngt_optimizer_set(NGTOptimizer optimizer, int outgoing, int incoming, int nofqs,
-		       float baseAccuracyFrom, float baseAccuracyTo,
-		       float rateAccuracyFrom, float rateAccuracyTo,
-		       double gte, double m, NGTError error);
+bool ngt_optimizer_set(NGTOptimizer optimizer, int outgoing, int incoming, int nofqs, float baseAccuracyFrom,
+                       float baseAccuracyTo, float rateAccuracyFrom, float rateAccuracyTo, double gte,
+                       double m, NGTError error);
 
-bool ngt_optimizer_set_minimum(NGTOptimizer optimizer, int outgoing, int incoming,
-			       int nofqs, int nofrs, NGTError error);
+bool ngt_optimizer_set_minimum(NGTOptimizer optimizer, int outgoing, int incoming, int nofqs, int nofrs,
+                               NGTError error);
 
-bool ngt_optimizer_set_extension(NGTOptimizer optimizer,
-				 float baseAccuracyFrom, float baseAccuracyTo,
-				 float rateAccuracyFrom, float rateAccuracyTo,
-				 double gte, double m, NGTError error);
+bool ngt_optimizer_set_extension(NGTOptimizer optimizer, float baseAccuracyFrom, float baseAccuracyTo,
+                                 float rateAccuracyFrom, float rateAccuracyTo, double gte, double m,
+                                 NGTError error);
 
-bool ngt_optimizer_set_processing_modes(NGTOptimizer optimizer, bool searchParameter,
-					bool prefetchParameter, bool accuracyTable, NGTError error);
+bool ngt_optimizer_set_processing_modes(NGTOptimizer optimizer, bool searchParameter, bool prefetchParameter,
+                                        bool accuracyTable, NGTError error);
 
 void ngt_destroy_optimizer(NGTOptimizer);
 
@@ -355,8 +356,8 @@ void ngt_destroy_optimizer(NGTOptimizer);
 // epsilon, exepectedAccuracy and edgeSize: the same as the parameters for search. but if edgeSize is INT_MIN, default is used.
 // noOfEdges: if this is not 0, kNNG with k = noOfEdges is build
 // batchSize: batch size for parallelism.
-bool ngt_refine_anng(NGTIndex index, float epsilon, float expectedAccuracy,
-		     int noOfEdges, int edgeSize, size_t batchSize, NGTError error);
+bool ngt_refine_anng(NGTIndex index, float epsilon, float expectedAccuracy, int noOfEdges, int edgeSize,
+                     size_t batchSize, NGTError error);
 
 // get edges of the node that is specified with id.
 bool ngt_get_edges(NGTIndex index, ObjectID id, NGTObjectDistances edges, NGTError error);
@@ -374,7 +375,8 @@ NGTAnngEdgeOptimizationParameter ngt_get_anng_edge_optimization_parameter();
 
 // optimize the number of initial edges for ANNG that is specified with indexPath.
 // The parameter should be a struct which is returned by nt_get_optimization_parameter.
-bool ngt_optimize_number_of_edges(const char *indexPath, NGTAnngEdgeOptimizationParameter parameter, NGTError error);
+bool ngt_optimize_number_of_edges(const char *indexPath, NGTAnngEdgeOptimizationParameter parameter,
+                                  NGTError error);
 
 #ifdef __cplusplus
 }

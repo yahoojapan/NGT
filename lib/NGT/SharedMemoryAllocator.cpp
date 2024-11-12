@@ -14,13 +14,11 @@
 // limitations under the License.
 //
 
-#include	"NGT/SharedMemoryAllocator.h"
+#include "NGT/SharedMemoryAllocator.h"
 
 
 
-void* operator
-new(size_t size, SharedMemoryAllocator &allocator)
-{
+void *operator new(size_t size, SharedMemoryAllocator &allocator) {
   void *addr = allocator.allocate(size);
 #ifdef MEMORY_ALLOCATOR_INFO
   std::cerr << "new:" << size << " " << addr << " " << allocator.getTotalSize() << std::endl;
@@ -28,9 +26,7 @@ new(size_t size, SharedMemoryAllocator &allocator)
   return addr;
 }
 
-void* operator
-new[](size_t size, SharedMemoryAllocator &allocator)
-{
+void *operator new[](size_t size, SharedMemoryAllocator &allocator) {
 
   void *addr = allocator.allocate(size);
 #ifdef MEMORY_ALLOCATOR_INFO

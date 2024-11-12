@@ -14,26 +14,21 @@
 // limitations under the License.
 //
 
-#include	"NGT/NGTQ/QbgCli.h"
+#include "NGT/NGTQ/QbgCli.h"
 
-int
-main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
   NGT::Args args(argc, argv);
 
   QBG::CLI ngt;
 
   try {
     ngt.execute(args);
-  } catch(NGT::Exception &err) {
+  } catch (NGT::Exception &err) {
     cerr << "qbg: Error: " << err.what() << endl;
     return 1;
-  } catch(...) {
+  } catch (...) {
     cerr << "qbg: Error: " << endl;
     return 1;
   }
   return 0;
 }
-
-
-
