@@ -1188,8 +1188,8 @@ void NGT::Command::repair(Args &args) {
       }
     } else {
       if (removedIDs.find(id) == removedIDs.end() && id < objSize) {
-        std::cerr << "Not found an object in the tree. However, it might be a duplicated object. " << id
-                  << std::endl;
+        std::cerr << "Not found an object in the tree. However, it might be a duplicated same object. " << id
+                  << "/" << removedIDs.size() << std::endl;
         uninsertedTreeObjectCount++;
         if (repair) {
           try {

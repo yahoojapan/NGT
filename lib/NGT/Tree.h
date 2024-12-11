@@ -446,7 +446,10 @@ class DVPTree {
         auto objs = ln.getObjectIDs();
 #endif
         for (size_t idx = 0; idx < ln.objectSize; ++idx) {
-          ids.insert(objs[idx].id);
+          auto ret = ids.insert(objs[idx].id);
+          if (ret.second == false) {
+            std::cerr << "Warning! Duplicated ID in the tree. ID=" << objs[idx].id << std::endl;
+          }
         }
       }
     }

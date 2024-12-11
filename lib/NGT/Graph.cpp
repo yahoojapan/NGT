@@ -1001,8 +1001,23 @@ void NeighborhoodGraph::removeEdgesReliably(ObjectID id) {
 #else
         GraphNode::iterator ei = std::lower_bound(n.begin(), n.end(), obj);
         if ((ei == n.end()) || ((*ei).id != obj.id)) {
-          n.insert(ei, obj);
-          insertionA = true;
+          auto idx = distance(n.begin(), ei);
+          bool found = false;
+          for (int i = idx - 1; idx >= 0 && found == false; i--) {
+            if (n[idx - 1].distance != n[i].distance) break;
+            if (n[i].id == obj.id) found = true;
+          }
+          for (int i = idx + 1; idx < (static_cast<int>(n.size()) - 1) && found == false; i++) {
+            if (n[idx + 1].distance != n[i].distance) break;
+            if (n[i].id == obj.id) found = true;
+          }
+          if (found) {
+            std::cerr << "Warning! The distances calculated earlier are different now, "
+                      << "therefore the index might be inconsistent." << std::endl;
+          } else {
+            n.insert(ei, obj);
+            insertionA = true;
+          }
         }
 #endif
       }
@@ -1024,8 +1039,24 @@ void NeighborhoodGraph::removeEdgesReliably(ObjectID id) {
 #else
         GraphNode::iterator ei = std::lower_bound(n.begin(), n.end(), obj);
         if ((ei == n.end()) || ((*ei).id != obj.id)) {
-          n.insert(ei, obj);
-          insertionB = true;
+          auto idx = distance(n.begin(), ei);
+          bool found = false;
+          for (int i = idx - 1; idx >= 0 && found == false; i--) {
+            if (n[idx - 1].distance != n[i].distance) break;
+            if (n[i].id == obj.id) found = true;
+          }
+          for (int i = idx + 1; idx < (static_cast<int>(n.size()) - 1) && found == false; i++) {
+            if (n[idx + 1].distance != n[i].distance) break;
+            if (n[i].id == obj.id) found = true;
+          }
+          if (found) {
+            std::cerr << "Warning! The distances calculated earlier are different now, "
+                      << "therefore the index might be inconsistent." << std::endl;
+          } else {
+            n.insert(ei, obj);
+            insertionB = true;
+          }
+
         }
 #endif
       }

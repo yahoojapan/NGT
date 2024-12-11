@@ -456,10 +456,13 @@ class LeafNode : public Node {
     }
 #endif // NGT_NODE_USE_VECTOR
     if (pivot == 0) {
-      // Before insertion, parent ID == 0 and object size == 0, that indicates an empty index
-      if (parent.getID() != 0 || objectSize != 0) {
-        NGTThrowException("Node::write: pivot is null!");
+      if (parent.getID() != 0) {
+        NGTThrowException("Node::write: The pivot is null and the parent is invalid.");
       }
+      if (objectSize != 0) {
+        NGTThrowException("Node::write: The pivot is null with no object assigned.");
+      }
+      // Before insertion, parent ID == 0 and object size == 0, that indicates an empty index
     } else {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
       std::cerr << "not implemented" << std::endl;
