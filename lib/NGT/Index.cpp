@@ -458,13 +458,16 @@ void NGT::Index::appendFromTextObjectFile(const std::string &indexPath, const st
 
 void NGT::Index::appendFromTextObjectFile(const std::string &data, size_t dataSize, bool append,
                                           bool refinement) {
+  StdOstreamRedirector redirector(redirect);
+  redirector.begin();
   NGT::Property prop;
   getProperty(prop);
   float maxMag    = prop.maxMagnitude;
   bool maxMagSkip = false;
   if (maxMag > 0.0) maxMagSkip = true;
   std::vector<float> addedElement;
-  size_t dim = 0;
+  size_t dim = prop.dimension;
+  bool warn = false;
   if (append && prop.distanceType == NGT::ObjectSpace::DistanceType::DistanceTypeInnerProduct) {
     NGT::Timer timer;
     timer.start();
@@ -483,12 +486,19 @@ void NGT::Index::appendFromTextObjectFile(const std::string &data, size_t dataSi
       vector<string> tokens;
       NGT::Common::tokenize(line, tokens, "\t, ");
       if (tokens.back() == "") tokens.pop_back();
-      if (dim == 0) {
-        dim = tokens.size();
-      } else if (dim != tokens.size()) {
+      if (tokens.size() > dim && warn == false) {
+        warn = true;
+        std::cerr << "Warning! Invalid dimension of the specified data. The specified data is "
+                  << tokens.size() << ". The index is " << dim << "." << std::endl;
+        std::cerr << "Cut the tail." << std::endl;
+      }
+      if (tokens.size() < dim) {
         std::stringstream msg;
         msg << "The dimensions are not inconsist. " << counter << ":" << dim << "x" << tokens.size() << data;
         NGTThrowException(msg);
+      }
+      if (tokens.size() > dim) {
+        tokens.resize(dim);
       }
       if (prop.distanceType == NGT::ObjectSpace::DistanceType::DistanceTypeInnerProduct) {
         double mag = 0.0;
@@ -543,9 +553,18 @@ void NGT::Index::appendFromTextObjectFile(const std::string &data, size_t dataSi
         vector<string> tokens;
         NGT::Common::tokenize(line, tokens, "\t, ");
         if (tokens.back() == "") tokens.pop_back();
+        if (tokens.size() > dim && warn == false) {
+          warn = true;
+          std::cerr << "Warning! Invalid dimension of the specified data. The specified data is "
+                    << tokens.size() << ". The index is " << dim << "." << std::endl;
+          std::cerr << "Cut the tail." << std::endl;
+        }
         for (auto &vstr : tokens) {
           auto v = NGT::Common::strtof(vstr);
           object.emplace_back(v);
+        }
+        if (object.size() > dim) {
+          object.resize(dim);
         }
         if (getObjectSpace().isNormalizedDistance()) {
           ObjectSpace::normalize(object);
@@ -570,6 +589,7 @@ void NGT::Index::appendFromTextObjectFile(const std::string &data, size_t dataSi
         }
         counter++;
       }
+      timer.stop();
       std::cerr << "time=" << timer << std::endl;
       if (counter != 0) {
         std::cerr << "max:min=" << max.top() << ":" << min.top() << std::endl;
@@ -594,9 +614,18 @@ void NGT::Index::appendFromTextObjectFile(const std::string &data, size_t dataSi
       vector<string> tokens;
       NGT::Common::tokenize(line, tokens, "\t, ");
       if (tokens.back() == "") tokens.pop_back();
+      if (tokens.size() > dim && warn == false) {
+        warn = true;
+        std::cerr << "Warning! Invalid dimension of the specified data. The specified data is "
+                  << tokens.size() << ". The index is " << dim << "." << std::endl;
+        std::cerr << "Cut the tail." << std::endl;
+      }
       for (auto &vstr : tokens) {
         auto v = NGT::Common::strtof(vstr);
         object.emplace_back(v);
+      }
+      if (object.size() > dim) {
+        object.resize(dim);
       }
 #ifdef NGT_REFINEMENT
       if (refinement) {
@@ -613,6 +642,7 @@ void NGT::Index::appendFromTextObjectFile(const std::string &data, size_t dataSi
       counter++;
     }
   }
+  redirector.end();
 }
 
 void NGT::Index::appendFromBinaryObjectFile(const std::string &indexPath, const std::string &data,
@@ -695,6 +725,9 @@ void NGT::Index::appendFromBinaryObjectFile(const std::string &data, size_t data
           float v = maxMag - addedElement[counter];
           object.emplace_back(sqrt(v >= 0.0 ? v : 0.0));
         }
+        if (getObjectSpace().isNormalizedDistance()) {
+          ObjectSpace::normalize(object);
+        }
         for (auto &v : object) {
           if (max.size() < clippingSize) {
             max.push(v);
@@ -711,6 +744,7 @@ void NGT::Index::appendFromBinaryObjectFile(const std::string &data, size_t data
         }
         counter++;
       }
+      timer.stop();
       std::cerr << "time=" << timer << std::endl;
       if (counter != 0) {
         std::cerr << "max:min=" << max.top() << ":" << min.top() << std::endl;

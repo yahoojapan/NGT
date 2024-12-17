@@ -224,9 +224,9 @@ void NGT::Command::create(Args &args) {
       "[-t truncation-edge-limit] [-E edge-size] [-S edge-size-for-search] [-L edge-size-limit] "
       "[-e epsilon] "
 #ifdef NGT_HALF_FLOAT
-      "[-o object-type(f|h|c)] "
+      "[-o object-type(f|h|c|q)] "
 #else
-      "[-o object-type(f|c)] "
+      "[-o object-type(f|c|q)] "
 #endif
       "[-D distance-function(1|2|a|A|h|j|c|C|E|p|l)] [-n #-of-inserted-objects] " // added by Nyapicom
       "[-P path-adjustment-interval] [-B dynamic-edge-size-base] [-A object-alignment(t|f)] "
@@ -236,6 +236,7 @@ void NGT::Command::create(Args &args) {
 #endif
       "[-l #-of-neighbors-for-insertion-order[:epsilon-for-insertion-order]] "
       "[-c scalar-quantization-clipping-rate] "
+      "[-R refinement-object-type[f|h]] "
       "index(output) [data.tsv(input)]";
 
   try {
@@ -273,11 +274,13 @@ void NGT::Command::create(Args &args) {
 
 
 void appendTextVectors(std::string &indexPath, std::string &data, size_t dataSize, char appendMode,
-                       std::string &destination, size_t ioSearchSize, float ioEpsilon) {
-  NGT::StdOstreamRedirector redirector(false);
-  redirector.begin();
+                       std::string &destination, size_t ioSearchSize, float ioEpsilon, bool verbose) {
   NGT::Index index(indexPath);
-  index.enableLog();
+  if (verbose) {
+    index.enableLog();
+  } else {
+    index.disableLog();
+  }
   auto append     = destination.find('n') == std::string::npos;
   auto refinement = destination.find('r') != std::string::npos;
   index.appendFromTextObjectFile(data, dataSize, append, refinement);
@@ -297,14 +300,16 @@ void appendTextVectors(std::string &indexPath, std::string &data, size_t dataSiz
   }
   index.save();
   index.close();
-  redirector.end();
 }
 
-void appendRefinementVectors(std::string &indexPath, char appendMode, size_t ioSearchSize, float ioEpsilon) {
-  NGT::StdOstreamRedirector redirector(false);
-  redirector.begin();
+void appendRefinementVectors(std::string &indexPath, char appendMode, size_t ioSearchSize, float ioEpsilon,
+                             bool verbose) {
   NGT::Index index(indexPath);
-  index.enableLog();
+  if (verbose) {
+    index.enableLog();
+  } else {
+    index.disableLog();
+  }
   index.appendFromRefinementObjectFile();
   if (appendMode == 'r') {
     if (ioSearchSize > 0) {
@@ -321,7 +326,6 @@ void appendRefinementVectors(std::string &indexPath, char appendMode, size_t ioS
   }
   index.save();
   index.close();
-  redirector.end();
 }
 
 void appendTextVectorsInMemory(std::string &indexPath, std::string &data, size_t dataSize, char appendMode,
@@ -369,11 +373,13 @@ void appendTextVectorsInMemory(std::string &indexPath, std::string &data, size_t
 #ifdef NGT_APPENDING_BINARY
 
 void appendBinaryVectors(std::string &indexPath, std::string &data, size_t dataSize, char appendMode,
-                         std::string &destination) {
-  NGT::StdOstreamRedirector redirector(false);
-  redirector.begin();
+                         std::string &destination, bool verbose) {
   NGT::Index index(indexPath);
-  index.enableLog();
+  if (verbose) {
+    index.enableLog();
+  } else {
+    index.disableLog();
+  }
   std::vector<std::string> tokens;
   NGT::Common::tokenize(data, tokens, ".");
   auto append     = destination.find('n') == std::string::npos;
@@ -385,13 +391,12 @@ void appendBinaryVectors(std::string &indexPath, std::string &data, size_t dataS
   }
   index.save();
   index.close();
-  redirector.end();
 }
 #endif
 
 void NGT::Command::append(Args &args) {
   const string usage = "Usage: ngt append [-p #-of-thread] [-d dimension] [-n data-size] "
-                       "index(output) [data.tsv(input)]";
+                       "[-D o|r] index(output) [data.tsv(input)]";
   args.parse("v");
   string indexPath;
   try {
@@ -415,6 +420,7 @@ void NGT::Command::append(Args &args) {
 
   size_t ioSearchSize = args.getl("S", 0);
   float ioEpsilon     = args.getf("E", 0.1);
+  bool verbose        = args.getBool("v");
 
   if (debugLevel >= 1) {
     cerr << "thread size=" << threadSize << endl;
@@ -438,14 +444,14 @@ void NGT::Command::append(Args &args) {
       NGTThrowException(msg);
     }
   } else if (appendMode == 't' || appendMode == 'T') {
-    appendTextVectors(indexPath, data, dataSize, appendMode, destination, ioSearchSize, ioEpsilon);
+    appendTextVectors(indexPath, data, dataSize, appendMode, destination, ioSearchSize, ioEpsilon, verbose);
   } else if (appendMode == 'r' || appendMode == 'R') {
-    appendRefinementVectors(indexPath, appendMode, ioSearchSize, ioEpsilon);
+    appendRefinementVectors(indexPath, appendMode, ioSearchSize, ioEpsilon, verbose);
   } else if (appendMode == 'm' || appendMode == 'M') {
     appendTextVectorsInMemory(indexPath, data, dataSize, appendMode, ioSearchSize, ioEpsilon);
 #ifdef NGT_APPENDING_BINARY
   } else if (appendMode == 'b' || appendMode == 'B') {
-    appendBinaryVectors(indexPath, data, dataSize, appendMode, destination);
+    appendBinaryVectors(indexPath, data, dataSize, appendMode, destination, verbose);
   }
 #else
   }
@@ -1162,6 +1168,7 @@ void NGT::Command::repair(Args &args) {
       removedIDs.insert(id);
     }
   }
+
 
   std::cerr << "aggregate objects from the tree." << std::endl;
   std::set<ObjectID> ids;

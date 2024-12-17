@@ -580,7 +580,8 @@ class Index {
   virtual void append(const std::string &ifile, size_t dataSize) { getIndex().append(ifile, dataSize); }
   template <typename T>
   void appendWithPreprocessing(const T *data, size_t dataSize, bool append = true, bool refinement = false);
-  template <typename T> void append(const T *data, size_t dataSize);
+  template <typename T>
+  void append(const T *data, size_t dataSize, bool append = true, bool refinement = false);
   virtual size_t getNumberOfObjects() { return getIndex().getNumberOfObjects(); }
   virtual size_t getNumberOfIndexedObjects() { return getIndex().getNumberOfIndexedObjects(); }
   virtual size_t getObjectRepositorySize() { return getIndex().getObjectRepositorySize(); }
@@ -2494,6 +2495,7 @@ void NGT::Index::appendWithPreprocessing(const T *data, size_t dataSize, bool ap
         }
         counter++;
       }
+      timer.stop();
       std::cerr << "time=" << timer << std::endl;
       if (counter != 0) {
         std::cerr << "max:min=" << max.top() << ":" << min.top() << std::endl;
@@ -2525,9 +2527,10 @@ void NGT::Index::appendWithPreprocessing(const T *data, size_t dataSize, bool ap
       counter++;
     }
   }
+  std::cerr << "End of append" << std::endl;
 }
 
-template <typename T> void NGT::Index::append(const T *data, size_t dataSize) {
+template <typename T> void NGT::Index::append(const T *data, size_t dataSize, bool append, bool refinement) {
   StdOstreamRedirector redirector(redirect);
   redirector.begin();
   try {
@@ -2535,7 +2538,7 @@ template <typename T> void NGT::Index::append(const T *data, size_t dataSize) {
     getProperty(prop);
     if (prop.distanceType == NGT::ObjectSpace::DistanceType::DistanceTypeInnerProduct ||
         getObjectSpace().isQintObjectType()) {
-      appendWithPreprocessing(data, dataSize);
+      appendWithPreprocessing(data, dataSize, append, refinement);
     } else {
       auto &index = static_cast<GraphIndex &>(getIndex());
       index.append(data, dataSize);

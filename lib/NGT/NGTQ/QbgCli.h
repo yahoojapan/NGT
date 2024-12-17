@@ -34,7 +34,6 @@ class CLI {
   void expandBlob(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
   void buildIndex(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
   void hierarchicalKmeans(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
-  void batchSearch(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
   void search(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
   void assign(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
   void extract(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
@@ -57,7 +56,6 @@ class CLI {
   void expandBlob(NGT::Args &args);
   void buildIndex(NGT::Args &args);
   void hierarchicalKmeans(NGT::Args &args);
-  void batchSearch(NGT::Args &args);
   void search(NGT::Args &args);
   void assign(NGT::Args &args);
   void extract(NGT::Args &args);
@@ -97,8 +95,6 @@ class CLI {
     }
     if (command == "search") {
       search(args);
-    } else if (command == "batch-search") {
-      batchSearch(args);
     } else if (command == "create") {
       create(args);
     } else if (command == "load") {

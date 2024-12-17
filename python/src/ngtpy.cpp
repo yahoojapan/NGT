@@ -245,6 +245,7 @@ public:
   void batchInsert(
    py::array_t<float> objects,
    size_t numThreads = 16,
+   bool refinement = false,
    bool debug = false
   ) {
     py::buffer_info info = objects.request();
@@ -266,7 +267,8 @@ public:
       msg << "ngtpy::insert: Error! dimensions are inconsitency. " << prop.dimension << ":" << info.shape[1];
       NGTThrowException(msg);
     }
-    NGT::Index::append(ptr, info.shape[0]);
+    auto append = true;
+    NGT::Index::append(ptr, info.shape[0], append, refinement);
     NGT::Index::createIndex(numThreads);
     numOfDistanceComputations = 0;
   }
@@ -1182,6 +1184,7 @@ PYBIND11_MODULE(ngtpy, m) {
       .def("batch_insert", &::Index::batchInsert,
            py::arg("objects"),
            py::arg("num_threads") = 8,
+           py::arg("refinement") = false,
            py::arg("debug") = false)
       .def("insert", &::Index::insert,
            py::arg("object"),

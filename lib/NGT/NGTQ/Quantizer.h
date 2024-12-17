@@ -2347,8 +2347,8 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
         __m512i hi = _mm512_slli_epi16(_mm512_and_si512(packedobj, mask512xF0), 4);
         __m512i obj = _mm512_or_si512(lo, hi);
         __m512i vtmp = _mm512_shuffle_epi8(lookupTable, obj);
-        depu16       = _mm512_adds_epu16(depu16, _mm512_cvtepu8_epi16(_mm512_extracti64x4_epi64(vtmp, 0)));
-        depu16       = _mm512_adds_epu16(depu16, _mm512_cvtepu8_epi16(_mm512_extracti64x4_epi64(vtmp, 1)));
+        depu16 = _mm512_adds_epu16(depu16, _mm512_cvtepu8_epi16(_mm512_extracti64x4_epi64(vtmp, 0)));
+        depu16 = _mm512_adds_epu16(depu16, _mm512_cvtepu8_epi16(_mm512_extracti64x4_epi64(vtmp, 1)));
         lut += (localCodebookCentroidNo - 1) * 4;
         localID += step512;
       }
@@ -2521,7 +2521,7 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
         __m256i lo   = _mm256_and_si256(packedobj, mask256x0F);
         __m256i hi   = _mm256_slli_epi16(_mm256_and_si256(packedobj, mask256xF0), 4);
         __m256i obj  = _mm256_or_si256(lo, hi);
-                            //std::cerr << "LUT=" << (int)*lut << "," << (int)*(lut+1) << std::endl;
+                             //std::cerr << "LUT=" << (int)*lut << "," << (int)*(lut+1) << std::endl;
         __m256i vtmp = _mm256_shuffle_epi8(lookupTable, obj);
 
 #if defined(NGTQG_AVX512)
