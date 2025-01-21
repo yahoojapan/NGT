@@ -484,7 +484,7 @@ NGTPropertyInfo ngt_get_property_info(NGTIndex index, NGTError error) {
                           prop.buildTimeLimit,
                           prop.outgoingEdge,
                           prop.incomingEdge,
-                          prop.insertionRadiusCoefficient - 1.0};
+                          static_cast<float>(prop.insertionRadiusCoefficient - 1.0)};
   return info;
 }
 
