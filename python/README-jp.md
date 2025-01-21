@@ -9,11 +9,8 @@ pip3 install ngt
 ```
 また、ソースコードからもpython bindingsをインストールできます。ただし、python bindingsをインストールする前にNGTライブラリを[README-jp](../README-jp.md#build)にしたがって**必ず**インストールしてください。
 ```
-pip3 install pybind11
-pip3 install numpy
 cd NGT_ROOT/python
-python3 setup.py sdist
-pip3 install dist/ngt-x.x.x.tar.gz
+pip3 install .
 ```
 なお、古いCPUでも動作するように、PyPIのngtpyは個々のコンピュータ上でビルドしたngtpyよりも検索が遅い点、ご注意ください。
 

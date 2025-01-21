@@ -55,6 +55,7 @@ class Index {
     typedef ObjectSpace::DistanceType DistanceType;
     typedef NeighborhoodGraph::SeedType SeedType;
     typedef NeighborhoodGraph::GraphType GraphType;
+    typedef NeighborhoodGraph::EpsilonType EpsilonType;
     enum ObjectAlignment { ObjectAlignmentNone = 0, ObjectAlignmentTrue = 1, ObjectAlignmentFalse = 2 };
     enum IndexType { IndexTypeNone = 0, GraphAndTree = 1, Graph = 2 };
     enum DatabaseType { DatabaseTypeNone = 0, Memory = 1, MemoryMappedFile = 2 };
@@ -1082,7 +1083,7 @@ class GraphIndex : public Index,
   }
 
   void linearSearch(NGT::SearchContainer &sc) {
-    ObjectSpace::ResultSet results;
+    ResultSet results;
     objectSpace->linearSearch(sc.object, sc.radius, sc.size, results);
     ObjectDistances &qresults = sc.getResult();
     qresults.moveFrom(results);
@@ -1291,7 +1292,7 @@ class GraphIndex : public Index,
     if (id > 0) {
       size = NeighborhoodGraph::property.edgeSizeForCreation + 1;
     }
-    ObjectSpace::ResultSet rs;
+    ResultSet rs;
     objectSpace->linearSearch(po, radius, size, rs);
     result.moveFrom(rs, id);
     if ((size_t)NeighborhoodGraph::property.edgeSizeForCreation != result.size()) {

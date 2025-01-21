@@ -749,7 +749,7 @@ class ObjectSpaceRepository : public ObjectSpace, public ObjectRepository {
 
   void remove(size_t id) { ObjectRepository::remove(id); }
 
-  void linearSearch(Object &query, double radius, size_t size, ObjectSpace::ResultSet &results) {
+  void linearSearch(Object &query, double radius, size_t size, ResultSet &results) {
     auto *comp    = comparator;
     bool allocate = false;
     if (typeid(OBJECT_TYPE) == typeid(qsint8)) {
@@ -781,7 +781,7 @@ class ObjectSpaceRepository : public ObjectSpace, public ObjectRepository {
     }
     if (allocate) delete comp;
   }
-  void linearSearch(Object &query, double radius, size_t size, ObjectSpace::ResultSet &results,
+  void linearSearch(Object &query, double radius, size_t size, ResultSet &results,
                     Comparator &comparator) {
     if (!results.empty()) {
       NGTThrowException("lenearSearch: results is not empty");

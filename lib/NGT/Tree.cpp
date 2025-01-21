@@ -62,6 +62,24 @@ void DVPTree::insert(InsertContainer &iobj, LeafNode *leafNode) {
       if (objects[i].distance == d) {
         Distance idd = 0.0;
         ObjectID loid;
+	if (getObjectRepository().isEmpty(objects[i].id)) {
+          std::cerr << "LeafNode::insert: Warning! Found the object that does not exist in the object repository. "
+                    << "ID=" << objects[i].id << ", leaf ID=" << leaf.id.getID() << std::endl;
+          std::cerr << "LeafNode::insert: Warning! Remove the object from the tree. ID="
+                    << objects[i].id << std::endl;
+          try {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+            leaf.removeObject(objects[i].id, 0, leafNodes.allocator);
+#else
+            leaf.removeObject(objects[i].id, 0);
+#endif
+          } catch (Exception &e) {
+            std::cerr << "LeafNode::insert: Warning! Cannot remove the object from the tree. :" 
+                      << e.what() << std::endl;
+          }
+          i--;
+          continue;
+        }
         try {
           loid = objects[i].id;
           if (objectSpace->isNormalizedDistance()) {
@@ -70,16 +88,13 @@ void DVPTree::insert(InsertContainer &iobj, LeafNode *leafNode) {
             idd = comparator(iobj.object, *getObjectRepository().get(loid));
           }
         } catch (Exception &e) {
-          stringstream msg;
-          msg << "LeafNode::insert: Cannot find object which belongs to a leaf node. id=" << objects[i].id
-              << ":" << e.what() << endl;
-          NGTThrowException(msg.str());
+          std::cerr << "LeafNode::insert: Warning! Cannot compare the objects. ID=" 
+                    << objects[i].id << ":" << loid << " :" << e.what() << endl;
+          continue;
         }
         if (idd == 0.0) {
           if (loid == iobj.id) {
-            stringstream msg;
-            msg << "DVPTree::insert:already existed. " << iobj.id;
-            NGTThrowException(msg);
+            std::cerr << "LeafNode::insert: Warning! already existed. " << iobj.id << std::endl;
           }
           return;
         }

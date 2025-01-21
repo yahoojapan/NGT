@@ -55,6 +55,8 @@
  #undef			NGT_BFLOAT
 #endif
 
+#define RESULT_DEFINED_RANGE
+
 #ifdef	NGT_LARGE_DATASET
  #define	NGT_GRAPH_CHECK_HASH_BASED_BOOLEAN_SET
 #else

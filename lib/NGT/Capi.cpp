@@ -266,6 +266,17 @@ bool ngt_set_property_edge_size_for_creation(NGTProperty prop, int16_t value, NG
   return true;
 }
 
+bool ngt_set_property_epsilon_for_creation(NGTProperty prop, float value, NGTError error) {
+  if (prop == NULL) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : parametor error: prop = " << prop;
+    operate_error_string_(ss, error);
+    return false;
+  }
+  (*static_cast<NGT::Property *>(prop)).insertionRadiusCoefficient = value + 1.0;
+  return true;
+}
+
 bool ngt_set_property_edge_size_for_search(NGTProperty prop, int16_t value, NGTError error) {
   if (prop == NULL) {
     std::stringstream ss;
@@ -472,7 +483,8 @@ NGTPropertyInfo ngt_get_property_info(NGTIndex index, NGTError error) {
                           prop.dynamicEdgeSizeRate,
                           prop.buildTimeLimit,
                           prop.outgoingEdge,
-                          prop.incomingEdge};
+                          prop.incomingEdge,
+                          prop.insertionRadiusCoefficient - 1.0};
   return info;
 }
 

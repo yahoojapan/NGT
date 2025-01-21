@@ -2352,8 +2352,26 @@ class Container {
   ObjectID id;
 };
 
-typedef std::priority_queue<ObjectDistance, std::vector<ObjectDistance>, std::less<ObjectDistance>>
-    ResultPriorityQueue;
+ class ResultSet : public std::vector<ObjectDistance> {
+ public:
+   ObjectDistance &top() { return front(); }
+   void emplace(const ObjectDistance &o) { push(o); }
+   void push(const ObjectDistance &o) {
+     emplace_back(o);
+     push_heap(begin(), end());
+   }
+   void pop() {
+     pop_heap(begin(), end());
+     pop_back();
+   }
+   void push_pop(const ObjectDistance &o) {
+     emplace_back(o);
+     pop_heap(begin(), end());
+     pop_back();
+   }
+ };
+
+typedef ResultSet ResultPriorityQueue;
 
 class SearchContainer : public NGT::Container {
  public:
@@ -2375,6 +2393,9 @@ class SearchContainer : public NGT::Container {
     expectedAccuracy         = sc.expectedAccuracy;
     visitCount = sc.visitCount;
     insertion = sc.insertion;
+#ifdef RESULT_DEFINED_RANGE
+    expandedSizeByEpsilon = sc.expandedSizeByEpsilon;
+#endif
     return *this;
   }
   virtual ~SearchContainer() {}
@@ -2388,6 +2409,9 @@ class SearchContainer : public NGT::Container {
     useAllNodesInLeaf = false;
     expectedAccuracy  = -1.0;
     insertion = false;
+#ifdef RESULT_DEFINED_RANGE
+    expandedSizeByEpsilon = false;
+#endif
   }
   void setSize(size_t s) { size = s; }
   void setResults(ObjectDistances *r) { result = r; }
@@ -2395,6 +2419,9 @@ class SearchContainer : public NGT::Container {
   void setEpsilon(float e) { explorationCoefficient = e + 1.0; }
   void setEdgeSize(int e) { edgeSize = e; }
   void setExpectedAccuracy(float a) { expectedAccuracy = a; }
+#ifdef RESULT_DEFINED_RANGE
+  void setExpandedSizeByEpsilon(bool v) { expandedSizeByEpsilon = v; }
+#endif
 
   inline bool resultIsAvailable() { return result != 0; }
   float getEpsilon() { return explorationCoefficient - 1.0; }
@@ -2417,6 +2444,9 @@ class SearchContainer : public NGT::Container {
   bool useAllNodesInLeaf;
   size_t visitCount;
   float expectedAccuracy;
+#ifdef RESULT_DEFINED_RANGE
+  bool expandedSizeByEpsilon;
+#endif
  private:
   ObjectDistances *result;
 

@@ -215,6 +215,19 @@ NGT::Command::CreateParameters::CreateParameters(Args &args) {
       }
     }
   }
+
+
+  char epsilonType = args.getChar("M", '-');
+  switch (epsilonType) {
+  case 'q': property.epsilonType = NGT::Property::EpsilonType::EpsilonTypeByQuery; break;
+  case 'n':
+  case '-': property.epsilonType = NGT::Property::EpsilonType::EpsilonTypeNone; break;
+  default:
+    std::stringstream msg;
+    msg << "Command::CreateParameter: Error: Invalid epsilon type. " << epsilonType;
+    NGTThrowException(msg);
+  }
+
 }
 
 void NGT::Command::create(Args &args) {
@@ -501,6 +514,9 @@ void NGT::Command::search(NGT::Index &index, NGT::Command::SearchParameters &sea
 #ifdef NGT_REFINEMENT
       sc.setRefinementExpansion(searchParameters.refinementExpansion);
 #endif
+#ifdef RESULT_DEFINED_RANGE
+      sc.setExpandedSizeByEpsilon(searchParameters.expandedSizeByEpsilon);
+#endif
       NGT::Timer timer;
       try {
         if (searchParameters.outputMode[0] == 'e') {
@@ -652,6 +668,10 @@ void NGT::Command::search(Args &args) {
   const string usage =
       "Usage: ngt search [-i index-type(g|t|s)] [-n result-size] [-e epsilon] [-E edge-size] "
       "[-m open-mode(r|w)] [-o output-mode] index(input) query.tsv(input)";
+
+#ifdef RESULT_DEFINED_RANGE
+  args.parse("N");
+#endif
 
   string database;
   try {

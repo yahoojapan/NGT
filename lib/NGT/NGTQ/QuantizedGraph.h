@@ -101,7 +101,6 @@ class QuantizedGraphRepository : public std::vector<QuantizedNode> {
       (*this)[id].ids.reserve(numOfEdges);
       NGTQ::QuantizedObjectProcessingStream quantizedStream(quantizedIndex.getQuantizer().divisionNo,
                                                             numOfEdges);
-      std::cerr << "pass XX " << node.size() << ":" << invertedIndexObjects.size() << std::endl;
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
       for (auto i = node.begin(graphRepository.allocator); i != node.end(graphRepository.allocator); ++i) {
         if (distance(node.begin(graphRepository.allocator), i) >= static_cast<int64_t>(numOfEdges)) {

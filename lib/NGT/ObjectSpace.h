@@ -51,7 +51,7 @@ class ObjectDistances : public std::vector<ObjectDistance> {
   }
 
   void
-  moveFrom(std::priority_queue<ObjectDistance, std::vector<ObjectDistance>, std::less<ObjectDistance>> &pq) {
+  moveFrom(ResultSet &pq) {
     this->clear();
     this->resize(pq.size());
     for (int i = pq.size() - 1; i >= 0; i--) {
@@ -62,8 +62,7 @@ class ObjectDistances : public std::vector<ObjectDistance> {
   }
 
   void
-  moveFrom(std::priority_queue<ObjectDistance, std::vector<ObjectDistance>, std::less<ObjectDistance>> &pq,
-           double (&f)(double)) {
+  moveFrom(ResultSet &pq, double (&f)(double)) {
     this->clear();
     this->resize(pq.size());
     for (int i = pq.size() - 1; i >= 0; i--) {
@@ -75,8 +74,7 @@ class ObjectDistances : public std::vector<ObjectDistance> {
   }
 
   void
-  moveFrom(std::priority_queue<ObjectDistance, std::vector<ObjectDistance>, std::less<ObjectDistance>> &pq,
-           unsigned int id) {
+  moveFrom(ResultSet &pq, unsigned int id) {
     this->clear();
     if (pq.size() == 0) {
       return;
@@ -210,8 +208,6 @@ class ObjectSpace {
 #endif
   };
 
-  typedef std::priority_queue<ObjectDistance, std::vector<ObjectDistance>, std::less<ObjectDistance>>
-      ResultSet;
   ObjectSpace(size_t d)
       : dimension(d), distanceType(DistanceTypeNone), comparator(0), comparatorForSearch(0),
         normalization(false), prefetchOffset(-1), prefetchSize(-1), quantizationScale(0.0),
@@ -263,7 +259,7 @@ class ObjectSpace {
 
   virtual void copy(Object &objecta, Object &objectb) = 0;
 
-  virtual void linearSearch(Object &query, double radius, size_t size, ObjectSpace::ResultSet &results) = 0;
+  virtual void linearSearch(Object &query, double radius, size_t size, ResultSet &results) = 0;
   virtual std::pair<float, float> getMaxMin(float cut = 0.01, size_t size = 0)                          = 0;
   virtual const std::type_info &getObjectType()                                                         = 0;
   virtual void show(std::ostream &os, Object &object)                                                   = 0;

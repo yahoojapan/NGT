@@ -53,7 +53,6 @@ template <typename TYPE> class HashBasedBooleanSet {
     if (checkValue != 0) {
       std::cerr << "[WARN] table size is not 2^N :  " << tableSize << std::endl;
     }
-
     _table = new TYPE[tableSize];
     memset(_table, 0, tableSize * sizeof(TYPE));
   }

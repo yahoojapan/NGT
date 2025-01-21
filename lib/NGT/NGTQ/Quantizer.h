@@ -3423,7 +3423,7 @@ class GenerateResidualObjectFloat : public GenerateResidualObject {
 template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
  public:
   typedef void (QuantizerInstance::*AggregateObjectsFunction)(NGT::ObjectDistance &, NGT::Object *,
-                                                              size_t size, NGT::ObjectSpace::ResultSet &,
+                                                              size_t size, NGT::ResultSet &,
                                                               size_t);
   typedef InvertedIndexEntry<LOCAL_ID_TYPE> IIEntry;
 
@@ -5162,13 +5162,13 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
   }
 
   inline void aggregateObjectsWithExactDistance(NGT::ObjectDistance &globalCentroid, NGT::Object *query,
-                                                size_t size, NGT::ObjectSpace::ResultSet &results,
+                                                size_t size, NGT::ResultSet &results,
                                                 size_t approximateSearchSize) {
     abort();
   }
 
   inline void aggregateObjectsWithLookupTable(NGT::ObjectDistance &globalCentroid, NGT::Object *query,
-                                              size_t size, NGT::ObjectSpace::ResultSet &results,
+                                              size_t size, NGT::ResultSet &results,
                                               size_t approximateSearchSize) {
     QuantizedObjectDistance::DistanceLookupTable distanceLUT;
     (*quantizedObjectDistance).initialize(distanceLUT);
@@ -5336,7 +5336,7 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
   }
 
   inline void aggregateObjectsWithCache(NGT::ObjectDistance &globalCentroid, NGT::Object *query, size_t size,
-                                        NGT::ObjectSpace::ResultSet &results, size_t approximateSearchSize) {
+                                        NGT::ResultSet &results, size_t approximateSearchSize) {
 
     QuantizedObjectDistance::DistanceLookupTable distanceLUT;
     (*quantizedObjectDistance).initialize(distanceLUT);
@@ -5366,7 +5366,7 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
   }
 
   inline void aggregateObjects(NGT::ObjectDistance &globalCentroid, NGT::Object *query, size_t size,
-                               NGT::ObjectSpace::ResultSet &results, size_t approximateSearchSize) {
+                               NGT::ResultSet &results, size_t approximateSearchSize) {
     for (size_t j = 0; j < invertedIndex[globalCentroid.id]->size() && results.size() < approximateSearchSize;
          j++) {
 #ifdef NGTQ_SHARED_INVERTED_INDEX
@@ -5395,7 +5395,7 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
   }
 
   inline void aggregateObjects(NGT::Object *query, size_t size, NGT::ObjectDistances &objects,
-                               NGT::ObjectSpace::ResultSet &results, size_t approximateSearchSize,
+                               NGT::ResultSet &results, size_t approximateSearchSize,
                                AggregateObjectsFunction aggregateObjectsFunction) {
     for (size_t i = 0; i < objects.size(); i++) {
       if (invertedIndex[objects[i].id] == 0) {
@@ -5461,7 +5461,7 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
     searchGlobalCodebook(query, size, objects, approximateSearchSize, codebookSearchSize, epsilon);
 
     objs.clear();
-    NGT::ObjectSpace::ResultSet results;
+    NGT::ResultSet results;
     distanceComputationCount = 0;
 
     AggregateObjectsFunction aggregateObjectsFunction = &QuantizerInstance::aggregateObjectsWithCache;

@@ -51,6 +51,9 @@ class Command {
 #ifdef NGT_REFINEMENT
       refinementExpansion = 0.0;
 #endif
+#ifdef RESULT_DEFINED_RANGE
+      expandedSizeByEpsilon = false;
+#endif
     }
     SearchParameters(Args &args, const std::string epsilonDefault = "0.1") { parse(args, epsilonDefault); }
     void parse(Args &args, const std::string epsilonDefault) {
@@ -98,6 +101,10 @@ class Command {
 #ifdef NGT_REFINEMENT
       refinementExpansion = args.getf("R", 0.0);
 #endif
+#ifdef RESULT_DEFINED_RANGE
+      expandedSizeByEpsilon = args.getBool("N");
+      std::cerr << "expandedSizeByEpsilon=" << (expandedSizeByEpsilon ? "True" : "False") << std::endl;
+#endif
     }
     char openMode;
     std::string query;
@@ -115,6 +122,9 @@ class Command {
     size_t trial;
 #ifdef NGT_REFINEMENT
     float refinementExpansion;
+#endif
+#ifdef RESULT_DEFINED_RANGE
+    bool expandedSizeByEpsilon;
 #endif
   };
 

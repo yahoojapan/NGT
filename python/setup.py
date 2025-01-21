@@ -88,6 +88,10 @@ if gcc_compiler:
 else:
     openmplib = 'omp'
 
+openmp_root = None
+if 'OpenMP_ROOT' in os.environ:
+    openmp_root = os.environ['OpenMP_ROOT']
+
 with open('README.md', 'r', encoding='utf-8') as fh:
     long_description = fh.read()
 
@@ -101,7 +105,7 @@ args = {
     'long_description': long_description,
     'long_description_content_type': 'text/markdown',
     'license': 'Apache License Version 2.0',
-    'install_requires': ['numpy', 'pybind11']
+    'install_requires': ['numpy']
 }
 
 if sys.version_info.major >= 3:
@@ -156,6 +160,10 @@ if sys.version_info.major >= 3:
         params.update(included_lib_params)
     else:
         params.update(shared_lib_params)
+
+    if openmp_root:
+        params['include_dirs'].append(openmp_root + '/include')
+        params['library_dirs'].append(openmp_root + '/lib')
 
     module1 = Extension(module, **params)
     args['ext_modules'] = [module1]

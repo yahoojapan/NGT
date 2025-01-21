@@ -781,6 +781,8 @@ void NGT::Index::remove(const string &database, vector<ObjectID> &objects, bool 
   for (vector<ObjectID>::iterator i = objects.begin(); i != objects.end(); i++) {
     try {
       index.remove(*i, force);
+      std::cerr << "create index" << std::endl;
+      index.createIndex(16);
     } catch (Exception &err) {
       cerr << "Warning: Cannot remove the node. ID=" << *i << " : " << err.what() << endl;
       continue;
@@ -1207,15 +1209,23 @@ void NGT::GraphIndex::loadIndex(const string &ifile, bool readOnly, NGT::Index::
   }
 #endif
   if ((openType & NGT::Index::OpenTypeGraphDisabled) == 0) {
+    try {
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
-    if (readOnly) {
-      GraphIndex::NeighborhoodGraph::loadSearchGraph(ifile);
-    } else {
-      loadGraph(ifile, repository);
-    }
+      if (readOnly) {
+	GraphIndex::NeighborhoodGraph::loadSearchGraph(ifile);
+      } else {
+	loadGraph(ifile, repository);
+        checkEdgeLengths(1000);
+      }
 #else
-    loadGraph(ifile, repository);
+      loadGraph(ifile, repository);
+      checkEdgeLengths(1000);
 #endif
+    } catch (Exception &err) {
+      std::stringstream msg;
+      msg << "Fatal error! Cannot load the graph. :" << err.what();
+      NGTThrowException(msg);
+    }
   }
 }
 
@@ -1696,6 +1706,9 @@ bool NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode
   indegree.resize(graph.size());
   size_t removedObjectCount = 0;
   bool valid                = true;
+  auto &comparator = outGraph.objectSpace->getComparator();
+  size_t nOfEdges = 0;
+  size_t nOfDifferentEdges = 0;
   for (size_t id = 1; id < graph.size(); id++) {
     if (repo[id] == 0) {
       removedObjectCount++;
@@ -1730,6 +1743,12 @@ bool NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode
     if (mode == 'e') {
       std::cout << id << "," << esize << ": ";
     }
+    NGT::PersistentObject *obj = 0;
+    if (mode == 'd' || mode == 'D') {
+      if (!repo.isEmpty(id)) {
+        obj = repo.get(id);
+      }
+    }
     for (size_t i = 0; i < esize; i++) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
       NGT::ObjectDistance &n = (*node).at(i, graph.allocator);
@@ -1745,6 +1764,22 @@ bool NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode
       if (n.id == 0) {
         std::cerr << "ngt info: Warning. id is zero." << std::endl;
         valid = false;
+        continue;
+      }
+      if (mode == 'd' || mode == 'D') {
+        if (!repo.isEmpty(id) && !repo.isEmpty(n.id)) {
+          nOfEdges++;
+          float d = comparator(*obj, *repo.get(n.id));
+          if (d != n.distance) {
+            nOfDifferentEdges++;
+            if (mode == 'D') {
+              std::cerr << "The current edge length is different from the indexed length. "
+                        << std::setprecision(15) << d << ":" << n.distance
+                        << std::setprecision(6) << " " << nOfDifferentEdges
+                        << "/" << nOfEdges << std::endl;
+            }
+          }
+        }
       }
       indegreeCount[n.id]++;
       indegree[n.id].push_back(n.distance);
@@ -1826,6 +1861,9 @@ bool NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode
   const size_t dcsize    = 10;
   for (size_t id = 1; id < graph.size(); id++) {
     if (repo[id] == 0) {
+      continue;
+    }
+    if (graph.isEmpty(id)) {
       continue;
     }
     NGT::GraphNode *n = 0;
@@ -2023,6 +2061,10 @@ bool NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode
   }
   std::cerr << "The mean of the edge lengths for 10 edges:\t" << std::setprecision(10) << distance10 << "/"
             << d10count << std::endl;
+  if (mode == 'd' || mode == 'D') {
+    std::cerr << "The number of the different length edges:\t" << nOfDifferentEdges 
+              << "/" << nOfEdges << std::endl;
+  }
   std::cerr
       << "#-nodes,#-edges,#-no-indegree,avg-edges,avg-dist,max-out,min-out,v-out,max-in,min-in,v-in,med-out,"
          "med-in,mode-out,mode-in,c95,c5,o-distance(10),o-skip,i-distance(10),i-skip:"

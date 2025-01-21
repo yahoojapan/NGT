@@ -154,6 +154,7 @@ typedef struct {
   float build_time_limit;
   int16_t outgoing_edge;
   int16_t incoming_edge;
+  float epsilon_for_creation;
 } NGTPropertyInfo;
 
 NGTIndex ngt_open_index(const char *, NGTError);
@@ -179,6 +180,8 @@ int32_t ngt_get_property_dimension(NGTProperty, NGTError);
 bool ngt_set_property_dimension(NGTProperty, int32_t, NGTError);
 
 bool ngt_set_property_edge_size_for_creation(NGTProperty, int16_t, NGTError);
+
+bool ngt_set_property_epsilon_for_creation(NGTProperty, float, NGTError);
 
 bool ngt_set_property_edge_size_for_search(NGTProperty, int16_t, NGTError);
 

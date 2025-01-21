@@ -292,6 +292,8 @@ class NeighborhoodGraph {
     SeedTypeAllLeafNodes = 4
   };
 
+  enum EpsilonType { EpsilonTypeNone = 0, EpsilonTypeByQuery = 1, EpsilonTypeResultSize = 2 };
+
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
   class Search {
    public:
@@ -535,6 +537,7 @@ class NeighborhoodGraph {
       buildTimeLimit             = 0.0;
       outgoingEdge               = 10;
       incomingEdge               = 80;
+      epsilonType                = EpsilonTypeNone;
     }
     void clear() {
       truncationThreshold        = -1;
@@ -552,6 +555,7 @@ class NeighborhoodGraph {
       buildTimeLimit             = -1;
       outgoingEdge               = -1;
       incomingEdge               = -1;
+      epsilonType                = -1;
     }
     void set(NGT::Property &prop);
     void get(NGT::Property &prop);
@@ -594,6 +598,12 @@ class NeighborhoodGraph {
       default:
         std::cerr << "Graph::exportProperty: Fatal error! Invalid Seed Type. " << seedType << std::endl;
         abort();
+      }
+      switch (epsilonType) {
+      case EpsilonTypeNone: p.set("EpsilonType", "None"); break;
+      case EpsilonTypeByQuery: p.set("EpsilonType", "ByQuery"); break;
+      case EpsilonTypeResultSize: p.set("EpsilonType", "ResultSize"); break;
+      default: std::cerr << "Fatal error. Invalid epsilon type. " << epsilonType << std::endl; abort();
       }
     }
     void importProperty(NGT::PropertySet &p) {
@@ -648,6 +658,22 @@ class NeighborhoodGraph {
           abort();
         }
       }
+      it = p.find("EpsilonType");
+      if (it != p.end()) {
+        if (it->second == "None") {
+          epsilonType = EpsilonTypeNone;
+        } else if (it->second == "ByQuery") {
+          epsilonType = EpsilonTypeByQuery;
+        } else if (it->second == "ResultSize") {
+          epsilonType = EpsilonTypeResultSize;
+        } else {
+          std::cerr << "Invalid Epsilon Type in the property. " << it->first << ":" << it->second
+                    << std::endl;
+        }
+      } else {
+        std::cerr << "Not found \"EpsilonType\"" << std::endl;
+        epsilonType = EpsilonTypeNone;
+      }
     }
     friend std::ostream &operator<<(std::ostream &os, const Property &p) {
       os << "truncationThreshold=" << p.truncationThreshold << std::endl;
@@ -665,6 +691,7 @@ class NeighborhoodGraph {
       os << "dynamicEdgeSizeRate=" << p.dynamicEdgeSizeRate << std::endl;
       os << "outgoingEdge=" << p.outgoingEdge << std::endl;
       os << "incomingEdge=" << p.incomingEdge << std::endl;
+      os << "epsilonType=" << p.epsilonType << std::endl;
       return os;
     }
 
@@ -683,6 +710,7 @@ class NeighborhoodGraph {
     float buildTimeLimit;
     int16_t outgoingEdge;
     int16_t incomingEdge;
+    int16_t epsilonType;
   };
 
   NeighborhoodGraph() : objectSpace(0) {
@@ -988,8 +1016,7 @@ class NeighborhoodGraph {
 #ifdef NGT_GRAPH_VECTOR_RESULT
   typedef ObjectDistances ResultSet;
 #else
-  typedef std::priority_queue<ObjectDistance, std::vector<ObjectDistance>, std::less<ObjectDistance>>
-      ResultSet;
+  typedef NGT::ResultSet ResultSet;
 #endif
 
 #if defined(NGT_GRAPH_CHECK_BOOLEANSET)
@@ -1172,6 +1199,46 @@ class DistanceCheckedSet : public unordered_set<ObjectID> {
     NeighborhoodGraph::searchRepository.deserialize(isg, NeighborhoodGraph::getObjectRepository());
   }
 #endif
+
+  void checkEdgeLengths(size_t n) {
+    NGT::GraphRepository &graph = repository;
+    NGT::ObjectRepository &repo = objectSpace->getRepository();
+    auto &comparator = objectSpace->getComparator();
+    size_t nOfEdges = 0;
+    size_t nOfDifferentEdges = 0;
+    for (size_t id = 1; id < graph.size(); id++) {
+      if (repo[id] == 0) continue;
+      if (graph.isEmpty(id)) continue;
+      NGT::GraphNode *node = 0;
+      try {
+        node = getNode(id);
+      } catch (NGT::Exception &err) {
+        std::cerr << "checkEdgeLengths: Warning! Cannot get the node. " << id << std::endl;
+        continue;
+      }
+      NGT::PersistentObject *obj = repo.get(id);
+      for (size_t e = 0; e < node->size(); e++) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+        NGT::ObjectDistance &n = (*node).at(e, graph.allocator);
+#else
+        NGT::ObjectDistance &n = (*node)[e];
+#endif
+        if (n.id == 0) continue;
+        if (!repo.isEmpty(n.id)) {
+          nOfEdges++;
+          float d = comparator(*obj, *repo.get(n.id));
+          if (d != n.distance) {
+            nOfDifferentEdges++;
+	  }
+	}
+      }
+      if (n != 0 && nOfEdges > n) break;
+    }
+    if (nOfDifferentEdges != 0) {
+      std::cerr << "checkEdgeLengths: Warning! The indexed edge lengths are different. " 
+                << nOfDifferentEdges << "/" << nOfEdges << "." << std::endl;
+    }
+  }
 
  public:
   GraphRepository repository;
