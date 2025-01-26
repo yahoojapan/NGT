@@ -173,6 +173,8 @@ NGTProperty ngt_create_property(NGTError);
 
 bool ngt_save_index(const NGTIndex, const char *, NGTError);
 
+bool ngt_clear_index(const NGTIndex, NGTError);
+
 bool ngt_get_property(const NGTIndex, NGTProperty, NGTError);
 
 int32_t ngt_get_property_dimension(NGTProperty, NGTError);

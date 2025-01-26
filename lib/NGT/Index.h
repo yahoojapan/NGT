@@ -602,6 +602,7 @@ class Index {
   }
   virtual void saveIndex(const std::string &ofile) { getIndex().saveIndex(ofile); }
   virtual void loadIndex(const std::string &ofile) { getIndex().loadIndex(ofile); }
+  virtual void clearIndex() { getIndex().clearIndex(); }
   virtual Object *allocateObject(const std::string &textLine, const std::string &sep) {
     return getIndex().allocateObject(textLine, sep);
   }
@@ -1055,6 +1056,14 @@ class GraphIndex : public Index,
 
   static void loadGraph(const std::string &ifile, NGT::GraphRepository &graph);
   virtual void loadIndex(const std::string &ifile, bool readOnly, NGT::Index::OpenType openType);
+
+  virtual void clearIndex() {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+    NGTThrowException("Not implemented");
+#else
+    repository.initialize();
+#endif
+  }
 
   virtual void exportIndex(const std::string &ofile) {
     try {
@@ -1841,6 +1850,12 @@ class GraphAndTreeIndex : public GraphIndex, public DVPTree {
       alignObjects();
     }
 #endif
+  }
+
+  void clearIndex() {
+    GraphIndex::clearIndex();
+    DVPTree::deleteAll();
+    DVPTree::initialize();
   }
 
   void exportIndex(const std::string &ofile) {

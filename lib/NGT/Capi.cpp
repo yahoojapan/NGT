@@ -215,6 +215,18 @@ bool ngt_save_index(const NGTIndex index, const char *database, NGTError error) 
   return true;
 }
 
+bool ngt_clear_index(const NGTIndex index, NGTError error) {
+  try {
+    (static_cast<NGT::Index *>(index))->clearIndex();
+  } catch (std::exception &err) {
+    std::stringstream ss;
+    ss << "Capi : " << __FUNCTION__ << "() : Error: " << err.what();
+    operate_error_string_(ss, error);
+    return false;
+  }
+  return true;
+}
+
 bool ngt_get_property(NGTIndex index, NGTProperty prop, NGTError error) {
   if (index == NULL || prop == NULL) {
     std::stringstream ss;

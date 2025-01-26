@@ -63,17 +63,21 @@ class DVPTree {
   };
 
   DVPTree() {
-    leafObjectsSize      = LeafNode::LeafObjectsSizeMax;
-    internalChildrenSize = InternalNode::InternalChildrenSizeMax;
-    splitMode            = MaxVariance;
-#ifndef NGT_SHARED_MEMORY_ALLOCATOR
-    insertNode(new LeafNode);
-#endif
+    initialize();
   }
 
   virtual ~DVPTree() {
 #ifndef NGT_SHARED_MEMORY_ALLOCATOR
     deleteAll();
+#endif
+  }
+
+  void initialize() {
+    leafObjectsSize      = LeafNode::LeafObjectsSizeMax;
+    internalChildrenSize = InternalNode::InternalChildrenSizeMax;
+    splitMode            = MaxVariance;
+#ifndef NGT_SHARED_MEMORY_ALLOCATOR
+    insertNode(new LeafNode);
 #endif
   }
 

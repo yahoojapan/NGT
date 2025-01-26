@@ -102,6 +102,8 @@ int main(int argc, char **argv) {
       ngt.exportGraph(args);
     } else if (command == "export-objects") {
       ngt.exportObjects(args);
+    } else if (command == "rebuild") {
+      ngt.rebuild(args);
 #ifndef NGT_SHARED_MEMORY_ALLOCATOR
     } else if (command == "extract-query") {
       NGT::Optimizer::extractQueries(args);

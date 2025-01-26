@@ -155,6 +155,7 @@ class Command {
   void repair(Args &args);
   void exportGraph(Args &args);
   void exportObjects(Args &args);
+  void rebuild(Args &args);
 
   void info(Args &args);
   void setDebugLevel(int level) { debugLevel = level; }

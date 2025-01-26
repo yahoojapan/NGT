@@ -1093,8 +1093,7 @@ void NGT::Command::optimizeSearchParameters(Args &args) {
 
 void NGT::Command::refineANNG(Args &args) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-  std::cerr << "refineANNG. Not implemented." << std::endl;
-  abort();
+  NGTThrowException("refineANNG is unavailable for shared memory.");
 #else
   const string usage =
       "Usage: ngt refine-anng [-e epsilon] [-a expected-accuracy] anng-index refined-anng-index";
@@ -1408,8 +1407,7 @@ void NGT::Command::info(Args &args) {
 
 void NGT::Command::exportGraph(Args &args) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-  std::cerr << "exportGraph is not implemented." << std::endl;
-  abort();
+  NGTThrowException("exportGraph is not implemented.");
 #else
   std::string usage = "ngt export-graph [-k #-of-edges] index";
   string indexPath;
@@ -1453,8 +1451,7 @@ void NGT::Command::exportGraph(Args &args) {
 
 void NGT::Command::exportObjects(Args &args) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-  std::cerr << "exportObjects is not implemented." << std::endl;
-  abort();
+  NGTThrowException("exportObjects is not implemented.");
 #else
   std::string usage = "ngt export-objects index";
   string indexPath;
@@ -1482,5 +1479,32 @@ void NGT::Command::exportObjects(Args &args) {
     }
     std::cout << std::endl;
   }
+#endif
+}
+
+void NGT::Command::rebuild(Args &args) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+  NGTThrowException("rebuild is not implemented.");
+#else
+  std::string usage = "ngt rebuild [-m c] index";
+  string indexPath;
+  try {
+    indexPath = args.get("#1");
+  } catch (...) {
+    std::stringstream msg;
+    msg << "Index is not specified" << endl;
+    msg << usage;
+    NGTThrowException(msg);
+  }
+
+  char mode = args.getChar("m", '-');
+
+  NGT::Index index(indexPath);
+  index.clearIndex();
+  if (mode == '-') {
+    index.createIndex();
+  }
+  index.save();
+
 #endif
 }
