@@ -114,7 +114,9 @@ if sys.version_info.major >= 3:
             'include_dirs': ['/usr/local/include',
                              pybind11.get_include(True),
                              pybind11.get_include(False)],
-            'extra_compile_args': ['-std=c++11', '-Ofast', '-march=x86-64', '-DNDEBUG'],
+            'extra_compile_args': ['-std=c++11', '-Ofast',
+                                   '-march=x86_64' if platform.processor() == 'x86-64' else '',
+                                   '-DNDEBUG'],
             'sources': ['src/ngtpy.cpp']
         }
     elif static_library_avx2 or shared_library_avx2:
@@ -122,7 +124,9 @@ if sys.version_info.major >= 3:
             'include_dirs': ['/usr/local/include',
                              pybind11.get_include(True),
                              pybind11.get_include(False)],
-            'extra_compile_args': ['-std=c++11', '-Ofast', '-march=haswell', '-DNDEBUG'],
+            'extra_compile_args': ['-std=c++11', '-Ofast',
+                                   '-march=haswell' if platform.processor() == 'x86-64' else '',
+                                   '-DNDEBUG'],
             'sources': ['src/ngtpy_avx2.cpp']
         }
     else:
