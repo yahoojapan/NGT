@@ -815,7 +815,6 @@ class NeighborhoodGraph {
   }
 
   void deleteShortcutEdges(ObjectDistances &srcNode) {
-    size_t removeCount = 0;
     std::vector<bool> removedEdge(srcNode.size(), false);
     for (uint32_t rank = 1; rank < srcNode.size(); rank++) {
       auto dstNodeID       = srcNode[rank].id;
@@ -872,7 +871,6 @@ class NeighborhoodGraph {
 #endif
 #endif
           found = true;
-          removeCount++;
           break;
         }
         if (found) {
@@ -1207,6 +1205,7 @@ class DistanceCheckedSet : public unordered_set<ObjectID> {
     size_t nOfEdges = 0;
     size_t nOfDifferentEdges = 0;
     for (size_t id = 1; id < graph.size(); id++) {
+      if (repo.size() <= id) break;
       if (repo[id] == 0) continue;
       if (graph.isEmpty(id)) continue;
       NGT::GraphNode *node = 0;

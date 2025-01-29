@@ -1470,6 +1470,7 @@ void NGT::Command::exportObjects(Args &args) {
 
   for (size_t id = 1; id < size; ++id) {
     std::vector<float> object;
+    if (objectSpace.getRepository().isEmpty(id)) continue;
     objectSpace.getObject(id, object);
     for (auto v = object.begin(); v != object.end(); ++v) {
       std::cout << *v;
