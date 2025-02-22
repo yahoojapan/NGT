@@ -44,7 +44,7 @@ static void version(ostream &os) {
 void help() {
   cerr << "Usage : ngt command [options] index [data]" << endl;
   cerr << "           command : info create search remove append export import prune reconstruct-graph "
-          "optimize-search-parameters optimize-#-of-edges repair"
+          "optimize-search-parameters optimize-#-of-edges repair rebuild"
        << endl;
   cerr << "Version : " << NGT::Index::getVersion() << endl;
   if (NGT::Index::getVersion() != NGT::Version::getVersion()) {
