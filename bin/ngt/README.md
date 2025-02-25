@@ -376,3 +376,16 @@ e.g.
 ```  
 $ ngt create -i g -g k -S 0 -E 20 -d 128 -o c -D 2 knng-index vector-data.dat
 ```
+
+### REBUILD
+
+Rebuild the graph index and tree index of the specified index.
+
+      $ ngt rebuild [-m mode] index
+        
+
+*index*  
+Specify the name of the existing index.
+
+**-m** *mode* (__c__)  
+- __c__: Perform initialization of each index only.
