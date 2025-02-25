@@ -234,6 +234,19 @@ Specify the mode of the search parameter optimization.
 - __o__: ANNG以外
 
 
+### REBUILD
+
+指定されたインデックスのグラフインデックスとツリーインデックスを初期化後、再生成します。
+
+      $ ngt rebuild [-m mode] index
+        
+
+*index*  
+既存のインデックス名を指定します。
+
+**-m** *mode*  
+- __c__: 各インデックスの初期化のみを実行します。
+
 ngt コマンド使用例
 ------------------
 
@@ -372,15 +385,3 @@ e.g.
 $ ngt create -i g -g k -S 0 -E 20 -d 128 -o c -D 2 knng-index vector-data.dat
 ```
 
-### REBUILD
-
-指定されたインデックスのグラフインデックスとツリーインデックスの再構築をします。
-
-      $ ngt rebuild [-m c] index
-        
-
-*index*  
-既存のインデックス名を指定します。
-
-**-m** *mode* (__c__)  
-- __c__: 各インデックスの初期化のみを実行します。

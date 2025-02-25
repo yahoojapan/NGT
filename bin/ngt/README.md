@@ -36,8 +36,9 @@ Description
 -   *[append](#append)*
 -   *[search](#search)*
 -   *[remove](#remove)*
--   *[prune](#prune)*
+-   *[prune](#prune-not-recommended)*
 -   *[reconstruct graph](#reconstruct-graph)*
+-   *[rebuild](#rebuild)*
 
 ### CREATE
 
@@ -239,6 +240,20 @@ Specify the type of the specified index as input_index. For not ANNG, the index 
 - __R__: RIANNG. ANNG with reduced shortcut or excess edges.
 - __o__: The others
 
+
+### REBUILD
+
+Clear and rebuild the graph and tree indexes of the specified index.
+
+      $ ngt rebuild [-m mode] index
+        
+
+*index*  
+Specify the name of the existing index.
+
+**-m** *mode*  
+- __c__: Only clear the graph and tree indexes.
+
 Examples of using ngt command
 -----------------------------
 
@@ -376,16 +391,3 @@ e.g.
 ```  
 $ ngt create -i g -g k -S 0 -E 20 -d 128 -o c -D 2 knng-index vector-data.dat
 ```
-
-### REBUILD
-
-Rebuild the graph index and tree index of the specified index.
-
-      $ ngt rebuild [-m mode] index
-        
-
-*index*  
-Specify the name of the existing index.
-
-**-m** *mode* (__c__)  
-- __c__: Perform initialization of each index only.
