@@ -1127,7 +1127,7 @@ class GraphIndex : public Index,
       NGT::SearchContainer sc(searchQuery, *query);
 #ifdef NGT_REFINEMENT
       auto expansion = searchQuery.getRefinementExpansion();
-      if (expansion < 1.0) {
+      if (expansion < 1.0 || !refinementObjectSpaceIsAvailable()) {
         GraphIndex::search(sc);
         searchQuery.workingResult = std::move(sc.workingResult);
       } else {
@@ -1575,6 +1575,9 @@ class GraphIndex : public Index,
   ObjectSpace &getObjectSpace() { return *objectSpace; }
 #ifdef NGT_REFINEMENT
   ObjectSpace &getRefinementObjectSpace() { return *refinementObjectSpace; }
+  bool refinementObjectSpaceIsAvailable() {
+    return refinementObjectSpace != 0 && !refinementObjectSpace->getRepository().empty();
+  }
 #endif
   void setupPrefetch(NGT::Property &prop);
 
@@ -2163,7 +2166,7 @@ class GraphAndTreeIndex : public GraphIndex, public DVPTree {
       NGT::SearchContainer sc(searchQuery, *query);
 #ifdef NGT_REFINEMENT
       auto expansion = searchQuery.getRefinementExpansion();
-      if (expansion < 1.0) {
+      if (expansion < 1.0 || !refinementObjectSpaceIsAvailable()) {
         GraphAndTreeIndex::search(sc);
         searchQuery.workingResult = std::move(sc.workingResult);
       } else {

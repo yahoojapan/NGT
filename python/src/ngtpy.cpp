@@ -165,6 +165,9 @@ public:
     defaultRadius = FLT_MAX;
     defaultEdgeSize = -1;	// -1: use edge_size_for_search in the profile
     defaultExpectedAccuracy = -1.0;
+#ifdef NGT_REFINEMENT
+    defaultResultExpansion = 0.0;
+#endif
   }
 
   static void create(
@@ -515,7 +518,9 @@ public:
     defaultRadius	      = radius >= 0.0 ? radius : defaultRadius;
     defaultEdgeSize	      = edgeSize >= -2 ? edgeSize : defaultEdgeSize;
     defaultExpectedAccuracy   = expectedAccuracy > 0.0 ? expectedAccuracy : defaultExpectedAccuracy;
+#ifdef NGT_REFINEMENT
     defaultResultExpansion    = resultExpansion >= 0.0 ? resultExpansion : defaultResultExpansion;
+#endif
   }
 
   size_t getNumOfDistanceComputations() { return numOfDistanceComputations; }
@@ -565,6 +570,7 @@ public:
 
 };
 
+#ifdef NGTQ_QBG
 class QuantizedIndex : public NGTQG::Index {
 public:
   QuantizedIndex(
@@ -1130,6 +1136,7 @@ public:
   size_t	defaultFunctionSelector;
 #endif
 };
+#endif // NGTQ_QBG
 
 PYBIND11_MODULE(ngtpy, m) {
     m.doc() = "ngt python";
@@ -1254,6 +1261,7 @@ PYBIND11_MODULE(ngtpy, m) {
 	   py::arg("num_of_sample_objects") = -1,
 	   py::arg("max_num_of_edges") = -1);
 
+#ifdef NGTQ_QBG
     py::class_<QuantizedIndex>(m, "QuantizedIndex")
       .def(py::init<const std::string &, size_t, bool, bool, bool>(),
            py::arg("path"),
@@ -1328,6 +1336,7 @@ PYBIND11_MODULE(ngtpy, m) {
 	   , py::arg("function_selector") = 0
 #endif
 	   );
+#endif // NGTQ_QBG
 
     py::class_<BatchResults>(m, "BatchResults")
       .def(py::init<>())
