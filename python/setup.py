@@ -115,7 +115,8 @@ if sys.version_info.major >= 3:
                              pybind11.get_include(True),
                              pybind11.get_include(False)],
             'extra_compile_args': ['-std=c++11', '-Ofast',
-                                   '-march=x86_64' if platform.processor() == 'x86-64' else '',
+                                   '-march=x86-64' if platform.processor() == 'x86-64' or
+                                   platform.processor() == 'x86_64' else '',
                                    '-DNDEBUG'],
             'sources': ['src/ngtpy.cpp']
         }
@@ -125,7 +126,8 @@ if sys.version_info.major >= 3:
                              pybind11.get_include(True),
                              pybind11.get_include(False)],
             'extra_compile_args': ['-std=c++11', '-Ofast',
-                                   '-march=haswell' if platform.processor() == 'x86-64' else '',
+                                   '-march=haswell' if platform.processor() == 'x86-64' or
+                                   platform.processor() == 'x86_64' else '',
                                    '-DNDEBUG'],
             'sources': ['src/ngtpy_avx2.cpp']
         }

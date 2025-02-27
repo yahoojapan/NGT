@@ -57,8 +57,9 @@ template <typename TYPE> class HashBasedBooleanSet {
     memset(_table, 0, tableSize * sizeof(TYPE));
   }
 
-  ~HashBasedBooleanSet() {
+  virtual ~HashBasedBooleanSet() {
     delete[] _table;
+    _table = 0;
     _stlHash.clear();
   }
 

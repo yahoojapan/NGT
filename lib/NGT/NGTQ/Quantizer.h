@@ -80,6 +80,7 @@ namespace NGTQ {
 
 class BooleanSet {
  public:
+  virtual ~BooleanSet() {};
   virtual bool get(size_t idx)        = 0;
   virtual void set(size_t idx)        = 0;
   virtual bool operator[](size_t idx) = 0;

@@ -1375,11 +1375,9 @@ class Index : public NGTQ::Index {
     //NGTQ::BooleanSet *checkedIDs = nullptr;
     std::unique_ptr<NGTQ::BooleanSet> checkedIDs = nullptr;
     if (quantizer.objectList.size() < 5000000) {
-      //checkedIDs = new NGTQ::BooleanVector(quantizer.objectList.size());
       std::unique_ptr<NGTQ::BooleanVector> tmp(new NGTQ::BooleanVector(quantizer.objectList.size()));
       checkedIDs = std::move(tmp);
     } else {
-      //checkedIDs = new NGTQ::BooleanHash(quantizer.objectList.size());
       std::unique_ptr<NGTQ::BooleanHash> tmp(new NGTQ::BooleanHash(quantizer.objectList.size()));
       checkedIDs = std::move(tmp);
     }
