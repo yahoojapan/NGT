@@ -854,6 +854,7 @@ void QBG::CLI::load(NGT::Args &args) {
 
 void QBG::CLI::search(NGT::Args &args) {
   const string usage = "Usage: qbg search [-i g|t|s] [-n result-size] [-e epsilon] [-m mode(r|l|c|a)] "
+                       "[-B blob-epsilon] "
                        "[-E edge-size] [-o output-mode] [-b result expansion(begin:end:[x]step)] "
                        "index(input) query.tsv(input)";
   args.parse("v");

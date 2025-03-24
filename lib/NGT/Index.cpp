@@ -781,8 +781,6 @@ void NGT::Index::remove(const string &database, vector<ObjectID> &objects, bool 
   for (vector<ObjectID>::iterator i = objects.begin(); i != objects.end(); i++) {
     try {
       index.remove(*i, force);
-      std::cerr << "create index" << std::endl;
-      index.createIndex(16);
     } catch (Exception &err) {
       cerr << "Warning: Cannot remove the node. ID=" << *i << " : " << err.what() << endl;
       continue;

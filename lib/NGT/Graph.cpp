@@ -1120,11 +1120,11 @@ void NeighborhoodGraph::removeEdgesReliably(ObjectID id) {
         if ((ei == n.end()) || ((*ei).id != obj.id)) {
           auto idx = distance(n.begin(), ei);
           bool found = false;
-          for (int i = idx - 1; idx >= 0 && found == false; i--) {
+          for (int i = idx - 1; i >= 0 && found == false; i--) {
             if (n[idx - 1].distance != n[i].distance) break;
             if (n[i].id == obj.id) found = true;
           }
-          for (int i = idx + 1; idx < (static_cast<int>(n.size()) - 1) && found == false; i++) {
+          for (int i = idx + 1; i < (static_cast<int>(n.size()) - 1) && found == false; i++) {
             if (n[idx + 1].distance != n[i].distance) break;
             if (n[i].id == obj.id) found = true;
           }
@@ -1158,11 +1158,11 @@ void NeighborhoodGraph::removeEdgesReliably(ObjectID id) {
         if ((ei == n.end()) || ((*ei).id != obj.id)) {
           auto idx = distance(n.begin(), ei);
           bool found = false;
-          for (int i = idx - 1; idx >= 0 && found == false; i--) {
+          for (int i = idx - 1; i >= 0 && found == false; i--) {
             if (n[idx - 1].distance != n[i].distance) break;
             if (n[i].id == obj.id) found = true;
           }
-          for (int i = idx + 1; idx < (static_cast<int>(n.size()) - 1) && found == false; i++) {
+          for (int i = idx + 1; i < (static_cast<int>(n.size()) - 1) && found == false; i++) {
             if (n[idx + 1].distance != n[i].distance) break;
             if (n[i].id == obj.id) found = true;
           }
