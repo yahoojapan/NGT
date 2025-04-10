@@ -82,18 +82,30 @@ class QuantizedGraphRepository : public std::vector<QuantizedNode> {
   }
 
   void construct(NGT::GraphRepository &graphRepository, NGTQ::Index &quantizedIndex, size_t maxNoOfEdges) {
+    std::cerr << "construct" << std::endl;
+    std::cerr << "  vmsize=" << NGT::Common::getProcessVmSizeStr() << std::endl;
+    std::cerr << "  peak vmsize=" << NGT::Common::getProcessVmPeakStr() << std::endl;
     NGTQ::InvertedIndexEntry<uint16_t> invertedIndexObjects(numOfSubspaces);
     quantizedIndex.getQuantizer().extractInvertedIndexObject(invertedIndexObjects);
     std::cerr << "inverted index object size=" << invertedIndexObjects.size() << std::endl;
+    std::cerr << "  vmsize=" << NGT::Common::getProcessVmSizeStr() << std::endl;
+    std::cerr << "  peak vmsize=" << NGT::Common::getProcessVmPeakStr() << std::endl;
     quantizedIndex.getQuantizer().eraseInvertedIndexObject();
-
+    std::cerr << "erased" << std::endl;
+    std::cerr << "  vmsize=" << NGT::Common::getProcessVmSizeStr() << std::endl;
+    std::cerr << "  peak vmsize=" << NGT::Common::getProcessVmPeakStr() << std::endl;
 
     std::cerr << "graph repository size=" << graphRepository.size() << std::endl;
+    std::cerr << "  vmsize=" << NGT::Common::getProcessVmSizeStr() << std::endl;
+    std::cerr << "  peak vmsize=" << NGT::Common::getProcessVmPeakStr() << std::endl;
     PARENT::resize(graphRepository.size());
+    std::cerr << "resized" << std::endl;
+    std::cerr << "  vmsize=" << NGT::Common::getProcessVmSizeStr() << std::endl;
+    std::cerr << "  peak vmsize=" << NGT::Common::getProcessVmPeakStr() << std::endl;
 
     for (size_t id = 1; id < graphRepository.size(); id++) {
       //if ((graphRepository.size() > 100) && ((id % ((graphRepository.size() - 1) / 100)) == 0)) {
-      if ((id % 100000) == 1) {
+      if (((id % 100000) == 0) || (id < 20)) {
         std::cerr << "# of processed objects=" << id << "/" << (graphRepository.size() - 1) << "("
                   << id * 100 / (graphRepository.size() - 1) << "%)" << std::endl;
         std::cerr << "  vmsize=" << NGT::Common::getProcessVmSizeStr() << std::endl;
