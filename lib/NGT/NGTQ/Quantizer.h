@@ -3550,7 +3550,7 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
 
   void open(const string &index, bool readOnly, DataType refinementDataType) {
     NGT::StdOstreamRedirector redirector(!verbose);
-    redirector.begin();
+    //redirector.begin();
     rootDirectory = index;
     property.load(rootDirectory);
     string globalIndex = index + "/" + getGlobalFile();
@@ -3572,10 +3572,27 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
 #else
     {
 #endif
-
 #ifdef NGTQ_SHARED_INVERTED_INDEX
       invertedIndex.open(index + "/" + getInvertedIndexFile(), 0);
 #else
+      {
+	std::cerr << "DEBUG: Quantizer::open the inverted index " << index + "/" + getInvertedIndexFile() << std::endl;
+	std::ifstream file(index + "/" + getInvertedIndexFile(), std::ios::binary);
+	if (file) {
+	  size_t s;
+	  NGT::Serializer::read(file, s);
+	  std::cerr << "DEBUG: The inveverted index data size: " << s << std::endl;
+	  file.seekg(10, std::ios::beg);
+	  uint32_t v;
+	  NGT::Serializer::read(file, v);
+	  std::cerr << "DEBUG: The first cluster size: " << v << std::endl;
+	  file.seekg(0, std::ios::end);
+	  std::streamsize size = file.tellg();
+	  std::cerr << "DEBUG: The inverted index file size: " << size << " bytes" << std::endl;
+	} else {
+	  std::cerr << "DEBUG: Cannot open" << std::endl;
+	}
+      }
       ifstream ifs(index + "/" + getInvertedIndexFile());
       if (!ifs) {
         cerr << "Cannot open " << index + "/" + getInvertedIndexFile() << "." << endl;
@@ -3821,12 +3838,36 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
       localCodebookIndexes[i].saveIndex(local.str());
     }
 #endif // NGT_SHARED_MEMORY_ALLOCATOR
+    {
+      std::cerr << "DEBUG: save: The Inverted index size=" << invertedIndex.size() << std::endl;
+      if (invertedIndex.size() > 1) {
+	std::cerr << "DEBUG: save: The entry size=" << invertedIndex[invertedIndex.size() - 1]->size()  << std::endl;
+      }
+    }
 #ifndef NGTQ_SHARED_INVERTED_INDEX
     {
       ofstream of(rootDirectory + "/" + getInvertedIndexFile());
       invertedIndex.serialize(of);
     }
 #endif
+    {
+      std::cerr << "DEBUG: Quantizer::save the inverted index " << rootDirectory + "/" + getInvertedIndexFile() << std::endl;
+      std::ifstream file(rootDirectory + "/" + getInvertedIndexFile(), std::ios::binary);
+      if (file) {
+	size_t s;
+	NGT::Serializer::read(file, s);
+	std::cerr << "DEBUG: The inveverted index data size: " << s << std::endl;
+	file.seekg(10, std::ios::beg);
+	uint32_t v;
+	NGT::Serializer::read(file, v);
+	std::cerr << "DEBUG: The first cluster size: " << v << std::endl;
+	file.seekg(0, std::ios::end);
+	std::streamsize size = file.tellg();
+	std::cerr << "DEBUG: The inverted index file size: " << size << " bytes" << std::endl;
+      } else {
+	std::cerr << "DEBUG: Cannot open" << std::endl;
+      }
+    }
 #ifdef NGTQBG_COARSE_BLOB
     {
       ofstream of(rootDirectory + "/" + getGlobalToInvertedIndexFile());
@@ -5284,6 +5325,11 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
         }
       }
     }
+    std::cerr << "DEBUG: extractInvertedIndexObject: The Inverted index size=" << invertedIndex.size() << std::endl;
+    if (invertedIndex.size() > 1) {
+      std::cerr << "DEBUG: extractInvertedIndexObject: The entry size=" << invertedIndex[invertedIndex.size() - 1]->size()  << std::endl;
+    }
+    std::cerr << "DEBUG: extractInvertedIndexObject: The last ID=" << lastID << std::endl;
     invertedIndexObjects.resize(lastID + 1);
     for (size_t gid = 1; gid < invertedIndex.size(); gid++) {
       for (size_t idx = 0; idx < invertedIndex[gid]->size(); idx++) {
