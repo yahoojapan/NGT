@@ -1902,12 +1902,18 @@ class Index : public NGTQ::Index {
     }
 
     {
-      {
+      if (access(QBG::Index::getBlobFile(indexPath).c_str(), F_OK) == 0) {
         const std::string comcp =
             "cp -f " + QBG::Index::getBlobFile(indexPath) + " " + QBG::Index::getStoredBlobFile(indexPath);
-        if (system(comcp.c_str()) == -1) {
-          std::cerr << "Warning. cannot remove the blob. " << comcp << std::endl;
-        }
+	auto stat = system(comcp.c_str());
+        if (stat == -1) {
+          std::cerr << "Warning. Cannot execute cp. " << comcp << std::endl;
+        } else if (WIFEXITED(stat)) {
+          int exitStatus = WEXITSTATUS(stat);
+          if (exitStatus != 0) {
+            std::cerr << "Warning. Cannot cp the blob. " <<  exitStatus << std::endl;
+          }
+	}
       }
       char *s = getenv("NGT_NOT_REMOVE_WORKSPACE");
       if (s == 0) {

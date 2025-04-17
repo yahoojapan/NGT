@@ -583,7 +583,18 @@ template <typename T> class InvertedIndexEntry : public NGT::DynamicLengthVector
     int32_t ssid = subspaceID;
     NGT::Serializer::write(os, ssid);
 #endif
-    os.write(reinterpret_cast<char *>(PARENT::vector), PARENT::size() * PARENT::elementSize);
+    size_t total = static_cast<size_t>(PARENT::size()) * PARENT::elementSize;
+    size_t written = 0;
+    while (written < total) {
+      size_t s = std::min(static_cast<size_t>(1024) * 1024 * 1024, total - written);
+      os.write(reinterpret_cast<char *>(PARENT::vector) + written, s);
+      if (!os) {
+        std::stringstream msg;
+        msg << "Cannot write. " << written << "/" << total;
+        NGTThrowException(msg);
+      }
+      written += s;
+    }
   }
 
   void deserialize(std::ifstream &is, NGT::ObjectSpace *objectspace = 0) {
@@ -3576,19 +3587,25 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
       invertedIndex.open(index + "/" + getInvertedIndexFile(), 0);
 #else
       {
-	std::cerr << "DEBUG: Quantizer::open the inverted index " << index + "/" + getInvertedIndexFile() << std::endl;
-	std::ifstream file(index + "/" + getInvertedIndexFile(), std::ios::binary);
+        std::cerr << "DEBUG: Quantizer::open the inverted index " << index + "/" + getInvertedIndexFile() << std::endl;
+        std::ifstream file(index + "/" + getInvertedIndexFile(), std::ios::binary);
 	if (file) {
 	  size_t s;
 	  NGT::Serializer::read(file, s);
 	  std::cerr << "DEBUG: The inveverted index data size: " << s << std::endl;
-	  file.seekg(10, std::ios::beg);
-	  uint32_t v;
-	  NGT::Serializer::read(file, v);
-	  std::cerr << "DEBUG: The first cluster size: " << v << std::endl;
-	  file.seekg(0, std::ios::end);
-	  std::streamsize size = file.tellg();
-	  std::cerr << "DEBUG: The inverted index file size: " << size << " bytes" << std::endl;
+          if (s != 0) {
+            file.seekg(10, std::ios::beg);
+	    uint32_t v;
+	    NGT::Serializer::read(file, v);
+	    std::cerr << "DEBUG: The first cluster size: " << v << std::endl;
+	    file.seekg(0, std::ios::end);
+	    std::streamsize size = file.tellg();
+	    std::cerr << "DEBUG: The inverted index file size: " << size << " bytes" << std::endl;
+	    std::cerr << "DEBUG: localDivisionNo: " << property.localDivisionNo << std::endl;
+	    file.seekg(-property.localDivisionNo * 2 - 4, std::ios::end);
+	    NGT::Serializer::read(file, v);
+	    std::cerr << "DEBUG: The last ID: " << v << std::endl;
+	  }
 	} else {
 	  std::cerr << "DEBUG: Cannot open" << std::endl;
 	}
@@ -3599,6 +3616,13 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
         return;
       }
       invertedIndex.deserialize(ifs);
+      {
+	if (invertedIndex.size() > 0) {
+	  IIEntry &ie = *invertedIndex.at(invertedIndex.size() - 1);
+	  std::cerr << "DEBUG: open. The entry size: " << ie.size()  << std::endl;
+	  std::cerr << "DEBUG: open. The last ID from memory: " << ie[ie.size() - 1].id << std::endl;
+	}
+      }
 #endif
     }
 #ifdef NGTQBG_COARSE_BLOB
@@ -3857,13 +3881,22 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
 	size_t s;
 	NGT::Serializer::read(file, s);
 	std::cerr << "DEBUG: The inveverted index data size: " << s << std::endl;
-	file.seekg(10, std::ios::beg);
-	uint32_t v;
-	NGT::Serializer::read(file, v);
-	std::cerr << "DEBUG: The first cluster size: " << v << std::endl;
-	file.seekg(0, std::ios::end);
-	std::streamsize size = file.tellg();
-	std::cerr << "DEBUG: The inverted index file size: " << size << " bytes" << std::endl;
+	if (s != 0) {
+	  file.seekg(10, std::ios::beg);
+	  uint32_t v;
+	  NGT::Serializer::read(file, v);
+	  std::cerr << "DEBUG: The first cluster size: " << v << std::endl;
+	  file.seekg(0, std::ios::end);
+	  std::streamsize size = file.tellg();
+	  std::cerr << "DEBUG: The inverted index file size: " << size << " bytes" << std::endl;
+	  std::cerr << "DEBUG: localDivisionNo: " << property.localDivisionNo << std::endl;
+	  file.seekg(-property.localDivisionNo * 2 - 4, std::ios::end);
+	  NGT::Serializer::read(file, v);
+	  std::cerr << "DEBUG: The last ID: " << v << std::endl;
+	  IIEntry &ie = *invertedIndex.at(invertedIndex.size() - 1);
+	  std::cerr << "DEBUG: The entry size: " << ie.size()  << std::endl;
+	  std::cerr << "DEBUG: The last ID from memory: " << ie[ie.size() - 1].id << std::endl;
+	}
       } else {
 	std::cerr << "DEBUG: Cannot open" << std::endl;
       }
@@ -4687,7 +4720,8 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
         setGlobalCodeToInvertedEntry(ids[i], objects[ids2oidx[i]], localData);
       }
     }
-    float subspaceObjects[localData.size()][globalCodebookIndex.getObjectSpace().getPaddedDimension()];
+    std::unique_ptr<float[]> subspaceObjects(new float[localData.size() * 
+                                                       globalCodebookIndex.getObjectSpace().getPaddedDimension()]);
     bool error = false;
     std::string errorMessage;
 #pragma omp parallel for
@@ -4722,11 +4756,11 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
 #ifdef NGTQ_VECTOR_OBJECT
         (*generateResidualObject)(objects[objidx].first, // object
                                   invertedIndexEntry.subspaceID,
-                                  subspaceObjects[objidx]); // subspace objects
+                                  &subspaceObjects[objidx * globalCodebookIndex.getObjectSpace().getPaddedDimension()]); // subspace objects
 #else
         (*generateResidualObject)(*objects[objidx].first, // object
                                   invertedIndexEntry.subspaceID,
-                                  subspaceObjects[objidx]); // subspace objects
+                                  &subspaceObjects[objidx * globalCodebookIndex.getObjectSpace().getPaddedDimension()]); // subspace objects
 #endif
       } catch (NGT::Exception &err) {
         if (errorMessage.empty()) {
@@ -4758,10 +4792,10 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
       // multiple local codebooks
       bool localCodebookFull = true;
       if (property.localCodebookState) {
-        setMultipleLocalCodeToInvertedIndexEntryFixed(localData, &subspaceObjects[0][0]);
+        setMultipleLocalCodeToInvertedIndexEntryFixed(localData, &subspaceObjects[0]);
       } else {
         localCodebookFull =
-            setMultipleLocalCodeToInvertedIndexEntry(lcodebook, localData, &subspaceObjects[0][0]);
+            setMultipleLocalCodeToInvertedIndexEntry(lcodebook, localData, &subspaceObjects[0]);
       }
       if ((!property.localCodebookState) && localCodebookFull) {
         if (property.localCentroidCreationMode == CentroidCreationModeDynamicKmeans) {

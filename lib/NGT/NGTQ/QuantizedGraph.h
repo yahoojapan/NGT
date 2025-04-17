@@ -111,6 +111,12 @@ class QuantizedGraphRepository : public std::vector<QuantizedNode> {
         std::cerr << "  vmsize=" << NGT::Common::getProcessVmSizeStr() << std::endl;
         std::cerr << "  peak vmsize=" << NGT::Common::getProcessVmPeakStr() << std::endl;
       }
+      if (id >= (*this).size()) {
+        std::stringstream msg;
+        msg << "Fatal inner error! ID exceeds the size of the inverted index. " << id << " "
+	    << (*this).size();
+        NGTThrowException(msg);
+      }
       NGT::GraphNode &node = *graphRepository.VECTOR::get(id);
       size_t numOfEdges    = node.size() < maxNoOfEdges ? node.size() : maxNoOfEdges;
       (*this)[id].ids.reserve(numOfEdges);
