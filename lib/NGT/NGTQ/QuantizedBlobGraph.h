@@ -1754,8 +1754,8 @@ class Index : public NGTQ::Index {
 
   static void build(const std::string &indexPath, std::vector<std::vector<float>> &quantizerCodebook,
                     std::vector<uint32_t> &codebookIndex, std::vector<std::vector<uint32_t>> &objectIndex,
-                    size_t beginID = 1, size_t endID = 0) {
-    buildNGTQ(indexPath, quantizerCodebook, codebookIndex, objectIndex, beginID, endID);
+                    size_t beginID = 1, size_t endID = 0, bool verbose = false) {
+    buildNGTQ(indexPath, quantizerCodebook, codebookIndex, objectIndex, beginID, endID, verbose);
     buildQBG(indexPath);
     std::cerr << "NGTQ and NGTQBG indices are completed." << std::endl;
     std::cerr << "  vmsize=" << NGT::Common::getProcessVmSizeStr() << std::endl;

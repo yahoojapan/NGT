@@ -233,6 +233,7 @@ LeafNode::removeObject(size_t id, size_t replaceId) {
 
   size_t fsize = getObjectSize();
   size_t idx;
+  bool replaceIdFound = false;
   if (replaceId != 0) {
     for (idx = 0; idx < fsize; idx++) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
@@ -240,10 +241,8 @@ LeafNode::removeObject(size_t id, size_t replaceId) {
 #else
       if (getObjectIDs()[idx].id == replaceId) {
 #endif
-        std::cerr << " Warning. found the same ID as the replaced ID. " << id << ":" << replaceId
-                  << std::endl;
-        std::cerr << "          ignore it, if normalized distance." << std::endl;
         replaceId = 0;
+        replaceIdFound = true;
         break;
       }
     }
@@ -260,6 +259,10 @@ LeafNode::removeObject(size_t id, size_t replaceId) {
 #endif
         return;
       } else {
+        if (replaceIdFound) {
+          std::cerr << " Warning. found both the removed and replaced IDs. " << id << ":" << replaceId
+                    << std::endl;
+        }
         break;
       }
     }
