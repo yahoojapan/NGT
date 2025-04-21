@@ -623,7 +623,18 @@ template <typename T> class InvertedIndexEntry : public NGT::DynamicLengthVector
     PARENT::elementSize = getSizeOfElement();
     PARENT::reserve(sz);
     PARENT::resize(sz);
-    is.read(reinterpret_cast<char *>(PARENT::vector), sz * PARENT::elementSize);
+    size_t total = static_cast<size_t>(sz) * PARENT::elementSize;
+    size_t readBytes = 0;
+    while (readBytes < total) {
+      size_t s = std::min(static_cast<size_t>(1024) * 1024 * 1024, total - readBytes);
+      is.read(reinterpret_cast<char *>(PARENT::vector) + readBytes, s);
+      if (!is) {
+        std::stringstream msg;
+        msg << "Cannnot read. " << readBytes << " / " << total;
+        NGTThrowException(msg);
+      }
+      readBytes += s;
+    }
   }
 
   void get(size_t idx, QuantizedObject &qobj) {
@@ -5313,17 +5324,20 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
       invertedIndexObjects.at(idx, invertedIndex.allocator).id = entry.id;
       if (sizeof(entry.localID[0]) >
           sizeof(invertedIndexObjects.at(idx, invertedIndex.allocator).localID[0])) {
-        std::cerr << "you should change the object ID type." << std::endl;
-        abort();
+        NGTThrowException("Fatal error! You should change the object ID type.");
       }
 #else
       NGTQ::InvertedIndexObject<LOCAL_ID_TYPE> &entry = (*invertedIndex[gid])[idx];
       invertedIndexObjects[idx].id = entry.id;
       if (sizeof(entry.localID[0]) > sizeof(invertedIndexObjects[idx].localID[0])) {
-        std::cerr << "you should change the object ID type." << std::endl;
-        abort();
+        NGTThrowException("Fatal error! You should change the object ID type.");
       }
 #endif
+      if (entry.id == 0) {
+	stringstream msg;
+	msg << "Fatal inner error! ID is invalid. " << entry.id << " " << gid << ":" << idx;
+	NGTThrowException(msg);
+      }
       for (size_t i = 0; i < localCodebookIndexes.size(); i++) {
 #ifdef NGTQ_SHARED_INVERTED_INDEX
         invertedIndexObjects.at(idx, invertedIndex.allocator).localID[i] = entry.localID[i];
@@ -5371,14 +5385,22 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
         NGTQ::InvertedIndexObject<LOCAL_ID_TYPE> &entry =
             (*invertedIndex[gid]).at(idx, invertedIndex.allocator);
         invertedIndexObjects.at(entry.id, invertedIndex.allocator).id = entry.id;
+        if (sizeof(entry.localID[0]) >
+            sizeof(invertedIndexObjects.at(idx, invertedIndex.allocator).localID[0])) {
+          NGTThrowException("Fatal error! You should change the object ID type.");
+        }
 #else
         NGTQ::InvertedIndexObject<LOCAL_ID_TYPE> &entry = (*invertedIndex[gid])[idx];
         invertedIndexObjects[entry.id].id = entry.id;
-#endif
         if (sizeof(entry.localID[0]) > sizeof(invertedIndexObjects[entry.id].localID[0])) {
-          std::cerr << "you should change the object ID type." << std::endl;
-          abort();
+	  NGTThrowException("Fatal error! You should change the object ID type.");
         }
+#endif
+	if (entry.id == 0) {
+	  stringstream msg;
+	  msg << "Fatal inner error! ID is invalid. " << entry.id << " " << gid << ":" << idx;
+	  NGTThrowException(msg);
+	}
         for (size_t i = 0; i < invertedIndexObjects.numOfSubvectors; i++) {
           invertedIndexObjects[entry.id].localID[i] = entry.localID[i];
         }
