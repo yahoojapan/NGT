@@ -85,15 +85,14 @@ class QuantizedGraphRepository : public std::vector<QuantizedNode> {
     NGTQ::InvertedIndexEntry<uint16_t> invertedIndexObjects(numOfSubspaces);
     quantizedIndex.getQuantizer().extractInvertedIndexObject(invertedIndexObjects);
     std::cerr << "inverted index object size=" << invertedIndexObjects.size() << std::endl;
+    std::cerr << "  vmsize==" << NGT::Common::getProcessVmSizeStr() << std::endl;
+    std::cerr << "  peak vmsize==" << NGT::Common::getProcessVmPeakStr() << std::endl;
     quantizedIndex.getQuantizer().eraseInvertedIndexObject();
-
-
     if (graphRepository.size() != invertedIndexObjects.size()) {
       std::cerr << "QuantizedGraph::construct Warning! The sizes of the graphRepository and the invertedIndexObjects are not identical."
 		<< graphRepository.size() << ":" << invertedIndexObjects.size() << std::endl;
     }
 
-    std::cerr << "graph repository size=" << graphRepository.size() << std::endl;
     PARENT::resize(graphRepository.size());
 
     for (size_t id = 1; id < graphRepository.size(); id++) {
@@ -103,6 +102,12 @@ class QuantizedGraphRepository : public std::vector<QuantizedNode> {
       }
       if (graphRepository.isEmpty(id)) {
 	continue;
+      }
+      if (id >= (*this).size()) {
+        std::stringstream msg;
+        msg << "Fatal inner error! ID exceeds the size of the inverted index. " << id << " "
+	    << (*this).size();
+        NGTThrowException(msg);
       }
       NGT::GraphNode &node = *graphRepository.VECTOR::get(id);
       size_t numOfEdges    = node.size() < maxNoOfEdges ? node.size() : maxNoOfEdges;
