@@ -21,6 +21,7 @@
 #include <queue>
 #include <map>
 #include <set>
+#include <unordered_set>
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -81,6 +82,27 @@ class qsint8 {
   int8_t get() { return value; }
   int8_t value;
 };
+
+#ifdef NGT_PQ4
+class qint4 {
+ public:
+  qint4() {}
+  qint4(uint8_t v) : value(v) {}
+  qint4 &operator=(uint8_t &v) {
+    value = v;
+    return *this;
+  }
+  uint8_t upper() const { return value >> 4; }
+  uint8_t lower() const { return value & 0xF; }
+  operator uint8_t() const { return value; }
+  uint8_t get() const { return value; }
+  friend std::ostream &operator<<(std::ostream &os, qint4 &v) {
+    os << static_cast<int>(v.upper()) << ":" << static_cast<int>(v.lower());
+    return os;
+  }
+  uint8_t value;
+};
+#endif
 
 #ifdef NGT_BFLOAT
 class bfloat16 {
@@ -2346,30 +2368,57 @@ class ObjectDistances;
 class Container {
  public:
   Container(Object &o, ObjectID i) : object(o), id(i) {}
+  Container(ObjectID i) : object(emptyObject()), id(i) {}
   Container(Container &c) : object(c.object), id(c.id) {}
-  bool isEmptyObject() { return &object == 0; }
+  bool isEmptyObject() const {
+    return &object == &emptyObject();
+  }
+  static Object& emptyObject() {
+    auto *objptr = reinterpret_cast<Object*>(0);
+    return *objptr;
+  }
   Object &object;
   ObjectID id;
 };
 
- class ResultSet : public std::vector<ObjectDistance> {
+class ResultSet : public std::vector<ObjectDistance> {
  public:
-   ObjectDistance &top() { return front(); }
-   void emplace(const ObjectDistance &o) { push(o); }
-   void push(const ObjectDistance &o) {
-     emplace_back(o);
-     push_heap(begin(), end());
-   }
-   void pop() {
-     pop_heap(begin(), end());
-     pop_back();
-   }
-   void push_pop(const ObjectDistance &o) {
-     emplace_back(o);
-     pop_heap(begin(), end());
-     pop_back();
-   }
- };
+  ObjectDistance &top() { return front(); }
+  void emplace(const ObjectDistance &o) { push(o); }
+  void push(const ObjectDistance &o) {
+    emplace_back(o);
+    push_heap(begin(), end());
+  }
+  void pop() {
+    pop_heap(begin(), end());
+    pop_back();
+  }
+  void push_pop(const ObjectDistance &o) {
+    emplace_back(o);
+    pop_heap(begin(), end());
+    pop_back();
+  }
+};
+
+class ResultSetWithCheck : public ResultSet {
+ public:
+  void emplace(const ObjectDistance &o) { ResultSetWithCheck::push(o); }
+  void push(const ObjectDistance &o) {
+    if (ids.count(o.id)) return;
+    ids.emplace(o.id);
+    ResultSet::push(o);
+  }
+  void pop() {
+    ids.erase(top().id);
+    ResultSet::pop();
+  }
+  void push_pop(const ObjectDistance &o) {
+    if (ids.count(o.id)) return;
+    ids.erase(top().id);
+    ResultSet::push_pop(o);
+  }
+  std::unordered_set<ObjectID> ids;
+};
 
 typedef ResultSet ResultPriorityQueue;
 
@@ -2379,7 +2428,7 @@ class SearchContainer : public NGT::Container {
   SearchContainer(Object &f) : Container(f, 0) { initialize(); }
   SearchContainer(SearchContainer &sc) : Container(sc) { *this = sc; }
   SearchContainer(SearchContainer &sc, Object &f) : Container(f, sc.id) { *this = sc; }
-  SearchContainer() : Container(*reinterpret_cast<Object *>(0), 0) { initialize(); }
+  SearchContainer() : Container(0) { initialize(); }
 
   SearchContainer &operator=(SearchContainer &sc) {
     size                     = sc.size;
@@ -2457,6 +2506,27 @@ class SearchContainer : public NGT::Container {
 class QueryContainer {
  public:
   template <typename QTYPE> QueryContainer(const std::vector<QTYPE> &q) : query(0) { setQuery(q); }
+  QueryContainer(const QueryContainer &qc) {
+    dimension = qc.dimension;
+    queryType = qc.queryType;
+    floatVector = 0;
+    if (*queryType == typeid(float)) {
+      floatVector = new std::vector<float>(*(static_cast<std::vector<float>*>(qc.query)));
+      query = floatVector;
+    } else if (*queryType == typeid(double)) {
+      query = new std::vector<double>(*(static_cast<std::vector<double>*>(qc.query)));
+    } else if (*queryType == typeid(uint8_t)) {
+      query = new std::vector<uint8_t>(*(static_cast<std::vector<uint8_t>*>(qc.query)));
+#ifdef NGT_HALF_FLOAT
+    } else if (*queryType == typeid(float16)) {
+      query = new std::vector<float16>(*(static_cast<std::vector<float16>*>(qc.query)));
+#endif
+    }
+#ifdef NGT_REFINEMENT
+    refinementExpansion = qc.refinementExpansion;
+#endif
+  }
+
   ~QueryContainer() { deleteQuery(); }
 
   template <typename QTYPE> void setQuery(const std::vector<QTYPE> &q) {
@@ -2478,11 +2548,22 @@ class QueryContainer {
     }
     query     = new std::vector<QTYPE>(q);
     dimension = q.size();
+    if (typeid(QTYPE) == typeid(float)) {
+      floatVector = static_cast<std::vector<float>*>(query);
+    } else {
+      floatVector = 0;
+    }
 #ifdef NGT_REFINEMENT
     refinementExpansion = 0.0;
 #endif
   }
   void *getQuery() { return query; }
+  std::vector<float> &getQueryVector() {
+    if (floatVector == 0) {
+      NGTThrowException("not set because of not float");
+    }
+    return *floatVector;
+  }
   size_t getDimension() { return dimension; }
   const std::type_info &getQueryType() { return *queryType; }
   void pushBack(float v) {
@@ -2522,6 +2603,7 @@ class QueryContainer {
     queryType = 0;
   }
   void *query;
+  std::vector<float> *floatVector;
   const std::type_info *queryType;
   size_t dimension;
 #ifdef NGT_REFINEMENT
@@ -2529,9 +2611,11 @@ class QueryContainer {
 #endif
 };
 
-class SearchQuery : public NGT::QueryContainer, public NGT::SearchContainer {
+class SearchQuery : public NGT::SearchContainer, public NGT::QueryContainer {
  public:
   template <typename QTYPE> SearchQuery(const std::vector<QTYPE> &q) : NGT::QueryContainer(q) {}
+  SearchQuery(SearchQuery &sq, Object &o):
+    SearchContainer(static_cast<SearchContainer&>(sq), o), QueryContainer(sq) {}
 };
 
 class InsertContainer : public Container {

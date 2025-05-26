@@ -248,6 +248,7 @@ public:
   void batchInsert(
    py::array_t<float> objects,
    size_t numThreads = 16,
+   bool append = false,
    bool refinement = false,
    bool debug = false
   ) {
@@ -270,7 +271,6 @@ public:
       msg << "ngtpy::insert: Error! dimensions are inconsitency. " << prop.dimension << ":" << info.shape[1];
       NGTThrowException(msg);
     }
-    auto append = true;
     NGT::Index::append(ptr, info.shape[0], append, refinement);
     NGT::Index::createIndex(numThreads);
     numOfDistanceComputations = 0;
@@ -589,6 +589,9 @@ public:
     defaultRadius = FLT_MAX;
     defaultResultExpansion = 3.0;
     defaultEdgeSize = 0; // not used
+#ifdef NGTQG_PROBE
+    defaultProbe = 10;
+#endif
     if (logDisabled) {
       NGT::Index::disableLog();
     } else {
@@ -617,6 +620,9 @@ public:
       sc.setEpsilon(epsilon);			// set exploration coefficient.
       sc.setResultExpansion(resultExpansion);	// set result expansion.
       sc.setEdgeSize(edgeSize);			// if maxEdge is minus, the specified value in advance is used.
+#ifdef NGTQG_PROBE
+      sc.setProbe(defaultProbe);
+#endif
 
       NGTQG::Index::search(sc);
 
@@ -672,12 +678,18 @@ public:
    float epsilon,	 		// search parameter epsilon. the adequate range is from 0.0 to 0.05.
    float resultExpansion,		// the number of inner resultant objects
    int edgeSize				// not used
+#ifdef NGTQG_PROBE
+   , size_t probe
+#endif
   ) {
     defaultNumOfSearchObjects = numOfSearchObjects > 0 ? numOfSearchObjects : defaultNumOfSearchObjects;
     defaultEpsilon	      = epsilon > -1.0 ? epsilon : defaultEpsilon;
     defaultRadius	      = radius >= 0.0 ? radius : defaultRadius;
     defaultResultExpansion    = resultExpansion >= 0.0 ? resultExpansion : defaultResultExpansion;
     defaultEdgeSize	      = edgeSize >= -2 ? edgeSize : defaultEdgeSize;
+#ifdef NGTQG_PROBE
+    defaultProbe              = probe > 0 ? probe : defaultProbe;
+#endif
   }
 
   bool		zeroNumbering;	    // for object ID numbering. zero-based or one-based numbering.
@@ -689,6 +701,9 @@ public:
   float		defaultRadius;
   float		defaultResultExpansion;
   int64_t	defaultEdgeSize;
+#ifdef NGTQG_PROBE
+  size_t        defaultProbe;
+#endif
 };
 
 
@@ -1191,6 +1206,7 @@ PYBIND11_MODULE(ngtpy, m) {
       .def("batch_insert", &::Index::batchInsert,
            py::arg("objects"),
            py::arg("num_threads") = 8,
+           py::arg("append") = true,
            py::arg("refinement") = false,
            py::arg("debug") = false)
       .def("insert", &::Index::insert,
@@ -1282,14 +1298,24 @@ PYBIND11_MODULE(ngtpy, m) {
 	   py::arg("search_radius") = -FLT_MAX,
            py::arg("epsilon") = -FLT_MAX,
            py::arg("result_expansion") = -FLT_MAX,
+#ifdef NGTQG_PROBE
+           py::arg("edge_size") = INT_MIN,
+           py::arg("num_of_probes") = 0)
+#else
            py::arg("edge_size") = INT_MIN)
+#endif
       // set_defaults is deprecated
       .def("set_defaults", &::QuantizedIndex::set,
            py::arg("size") = 0,
 	   py::arg("search_radius") = -FLT_MAX,
            py::arg("epsilon") = -FLT_MAX,
            py::arg("result_expansion") = -FLT_MAX,
+#ifdef NGTQG_PROBE
+           py::arg("edge_size") = INT_MIN,
+           py::arg("num_of_probes") = 0);
+#else
            py::arg("edge_size") = INT_MIN);
+#endif
 
 
     py::class_<QuantizedBlobIndex>(m, "QuantizedBlobIndex")

@@ -22,6 +22,52 @@ class ObjectSpace;
 
 namespace NGT {
 
+#ifdef NGT_PQ4
+class Property;
+class Quantizer {
+ public:
+  class Query {
+  public:
+  Query():insideObject(0){}
+  Query(NGT::Object *o):insideObject(o){}
+    std::vector<int8_t> lut;
+    std::vector<int8_t> quantizedQuery;
+    NGT::Object *insideObject;
+    float offset;
+    float scale;
+    bool shift;
+    float shiftValue;
+    size_t genuineSize;
+  };
+  Quantizer(): index(0) {}
+  ~Quantizer();
+  void open();
+  void open(const std::string &path);
+  void quantizeToPq4(std::vector<float> &vector, std::vector<uint8_t> &qvector);
+  static void build(std::string &indexPath, bool verbose);
+  void setCentroids();
+  void *constructQueryObject(std::vector<float> &object, ObjectSpace &objectSpace);
+  void *constructQueryObject();
+  void setQuantizedQuery(std::vector<float> &query, Query &qQuery, ObjectSpace &objectSpace);
+  void setQuantizedQuery(Query &qQuery);
+  void destructQueryObject(void *comparator);
+  void quantize(std::vector<float> &object, std::vector<qint4> &quantizedObject);
+  NGT::Distance compareL2(void *a, void *b, size_t s);
+  NGT::Distance compareCosineSimilarity(void *a, void *b, size_t s);
+  NGT::Distance compareNormalizedCosineSimilarity(void *a, void *b, size_t s);
+  static const std::string getQbgIndex() { return "qbg"; }
+  void create(const std::string &indexPath, Property &prop);
+  void build(ObjectSpace &os, bool verbose = false);
+  bool isAvailable() { return index != 0; }
+  std::string qbgIndexPath;
+  void *index;
+  float centroidMax;
+  float centroidMin;
+  std::vector<float> centroids;
+  std::vector<std::pair<float, uint32_t>> boundaries;
+};
+#endif
+
 class PersistentObjectDistances;
 class ObjectDistances : public std::vector<ObjectDistance> {
  public:
@@ -172,6 +218,9 @@ class ObjectSpace {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
     SharedMemoryAllocator &allocator;
 #endif
+#ifdef NGT_PQ4
+    virtual void setQuery(std::vector<float> &query) {}
+#endif
     virtual ~Comparator() {}
   };
   enum DistanceType {
@@ -205,6 +254,10 @@ class ObjectSpace {
 #ifdef NGT_BFLOAT
     ,
     Bfloat16 = 5
+#endif
+#ifdef NGT_PQ4
+    ,
+    Qint4 = 10
 #endif
   };
 
@@ -260,6 +313,7 @@ class ObjectSpace {
   virtual void copy(Object &objecta, Object &objectb) = 0;
 
   virtual void linearSearch(Object &query, double radius, size_t size, ResultSet &results) = 0;
+
   virtual std::pair<float, float> getMaxMin(float cut = 0.01, size_t size = 0)                          = 0;
   virtual const std::type_info &getObjectType()                                                         = 0;
   virtual void show(std::ostream &os, Object &object)                                                   = 0;
@@ -319,7 +373,11 @@ class ObjectSpace {
       }
       std::stringstream msg;
       msg << "ObjectSpace::normalize: Error! the object is an invalid zero vector for the cosine similarity. "
-          << typeid(T).name() << ".";
+          << "type=" << typeid(T).name() << ". ";
+      msg << "normalize before ";
+      for (size_t i = 0; i < dim; i++) {
+        msg << data[i] << " ";
+      }
       NGTThrowException(msg);
     }
     sum = sqrt(sum);
@@ -353,7 +411,21 @@ class ObjectSpace {
     return prefetchSize;
   }
 
-  bool quantizationIsEnabled() { return quantizationScale != 0.0; }
+  bool scalarQuantizationIsEnabled() { return quantizationScale != 0.0; }
+  bool pq4IsEnabled() {
+#ifdef NGT_PQ4
+    return getObjectType() == typeid(qint4);
+#else
+    return false;
+#endif
+  }
+  bool quantizationIsEnabled() {
+    return scalarQuantizationIsEnabled()
+#ifdef NGT_PQ4
+      || pq4IsEnabled()
+#endif
+      ;
+  }
   void setQuantization(float scale, float offset) {
     quantizationScale  = scale;
     quantizationOffset = offset;
@@ -506,12 +578,29 @@ class ObjectSpace {
     return false;
   }
   bool isNormalizedDistance() { return normalization; }
-
   NGT::Distance compareWithL1(NGT::Object &o1, NGT::Object &o2);
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
   NGT::Distance compareWithL1(NGT::Object &o1, NGT::PersistentObject &o2);
 #endif
-
+  static size_t getDimensionForType(const std::type_info &ot, size_t d) {
+#ifdef NGT_PQ4
+    return ot == typeid(qint4) ? (d + 1) / 2 : d;
+#else
+    return d;
+#endif
+  }
+#ifdef NGT_PQ4
+  Quantizer &getQuantizer() { return quantizer; }
+  NGT::Object *allocateQuantizedQuery(std::vector<float> &object);
+  void openQuantizer(const std::string &path) {
+    if (pq4IsEnabled()) {
+      try {
+        quantizer.open(path);
+      } catch(NGT::Exception &err) {
+      }
+    }
+  }
+#endif
  protected:
   const size_t dimension;
   DistanceType distanceType;
@@ -523,6 +612,9 @@ class ObjectSpace {
   float quantizationScale;
   float quantizationOffset;
   float magnitude;
+#ifdef NGT_PQ4
+  Quantizer quantizer;
+#endif
 };
 
 class BaseObject {
@@ -670,6 +762,10 @@ class Object : public BaseObject {
     assert(s != 0);
     construct(s);
   }
+
+#ifdef NGT_PQ4
+  Object(void *p) { vector = static_cast<uint8_t*>(p); }
+#endif
 
   virtual ~Object() { clear(); }
 

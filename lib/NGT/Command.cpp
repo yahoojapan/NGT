@@ -140,6 +140,10 @@ NGT::Command::CreateParameters::CreateParameters(Args &args) {
   } else if (objectType == "H") {
     property.objectType = NGT::Index::Property::ObjectType::Bfloat16;
 #endif
+#ifdef NGT_PQ4
+  } else if (objectType == "pq4") {
+    property.objectType = NGT::Index::Property::ObjectType::Qint4;
+#endif
   } else {
     std::stringstream msg;
     msg << "Command::CreateParameter: Error: Invalid object type. " << objectType;
@@ -1507,5 +1511,32 @@ void NGT::Command::rebuild(Args &args) {
   }
   index.save();
 
+#endif
+}
+
+
+void NGT::Command::preprocessForPQ(Args &args) {
+#ifdef  NGT_QBG_DISABLED
+  NGTThrowException("prep-pq is not implemented.");  
+#else
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+  NGTThrowException("rebuild is not implemented.");
+#else
+  const std::string usage = "Usage: ngt prep-pq index";
+  args.parse("v");
+  string indexPath;
+  try {
+    indexPath = args.get("#1");
+  } catch (...) {
+    std::stringstream msg;
+    msg << "Index is not specified" << endl;
+    msg << usage;
+    NGTThrowException(msg);
+  }
+
+  bool verbose = args.getBool("v");
+
+  NGT::Quantizer::build(indexPath, verbose);
+#endif
 #endif
 }

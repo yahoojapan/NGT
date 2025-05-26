@@ -23,6 +23,7 @@
 
 #define GLOBAL_SIZE 1
 
+
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
 #undef NGTQG_BLOB_GRAPH
 #endif
@@ -35,14 +36,16 @@ namespace NGTQG {
 class SearchContainer : public NGT::SearchContainer {
  public:
   SearchContainer(SearchContainer &sc, NGT::Object &f)
-      : NGT::SearchContainer(sc, f), resultExpansion(sc.resultExpansion) {}
+    : NGT::SearchContainer(sc, f), resultExpansion(sc.resultExpansion)
+    {}
   SearchContainer() : resultExpansion(0.0) {}
 
   void setResultExpansion(float re) { resultExpansion = re; }
   float resultExpansion;
+
 };
 
-class SearchQuery : public NGT::QueryContainer, public NGTQG::SearchContainer {
+class SearchQuery : public NGTQG::SearchContainer, public NGT::QueryContainer {
  public:
   template <typename QTYPE> SearchQuery(const std::vector<QTYPE> &q) : NGT::QueryContainer(q) {}
 };
@@ -244,14 +247,14 @@ class Index : public NGT::Index {
  public:
   Index(const std::string &indexPath, size_t maxNoOfEdges = 128, bool rdOnly = false)
       : NGT::Index(indexPath, rdOnly, NGT::Index::OpenTypeNone), readOnly(rdOnly), path(indexPath),
-        quantizedIndex(indexPath + "/qg", rdOnly),
+        quantizedIndex(indexPath + "/" + getQGDirectoryName(), rdOnly),
         quantizedGraph(quantizedIndex)
   {
     {
       struct stat st;
       std::string qgpath(path + "/qg/grp");
       if (stat(qgpath.c_str(), &st) == 0) {
-        quantizedGraph.load(path + "/qg");
+        quantizedGraph.load(path + "/" + getQGDirectoryName());
       } else {
         if (readOnly) {
           std::cerr << "No quantized graph. Construct it temporarily." << std::endl;
@@ -262,7 +265,7 @@ class Index : public NGT::Index {
   }
 
   void save() {
-    quantizedGraph.save(path + "/qg");
+    quantizedGraph.save(path + "/" + getQGDirectoryName());
   }
 
 
@@ -434,6 +437,8 @@ class Index : public NGT::Index {
   }
 
 
+
+
   void search(NGT::GraphIndex &index, NGTQG::SearchContainer &sc, NGT::ObjectDistances &seeds) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
     NGTThrowException("NGTQG is not available for SHARED.");
@@ -449,6 +454,7 @@ class Index : public NGT::Index {
     if (sc.expectedAccuracy > 0.0) {
       sc.setEpsilon(getEpsilonFromExpectedAccuracy(sc.expectedAccuracy));
     }
+
     try {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR) || !defined(NGT_GRAPH_READ_ONLY_GRAPH)
       index.NeighborhoodGraph::search(sc, seeds);
@@ -493,7 +499,7 @@ class Index : public NGT::Index {
       dimensionOfSubvector = (dimension % dimensionOfSubvector == 0) ? dimensionOfSubvector : 1;
     }
     if (dimension % dimensionOfSubvector != 0) {
-      stringstream msg;
+      std::stringstream msg;
       msg << "Quantizer::getNumOfSubvectors: dimensionOfSubvector is invalid. " << dimension << " : "
           << dimensionOfSubvector;
       NGTThrowException(msg);
@@ -502,7 +508,7 @@ class Index : public NGT::Index {
   }
 
   static void buildQuantizedGraph(const std::string indexPath, size_t maxNumOfEdges = 128) {
-    const std::string qgPath(indexPath + "/qg");
+    const std::string qgPath(indexPath + "/" + getQGDirectoryName());
     NGTQ::Index quantizedIndex(qgPath, false);
     NGTQG::QuantizedGraphRepository quantizedGraph(quantizedIndex);
     {
@@ -614,7 +620,7 @@ class Index : public NGT::Index {
 
   static void create(const std::string indexPath, size_t dimensionOfSubvector, size_t pseudoDimension) {
     NGT::Index index(indexPath);
-    std::string quantizedIndexPath = indexPath + "/qg";
+    std::string quantizedIndexPath = indexPath + "/" + getQGDirectoryName();
     struct stat st;
     if (stat(quantizedIndexPath.c_str(), &st) == 0) {
       std::stringstream msg;
@@ -660,7 +666,7 @@ class Index : public NGT::Index {
     NGT::StdOstreamRedirector redirector(!verbose);
     redirector.begin();
     {
-      std::string quantizedIndexPath = indexPath + "/qg";
+      std::string quantizedIndexPath = indexPath + "/" + getQGDirectoryName();
       struct stat st;
       if (stat(quantizedIndexPath.c_str(), &st) != 0) {
         std::stringstream msg;
@@ -682,7 +688,7 @@ class Index : public NGT::Index {
     {
       NGT::Index index(indexPath);
       NGT::ObjectSpace &objectSpace = index.getObjectSpace();
-      std::string quantizedIndexPath = indexPath + "/qg";
+      std::string quantizedIndexPath = indexPath + "/" + getQGDirectoryName();
       struct stat st;
       if (stat(quantizedIndexPath.c_str(), &st) != 0) {
         NGT::Property ngtProperty;
@@ -697,6 +703,8 @@ class Index : public NGT::Index {
     redirector.end();
   }
 #endif
+
+  static const std::string getQGDirectoryName() { return "qg"; }
 
   const bool readOnly;
   const std::string path;

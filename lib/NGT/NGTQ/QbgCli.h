@@ -42,6 +42,7 @@ class CLI {
   void optimize(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
   void build(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
   void rebuild(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
+  void preprocessForNGT(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
   void createQG(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
   void buildQG(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
   void appendQG(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
@@ -64,6 +65,7 @@ class CLI {
   void optimize(NGT::Args &args);
   void build(NGT::Args &args);
   void rebuild(NGT::Args &args);
+  void preprocessForNGT(NGT::Args &args);
   void createQG(NGT::Args &args);
   void buildQG(NGT::Args &args);
   void appendQG(NGT::Args &args);
@@ -125,6 +127,8 @@ class CLI {
       build(args);
     } else if (command == "rebuild") {
       rebuild(args);
+    } else if (command == "prep") {
+      preprocessForNGT(args);
     } else if (command == "create-qg") {
       createQG(args);
     } else if (command == "build-qg") {

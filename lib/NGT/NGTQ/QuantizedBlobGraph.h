@@ -232,6 +232,7 @@ class OptimizationParameters {
     globalType                 = QBG::Optimizer::GlobalTypeNone;
     randomizedObjectExtraction = true;
     showClusterInfo            = false;
+    unifiedPQ                   = false;
 
     verbose = false;
   }
@@ -256,7 +257,7 @@ class OptimizationParameters {
   QBG::Optimizer::GlobalType globalType;
   bool randomizedObjectExtraction;
   bool showClusterInfo;
-
+  bool unifiedPQ;
   bool verbose;
 };
 
@@ -570,115 +571,19 @@ class Index : public NGTQ::Index {
   static void append(const std::string &indexName, // index file
                      const std::string &data,      // data file
                      size_t dataSize = 0,          // data size
-                     bool verbose    = false) {
-    NGT::StdOstreamRedirector redirector(!verbose);
-    redirector.begin();
-    QBG::Index index(indexName);
-    auto &quantizer = index.getQuantizer();
-    istream *is;
-    if (data == "-") {
-      is = &cin;
-    } else {
-      ifstream *ifs = new ifstream;
-      ifs->ifstream::open(data);
-      if (!(*ifs)) {
-        std::stringstream msg;
-        msg << "Cannot open the specified file. " << data;
-        NGTThrowException(msg);
-      }
-      is = ifs;
-    }
-    string line;
-    vector<pair<NGT::Object *, size_t>> objects;
-    size_t idx   = quantizer.objectList.size() == 0 ? 0 : quantizer.objectList.size() - 1;
-    size_t count = 0;
-    // extract objects from the file and insert them to the object list.
-    while (getline(*is, line)) {
-      idx++;
-      count++;
-      std::vector<float> object;
-      NGT::Common::extractVector(line, " ,\t", object);
-      if (object.empty()) {
-        cerr << "Empty line or invalid value: " << line << endl;
-        continue;
-      }
-      if ((quantizer.property.distanceType == NGTQ::DistanceType::DistanceTypeInnerProduct) &&
-          (object.size() + 1 == quantizer.objectList.genuineDimension)) {
-        object.emplace_back(0);
-      }
-      if (object.size() != quantizer.objectList.genuineDimension) {
-        std::stringstream msg;
-        msg << "The dimension of the specified object is inconsistent with the dimension of the index. "
-            << object.size() << ":" << quantizer.objectList.genuineDimension;
-        NGTThrowException(msg);
-      }
-      index.insert(idx, object);
+                     bool verbose    = false);
 
-      if (count % 100000 == 0) {
-        std::cerr << "appended " << static_cast<float>(count) / 1000000.0 << "M objects.";
-        if (count != idx) {
-          std::cerr << " # of the total objects=" << static_cast<float>(idx) / 1000000.0 << "M";
-        }
-        cerr << " virtual memory(kbyte)=" << NGT::Common::getProcessVmSize() << std::endl;
-      }
-    }
-    if (data != "-") {
-      delete is;
-    }
+  static void append(const std::string &indexName, // index file
+                     NGT::ObjectSpace &objectSpace, // object space including objects
+                     bool verbose = false);
 
-    index.save();
-    index.close();
-    redirector.end();
-  }
+  static void preprocessingForNGT(std::string &indexPath, std::string &objectPath, 
+                                  bool verbose = false);
 
   static void appendBinary(const std::string &indexName, // index file
                            const std::string &data,      // data file
                            size_t dataSize = 0,          // data size
-                           bool verbose    = false) {
-    NGT::StdOstreamRedirector redirector(!verbose);
-    redirector.begin();
-    QBG::Index index(indexName);
-    std::vector<std::string> tokens;
-    NGT::Common::tokenize(data, tokens, ".");
-    if (tokens.size() < 2) {
-      std::stringstream msg;
-      msg << "Invalid file name format. " << data;
-      NGTThrowException(msg);
-    }
-    auto &quantizer = index.getQuantizer();
-    StaticObjectFileLoader loader(data, tokens[tokens.size() - 1]);
-    size_t idx   = quantizer.objectList.size() == 0 ? 0 : quantizer.objectList.size() - 1;
-    size_t count = 0;
-    while (!loader.isEmpty()) {
-      idx++;
-      count++;
-      if (dataSize > 0 && idx > dataSize) {
-        break;
-      }
-      auto object = loader.getObject();
-      if ((quantizer.property.distanceType == NGTQ::DistanceType::DistanceTypeInnerProduct) &&
-          (object.size() + 1 == quantizer.objectList.genuineDimension)) {
-        object.emplace_back(0);
-      }
-      if (object.size() != quantizer.objectList.genuineDimension) {
-        std::stringstream msg;
-        msg << "The dimension of the specified object is inconsistent with the dimension of the index. "
-            << object.size() << ":" << quantizer.objectList.genuineDimension;
-        NGTThrowException(msg);
-      }
-      index.insert(idx, object);
-      if (count % 1000000 == 0) {
-        std::cerr << "appended " << static_cast<float>(count) / 1000000.0 << "M objects.";
-        if (count != idx) {
-          std::cerr << " # of the total objects=" << static_cast<float>(idx) / 1000000.0 << "M";
-        }
-        cerr << " virtual memory(kbyte)=" << NGT::Common::getProcessVmSize() << std::endl;
-      }
-    }
-    index.save();
-    index.close();
-    redirector.end();
-  }
+                           bool verbose    = false);
 
   void remove(NGT::ObjectID id) {
     std::vector<uint32_t> ids;
@@ -1068,11 +973,14 @@ class Index : public NGTQ::Index {
         object.emplace_back(NGT::Common::strtof(token));
       }
       objects.emplace_back(object);
-      if (rate < 0.0) {
-        sizes.emplace_back(qbgSearchContainer.size);
+      size_t rsize = qbg.quantizedBlobGraph[gidx + 1].ids.size();
+      if (rate <= 0.0) {
+	rsize += qbgSearchContainer.size;
       } else {
-        sizes.emplace_back(qbg.quantizedBlobGraph[gidx + 1].ids.size() * (1.0 + rate));
+        rsize *= 1.0 + rate;
       }
+      rsize = ((rsize + 15) / 16) * 16;
+      sizes.emplace_back(rsize);
       if (objects.size() == 10) {
         extractNeighbors(objects, sizes, qbg, gidx, ngtSearchContainer, qbgSearchContainer, nearestNeighbors);
       }
@@ -1087,7 +995,16 @@ class Index : public NGTQ::Index {
       auto &ids               = rearrangedObjects.ids;
       std::unordered_set<NGT::ObjectID> blob(ids.begin(), ids.end());
       std::vector<std::pair<std::vector<float>, size_t>> objects;
+      size_t rsize = qbg.quantizedBlobGraph[gidx + 1].ids.size();
+      if (rate <= 0.0) {
+	rsize += qbgSearchContainer.size;
+      } else {
+        rsize *= 1.0 + rate;
+      }
+      rsize = ((rsize + 15) / 16) * 16;
+      rsize -= qbg.quantizedBlobGraph[gidx + 1].ids.size();
       for (auto &id : nearestNeighbors[gidx]) {
+	if (objects.size() == rsize) break;
         if (blob.find(id) == blob.end()) {
           std::vector<float> object;
           qbg.getQuantizer().objectList.get(id, object);
@@ -1129,10 +1046,11 @@ class Index : public NGTQ::Index {
 #endif
   }
 
+  template <typename T>
   std::tuple<NGT::Distance, NGT::Distance>
   judge(NGTQG::QuantizedNode &ivi, size_t k, NGT::Distance radius,
         NGTQ::QuantizedObjectDistance::DistanceLookupTableUint8 &lut,
-        NGT::NeighborhoodGraph::ResultSet &result, size_t &foundCount
+        T &result, size_t &foundCount
         ,
         void *query = 0, std::unique_ptr<NGTQ::BooleanSet> *checkedIDs = 0) {
     auto noOfObjects = ivi.ids.size();
@@ -1367,7 +1285,7 @@ class Index : public NGTQ::Index {
     size_t foundCount    = 0;
     size_t k             = parameterSize;
     NGT::Distance radius = FLT_MAX;
-    NGT::NeighborhoodGraph::ResultSet result;
+    NGT::ResultSetWithCheck result;
 #ifdef NGTQBG_COARSE_BLOB
     NGTQ::QuantizedObjectDistance::DistanceLookupTableUint8 lookupTable;
     quantizedObjectDistance.initialize(lookupTable);
@@ -1922,12 +1840,6 @@ class Index : public NGTQ::Index {
           std::cerr << "Warning. cannot remove the workspace directory. " << comrmdir << std::endl;
         }
       }
-      {
-        const std::string comrm = "rm -f " + indexPath + "/" + NGTQ::Quantizer::getInvertedIndexFile();
-        if (system(comrm.c_str()) == -1) {
-          std::cerr << "Warning. cannot remove the inverted index. " << comrm << std::endl;
-        }
-      }
     }
 
     timer.stop();
@@ -2101,18 +2013,15 @@ class Index : public NGTQ::Index {
     NGTQ::Property property;
     property.load(indexPath);
     {
-      const char *ngtDirString = "/tmp/ngt-XXXXXX";
-      char ngtDir[strlen(ngtDirString) + 1];
-      strcpy(ngtDir, ngtDirString);
-      std::string tmpDir = mkdtemp(ngtDir);
-      const std::string mvcom =
-          "mv " + indexPath + "/" + NGTQ::Quantizer::getGlobalFile() + " " + tmpDir + "/";
-      if (system(mvcom.c_str()) == -1) {
+      const std::string src = indexPath + "/" + NGTQ::Quantizer::getGlobalFile();
+      const std::string dst = indexPath + "/" + NGTQ::Quantizer::getGlobalFile() + ".bak";
+      if (rename(src.c_str(), dst.c_str()) == -1) {
         std::stringstream msg;
-        msg << "Error! moving is failed. " << mvcom;
+        msg << "Error! Moving is failed. " << src << ":" << dst << " " << errno 
+	    << ":" << std::strerror(errno);
         NGTThrowException(msg);
       }
-      NGT::Index::appendFromTextObjectFile(tmpDir + "/" + NGTQ::Quantizer::getGlobalFile(), blobs, dataSize);
+      NGT::Index::appendFromTextObjectFile(dst, blobs, dataSize);
       auto unlog = false;
       NGT::GraphOptimizer graphOptimizer(unlog);
       graphOptimizer.searchParameterOptimization   = false;
@@ -2123,17 +2032,19 @@ class Index : public NGTQ::Index {
       int numOfQueries                             = 200;
       int numOfResultantObjects                    = 20;
       graphOptimizer.set(numOfOutgoingEdges, numOfIncomingEdges, numOfQueries, numOfResultantObjects);
-      const std::string rmcom = "rm -rf " + tmpDir;
+      const std::string rmcom = "rm -rf " + dst;
       try {
-        graphOptimizer.execute(tmpDir + "/" + NGTQ::Quantizer::getGlobalFile(), indexPath + "/global");
+	graphOptimizer.execute(dst, src);
       } catch (NGT::Exception &err) {
         if (system(rmcom.c_str()) == -1) {
-          std::cerr << "Warning. remove is failed. " << rmcom << std::endl;
+          std::cerr << "Warning. remove is failed. \"" << rmcom << "\"" << std::endl;
         }
         throw err;
       }
       if (system(rmcom.c_str()) == -1) {
-        std::cerr << "Warning. remove is failed. " << rmcom << std::endl;
+        std::stringstream msg;
+        msg << "Error! Removing is failed. \"" << rmcom << "\" " << errno << ":" << std::strerror(errno);
+        NGTThrowException(msg);
       }
     }
 

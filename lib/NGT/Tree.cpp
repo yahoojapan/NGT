@@ -33,7 +33,6 @@ void DVPTree::insert(InsertContainer &iobj) {
   search(q);
 
   iobj.vptree = this;
-
   assert(q.nodeID.getType() == Node::ID::Leaf);
   LeafNode *ln = (LeafNode *)getNode(q.nodeID);
   insert(iobj, ln);

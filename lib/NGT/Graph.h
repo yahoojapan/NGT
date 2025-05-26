@@ -251,11 +251,21 @@ class SearchGraphRepository : public std::vector<ReadOnlyGraphNode> {
         }
 #else
         for (auto ni = node.begin(); ni != node.end(); ni++) {
+          try {
 #ifdef NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
-          searchNode.push_back((*ni).id);
+            searchNode.push_back((*ni).id);
 #else
-          searchNode.push_back(std::pair<uint32_t, Object *>((*ni).id, objectRepository.get((*ni).id)));
+            searchNode.push_back(std::pair<uint32_t, Object *>((*ni).id, objectRepository.get((*ni).id)));
 #endif // NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
+          } catch(NGT::Exception &err) {
+            std::stringstream msg;
+            msg << "Cannot push. " << (*ni).id << " <= ";
+            for (auto nix = node.begin(); nix != node.end(); nix++) {
+              msg << (*nix).id << " ";
+            }
+            msg << ": " << err.what();
+            NGTThrowException(msg);
+          }
         }
 #endif
       } break;
@@ -351,7 +361,24 @@ class NeighborhoodGraph {
           default: return l2Qsint8;
           }
           break;
-        default: NGTThrowException("NGT::Graph::Search: Not supported object type."); break;
+#ifdef NGT_PQ4
+        case NGT::ObjectSpace::Qint4:
+          switch (dtype) {
+          case NGT::ObjectSpace::DistanceTypeL2: return l2Qint4;
+          case NGT::ObjectSpace::DistanceTypeCosine: return cosineSimilarityQint4;
+          case NGT::ObjectSpace::DistanceTypeInnerProduct: return innerProductQint4;
+          case NGT::ObjectSpace::DistanceTypeNormalizedCosine: return normalizedCosineSimilarityQint4;
+          default: return l2Qint4;
+          }
+          break;
+#endif
+        default:
+	  {
+	    std::stringstream msg;
+	    msg << "NGT::Graph::Search: Not supported object type. " << otype;
+	    NGTThrowException(msg);
+	    break;
+	  }
         }
         return l1Uint8;
       } else {
@@ -407,7 +434,24 @@ class NeighborhoodGraph {
           default: return l2Qsint8ForLargeDataset;
           }
           break;
-        default: NGTThrowException("NGT::Graph::Search: Not supported object type."); break;
+#ifdef NGT_PQ4
+        case NGT::ObjectSpace::Qint4:
+          switch (dtype) {
+          case NGT::ObjectSpace::DistanceTypeL2: return l2Qint4ForLargeDataset;
+          case NGT::ObjectSpace::DistanceTypeCosine: return cosineSimilarityQint4ForLargeDataset;
+          case NGT::ObjectSpace::DistanceTypeInnerProduct: return innerProductQint4ForLargeDataset;
+          case NGT::ObjectSpace::DistanceTypeNormalizedCosine: return normalizedCosineSimilarityQint4ForLargeDataset;
+          default: return l2Qint4;
+          }
+          break;
+#endif
+        default:
+	  {
+	    std::stringstream msg;
+	    msg << "NGT::Graph::Search: Not supported object type. " << otype;
+	    NGTThrowException(msg);
+	    break;
+	  }
         }
         return l1Uint8ForLargeDataset;
       }
@@ -456,6 +500,16 @@ class NeighborhoodGraph {
                                    ObjectDistances &seeds);
     static void normalizedCosineSimilarityQsint8(NeighborhoodGraph &graph, NGT::SearchContainer &sc,
                                                  ObjectDistances &seeds);
+#ifdef NGT_PQ4
+    static void l2Qint4(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+    static void cosineSimilarityQint4(NeighborhoodGraph &graph, NGT::SearchContainer &sc,
+                                      ObjectDistances &seeds);
+    static void innerProductQint4(NeighborhoodGraph &graph, NGT::SearchContainer &sc,
+                                  ObjectDistances &seeds);
+    static void normalizedCosineSimilarityQint4(NeighborhoodGraph &graph, NGT::SearchContainer &sc,
+                                                ObjectDistances &seeds);
+#endif
+
     static void l1Uint8ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc,
                                        ObjectDistances &seeds);
     static void l2Uint8ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc,
@@ -515,6 +569,15 @@ class NeighborhoodGraph {
     static void normalizedCosineSimilarityQsint8ForLargeDataset(NeighborhoodGraph &graph,
                                                                 NGT::SearchContainer &sc,
                                                                 ObjectDistances &seeds);
+#ifdef NGT_PQ4
+    static void l2Qint4ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+    static void cosineSimilarityQint4ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc,
+                                                     ObjectDistances &seeds);
+    static void innerProductQint4ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc,
+                                                 ObjectDistances &seeds);
+    static void normalizedCosineSimilarityQint4ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc,
+                                                               ObjectDistances &seeds);
+#endif
   };
 #endif
 

@@ -67,6 +67,12 @@
  #define	NGT_QBG_DISABLED
 #endif
 
+#ifdef  NGT_QBG_DISABLED
+ #undef         NGT_PQ4
+#else
+ #define        NGT_PQ4
+#endif
+
 #define NGT_REFINEMENT
 
 

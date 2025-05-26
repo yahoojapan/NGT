@@ -321,7 +321,6 @@ void NGT::Index::appendFromRefinementObjectFile() {
       }
     }
   }
-
   if (getObjectSpace().isQintObjectType() && prop.clippingRate >= 0.0) {
     std::priority_queue<float> min;
     std::priority_queue<float, vector<float>, std::greater<float>> max;
@@ -366,7 +365,6 @@ void NGT::Index::appendFromRefinementObjectFile() {
       }
     }
   }
-
   {
 
     for (size_t idx = 1; idx < rrepo.size(); idx++) {
@@ -1155,6 +1153,11 @@ void NGT::GraphIndex::constructObjectSpace(NGT::Property &prop) {
   case NGT::ObjectSpace::ObjectType::Qsuint8:
     objectSpace = new ObjectSpaceRepository<qsint8, float>(dimension, typeid(qsint8), prop.distanceType);
     break;
+#ifdef NGT_PQ4
+  case NGT::ObjectSpace::ObjectType::Qint4:
+    objectSpace = new ObjectSpaceRepository<qint4, float>(dimension, typeid(qint4), prop.distanceType);
+    break;
+#endif
   default:
     stringstream msg;
     msg << "Invalid Object Type in the property. " << prop.objectType;
@@ -1164,7 +1167,7 @@ void NGT::GraphIndex::constructObjectSpace(NGT::Property &prop) {
 #ifdef NGT_REFINEMENT
   auto dtype = prop.distanceType;
   dtype      = dtype == ObjectSpace::DistanceTypeInnerProduct ? ObjectSpace::DistanceTypeDotProduct
-                                                         : prop.distanceType;
+                                                              : prop.distanceType;
   switch (prop.refinementObjectType) {
   case NGT::ObjectSpace::ObjectType::Float:
     refinementObjectSpace = new ObjectSpaceRepository<float, double>(dimension, typeid(float), dtype);
@@ -1199,6 +1202,11 @@ void NGT::GraphIndex::loadIndex(const string &ifile, bool readOnly, NGT::Index::
   if ((openType & NGT::Index::OpenTypeObjectDisabled) == 0) {
     objectSpace->deserialize(ifile + "/obj");
   }
+#ifdef NGT_PQ4
+  if (objectSpace != 0) {
+    objectSpace->openQuantizer(ifile);
+  }
+#endif
 #ifdef NGT_REFINEMENT
   try {
     refinementObjectSpace->deserialize(ifile + "/robj");

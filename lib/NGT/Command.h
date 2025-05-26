@@ -103,7 +103,6 @@ class Command {
 #endif
 #ifdef RESULT_DEFINED_RANGE
       expandedSizeByEpsilon = args.getBool("N");
-      std::cerr << "expandedSizeByEpsilon=" << (expandedSizeByEpsilon ? "True" : "False") << std::endl;
 #endif
     }
     char openMode;
@@ -156,6 +155,7 @@ class Command {
   void exportGraph(Args &args);
   void exportObjects(Args &args);
   void rebuild(Args &args);
+  void preprocessForPQ(Args &args);
 
   void info(Args &args);
   void setDebugLevel(int level) { debugLevel = level; }

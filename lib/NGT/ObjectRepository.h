@@ -268,9 +268,17 @@ class ObjectRepository : public Repository<Object> {
         obj[i] = static_cast<bfloat16>(o[i]);
       }
 #endif
+#ifdef NGT_PQ4
+    } else if (type == typeid(qint4)) {
+      qint4 *obj = static_cast<qint4 *>(object);
+      for (size_t i = 0; i < size; i++) {
+        obj[i] = static_cast<qint4>(o[i]);
+      }
+#endif
     } else {
-      std::cerr << "ObjectSpace::allocateObject: Fatal error: unsupported type!" << std::endl;
-      abort();
+      std::stringstream msg;
+      msg << "ObjectSpace::setObject: Fatal error: unsupported type! " << type.name();
+      NGTThrowException(msg);
     }
     return;
   }

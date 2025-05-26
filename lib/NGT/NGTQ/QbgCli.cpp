@@ -26,7 +26,7 @@ typedef NGTQ::Quantizer::ObjectList QBGObjectList;
 
 class QbgCliBuildParameters : public QBG::BuildParameters {
  public:
-  QbgCliBuildParameters(NGT::Args &a) : args(a) { args.parse("Zv"); }
+  QbgCliBuildParameters(NGT::Args &a) : args(a) { args.parse("ZUv"); }
 
   void getBuildParameters() {
     getHierarchicalClustringParameters();
@@ -381,6 +381,7 @@ class QbgCliBuildParameters : public QBG::BuildParameters {
     optimization.timelimit         = args.getf("L", 24 * 1);
     optimization.timelimit *= 60.0 * 60.0;
     optimization.showClusterInfo = args.getBool("Z");
+    optimization.unifiedPQ       = args.getBool("U");
     optimization.verbose         = args.getBool("v");
 
 #ifdef NGTQG_NO_ROTATION
@@ -701,7 +702,8 @@ void QBG::CLI::appendQG(NGT::Args &args) {
     msg << usage << endl;
     NGTThrowException(msg);
   }
-  QBG::Index::appendFromObjectRepository(indexPath, indexPath + "/qg", false);
+  QBG::Index::appendFromObjectRepository(indexPath, indexPath + "/" + 
+                                         NGTQG::Index::getQGDirectoryName(), false);
 }
 
 
@@ -1043,7 +1045,7 @@ void QBG::CLI::search(NGT::Args &args) {
             cout << queryCount << "\t";
           } else {
             cout << "Query No." << queryCount << endl;
-            cout << "Rank\tIN-ID\tID\tDistance" << endl;
+            cout << "Rank\tID\tDistance" << endl;
           }
 
           if (outputMode == 't' || outputMode == 'T') {
@@ -1283,8 +1285,10 @@ void QBG::CLI::expandBlob(NGT::Args &args) {
   NGT::SearchContainer ngtSearchContainer;
   ngtSearchContainer.setSize(50);
   QBG::SearchContainer qbgSearchContainer;
-  qbgSearchContainer.setSize(args.getl("n", 20));
+  qbgSearchContainer.setSize(args.getl("n", 10));
   qbgSearchContainer.setBlobEpsilon(args.getl("b", 0.1));
+  qbgSearchContainer.setNumOfProbes(args.getl("P", 10));
+  qbgSearchContainer.setRefinementExpansion(args.getf("p", 3.0));
   float rate = args.getf("r", -1.0);
 
   QBG::Index::expandBlob(indexPath, clusterCentroidsPath, ngtSearchContainer, qbgSearchContainer, rate,
@@ -1606,6 +1610,29 @@ void QBG::CLI::rebuild(NGT::Args &args) {
     std::cerr << "  ph2 vmsize=" << NGT::Common::getProcessVmSizeStr() << std::endl;
     std::cerr << "  ph2 peak vmsize=" << NGT::Common::getProcessVmPeakStr() << std::endl;
   }
+}
+
+void
+QBG::CLI::preprocessForNGT(NGT::Args &args)
+{
+  const std::string usage = "Usage: qbg prep index object-list-file";
+  args.parse("v");
+  std::string indexPath;
+  try {
+    indexPath = args.get("#1");
+  } catch (...) {
+    std::stringstream msg;
+    msg << "No index is specified." << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
+  }
+  std::string objectPath;
+  try {
+    objectPath = args.get("#2");
+  } catch (...) {
+  }
+  bool verbose = args.getBool("v");
+  QBG::Index::preprocessingForNGT(indexPath, objectPath, verbose);
 }
 
 

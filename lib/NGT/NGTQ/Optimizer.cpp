@@ -54,6 +54,7 @@ void QBG::Optimizer::setParameters(QBG::OptimizationParameters &param) {
   globalType                       = param.globalType;
   randomizedObjectExtraction       = param.randomizedObjectExtraction;
   showClusterInfo                  = param.showClusterInfo;
+  unifiedPQ                        = param.unifiedPQ;
   verbose = param.verbose;
 #endif
 }
@@ -481,7 +482,11 @@ void QBG::Optimizer::optimize(vector<vector<float>> &vectors, vector<vector<floa
       partialVectors.resize(vsize);
     }
 
-    optimize(partialVectors, reposition, rs, localClustersSet, errors);
+    if (unifiedPQ) {
+      optimizeForUnifiedPQ(partialVectors, reposition, rs, localClustersSet, errors);
+    } else {
+      optimize(partialVectors, reposition, rs, localClustersSet, errors);
+    }
     if (rs.size() > 1) {
       numberOfMatrices = static_cast<float>(numberOfMatrices) * (1.0 - reject);
       numberOfMatrices = numberOfMatrices == 0 ? 1 : numberOfMatrices;

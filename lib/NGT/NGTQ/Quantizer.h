@@ -272,7 +272,6 @@ template <typename T> class QuantizationCodebook : public std::vector<T> {
     if (PARENT::size() == 0) {
       return;
     }
-    std::cerr << "QuantizationCodebook::buildIndex" << std::endl;
     if (index != 0) {
       std::cerr << "Quantization codebook: something wrong?" << std::endl;
       delete index;
@@ -452,6 +451,7 @@ template <typename T> class BaseObject {
     objectID   = oid;
     subspaceID = sid;
   }
+  void resize(size_t s) { object.resize(s); }
   uint32_t objectID;
   uint32_t subspaceID;
   std::vector<T> object;
@@ -1431,7 +1431,11 @@ class QuantizedObjectDistance {
 #endif
   virtual double operator()(NGT::Object &object, size_t objectID, void *localID,
                             DistanceLookupTable &distanceLUT) = 0;
-
+#ifdef NGT_PQ4
+  virtual float operator()(void *f, size_t size, DistanceLookupTableUint8 &distanceLUT, float *query) {
+    NGTThrowException("Should define this function in the derived class.");
+  };
+#endif
   template <typename T>
   inline double getAngleDistanceUint8(NGT::Object &object, size_t objectID, T localID[]) {
     assert(globalCodebookIndex != 0);
@@ -2017,6 +2021,7 @@ class QuantizedObjectDistance {
     assert(objectID < quantizationCodebook->size());
     createFloatL2DistanceLookup(objectPtr, sizeOfObject, quantizationCodebook->data(objectID), distanceLUT);
 #endif
+
   }
 
   void set(NGT::Index *gcb, NGT::Index lcb[], QuantizationCodebook<float> *qcodebook, size_t dn, size_t lcn,
@@ -2756,6 +2761,24 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
     return sqrt(distance);
   }
 
+#ifdef NGT_PQ4
+    inline float operator()(void *o, size_t size, DistanceLookupTableUint8 &distanceLUT, float *query) {
+    auto *obj = static_cast<NGT::qint4*>(o);
+    auto *lut = distanceLUT.localDistanceLookup;
+    float distance = 0.0;
+    for (size_t li = 0; li < localDivisionNo; li++) {
+      if ((li & 0x1) == 0) {
+        distance += static_cast<float>(lut[obj[li >> 1].lower()]) * distanceLUT.scales[li];
+      } else {
+        distance += static_cast<float>(lut[obj[li >> 1].upper()]) * distanceLUT.scales[li];
+      }
+      lut += localCodebookCentroidNo - 1;
+    }
+    distance = sqrt(distance + distanceLUT.totalOffset);
+    return distance;
+  }
+#endif
+
   uint8_t *generateRearrangedObjects(NGTQ::InvertedIndexEntry<uint16_t> &invertedIndexObjects) {
     if (invertedIndexObjects.numOfSubvectors != localDivisionNo) {
       std::stringstream msg;
@@ -3369,6 +3392,7 @@ class GenerateResidualObjectFloat : public GenerateResidualObject {
     auto *vector = static_cast<float *>(object.getPointer());
 #endif
   for (size_t d = 0; d < dimension; d++) {
+    quantizationCodebook->at(centroidID, d);
 #ifdef NGTQG_ZERO_GLOBAL
     subspaceObject[d] = vector[d];
 #else
@@ -3787,7 +3811,6 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
       std::string streamName(rootDirectory + "/" + getRotationFile());
       ifstream ifs(streamName);
       if (ifs) {
-        std::cerr << "loading the rotation..." << std::endl;
         rotation.deserialize(ifs);
       }
     }
@@ -5000,7 +5023,7 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
       lp.distanceType = NGT::Index::Property::DistanceType::DistanceTypeAngle;
       break;
     case DistanceType::DistanceTypeNormalizedCosine:
-      gp.distanceType = NGT::Index::Property::DistanceType::DistanceTypeNormalizedCosine;
+      gp.distanceType = NGT::Index::Property::DistanceType::DistanceTypeL2;
       lp.distanceType = NGT::Index::Property::DistanceType::DistanceTypeL2;
       break;
     case DistanceType::DistanceTypeCosine:
@@ -5008,7 +5031,7 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
       lp.distanceType = NGT::Index::Property::DistanceType::DistanceTypeL2;
       break;
     case DistanceType::DistanceTypeNormalizedL2:
-      gp.distanceType = NGT::Index::Property::DistanceType::DistanceTypeNormalizedL2;
+      gp.distanceType = NGT::Index::Property::DistanceType::DistanceTypeL2;
       lp.distanceType = NGT::Index::Property::DistanceType::DistanceTypeL2;
       break;
 #ifdef NGTQ_QBG
@@ -5048,7 +5071,7 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
     if (property.localDivisionNo != 1 && property.dimension % property.localDivisionNo != 0) {
       stringstream msg;
       msg << "NGTQ::Quantizer::create: The combination of dimension and localDivisionNo is invalid. "
-          << "the localDivisionNo must be a divisor of the dimension. " << property.dimension << ":"
+          << "The localDivisionNo must divide the dimension evenly. " << property.dimension << ":"
           << property.localDivisionNo;
       NGTThrowException(msg);
     }

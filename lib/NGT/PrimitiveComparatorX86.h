@@ -441,6 +441,9 @@ class PrimitiveComparator {
     NGTThrowException("Not supported.");
     return 0.0;
   }
+#ifdef NGT_PQ4
+  static double compareL2(const qint4 *a, const qint4 *b, size_t size);
+#endif
 
   template <typename OBJECT_TYPE>
   inline static double compareNormalizedL2(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
@@ -552,6 +555,11 @@ class PrimitiveComparator {
   inline static double compareL1(const qsint8 *a, const qsint8 *b, size_t size) {
     return compareL1(reinterpret_cast<const int8_t *>(a), reinterpret_cast<const int8_t *>(b), size);
   }
+#ifdef NGT_PQ4
+  inline static double compareL1(const qint4 *a, const qint4 *b, size_t size) {
+    NGTThrowException("Not supported.");
+  }
+#endif
 
   template <typename OBJECT_TYPE>
   inline static double compareHammingDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
@@ -662,6 +670,11 @@ class PrimitiveComparator {
   inline static double compareSparseJaccardDistance(const qsint8 *a, const qsint8 *b, size_t size) {
     NGTThrowException("Not supported.");
   }
+#ifdef NGT_PQ4
+  inline static double compareSparseJaccardDistance(const qint4 *a, const qint4 *b, size_t size) {
+    NGTThrowException("Not supported.");
+  }
+#endif
   inline static double compareSparseJaccardDistance(const float *a, const float *b, size_t size) {
     size_t loca        = 0;
     size_t locb        = 0;
@@ -914,6 +927,9 @@ class PrimitiveComparator {
   inline static double compareDotProduct(const qsint8 *a, const quint8 *b, size_t size) {
     return compareDotProduct(reinterpret_cast<const int8_t *>(a), reinterpret_cast<const uint8_t *>(b), size);
   }
+#ifdef NGT_PQ4
+  static double compareDotProduct(const qint4 *a, const qint4 *b, size_t size);
+#endif
   inline static double compareCosine(const float *a, const float *b, size_t size) {
 
     const float *last = a + size;
@@ -1084,6 +1100,12 @@ class PrimitiveComparator {
     return compareCosine(reinterpret_cast<const uint8_t *>(a), reinterpret_cast<const uint8_t *>(b), size);
   }
 
+#ifdef NGT_PQ4
+  inline static double compareCosine(const qint4 *a, const qint4 *b, size_t size) {
+    NGTThrowException("Not supported.");
+  }
+#endif
+
   inline static double compareNormalizedCosineSimilarity(const float *a, const float *b, size_t size) {
     auto v = 1.0 - compareDotProduct(a, b, size);
     return v < 0.0 ? -v : v;
@@ -1112,6 +1134,13 @@ class PrimitiveComparator {
     auto v    = max - compareDotProduct(a, b, size);
     return v;
   }
+#ifdef NGT_PQ4
+  inline static double compareNormalizedCosineSimilarity(const qint4 *a, const qint4 *b, size_t size) {
+    auto v = 1.0 - compareDotProduct(a, b, size);
+    v = v < 0.0 ? 0 : v;
+    return v;
+  }
+#endif
 
   template <typename OBJECT_TYPE>
   inline static double compareAngleDistance(const OBJECT_TYPE *a, const OBJECT_TYPE *b, size_t size) {
@@ -1169,6 +1198,12 @@ class PrimitiveComparator {
     return v < 0.0 ? -v : v;
   }
 
+#ifdef NGT_PQ4
+  static double compareCosineSimilarity(const qint4 *a, const qint4 *b, size_t size) {
+    NGTThrowException("Cosine similarity is not supported.");
+  }
+#endif
+
   class L1Uint8;
   class L2Uint8;
   class HammingUint8;
@@ -1206,6 +1241,12 @@ class PrimitiveComparator {
   class NormalizedAngleBfloat16;
   class PoincareBfloat16;
   class LorentzBfloat16;
+#endif
+#ifdef NGT_PQ4
+  class L2Qint4;
+  class CosineSimilarityQint4;
+  class NormalizedCosineSimilarityQint4;
+  class InnerProductQint4;
 #endif
   class SparseJaccardQsint8;
   class L2Qsint8;

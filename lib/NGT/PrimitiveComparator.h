@@ -279,6 +279,36 @@ class PrimitiveComparator::LorentzBfloat16 {
 
 
 
+#ifdef NGT_PQ4
+class PrimitiveComparator::L2Qint4 {
+ public:
+  inline static double compare(const void *a, const void *b, size_t size) {
+    return PrimitiveComparator::compareL2((const qint4 *)a, (const qint4 *)b, size);
+  }
+};
+
+class PrimitiveComparator::CosineSimilarityQint4 {
+ public:
+  inline static double compare(const void *a, const void *b, size_t size) {
+    return PrimitiveComparator::compareCosineSimilarity((const qint4 *)a, (const qint4 *)b, size);
+  }
+};
+
+class PrimitiveComparator::NormalizedCosineSimilarityQint4 {
+ public:
+  inline static double compare(const void *a, const void *b, size_t size) {
+    return PrimitiveComparator::compareNormalizedCosineSimilarity((const qint4 *)a, (const qint4 *)b, size);
+  }
+};
+
+class PrimitiveComparator::InnerProductQint4 {
+ public:
+  inline static double compare(const void *a, const void *b, size_t size) {
+    NGTThrowException("Not supported.");
+  }
+};
+#endif
+
 class PrimitiveComparator::SparseJaccardQsint8 {
  public:
   inline static double compare(const void *a, const void *b, size_t size) {

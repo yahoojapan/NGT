@@ -104,6 +104,8 @@ int main(int argc, char **argv) {
       ngt.exportObjects(args);
     } else if (command == "rebuild") {
       ngt.rebuild(args);
+    } else if (command == "prep-pq") {
+      ngt.preprocessForPQ(args);
 #ifndef NGT_SHARED_MEMORY_ALLOCATOR
     } else if (command == "extract-query") {
       NGT::Optimizer::extractQueries(args);

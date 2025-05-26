@@ -205,6 +205,26 @@ void NeighborhoodGraph::Search::normalizedCosineSimilarityQsint8(NeighborhoodGra
                                                                                                        seeds);
 }
 ////
+#ifdef NGT_PQ4
+void NeighborhoodGraph::Search::l2Qint4(NeighborhoodGraph &graph, NGT::SearchContainer &sc,
+                                        ObjectDistances &seeds) {
+  graph.searchReadOnlyGraph<PrimitiveComparator::L2Qint4, DistanceCheckedSet>(sc, seeds);
+}
+void NeighborhoodGraph::Search::cosineSimilarityQint4(NeighborhoodGraph &graph, NGT::SearchContainer &sc,
+                                                      ObjectDistances &seeds) {
+  graph.searchReadOnlyGraph<PrimitiveComparator::CosineSimilarityQint4, DistanceCheckedSet>(sc, seeds);
+}
+void NeighborhoodGraph::Search::innerProductQint4(NeighborhoodGraph &graph, NGT::SearchContainer &sc,
+                                                  ObjectDistances &seeds) {
+  graph.searchReadOnlyGraph<PrimitiveComparator::InnerProductQint4, DistanceCheckedSet>(sc, seeds);
+}
+void NeighborhoodGraph::Search::normalizedCosineSimilarityQint4(NeighborhoodGraph &graph,
+                                                                 NGT::SearchContainer &sc,
+                                                                 ObjectDistances &seeds) {
+  graph.searchReadOnlyGraph<PrimitiveComparator::NormalizedCosineSimilarityQint4, DistanceCheckedSet>(sc,
+                                                                                                      seeds);
+}
+#endif
 
 void NeighborhoodGraph::Search::normalizedCosineSimilarityFloatForLargeDataset(NeighborhoodGraph &graph,
                                                                                NGT::SearchContainer &sc,
@@ -372,6 +392,26 @@ void NeighborhoodGraph::Search::normalizedCosineSimilarityQsint8ForLargeDataset(
   graph.searchReadOnlyGraph<PrimitiveComparator::NormalizedCosineSimilarityQsint8,
                             DistanceCheckedSetForLargeDataset>(sc, seeds);
 }
+#ifdef NGT_PQ4
+void NeighborhoodGraph::Search::l2Qint4ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc,
+                                                      ObjectDistances &seeds) {
+  graph.searchReadOnlyGraph<PrimitiveComparator::L2Qint4, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+void NeighborhoodGraph::Search::cosineSimilarityQint4ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc,
+                                                                     ObjectDistances &seeds) {
+  graph.searchReadOnlyGraph<PrimitiveComparator::CosineSimilarityQint4, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+void NeighborhoodGraph::Search::innerProductQint4ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc,
+                                                                 ObjectDistances &seeds) {
+  graph.searchReadOnlyGraph<PrimitiveComparator::InnerProductQint4, DistanceCheckedSetForLargeDataset>(sc, seeds);
+}
+void NeighborhoodGraph::Search::normalizedCosineSimilarityQint4ForLargeDataset(NeighborhoodGraph &graph,
+                                                                               NGT::SearchContainer &sc,
+                                                                               ObjectDistances &seeds) {
+  graph.searchReadOnlyGraph<PrimitiveComparator::NormalizedCosineSimilarityQint4, DistanceCheckedSetForLargeDataset>(sc,
+                                                                                                      seeds);
+}
+#endif
 #endif
 
 void NeighborhoodGraph::setupDistances(NGT::SearchContainer &sc, ObjectDistances &seeds) {
@@ -475,7 +515,6 @@ void NeighborhoodGraph::setupDistances(NGT::SearchContainer &sc, ObjectDistances
     seeds[i].distance = comparator(&sc.object[0], &(*objects[seeds[i].id])[0], dimension);
 #endif
   }
-
 #ifdef NGT_DISTANCE_COMPUTATION_COUNT
   sc.visitCount += seeds.size();
   sc.distanceComputationCount += seeds.size();
@@ -668,7 +707,6 @@ void NeighborhoodGraph::searchReadOnlyGraph(NGT::SearchContainer &sc, ObjectDist
 #else                       // NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
 template <typename COMPARATOR, typename CHECK_LIST>
 void NeighborhoodGraph::searchReadOnlyGraph(NGT::SearchContainer &sc, ObjectDistances &seeds) {
-
   if (sc.explorationCoefficient == 0.0) {
     sc.explorationCoefficient = NGT_EXPLORATION_COEFFICIENT;
   }
@@ -967,7 +1005,6 @@ void NeighborhoodGraph::search(NGT::SearchContainer &sc, ObjectDistances &seeds)
 #endif
       }
     }
-
   }
   if (sc.resultIsAvailable()) {
     ObjectDistances &qresults = sc.getResult();

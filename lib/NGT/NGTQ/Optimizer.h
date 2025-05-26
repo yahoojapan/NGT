@@ -51,15 +51,22 @@ class Optimizer {
 
   void initialize();
 
-  static void extractSubvector(vector<vector<float>> &vectors, vector<vector<float>> &subvectors,
+  static void extractSubvector(vector<vector<float>> &vectors,
+                               vector<vector<float>> &subvectors,
                                size_t start, size_t size) {
-    size_t vsize = vectors.size();
     subvectors.clear();
-    subvectors.resize(vsize);
-    for (size_t vidx = 0; vidx < vsize; vidx++) {
+    extractAndAppendSubvector(vectors, subvectors, start, size);
+  }
+
+  static void extractAndAppendSubvector(vector<vector<float>> &vectors,
+                                        vector<vector<float>> &subvectors,
+                                        size_t start, size_t size) {
+    size_t origSize = subvectors.size();
+    subvectors.resize(origSize + vectors.size());
+    for (size_t vidx = 0; vidx < vectors.size(); vidx++) {
       subvectors[vidx].reserve(size);
       for (size_t i = 0; i < size; i++) {
-        subvectors[vidx].push_back(vectors[vidx][start + i]);
+        subvectors[origSize + vidx].emplace_back(vectors[vidx][start + i]);
       }
     }
   }
@@ -73,7 +80,7 @@ class Optimizer {
     size_t subvsize = subvectors[0].size();
     for (size_t vidx = 0; vidx < vsize; vidx++) {
       for (size_t i = 0; i < subvsize; i++) {
-        vectors[vidx].push_back(subvectors[vidx][i]);
+        vectors[vidx].emplace_back(subvectors[vidx][i]);
       }
     }
   }
@@ -296,9 +303,123 @@ class Optimizer {
     }
   }
 
+  static void optimizeRotationForUnifiedPQ(size_t iteration, vector<vector<float>> &vectors, Matrix<float> &xt,
+                                          Matrix<float> &R, Matrix<float> &minR,
+                                          vector<NGT::Clustering::Cluster> &minLocalClusters,
+                                          NGT::Clustering::ClusteringType clusteringType,
+                                          NGT::Clustering::InitializationMode initMode, size_t numberOfClusters,
+                                          size_t numberOfSubvectors, size_t subvectorSize, size_t clusterIteration,
+                                          bool clusterSizeConstraint, float clusterSizeConstraintCoefficient,
+                                          size_t convergenceLimitTimes, double &minDistortion,
+                                          NGT::Timer &timelimitTimer, float timelimit, bool rotation) {
+    if (numberOfClusters <= 1) {
+      std::stringstream msg;
+      msg << "Optimizer::optimize: # of clusters is zero or one. " << numberOfClusters;
+      NGTThrowException(msg);
+    }
+    minDistortion = DBL_MAX;
+    int minIt     = 0;
+    for (size_t it = 0; it < iteration; it++) {
+      vector<vector<float>> xp = vectors;
+      Matrix<float>::mulSquare(xp, R);
+      float distance = 0.0;
+#ifdef NGT_CLUSTERING
+      vector<NGT::Clustering::Cluster> clusters;
+#else
+      vector<Cluster> clusters;
+#endif
+#define ERROR_CALCULATION
+#ifdef ERROR_CALCULATION
+      float subvectorDistances;
+#endif
+      vector<vector<float>> subVectors;
+      for (size_t m = 0; m < numberOfSubvectors; m++) {
+        extractAndAppendSubvector(xp, subVectors, m * subvectorSize, subvectorSize);
+      }
+      /////////////
+#ifdef NGT_CLUSTERING
+      NGT::Clustering clustering(initMode, clusteringType, clusterIteration);
+      clustering.setClusterSizeConstraintCoefficient(clusterSizeConstraintCoefficient);
+      clustering.clusterSizeConstraint = clusterSizeConstraint;
+      clustering.kmeans(subVectors, numberOfClusters, clusters);
+#else
+      size_t reassign;
+      if (clusteringType == 'k') {
+        reassign =
+          kmeansClustering(initMode, subVectors, numberOfClusters, clusters, clusterSizeConstraint, 0);
+      } else {
+        reassign = kmeansClusteringWithNGT(initMode, subVectors, numberOfClusters, clusters,
+                                           clusterSizeConstraint, 0);
+      }
+#endif
+      vector<vector<float>> subQuantizedVectors;
+      extractQuantizedVector(subQuantizedVectors, clusters);
+      if (subQuantizedVectors.size() != (vectors.size() * numberOfSubvectors)) {
+        std::stringstream msg;
+        msg << "# of the sub vectors is invalid. " << subQuantizedVectors.size() << ":" 
+            << (vectors.size() * numberOfSubvectors);
+        NGTThrowException(msg);
+      }
+      if (subQuantizedVectors[0].size() != subvectorSize) {
+        std::stringstream msg;
+        msg << "The dimensionality of the sub vector is invalid. " << subQuantizedVectors[0].size() 
+            << ":" << subvectorSize;
+        NGTThrowException(msg);
+      }
+      // 入力部分ベクトルと量子化部分ベクトルを比較して量子化誤差の計算
+#ifdef ERROR_CALCULATION
+      double d              = squareDistance(subQuantizedVectors, subVectors);
+      subvectorDistances = d;
+#endif
+      ////////////////
+      distance = 0.0;
+#ifdef ERROR_CALCULATION
+      for (size_t m = 0; m < numberOfSubvectors; m++) {
+        distance += subvectorDistances;
+      }
+#endif
+      vector<vector<float>> quantizedVectors;
+      quantizedVectors.resize(subQuantizedVectors.size());
+      for (size_t i = 0; i < quantizedVectors.size(); i++) {
+        quantizedVectors[i].reserve(xp[0].size());
+      }
+      for (size_t m = 0; m < numberOfSubvectors; m++) {
+        catSubvector(quantizedVectors, subQuantizedVectors);
+      }
+      distance = sqrt(distance / numberOfSubvectors);
+      if (minDistortion > distance) {
+        minDistortion = distance;
+        minR          = R;
+        minIt         = it;
+        minLocalClusters = clusters;
+      }
+      if (it + 1 > iteration || it - minIt > convergenceLimitTimes) {
+        break;
+      }
+      timelimitTimer.stop();
+      if (timelimitTimer.time > timelimit) {
+        std::cerr << "Optimizer: Warning. The elapsed time exceeded the limit-time. " << timelimit << ":"
+                  << timelimitTimer.time << std::endl;
+        timelimitTimer.restart();
+        break;
+      }
+      timelimitTimer.restart();
+      if (rotation) {
+        Matrix<float> a(xt);
+        a.mul(quantizedVectors);
+        Matrix<float> u, s, v;
+        Matrix<float>::svd(a, u, s, v);
+        v.transpose();
+        u.mul(v);
+        R = u;
+      }
+    }
+  }
+
   void optimize(vector<vector<float>> &vectors,
                 Matrix<float> &reposition, vector<Matrix<float>> &rs,
-                vector<vector<vector<NGT::Clustering::Cluster>>> &localClusters, vector<double> &errors) {
+                vector<vector<vector<NGT::Clustering::Cluster>>> &localClusters,
+                vector<double> &errors) {
     if (vectors.size() == 0) {
       NGTThrowException("the vector is empty");
     }
@@ -332,6 +453,51 @@ class Optimizer {
                        clusterSizeConstraint, clusterSizeConstraintCoefficient, convergenceLimitTimes,
                        errors[ri], timelimitTimer, timelimit, rotation);
       timer.stop();
+      rs[ri] = optr;
+    }
+  }
+
+  void optimizeForUnifiedPQ(vector<vector<float>> &vectors,
+                           Matrix<float> &reposition, vector<Matrix<float>> &rs,
+                           vector<vector<vector<NGT::Clustering::Cluster>>> &localClusters,
+                           vector<double> &errors) {
+    if (vectors.size() == 0) {
+      NGTThrowException("the vector is empty");
+    }
+    if (!reposition.isEmpty()) {
+      Matrix<float>::mulSquare(vectors, reposition);
+    }
+    Matrix<float> xt(vectors);
+#ifndef NGTQ_BLAS_FOR_ROTATION
+    xt.transpose();
+#endif
+    localClusters.resize(rs.size());
+    errors.resize(rs.size());
+    NGT::Timer timer;
+    for (size_t ri = 0; ri < rs.size(); ri++) {
+      auto imode = initMode;
+      if (imode == NGT::Clustering::InitializationModeBest) {
+        imode = ri % 2 == 0 ? NGT::Clustering::InitializationModeRandom
+                            : NGT::Clustering::InitializationModeKmeansPlusPlus;
+      }
+      timer.start();
+      Matrix<float> optr;
+      localClusters[ri].resize(numberOfSubvectors);
+      optimizeRotationForUnifiedPQ(iteration,
+                                  vectors,
+                                  xt,
+                                  rs[ri],
+                                  optr,
+                                  localClusters[ri][0], clusteringType, imode, numberOfClusters,
+                                  numberOfSubvectors,
+                                  subvectorSize,
+                                  clusterIteration,
+                                  clusterSizeConstraint, clusterSizeConstraintCoefficient, convergenceLimitTimes,
+                                  errors[ri], timelimitTimer, timelimit, rotation);
+      timer.stop();
+      for (size_t i = 1; i < localClusters[ri].size(); i++) {
+        localClusters[ri][i] = localClusters[ri][0];
+      }
       rs[ri] = optr;
     }
   }
@@ -372,5 +538,6 @@ class Optimizer {
   bool verbose;
   bool showClusterInfo;
   float timelimit;
+  bool unifiedPQ;
 };
 } // namespace QBG
