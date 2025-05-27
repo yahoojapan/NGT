@@ -34,6 +34,7 @@ Description
 
 -   *[create](#create)*
 -   *[append](#append)*
+-   *[prep-pq](#prep-pq)*
 -   *[search](#search)*
 -   *[remove](#remove)*
 -   *[prune](#prune-not-recommended)*
@@ -95,6 +96,7 @@ Specify the data object type.
 - __f__: 4 byte floating point number (default)
 - __h__: 2 byte floating point number
 - __q__: 1 byte scalar quantization
+- __pq4__: 4 bit product quantization
 
 **-D** *distance\_function*  
 Specify the distance function as follows.
@@ -136,6 +138,17 @@ Specify the number of dimensions of registration data. Specification is unnecess
 
 **-n** *no\_of\_registration\_data*  
 Specify the number of data items to be registered. If not specified, all data in the specified file will be registered.
+
+### PREP-PQ
+
+Execute preprocessing for the product quantization data type.
+
+      $ ngt prep-pq index
+        
+
+*index*  
+Specify the name of the existing index where the data type is set to product quantization and the objects are appended to the refinement object repository. This command builds a QBG data structure to quantize the objects.
+
 
 ### SEARCH
 

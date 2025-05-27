@@ -32,9 +32,10 @@ CygWin といった POSIXLY_CORRECT が設定されている環境では、コ�
 
 -   *[create](#create)*
 -   *[append](#append)*
+-   *[prep-pq](#prep-pq)*
 -   *[search](#search)*
 -   *[remove](#remove)*
--   *[prune](#prune)*
+-   *[prune](#prune-非推奨)*
 -   *[reconstruct graph](#reconstruct-graph)*
 -   *[rebuild](#rebuild)*
 
@@ -93,6 +94,7 @@ ANNGやBKNNGを指定した場合には登録データ（ノード）からエ�
 - __f__: 4バイト浮動小数点（デフォルト）
 - __h__: 2バイト浮動小数点
 - __q__: 1バイトスカラー量子化
+- __pq4__: 4ビット直積量子化
 
 **-D** *distance\_function*  
 距離関数を指定します。
@@ -133,6 +135,17 @@ ANNGやBKNNGを指定した場合には登録データ（ノード）からエ�
 
 **-n** *no\_of\_registration\_data*  
 登録するデータ数を指定します。指定しない場合には指定されたファイル中のすべてのデータを登録します。
+
+### PREP-PQ
+
+プロダクト量子化（product quantization）データ型の前処理を実行します。
+
+      $ ngt prep-pq index
+
+
+*index*  
+データ型がプロダクト量子化に設定され、オブジェクトが精査オブジェクトリポジトリに追加されている既存のインデックス名を指定してください。
+このコマンドは、オブジェクトを量子化するためのQBGデータ構造を構築します。
 
 ### SEARCH
 

@@ -158,7 +158,7 @@ Specify the number of trials to optimize the subvector quantization.
 
 Search the index using the specified query data.
 
-      $ qbg search [-n number_of_search_objects] [-e search_range_coefficient] [-p result_expansion]
+      $ qbg search [-n number_of_search_objects] [-e search_range_coefficient] [-p result_expansion] [-R refinement_data_type]
           index query_data
         
 
@@ -181,8 +181,12 @@ Specify the magnification coefficient (epsilon) of the search range for the quan
 Specify the number of the explored nodes in the graph. When the number of the explored nodes reached the specified number, the search is terminated. 
 
 **-p** *result_expansion* (default = 0.0)   
-Specify the expansion ratio of the number of approximate inner search objects to the number of search objects. For example, when the ratio is 10 and the number of search objects is 20, the number of the approximate search objects is set to 200 inside the search processing. A larger value brings higher accuracy but slower searching.
+Specify the expansion ratio of the number of approximate inner search objects to the number of search objects. For example, when the ratio is 10 and the number of search objects is 20, the number of approximate search objects is set to 200 inside the search process. After retrieving the approximate search objects, exact distances are calculated, and the objects are ranked to obtain the top results according to the number of search objects. This process is called search refinement. A larger value brings higher accuracy but slower searching. If the -R option is not specified, the objects for refinement are taken from secondary storage, which may slow down the refinement process.
 
+**-R** *refinement_data_type*
+Specify the data type for the search refinement. The objects for refinement are loaded into memory as the specified data type from secondary storage to shorten the refinement time. On the other hand, a large amount of memory may be used.
+- __f__: 4 byte floating point number (default)
+- __h__: 2 byte floating point number
 
 Examples of using the quantized graph
 -------------------------------------

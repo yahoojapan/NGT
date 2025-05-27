@@ -10,6 +10,8 @@ Neighborhood Graph and Tree for Indexing High-dimensional Data
 
 ニュース
 -------
+- 05/26/2025 直積量子化がグラフのデータタイプとして利用可能になりました。 (v2.4.0)
+- 10/29/2024 スカラ量子化がグラフやQBGのデータタイプとして利用可能になりました。(v2.3.0)
 - 2024/04/10 内積が利用可能になりました。(v2.1.0)
 - 2022/08/10 QBG(Quantized Blob Graph)およびQG(NGTQGの改良版)が利用可能となりました。ngtqおよびngtqgは[qbg](https://github.com/yahoojapan/NGT/blob/main/bin/qbg/README.md)で置き換えられました。
 - 2022/02/04 FP16(半精度浮動小数点)が利用可能になりました。(v1.14.0)
