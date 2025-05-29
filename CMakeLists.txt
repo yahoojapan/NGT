@@ -1,8 +1,4 @@
-if(APPLE)
-    cmake_minimum_required(VERSION 3.0)
-else()
-    cmake_minimum_required(VERSION 3.5...3.31)
-endif()
+cmake_minimum_required(VERSION 3.5...3.31)
 
 project(ngt)
 
