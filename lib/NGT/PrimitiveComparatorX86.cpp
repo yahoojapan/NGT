@@ -16,7 +16,7 @@
 
 #include "NGT/defines.h"
 
-#if defined(__x86_64__) && !defined(NGT_AVX_DISABLED) && defined(NGT_PQ4)
+#if defined(__x86_64__) && !defined(NGT_NO_AVX) && defined(NGT_PQ4)
 
 #include "NGT/Common.h"
 #include "NGT/PrimitiveComparator.h"

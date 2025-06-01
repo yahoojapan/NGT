@@ -76,7 +76,7 @@
 #define NGT_REFINEMENT
 
 
-#if defined(NGT_AVX_DISABLED) 
+#if defined(NGT_AVX_DISABLED) || !defined(__AVX__)
 #define NGT_NO_AVX
 #elif defined(NGT_AVX2)
 #undef NGT_AVX512
