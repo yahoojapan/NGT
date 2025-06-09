@@ -167,6 +167,10 @@ QG (Quantized graph-based method)
 - 距離関数：L2、コサイン類似度
 - 対応言語：C++, C, Python
 
+ドキュメント
+-----------
+- [QG チュートリアル](https://techblog.yahoo.co.jp/entry/2023031330416837/)
+
 ユーティリティ
 -------------
 
@@ -195,6 +199,10 @@ QBG (Quantized blob graph-based method)
 - OS：Linux、macOS
 - 距離関数：L2
 - 対応言語：C++, C, Python
+
+ドキュメント
+-----------
+- [QBG チュートリアル](https://medium.com/@masajiro.iwasaki/qbg-in-ngt-an-overview-and-first-steps-d9c33f6168e2)
 
 ユーティリティ
 -------------

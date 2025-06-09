@@ -200,6 +200,11 @@ Key Features
 - Supported operating systems: Linux and macOS
 - Supported distance functions: L2
 
+Documents
+---------
+
+- [QBG tutorial](https://medium.com/@masajiro.iwasaki/qbg-in-ngt-an-overview-and-first-steps-d9c33f6168e2)
+
 Utilities
 ---------
 - Command : [qbg](bin/qbg/README.md)
