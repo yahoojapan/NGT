@@ -671,10 +671,6 @@ class ObjectSpaceRepository : public ObjectSpace, public ObjectRepository {
       case DistanceTypeL2:
         comparator = new ObjectSpaceRepository::ComparatorPq4L2(ObjectSpace::getPaddedDimension(), *this);
         break;
-
-      case DistanceTypeCosine:
-        comparator = new ObjectSpaceRepository::ComparatorPq4CosineSimilarity(ObjectSpace::getPaddedDimension(), *this);
-        break;
       case DistanceTypeNormalizedCosine:
         comparator = new ObjectSpaceRepository::ComparatorPq4NormalizedCosineSimilarity(ObjectSpace::getPaddedDimension(), *this);
         normalization = true;
