@@ -495,16 +495,49 @@ void NGT::Command::search(NGT::Index &index, NGT::Command::SearchParameters &sea
     size_t step = searchParameters.step == 0 ? UINT_MAX : searchParameters.step;
     for (size_t n = 0; n <= step; n++) {
       NGT::SearchQuery sc(object);
-      double epsilon;
+      double epsilon = searchParameters.beginOfEpsilon;
       if (searchParameters.step != 0) {
         epsilon = searchParameters.beginOfEpsilon +
-                  (searchParameters.endOfEpsilon - searchParameters.beginOfEpsilon) * n / step;
+          (searchParameters.endOfEpsilon - searchParameters.beginOfEpsilon) * n / step;
       } else {
+        if (searchParameters.stepOfEpsilon <= 0.0) {
+          std::stringstream msg;
+          msg << "the step of epsilon must be greater than 0.0. " << searchParameters.stepOfEpsilon;
+          NGTThrowException(msg);
+        }
+#ifdef NGT_REFINEMENT
+        if (searchParameters.beginOfRefinementExpansion == searchParameters.endOfRefinementExpansion) {
+          epsilon = searchParameters.beginOfEpsilon + searchParameters.stepOfEpsilon * n;
+          if (epsilon > searchParameters.endOfEpsilon) {
+            break;
+          }
+        }
+#else
         epsilon = searchParameters.beginOfEpsilon + searchParameters.stepOfEpsilon * n;
         if (epsilon > searchParameters.endOfEpsilon) {
           break;
         }
+#endif
       }
+#ifdef NGT_REFINEMENT
+      float refinementExpansion = searchParameters.beginOfRefinementExpansion;
+      if (searchParameters.step != 0) {
+        refinementExpansion = searchParameters.beginOfRefinementExpansion +
+          (searchParameters.endOfRefinementExpansion - searchParameters.beginOfRefinementExpansion) * n / step;
+      } else {
+        if (searchParameters.stepOfRefinementExpansion <= 1.0) {
+          std::stringstream msg;
+          msg << "the step of refinement expansion must be greater than 1.0. " << searchParameters.stepOfRefinementExpansion;
+          NGTThrowException(msg);
+        }
+        if (searchParameters.beginOfEpsilon == searchParameters.endOfEpsilon) {
+          refinementExpansion = searchParameters.beginOfRefinementExpansion + (n == 0 ? 0 : pow(searchParameters.stepOfRefinementExpansion, n));
+          if (refinementExpansion > searchParameters.endOfRefinementExpansion) {
+            break;
+          }
+        }
+      }
+#endif
       NGT::ObjectDistances objects;
       sc.setResults(&objects);
       sc.setSize(searchParameters.size);
@@ -516,7 +549,7 @@ void NGT::Command::search(NGT::Index &index, NGT::Command::SearchParameters &sea
       }
       sc.setEdgeSize(searchParameters.edgeSize);
 #ifdef NGT_REFINEMENT
-      sc.setRefinementExpansion(searchParameters.refinementExpansion);
+      sc.setRefinementExpansion(refinementExpansion);
 #endif
 #ifdef RESULT_DEFINED_RANGE
       sc.setExpandedSizeByEpsilon(searchParameters.expandedSizeByEpsilon);
@@ -589,6 +622,14 @@ void NGT::Command::search(NGT::Index &index, NGT::Command::SearchParameters &sea
         stream << "# Size=" << searchParameters.size << endl;
         stream << "# Radius=" << searchParameters.radius << endl;
         stream << "# Epsilon=" << epsilon << endl;
+#ifdef NGT_REFINEMENT
+        stream << "# Expansion=" << refinementExpansion << endl;
+        if (searchParameters.beginOfRefinementExpansion != searchParameters.endOfRefinementExpansion) {
+          stream << "# Factor=" << refinementExpansion << endl;
+        } else {
+          stream << "# Factor=" << epsilon << endl;
+        }
+#endif
         stream << "# Query Time (msec)=" << timer.time * 1000.0 << endl;
         stream << "# Distance Computation=" << sc.distanceComputationCount << endl;
         stream << "# Visit Count=" << sc.visitCount << endl;

@@ -49,7 +49,7 @@ class Command {
       beginOfEpsilon = endOfEpsilon = stepOfEpsilon = 0.1;
       accuracy                                      = 0.0;
 #ifdef NGT_REFINEMENT
-      refinementExpansion = 0.0;
+      beginOfRefinementExpansion = endOfRefinementExpansion = stepOfRefinementExpansion = 0.0;
 #endif
 #ifdef RESULT_DEFINED_RANGE
       expandedSizeByEpsilon = false;
@@ -79,7 +79,8 @@ class Command {
       radius     = args.getf("r", FLT_MAX);
       trial      = args.getl("t", 1);
       {
-        beginOfEpsilon = endOfEpsilon = stepOfEpsilon = 0.1;
+        beginOfEpsilon = endOfEpsilon = 0.1;
+        stepOfEpsilon = std::numeric_limits<float>::max();
         std::string epsilon                           = args.getString("e", epsilonDefault.c_str());
         std::vector<std::string> tokens;
         NGT::Common::tokenize(epsilon, tokens, ":");
@@ -99,7 +100,30 @@ class Command {
       }
       accuracy = args.getf("a", 0.0);
 #ifdef NGT_REFINEMENT
-      refinementExpansion = args.getf("R", 0.0);
+      {
+        beginOfRefinementExpansion = endOfRefinementExpansion = 0.0;
+        stepOfRefinementExpansion = std::numeric_limits<float>::max();
+        std::string refinement = args.getString("R", "0.0");
+        std::vector<std::string> tokens;
+        NGT::Common::tokenize(refinement, tokens, ":");
+        if (tokens.size() >= 1) {
+          beginOfRefinementExpansion = endOfRefinementExpansion = NGT::Common::strtod(tokens[0]);
+        }
+        if (tokens.size() >= 2) {
+          endOfRefinementExpansion = NGT::Common::strtod(tokens[1]);
+        }
+        if (tokens.size() >= 3) {
+          stepOfRefinementExpansion = NGT::Common::strtod(tokens[2]);
+        }
+        // stepはepsilonと共有
+        if (tokens.size() >= 4 && step == 0) {
+          step = NGT::Common::strtol(tokens[3]);
+        }
+
+        if (beginOfEpsilon != endOfEpsilon && beginOfRefinementExpansion != endOfRefinementExpansion) {
+          NGTThrowException("ngt: Error: Cannot specify both epsilon range and refinementExpansion range simultaneously");
+        }
+      }
 #endif
 #ifdef RESULT_DEFINED_RANGE
       expandedSizeByEpsilon = args.getBool("N");
@@ -120,7 +144,9 @@ class Command {
     size_t step;
     size_t trial;
 #ifdef NGT_REFINEMENT
-    float refinementExpansion;
+    float beginOfRefinementExpansion;
+    float endOfRefinementExpansion;
+    float stepOfRefinementExpansion;
 #endif
 #ifdef RESULT_DEFINED_RANGE
     bool expandedSizeByEpsilon;

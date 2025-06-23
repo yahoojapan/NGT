@@ -136,7 +136,7 @@ Append the specified data to the specified index.
 
 Quantize the objects of the specified index and build a quantized graph into the index.
 
-      $ qbg build [-o number_of_objects_for_quantization] [-E max_number_of_edges] [-M number_of_trials] [-P rotation] index
+      $ qbg build [-o number_of_objects_for_quantization] [-P rotation] [-M number_of_trials] [-B recursive_clustering_parameters] index
 
 *index*  
 Specify the name of the directory for the existing index such as ANNG or ONNG to be quantized. The index only with L2 distance and normalized cosine similarity distance can be quantized. You should build the ANNG or ONNG with normalized cosine similarity in order to use cosine similarity for the quantized graph.
@@ -153,6 +153,10 @@ Specify the transform matrix type for the inserted and query object to optimize 
 
 **-M** *number_of_trials*  
 Specify the number of trials to optimize the subvector quantization.
+
+**-B** *recursive_clustering_parameters*  
+Specify the number of clusters and samples for recursive clustering. The parameters are specified as `-B s₁:c₁,s₂:c₂,s₃:c₃`. Here, sₙ and cₙ represent the number of samples used for k-means and the number of clusters, respectively, for the n-th tier of the hierarchy. If sₙ or cₙ is set to 0, an appropriate value will be assigned automatically.
+
 
 ### SEARCH
 

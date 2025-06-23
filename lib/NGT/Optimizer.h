@@ -503,20 +503,19 @@ class Optimizer {
               } else {
                 if (farthestDistance > 0.0 && distance <= farthestDistance) {
                   relevantCount++;
-                  if (distance < farthestDistance) {
-                  }
                 }
               }
               dataCount++;
               if (rank != dataCount) {
-                std::cerr << "inner error! $rank $dataCount !!" << std::endl;
-                ;
-                abort();
+                std::stringstream msg;
+                msg << "Fatal inner error! " << line << ":" << rank << ":" << dataCount;
+                NGTThrowException(msg);
               }
             }
           } else {
-            std::cerr << "Fatal error! : Cannot find query No. " << queryNo << std::endl;
-            abort();
+            std::stringstream msg;
+            msg << "Fatal error! : Cannot find query No. " << queryNo;
+            NGTThrowException(msg);
           }
         }
       }
@@ -1392,7 +1391,7 @@ class Optimizer {
     }
     bool approximateDistance = false;
     if (args.getChar("m", '-') == 'a') {
-      std::cerr << "Approximate distance" << std::endl;
+      std::cerr << "Evaluate as approximate distances." << std::endl;
       approximateDistance = true;
     }
     char omode = args.getChar("o", '-');
@@ -1424,13 +1423,13 @@ class Optimizer {
       std::cout << "# " << type << "\t# of Queries\tPrecision\t";
     }
     if (omode == 'd') {
-      std::cout << "# of computations\t# of visted nodes" << std::endl;
+      std::cout << "# of computations\t# of visited nodes" << std::endl;
       for (auto it = accuracies.begin(); it != accuracies.end(); ++it) {
         std::cout << (*it).keyValue << "\t" << (*it).totalCount << "\t" << (*it).meanAccuracy << "\t"
                   << (*it).meanDistanceCount << "\t" << (*it).meanVisitCount << std::endl;
       }
     } else {
-      std::cout << "Time(msec)\t# of computations\t# of visted nodes" << std::endl;
+      std::cout << "Time(msec)\t# of computations\t# of visited nodes" << std::endl;
       for (auto it = accuracies.begin(); it != accuracies.end(); ++it) {
         std::cout << (*it).keyValue << "\t" << (*it).totalCount << "\t" << (*it).meanAccuracy << "\t"
                   << (*it).meanTime << "\t" << (*it).meanDistanceCount << "\t" << (*it).meanVisitCount

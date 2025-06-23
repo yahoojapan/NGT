@@ -267,8 +267,9 @@ void NGT::Quantizer::setQuantizedQuery(std::vector<float> &query, NGT::Quantizer
   qQuery.shiftValue = 0.0;
   if (qQuery.shift) {
     for (size_t i = 0; i < query.size(); i++) {
-      qQuery.shiftValue += qQuery.quantizedQuery[i] * 128;
+      qQuery.shiftValue += qQuery.quantizedQuery[i];
     }
+    qQuery.shiftValue *= 128.0;
   }
 }
 

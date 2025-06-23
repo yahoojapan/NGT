@@ -235,6 +235,5 @@ QBG::Index::preprocessingForNGT(std::string &indexPath, std::string &objectPath,
   if (verbose) {
     std::cerr << "qbg: building..." << std::endl;
   }
-  //QBG::Index::build(qbgIndexPath, verbose);
   QBG::Index::buildNGTQ(qbgIndexPath, verbose);
 }

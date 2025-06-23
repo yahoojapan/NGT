@@ -960,8 +960,10 @@ class HierarchicalKmeans {
         }
       }
       if (minidx < 0) {
-        std::cerr << "assign: Fatal error!" << std::endl;
-        abort();
+        std::stringstream msg;
+        msg << "Fatal assignment error(1)! ID=" << id << " cluster size=" << clusters.size()
+            << " object size=" << obj.size();
+        NGTThrowException(msg);
       }
 #pragma omp critical
       {
@@ -990,10 +992,15 @@ class HierarchicalKmeans {
       std::vector<float> obj;
       //#pragma omp critical
 #ifdef MULTIPLE_OBJECT_LISTS
-      objectList.get(omp_get_thread_num(), id, obj, &objectSpace);
+      auto stat = objectList.get(omp_get_thread_num(), id, obj, &objectSpace);
 #else
-      objectList.get(id, obj, &objectSpace);
+      auto stat = objectList.get(id, obj, &objectSpace);
 #endif
+      if (!stat) {
+        std::stringstream msg;
+	msg << "Cannot get the object from the object list file. ID=" << id;
+	NGTThrowException(msg);
+      }
       float min  = std::numeric_limits<float>::max();
       int minidx = -1;
       for (size_t cidx = 0; cidx != clusters.size(); cidx++) {
@@ -1005,8 +1012,10 @@ class HierarchicalKmeans {
         }
       }
       if (minidx < 0) {
-        std::cerr << "assign: Fatal error!" << std::endl;
-        abort();
+        std::stringstream msg;
+        msg << "Fatal assignment error(2)! ID=" << id << " cluster size=" << clusters.size()
+            << " object size=" << obj.size();
+        NGTThrowException(msg);
       }
 #pragma omp critical
       {
