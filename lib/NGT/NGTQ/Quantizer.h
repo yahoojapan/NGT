@@ -583,7 +583,7 @@ template <typename T> class InvertedIndexEntry : public NGT::DynamicLengthVector
     int32_t ssid = subspaceID;
     NGT::Serializer::write(os, ssid);
 #endif
-    size_t total = static_cast<size_t>(PARENT::size()) * PARENT::elementSize;
+    size_t total   = static_cast<size_t>(PARENT::size()) * PARENT::elementSize;
     size_t written = 0;
     while (written < total) {
       size_t s = std::min(static_cast<size_t>(1024) * 1024 * 1024, total - written);
@@ -616,14 +616,14 @@ template <typename T> class InvertedIndexEntry : public NGT::DynamicLengthVector
           << err.what();
       NGTThrowException(msg);
     }
-    numOfSubvectors     = nids;
+    numOfSubvectors = nids;
 #ifdef NGTQ_QBG
-    subspaceID          = ssid;
+    subspaceID = ssid;
 #endif
     PARENT::elementSize = getSizeOfElement();
     PARENT::reserve(sz);
     PARENT::resize(sz);
-    size_t total = static_cast<size_t>(sz) * PARENT::elementSize;
+    size_t total     = static_cast<size_t>(sz) * PARENT::elementSize;
     size_t readBytes = 0;
     while (readBytes < total) {
       size_t s = std::min(static_cast<size_t>(1024) * 1024 * 1024, total - readBytes);
@@ -641,7 +641,7 @@ template <typename T> class InvertedIndexEntry : public NGT::DynamicLengthVector
 #ifdef NGTQ_QBG
     qobj.subspaceID = subspaceID;
 #endif
-    qobj.objectID   = PARENT::at(idx).id;
+    qobj.objectID = PARENT::at(idx).id;
     qobj.object.clear();
     qobj.object.resize(numOfSubvectors);
     for (size_t i = 0; i < numOfSubvectors; i++) {
@@ -730,7 +730,7 @@ template <typename T> class InvertedIndexEntry : public NGT::DynamicLengthVector
 
 class LocalDatam {
  public:
-  LocalDatam(){};
+  LocalDatam() {};
 #ifdef NGTQ_QBG
   LocalDatam(size_t iii, size_t iil, uint32_t ssID = 0) : iiIdx(iii), iiLocalIdx(iil), subspaceID(ssID) {}
 #else
@@ -1021,7 +1021,7 @@ class Property {
 #ifdef NGTQ_DISTANCE_ANGLE
 class LocalDistanceLookup {
  public:
-  LocalDistanceLookup() : a(0.0), b(0.0), sum(0.0){};
+  LocalDistanceLookup() : a(0.0), b(0.0), sum(0.0) {};
   void set(double pa, double pb, double psum) {
     a   = pa;
     b   = pb;
@@ -1420,7 +1420,7 @@ class QuantizedObjectDistance {
                            void *query = 0) = 0;
 #else
   virtual void operator()(void *inv, float *distances, size_t size, DistanceLookupTableUint8 &distanceLUT,
-                          void *query = 0)                               = 0;
+                          void *query = 0) = 0;
 #endif
 #ifdef NGTQBG_MIN
   virtual float operator()(void *inv, float *distances, size_t size, DistanceLookupTableUint8 &distanceLUT,
@@ -1523,8 +1523,8 @@ class QuantizedObjectDistance {
 #else
     unsigned char *gcptr = &gcentroid[0];
 #endif
-    unsigned char *optr  = &((NGT::Object &)object)[0];
-    double distance      = 0.0;
+    unsigned char *optr = &((NGT::Object &)object)[0];
+    double distance     = 0.0;
     for (size_t li = 0; li < localDivisionNo; li++) {
       size_t idx = localCodebookNo == 1 ? 0 : li;
       NGT::PersistentObject &lcentroid =
@@ -1543,7 +1543,7 @@ class QuantizedObjectDistance {
         __m128i x2 = _mm_cvtepu8_epi32(_mm_loadu_si128((__m128i const *)gcptr));
         x1         = _mm_sub_epi32(x1, x2);
         __m128 sub = _mm_sub_ps(_mm_cvtepi32_ps(x1), _mm_loadu_ps(lcptr));
-        sum        = _mm_add_ps(sum, _mm_mul_ps(sub, sub));
+        sum = _mm_add_ps(sum, _mm_mul_ps(sub, sub));
         optr += 4;
         gcptr += 4;
         lcptr += 4;
@@ -1739,8 +1739,8 @@ class QuantizedObjectDistance {
     __m512 flut[localCodebookNo];
     __m512 *flutptr = &flut[0];
 #ifdef NGTQ_TOTAL_SCALE_OFFSET_COMPRESSION
-    __m512 mmin     = _mm512_set1_ps(std::numeric_limits<float>::max());
-    __m512 mmax     = _mm512_set1_ps(-std::numeric_limits<float>::max());
+    __m512 mmin = _mm512_set1_ps(std::numeric_limits<float>::max());
+    __m512 mmax = _mm512_set1_ps(-std::numeric_limits<float>::max());
 #else
     std::pair<float, float> range[localDivisionNo];
     auto *rangePtr = &range[0];
@@ -1749,7 +1749,7 @@ class QuantizedObjectDistance {
     auto *optr    = static_cast<float *>(object);
     auto *optrend = optr + dim;
 #ifndef NGTQG_ZERO_GLOBAL
-    auto *gcptr   = static_cast<float *>(globalCentroid);
+    auto *gcptr = static_cast<float *>(globalCentroid);
 #endif
     while (optr < optrend) {
       auto *optrllast = optr + localDim;
@@ -1773,8 +1773,8 @@ class QuantizedObjectDistance {
         lcptr += 16;
       }
 #ifdef NGTQ_TOTAL_SCALE_OFFSET_COMPRESSION
-      mmin     = _mm512_min_ps(mmin, v);
-      mmax     = _mm512_max_ps(mmax, v);
+      mmin = _mm512_min_ps(mmin, v);
+      mmax = _mm512_max_ps(mmax, v);
 #else
       (*rangePtr).first  = _mm512_reduce_min_ps(v);
       (*rangePtr).second = _mm512_reduce_max_ps(v);
@@ -1831,24 +1831,24 @@ class QuantizedObjectDistance {
     auto *optr      = static_cast<float *>(object);
     auto *optrend   = optr + dim;
 #ifndef NGTQG_ZERO_GLOBAL
-    auto *gcptr     = static_cast<float *>(globalCentroid);
+    auto *gcptr = static_cast<float *>(globalCentroid);
 #endif
     while (optr < optrend) {
       auto *optrllast = optr + localDim;
 #ifdef NGTQG_ZERO_GLOBAL
-      float rsv       = *optr++;
+      float rsv = *optr++;
 #else
       float rsv = *optr++ - *gcptr++;
 #endif
-      __m256 vtmp     = _mm256_sub_ps(_mm256_set1_ps(rsv), _mm256_loadu_ps(lcptr));
-      __m256 vt       = _mm256_mul_ps(vtmp, vtmp);
+      __m256 vtmp = _mm256_sub_ps(_mm256_set1_ps(rsv), _mm256_loadu_ps(lcptr));
+      __m256 vt   = _mm256_mul_ps(vtmp, vtmp);
       lcptr += 8;
       vtmp      = _mm256_sub_ps(_mm256_set1_ps(rsv), _mm256_loadu_ps(lcptr));
       __m256 vb = _mm256_mul_ps(vtmp, vtmp);
       lcptr += 8;
       while (optr < optrllast) {
 #ifdef NGTQG_ZERO_GLOBAL
-        rsv  = *optr++;
+        rsv = *optr++;
 #else
         rsv = *optr++ - *gcptr++;
 #endif
@@ -1922,7 +1922,7 @@ class QuantizedObjectDistance {
     auto *optr    = static_cast<float *>(object);
     auto *optrend = optr + dim;
 #ifndef NGTQG_ZERO_GLOBAL
-    auto *gcptr   = static_cast<float *>(globalCentroid);
+    auto *gcptr = static_cast<float *>(globalCentroid);
 #endif
     while (optr < optrend) {
       auto *optrllast = optr + localDim;
@@ -2130,7 +2130,7 @@ class QuantizedObjectDistance {
 #ifdef NGT_IVI
   Quantizer &quantizer;
 #endif
-};     // namespace NGTQ
+}; // namespace NGTQ
 
 template <typename T> class QuantizedObjectDistanceUint8 : public QuantizedObjectDistance {
  public:
@@ -2186,8 +2186,8 @@ template <typename T> class QuantizedObjectDistanceUint8 : public QuantizedObjec
 #else
     unsigned char *gcptr = &gcentroid[0];
 #endif
-    unsigned char *optr  = &((NGT::Object &)object)[0];
-    double distance      = 0.0;
+    unsigned char *optr = &((NGT::Object &)object)[0];
+    double distance     = 0.0;
     for (size_t li = 0; li < localDivisionNo; li++) {
       if (distanceLUT.isValid(li * localCodebookCentroidNo + localID[li])) {
         distance += distanceLUT.getDistance(li * localCodebookCentroidNo + localID[li]);
@@ -2348,8 +2348,8 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
     uint8_t *localID = static_cast<uint8_t *>(inv);
     float *d         = distances;
 #ifdef NGTQBG_MIN
-    float *lastd     = distances + noOfObjects;
-    float min        = std::numeric_limits<float>::max();
+    float *lastd = distances + noOfObjects;
+    float min    = std::numeric_limits<float>::max();
 #endif
 #if defined(NGTQG_AVX512)
     const __m512i mask512x0F = _mm512_set1_epi16(0x000f);
@@ -2363,7 +2363,7 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
     auto step256             = distanceLUT.step256;
     auto *last               = localID + range256 / NGTQ_SIMD_BLOCK_SIZE * noOfObjects;
     while (localID < last) {
-      uint8_t *lut       = distanceLUT.localDistanceLookup;
+      uint8_t *lut = distanceLUT.localDistanceLookup;
       auto *lastgroup256 = localID + range256;
 #if defined(NGTQG_AVX512)
       __m512i depu16     = _mm512_setzero_si512();
@@ -2389,13 +2389,13 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
         __m256i lookupTable = _mm256_loadu_si256((__m256i const *)lut);
         _mm_prefetch(&localID[0] + 64 * 8, _MM_HINT_T0);
         __m256i packedobj = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const *)&localID[0]));
-        __m256i lo   = _mm256_and_si256(packedobj, mask256x0F);
-        __m256i hi   = _mm256_slli_epi16(_mm256_and_si256(packedobj, mask256xF0), 4);
-        __m256i obj  = _mm256_or_si256(lo, hi);
+        __m256i lo  = _mm256_and_si256(packedobj, mask256x0F);
+        __m256i hi  = _mm256_slli_epi16(_mm256_and_si256(packedobj, mask256xF0), 4);
+        __m256i obj = _mm256_or_si256(lo, hi);
         __m256i vtmp = _mm256_shuffle_epi8(lookupTable, obj);
 
 #if defined(NGTQG_AVX512)
-        depu16       = _mm512_adds_epu16(depu16, _mm512_cvtepu8_epi16(vtmp));
+        depu16 = _mm512_adds_epu16(depu16, _mm512_cvtepu8_epi16(vtmp));
 #else
         depu16l = _mm256_adds_epu16(depu16l, _mm256_cvtepu8_epi16(_mm256_extractf128_si256(vtmp, 0)));
         depu16h = _mm256_adds_epu16(depu16h, _mm256_cvtepu8_epi16(_mm256_extractf128_si256(vtmp, 1)));
@@ -2412,8 +2412,8 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
       distance     = _mm512_mul_ps(distance, scale);
       distance     = _mm512_add_ps(distance, _mm512_set1_ps(distanceLUT.totalOffset));
 #if defined(NGTQG_DOT_PRODUCT)
-      float one    = 1.0;
-      float two    = 2.0;
+      float one = 1.0;
+      float two = 2.0;
       distance =
           _mm512_mul_ps(_mm512_sub_ps(_mm512_broadcastss_ps(*reinterpret_cast<__m128 *>(&one)), distance),
                         _mm512_broadcastss_ps(*reinterpret_cast<__m128 *>(&two)));
@@ -2449,7 +2449,7 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
       distanceh     = _mm256_mul_ps(distanceh, scaleh);
       distanceh     = _mm256_add_ps(distanceh, _mm256_set1_ps(distanceLUT.totalOffset));
 #if defined(NGTQG_DOT_PRODUCT)
-      float one     = 1.0;
+      float one = 1.0;
       float two = 2.0;
       distancel =
           _mm256_mul_ps(_mm256_sub_ps(_mm256_broadcastss_ps(*reinterpret_cast<__m128 *>(&one)), distancel),
@@ -2490,14 +2490,14 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
     uint8_t *localID = static_cast<uint8_t *>(inv);
     float *d         = distances;
 #ifdef NGTQBG_MIN
-    float *lastd     = distances + noOfObjects;
-    float min        = std::numeric_limits<float>::max();
+    float *lastd = distances + noOfObjects;
+    float min    = std::numeric_limits<float>::max();
 #endif
 #if defined(NGTQG_AVX512)
-    __m512i mask512x0F       = _mm512_set1_epi16(0x000f);
-    __m512i mask512xF0       = _mm512_set1_epi16(0x00f0);
-    const size_t range512    = distanceLUT.range512;
-    auto step512             = distanceLUT.step512;
+    __m512i mask512x0F    = _mm512_set1_epi16(0x000f);
+    __m512i mask512xF0    = _mm512_set1_epi16(0x00f0);
+    const size_t range512 = distanceLUT.range512;
+    auto step512          = distanceLUT.step512;
 #endif
     const __m256i mask256x0F = _mm256_set1_epi16(0x000f);
     const __m256i mask256xF0 = _mm256_set1_epi16(0x00f0);
@@ -2505,7 +2505,7 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
     auto step256             = distanceLUT.step256;
     auto *last = localID + range256 / NGTQ_SIMD_BLOCK_SIZE * noOfObjects;
     while (localID < last) {
-      uint8_t *lut       = distanceLUT.localDistanceLookup;
+      uint8_t *lut = distanceLUT.localDistanceLookup;
       float *scales      = distanceLUT.scales;
       auto *lastgroup256 = localID + range256;
       __m512 distance    = _mm512_setzero_ps();
@@ -2521,18 +2521,18 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
         __m512i obj       = _mm512_or_si512(lo, hi);
         __m512i vtmp      = _mm512_shuffle_epi8(lookupTable, obj);
 
-        __m512 d     = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm512_extracti64x2_epi64(vtmp, 0)));
+        __m512 d = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm512_extracti64x2_epi64(vtmp, 0)));
         __m512 scale = _mm512_broadcastss_ps(*reinterpret_cast<__m128 *>(&scales[0]));
         distance     = _mm512_add_ps(distance, _mm512_mul_ps(d, scale));
-        d            = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm512_extracti64x2_epi64(vtmp, 1)));
-        scale        = _mm512_broadcastss_ps(*reinterpret_cast<__m128 *>(&scales[1]));
-        distance     = _mm512_add_ps(distance, _mm512_mul_ps(d, scale));
+        d        = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm512_extracti64x2_epi64(vtmp, 1)));
+        scale    = _mm512_broadcastss_ps(*reinterpret_cast<__m128 *>(&scales[1]));
+        distance = _mm512_add_ps(distance, _mm512_mul_ps(d, scale));
         d        = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm512_extracti64x2_epi64(vtmp, 2)));
         scale    = _mm512_broadcastss_ps(*reinterpret_cast<__m128 *>(&scales[2]));
         distance = _mm512_add_ps(distance, _mm512_mul_ps(d, scale));
-        d            = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm512_extracti64x2_epi64(vtmp, 3)));
-        scale        = _mm512_broadcastss_ps(*reinterpret_cast<__m128 *>(&scales[3]));
-        distance     = _mm512_add_ps(distance, _mm512_mul_ps(d, scale));
+        d        = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm512_extracti64x2_epi64(vtmp, 3)));
+        scale    = _mm512_broadcastss_ps(*reinterpret_cast<__m128 *>(&scales[3]));
+        distance = _mm512_add_ps(distance, _mm512_mul_ps(d, scale));
 
         lut += (localCodebookCentroidNo - 1) * 4;
         scales += 4;
@@ -2547,9 +2547,9 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
         _mm_prefetch(&localID[0] + 64 * 8, _MM_HINT_T0);
         //std::cerr << "obj=" << (int)(localID[0] & 0x0f) << "," << (int)((localID[0] >> 4) & 0x0f) << std::endl;
         __m256i packedobj = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const *)&localID[0]));
-        __m256i lo   = _mm256_and_si256(packedobj, mask256x0F);
-        __m256i hi   = _mm256_slli_epi16(_mm256_and_si256(packedobj, mask256xF0), 4);
-        __m256i obj  = _mm256_or_si256(lo, hi);
+        __m256i lo  = _mm256_and_si256(packedobj, mask256x0F);
+        __m256i hi  = _mm256_slli_epi16(_mm256_and_si256(packedobj, mask256xF0), 4);
+        __m256i obj = _mm256_or_si256(lo, hi);
                              //std::cerr << "LUT=" << (int)*lut << "," << (int)*(lut+1) << std::endl;
         __m256i vtmp = _mm256_shuffle_epi8(lookupTable, obj);
 
@@ -2562,8 +2562,8 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
         distance     = _mm512_add_ps(distance, _mm512_mul_ps(d, scale));
         ////////////////////
 #else
-        depu16l      = _mm256_adds_epu16(depu16l, _mm256_cvtepu8_epi16(_mm256_extractf128_si256(vtmp, 0)));
-        depu16h      = _mm256_adds_epu16(depu16h, _mm256_cvtepu8_epi16(_mm256_extractf128_si256(vtmp, 1)));
+        depu16l = _mm256_adds_epu16(depu16l, _mm256_cvtepu8_epi16(_mm256_extractf128_si256(vtmp, 0)));
+        depu16h = _mm256_adds_epu16(depu16h, _mm256_cvtepu8_epi16(_mm256_extractf128_si256(vtmp, 1)));
 #endif
         lut += (localCodebookCentroidNo - 1) * 2;
         scales += 2;
@@ -2575,7 +2575,7 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
       //__m512i hi = _mm512_cvtepu16_epi32(_mm512_extracti64x4_epi64(depu16, 1));
       //__m512 scale = _mm512_broadcastss_ps(*reinterpret_cast<__m128*>(&distanceLUT.scales[0]));
       //distance = _mm512_mul_ps(distance, scale);
-      distance  = _mm512_add_ps(distance, _mm512_set1_ps(distanceLUT.totalOffset));
+      distance = _mm512_add_ps(distance, _mm512_set1_ps(distanceLUT.totalOffset));
 #if defined(NGTQG_DOT_PRODUCT)
       float one = 1.0;
       float two = 2.0;
@@ -2617,7 +2617,7 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
       distanceh     = _mm256_mul_ps(distanceh, scaleh);
       distanceh     = _mm256_add_ps(distanceh, _mm256_set1_ps(distanceLUT.totalOffset));
 #if defined(NGTQG_DOT_PRODUCT)
-      float one     = 1.0;
+      float one = 1.0;
       float two = 2.0;
       distancel =
           _mm256_mul_ps(_mm256_sub_ps(_mm256_broadcastss_ps(*reinterpret_cast<__m128 *>(&one)), distancel),
@@ -2652,11 +2652,11 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
     float min = std::numeric_limits<float>::max();
 #endif
     size_t numOfAlignedSubvectors = ((localDivisionNo - 1) / NGTQ_BATCH_SIZE + 1) * NGTQ_BATCH_SIZE;
-    size_t alignedSize = ((size - 1) / 2 + 1) * 2;
+    size_t alignedSize            = ((size - 1) / 2 + 1) * 2;
     uint32_t d[NGTQ_SIMD_BLOCK_SIZE];
-    size_t didx = 0;
+    size_t didx     = 0;
     size_t byteSize = numOfAlignedSubvectors * alignedSize / 2;
-    auto *last = localID + byteSize;
+    auto *last      = localID + byteSize;
     while (localID < last) {
       uint8_t *lut = distanceLUT.localDistanceLookup;
       memset(d, 0, sizeof(uint32_t) * NGTQ_SIMD_BLOCK_SIZE);
@@ -2714,7 +2714,7 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
 #else
     float *gcptr = (float *)&gcentroid[0];
 #endif
-    float *optr  = (float *)&((NGT::Object &)object)[0];
+    float *optr     = (float *)&((NGT::Object &)object)[0];
     double distance = 0.0;
     for (size_t li = 0; li < localDivisionNo; li++) {
       size_t distanceLUTidx = li * localCodebookCentroidNo + localID[li];
@@ -2734,11 +2734,11 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
 #endif
 #if defined(NGTQG_AVX512) || defined(NGTQG_AVX2)
         float *lcendptr = lcptr + localDataSize;
-        __m256 sum256 = _mm256_setzero_ps();
+        __m256 sum256   = _mm256_setzero_ps();
         __m256 v;
         while (lcptr < lcendptr) {
-          v = _mm256_sub_ps(_mm256_sub_ps(_mm256_loadu_ps(optr), _mm256_loadu_ps(gcptr)),
-                            _mm256_loadu_ps(lcptr));
+          v      = _mm256_sub_ps(_mm256_sub_ps(_mm256_loadu_ps(optr), _mm256_loadu_ps(gcptr)),
+                                 _mm256_loadu_ps(lcptr));
           sum256 = _mm256_add_ps(sum256, _mm256_mul_ps(v, v));
           optr += 8;
           gcptr += 8;
@@ -2750,7 +2750,7 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
         double d = f[0] + f[1] + f[2] + f[3];
 #else
         float *lcendptr = lcptr + localDataSize;
-        double d = 0.0;
+        double d        = 0.0;
         while (lcptr != lcendptr) {
           double sub = (*optr++ - *gcptr++) - *lcptr++;
           d += sub * sub;
@@ -2763,8 +2763,8 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
   }
 
 #ifdef NGT_PQ4
-    inline float operator()(void *o, size_t size, DistanceLookupTableUint8 &distanceLUT, float *query) {
-    auto *obj = static_cast<NGT::qint4*>(o);
+  inline float operator()(void *o, size_t size, DistanceLookupTableUint8 &distanceLUT, float *query) {
+    auto *obj = static_cast<NGT::qint4 *>(o);
     auto *lut = distanceLUT.localDistanceLookup;
     float distance = 0.0;
     for (size_t li = 0; li < localDivisionNo; li++) {
@@ -3058,7 +3058,7 @@ class ScalarQuantizedInt8ObjectDistance : public NonLocalQuantizedObjectDistance
   float compareDotProduct(void *q, void *o, size_t dimension) {
     double maxmag = 255.0 * 255.0 * dimension;
     double d      = NGT::PrimitiveComparator::compareDotProduct(reinterpret_cast<QT *>(q),
-                                                           reinterpret_cast<OT *>(o), dimension);
+                                                                reinterpret_cast<OT *>(o), dimension);
     return maxmag - d;
   }
 
@@ -3111,7 +3111,7 @@ class Quantizer {
                       NGT::Property &localPropertySet, std::vector<float> *rotation = 0,
                       const string &objectFile = "") = 0;
 #else
-                      NGT::Property &localPropertySet)              = 0;
+                      NGT::Property &localPropertySet) = 0;
 #endif
 #ifdef NGTQ_QBG
   virtual void encode(uint32_t subspaceID, ObjectSet &objects, QuantizedObjectSet &qobjs) = 0;
@@ -3234,61 +3234,58 @@ class Quantizer {
 #define QID_WEIGHT 100
       {
 #ifdef NGTQ_VECTOR_OBJECT
-      auto *object = globalCodebookIndex.allocateObject(objects[idx].first);
-      NGT::SearchContainer sc(*object);
+        auto *object = globalCodebookIndex.allocateObject(objects[idx].first);
+        NGT::SearchContainer sc(*object);
 #else
-        NGT::SearchContainer sc(*objects[idx].first);
+      NGT::SearchContainer sc(*objects[idx].first);
 #endif
-      sc.setResults(&result);
-      sc.setSize(10);
-      sc.radius = FLT_MAX;
-      sc.setEpsilon(0.1);
-      globalCodebookIndex.search(sc);
+        sc.setResults(&result);
+        sc.setSize(10);
+        sc.radius = FLT_MAX;
+        sc.setEpsilon(0.1);
+        globalCodebookIndex.search(sc);
 #ifdef NGTQ_VECTOR_OBJECT
-      globalCodebookIndex.deleteObject(object);
+        globalCodebookIndex.deleteObject(object);
 #endif
-    }
+      }
       ids[idx].id        = result[0].id;
       ids[idx].distance  = result[0].distance;
       ids[idx].identical = true;
+    }
+    return;
   }
-  return;
-}
 
-static const std::string
-getInvertedIndexFile() {
-  return "ivt";
-}
-static const std::string getGlobalFile() { return "global"; }
-static const std::string getLocalPrefix() { return "local-"; }
-static const std::string getRotationFile() { return "qr"; }
-static const std::string getGlobalToInvertedIndexFile() { return "g2i"; }
-void saveProperty() { property.save(rootDirectory); }
+  static const std::string getInvertedIndexFile() { return "ivt"; }
+  static const std::string getGlobalFile() { return "global"; }
+  static const std::string getLocalPrefix() { return "local-"; }
+  static const std::string getRotationFile() { return "qr"; }
+  static const std::string getGlobalToInvertedIndexFile() { return "g2i"; }
+  void saveProperty() { property.save(rootDirectory); }
 
-ObjectList objectList;
+  ObjectList objectList;
 
-string rootDirectory;
+  string rootDirectory;
 
-Property property;
+  Property property;
 
-NGT::Index globalCodebookIndex;
+  NGT::Index globalCodebookIndex;
 
-size_t distanceComputationCount;
+  size_t distanceComputationCount;
 
-size_t localIDByteSize;
-NGT::ObjectSpace::ObjectType objectType;
-size_t divisionNo;
+  size_t localIDByteSize;
+  NGT::ObjectSpace::ObjectType objectType;
+  size_t divisionNo;
 
-std::vector<NGT::Index> localCodebookIndexes;
+  std::vector<NGT::Index> localCodebookIndexes;
 
-QuantizationCodebook<float> quantizationCodebook;
-std::vector<std::vector<uint32_t>> objectToBlobIndex;
-Rotation rotation;
+  QuantizationCodebook<float> quantizationCodebook;
+  std::vector<std::vector<uint32_t>> objectToBlobIndex;
+  Rotation rotation;
 
 #ifdef NGTQ_OBJECT_IN_MEMORY
-NGT::ObjectSpace *refinementObjectSpace;
+  NGT::ObjectSpace *refinementObjectSpace;
 #endif
-NGT::ObjectSpace *refinementObjectSpaceForObjectList;
+  NGT::ObjectSpace *refinementObjectSpaceForObjectList;
 }; // namespace NGTQ
 
 class GenerateResidualObject {
@@ -3432,8 +3429,7 @@ class GenerateResidualObjectFloat : public GenerateResidualObject {
     localObjs[idx].push_back(pair<NGT::Object *, size_t>(localObj, 0));
   }
 }
-}
-;
+};
 
 #else
 class GenerateResidualObjectFloat : public GenerateResidualObject {
@@ -3450,7 +3446,7 @@ class GenerateResidualObjectFloat : public GenerateResidualObject {
     for (size_t di = 0; di < divisionNo; di++) {
       vector<double> subObject;
       subObject.resize(localDimension);
-      float *subVector               = static_cast<float *>(object.getPointer(di * localByteSize));
+      float *subVector = static_cast<float *>(object.getPointer(di * localByteSize));
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
       float *globalCentroidSubVector = static_cast<float *>(globalCentroid.getPointer(
           di * localByteSize, globalCodebookIndex->getObjectSpace().getRepository().allocator));
@@ -3471,8 +3467,7 @@ class GenerateResidualObjectFloat : public GenerateResidualObject {
 template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
  public:
   typedef void (QuantizerInstance::*AggregateObjectsFunction)(NGT::ObjectDistance &, NGT::Object *,
-                                                              size_t size, NGT::ResultSet &,
-                                                              size_t);
+                                                              size_t size, NGT::ResultSet &, size_t);
   typedef InvertedIndexEntry<LOCAL_ID_TYPE> IIEntry;
 
   QuantizerInstance() {
@@ -4477,7 +4472,7 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
 #else
     NGT::Property property;
 
-    property.dimension = globalCodebookIndex.getObjectSpace().getDimension() + 1;
+    property.dimension    = globalCodebookIndex.getObjectSpace().getDimension() + 1;
     property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeL2;
 #ifdef NGTQ_SHARED_INVERTED_INDEX
     NGT::Index *index = new NGT::Index("dummy", property);
@@ -4691,8 +4686,8 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
         setGlobalCodeToInvertedEntry(ids[i], objects[ids2oidx[i]], localData);
       }
     }
-    std::unique_ptr<float[]> subspaceObjects(new float[localData.size() * 
-                                                       globalCodebookIndex.getObjectSpace().getPaddedDimension()]);
+    std::unique_ptr<float[]> subspaceObjects(
+        new float[localData.size() * globalCodebookIndex.getObjectSpace().getPaddedDimension()]);
     bool error = false;
     std::string errorMessage;
 #pragma omp parallel for
@@ -4725,13 +4720,17 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
 #endif
       try {
 #ifdef NGTQ_VECTOR_OBJECT
-        (*generateResidualObject)(objects[objidx].first, // object
-                                  invertedIndexEntry.subspaceID,
-                                  &subspaceObjects[objidx * globalCodebookIndex.getObjectSpace().getPaddedDimension()]); // subspace objects
+        (*generateResidualObject)(
+            objects[objidx].first, // object
+            invertedIndexEntry.subspaceID,
+            &subspaceObjects[objidx *
+                             globalCodebookIndex.getObjectSpace().getPaddedDimension()]); // subspace objects
 #else
-        (*generateResidualObject)(*objects[objidx].first, // object
-                                  invertedIndexEntry.subspaceID,
-                                  &subspaceObjects[objidx * globalCodebookIndex.getObjectSpace().getPaddedDimension()]); // subspace objects
+        (*generateResidualObject)(
+            *objects[objidx].first, // object
+            invertedIndexEntry.subspaceID,
+            &subspaceObjects[objidx *
+                             globalCodebookIndex.getObjectSpace().getPaddedDimension()]); // subspace objects
 #endif
       } catch (NGT::Exception &err) {
         if (errorMessage.empty()) {
@@ -4760,7 +4759,7 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
       std::cerr << "insert: Fatal Error. single local codebook isn't available." << std::endl;
       abort();
     } else {
-      // multiple local codebooks
+             // multiple local codebooks
       bool localCodebookFull = true;
       if (property.localCodebookState) {
         setMultipleLocalCodeToInvertedIndexEntryFixed(localData, &subspaceObjects[0]);
@@ -4778,7 +4777,7 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
           replaceInvertedIndexEntry(localCodebookNo);
         } else {
           property.localCodebookState = true;
-          localCodebookFull = false;
+          localCodebookFull           = false;
         }
       }
     }
@@ -4925,7 +4924,7 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
       }
     }
     for (size_t idx = 0; idx < codebookIndex.size(); idx++) {
-      auto gid                    = idx + 1;
+      auto gid = idx + 1;
 #ifdef NGTQ_SHARED_INVERTED_INDEX
       IIEntry &invertedIndexEntry = *invertedIndex.at(gid, invertedIndex.allocator);
 #else
@@ -5274,7 +5273,7 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
     if (invertedIndex[gid] == 0) {
       return;
     }
-    invertedIndexObjects.subspaceID = invertedIndex[gid]->subspaceID;
+    invertedIndexObjects.subspaceID      = invertedIndex[gid]->subspaceID;
     invertedIndexObjects.numOfSubvectors = invertedIndex[gid]->numOfSubvectors;
     invertedIndexObjects.resize(invertedIndex[gid]->size());
     for (size_t idx = 0; idx < invertedIndex[gid]->size(); idx++) {
@@ -5288,7 +5287,7 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
       }
 #else
       NGTQ::InvertedIndexObject<LOCAL_ID_TYPE> &entry = (*invertedIndex[gid])[idx];
-      invertedIndexObjects[idx].id = entry.id;
+      invertedIndexObjects[idx].id                    = entry.id;
       if (sizeof(entry.localID[0]) > sizeof(invertedIndexObjects[idx].localID[0])) {
         NGTThrowException("Fatal error! You should change the object ID type.");
       }
@@ -5346,7 +5345,7 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
         }
 #else
         NGTQ::InvertedIndexObject<LOCAL_ID_TYPE> &entry = (*invertedIndex[gid])[idx];
-        invertedIndexObjects[entry.id].id = entry.id;
+        invertedIndexObjects[entry.id].id               = entry.id;
         if (sizeof(entry.localID[0]) > sizeof(invertedIndexObjects[entry.id].localID[0])) {
           NGTThrowException("Fatal error! You should change the object ID type.");
         }

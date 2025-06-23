@@ -257,7 +257,7 @@ class SearchGraphRepository : public std::vector<ReadOnlyGraphNode> {
 #else
             searchNode.push_back(std::pair<uint32_t, Object *>((*ni).id, objectRepository.get((*ni).id)));
 #endif // NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
-          } catch(NGT::Exception &err) {
+          } catch (NGT::Exception &err) {
             std::stringstream msg;
             msg << "Cannot push. " << (*ni).id << " <= ";
             for (auto nix = node.begin(); nix != node.end(); nix++) {
@@ -372,13 +372,12 @@ class NeighborhoodGraph {
           }
           break;
 #endif
-        default:
-	  {
-	    std::stringstream msg;
-	    msg << "NGT::Graph::Search: Not supported object type. " << otype;
-	    NGTThrowException(msg);
-	    break;
-	  }
+        default: {
+          std::stringstream msg;
+          msg << "NGT::Graph::Search: Not supported object type. " << otype;
+          NGTThrowException(msg);
+          break;
+        }
         }
         return l1Uint8;
       } else {
@@ -440,18 +439,18 @@ class NeighborhoodGraph {
           case NGT::ObjectSpace::DistanceTypeL2: return l2Qint4ForLargeDataset;
           case NGT::ObjectSpace::DistanceTypeCosine: return cosineSimilarityQint4ForLargeDataset;
           case NGT::ObjectSpace::DistanceTypeInnerProduct: return innerProductQint4ForLargeDataset;
-          case NGT::ObjectSpace::DistanceTypeNormalizedCosine: return normalizedCosineSimilarityQint4ForLargeDataset;
+          case NGT::ObjectSpace::DistanceTypeNormalizedCosine:
+            return normalizedCosineSimilarityQint4ForLargeDataset;
           default: return l2Qint4;
           }
           break;
 #endif
-        default:
-	  {
-	    std::stringstream msg;
-	    msg << "NGT::Graph::Search: Not supported object type. " << otype;
-	    NGTThrowException(msg);
-	    break;
-	  }
+        default: {
+          std::stringstream msg;
+          msg << "NGT::Graph::Search: Not supported object type. " << otype;
+          NGTThrowException(msg);
+          break;
+        }
         }
         return l1Uint8ForLargeDataset;
       }
@@ -504,8 +503,7 @@ class NeighborhoodGraph {
     static void l2Qint4(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
     static void cosineSimilarityQint4(NeighborhoodGraph &graph, NGT::SearchContainer &sc,
                                       ObjectDistances &seeds);
-    static void innerProductQint4(NeighborhoodGraph &graph, NGT::SearchContainer &sc,
-                                  ObjectDistances &seeds);
+    static void innerProductQint4(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
     static void normalizedCosineSimilarityQint4(NeighborhoodGraph &graph, NGT::SearchContainer &sc,
                                                 ObjectDistances &seeds);
 #endif
@@ -570,12 +568,14 @@ class NeighborhoodGraph {
                                                                 NGT::SearchContainer &sc,
                                                                 ObjectDistances &seeds);
 #ifdef NGT_PQ4
-    static void l2Qint4ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc, ObjectDistances &seeds);
+    static void l2Qint4ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc,
+                                       ObjectDistances &seeds);
     static void cosineSimilarityQint4ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc,
                                                      ObjectDistances &seeds);
     static void innerProductQint4ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc,
                                                  ObjectDistances &seeds);
-    static void normalizedCosineSimilarityQint4ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc,
+    static void normalizedCosineSimilarityQint4ForLargeDataset(NeighborhoodGraph &graph,
+                                                               NGT::SearchContainer &sc,
                                                                ObjectDistances &seeds);
 #endif
   };
@@ -914,7 +914,7 @@ class NeighborhoodGraph {
           auto v2 = 2.0 * srcNode.at(sni, outGraph.repository.allocator).distance *
                     pathNode.at(pni, repository.allocator).distance;
 #else
-          auto v2                = 2.0 * srcNode[sni].distance * pathNode[pni].distance;
+          auto v2 = 2.0 * srcNode[sni].distance * pathNode[pni].distance;
 #endif
           if (cosAlpha >= range) {
             break;
@@ -1101,7 +1101,7 @@ class DistanceCheckedSet : public unordered_set<ObjectID> {
     NodeWithPosition(ObjectDistance &o) : ObjectDistance(o), position(0) {}
     NodeWithPosition &operator=(const NodeWithPosition &n) {
       ObjectDistance::operator=(static_cast<const ObjectDistance &>(n));
-      position                = n.position;
+      position = n.position;
       assert(id != 0);
       return *this;
     }
@@ -1264,9 +1264,9 @@ class DistanceCheckedSet : public unordered_set<ObjectID> {
   void checkEdgeLengths(size_t n) {
     NGT::GraphRepository &graph = repository;
     NGT::ObjectRepository &repo = objectSpace->getRepository();
-    auto &comparator = objectSpace->getComparator();
-    size_t nOfEdges = 0;
-    size_t nOfDifferentEdges = 0;
+    auto &comparator            = objectSpace->getComparator();
+    size_t nOfEdges             = 0;
+    size_t nOfDifferentEdges    = 0;
     for (size_t id = 1; id < graph.size(); id++) {
       if (repo.size() <= id) break;
       if (repo[id] == 0) continue;
@@ -1291,14 +1291,14 @@ class DistanceCheckedSet : public unordered_set<ObjectID> {
           float d = comparator(*obj, *repo.get(n.id));
           if (d != n.distance) {
             nOfDifferentEdges++;
-	  }
-	}
+          }
+        }
       }
       if (n != 0 && nOfEdges > n) break;
     }
     if (nOfDifferentEdges != 0) {
-      std::cerr << "checkEdgeLengths: Warning! The indexed edge lengths are different. " 
-                << nOfDifferentEdges << "/" << nOfEdges << "." << std::endl;
+      std::cerr << "checkEdgeLengths: Warning! The indexed edge lengths are different. " << nOfDifferentEdges
+                << "/" << nOfEdges << "." << std::endl;
     }
   }
 

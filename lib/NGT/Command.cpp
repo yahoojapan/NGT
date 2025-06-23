@@ -231,7 +231,6 @@ NGT::Command::CreateParameters::CreateParameters(Args &args) {
     msg << "Command::CreateParameter: Error: Invalid epsilon type. " << epsilonType;
     NGTThrowException(msg);
   }
-
 }
 
 void NGT::Command::create(Args &args) {
@@ -483,7 +482,7 @@ void NGT::Command::search(NGT::Index &index, NGT::Command::SearchParameters &sea
   }
 
   string line;
-  double totalTime = 0;
+  double totalTime  = 0;
   size_t queryCount = 0;
   while (getline(is, line)) {
     if (searchParameters.querySize > 0 && queryCount >= searchParameters.querySize) {
@@ -498,7 +497,7 @@ void NGT::Command::search(NGT::Index &index, NGT::Command::SearchParameters &sea
       double epsilon = searchParameters.beginOfEpsilon;
       if (searchParameters.step != 0) {
         epsilon = searchParameters.beginOfEpsilon +
-          (searchParameters.endOfEpsilon - searchParameters.beginOfEpsilon) * n / step;
+                  (searchParameters.endOfEpsilon - searchParameters.beginOfEpsilon) * n / step;
       } else {
         if (searchParameters.stepOfEpsilon <= 0.0) {
           std::stringstream msg;
@@ -522,16 +521,20 @@ void NGT::Command::search(NGT::Index &index, NGT::Command::SearchParameters &sea
 #ifdef NGT_REFINEMENT
       float refinementExpansion = searchParameters.beginOfRefinementExpansion;
       if (searchParameters.step != 0) {
-        refinementExpansion = searchParameters.beginOfRefinementExpansion +
-          (searchParameters.endOfRefinementExpansion - searchParameters.beginOfRefinementExpansion) * n / step;
+        refinementExpansion =
+            searchParameters.beginOfRefinementExpansion +
+            (searchParameters.endOfRefinementExpansion - searchParameters.beginOfRefinementExpansion) * n /
+                step;
       } else {
         if (searchParameters.stepOfRefinementExpansion <= 1.0) {
           std::stringstream msg;
-          msg << "the step of refinement expansion must be greater than 1.0. " << searchParameters.stepOfRefinementExpansion;
+          msg << "the step of refinement expansion must be greater than 1.0. "
+              << searchParameters.stepOfRefinementExpansion;
           NGTThrowException(msg);
         }
         if (searchParameters.beginOfEpsilon == searchParameters.endOfEpsilon) {
-          refinementExpansion = searchParameters.beginOfRefinementExpansion + (n == 0 ? 0 : pow(searchParameters.stepOfRefinementExpansion, n));
+          refinementExpansion = searchParameters.beginOfRefinementExpansion +
+                                (n == 0 ? 0 : pow(searchParameters.stepOfRefinementExpansion, n));
           if (refinementExpansion > searchParameters.endOfRefinementExpansion) {
             break;
           }
@@ -557,10 +560,10 @@ void NGT::Command::search(NGT::Index &index, NGT::Command::SearchParameters &sea
       NGT::Timer timer;
       try {
         if (searchParameters.outputMode[0] == 'e') {
-          double time = 0.0;
+          double time    = 0.0;
           uint64_t ntime = 0;
           double minTime = DBL_MAX;
-          size_t trial = searchParameters.trial <= 0 ? 1 : searchParameters.trial;
+          size_t trial   = searchParameters.trial <= 0 ? 1 : searchParameters.trial;
           for (size_t t = 0; t < trial; t++) {
             switch (searchParameters.indexType) {
             case 't':
@@ -587,7 +590,7 @@ void NGT::Command::search(NGT::Index &index, NGT::Command::SearchParameters &sea
           }
           time /= (double)trial;
           ntime /= trial;
-          timer.time = minTime;
+          timer.time  = minTime;
           timer.ntime = ntime;
         } else {
           switch (searchParameters.indexType) {
@@ -663,7 +666,7 @@ void NGT::Command::search(NGT::Index &index, NGT::Command::SearchParameters &sea
 
     if (searchParameters.outputMode == "e+") {
       // show graph information
-      size_t esize = searchParameters.edgeSize;
+      size_t esize         = searchParameters.edgeSize;
       long double distance = 0.0;
       size_t numberOfNodes = 0;
       size_t numberOfEdges = 0;
@@ -988,7 +991,7 @@ void NGT::Command::prune(Args &args) {
                   break;
                 }
               } // for
-            }   // for
+            } // for
             if (found) {
               //remove
               i = node.erase(i);
@@ -1165,11 +1168,11 @@ void NGT::Command::refineANNG(Args &args) {
 
   NGT::Index index(inIndexPath);
 
-  float epsilon = args.getf("e", 0.1);
+  float epsilon          = args.getf("e", 0.1);
   float expectedAccuracy = args.getf("a", 0.0);
-  int noOfEdges = args.getl("k", 0); // to reconstruct kNNG
-  int exploreEdgeSize = args.getf("E", INT_MIN);
-  size_t batchSize = args.getl("b", 10000);
+  int noOfEdges          = args.getl("k", 0); // to reconstruct kNNG
+  int exploreEdgeSize    = args.getf("E", INT_MIN);
+  size_t batchSize       = args.getl("b", 10000);
 
   try {
     GraphReconstructor::refineANNG(index, epsilon, expectedAccuracy, noOfEdges, exploreEdgeSize, batchSize);
@@ -1511,7 +1514,7 @@ void NGT::Command::exportObjects(Args &args) {
 
   NGT::Index index(indexPath);
   auto &objectSpace = index.getObjectSpace();
-  size_t size = objectSpace.getRepository().size();
+  size_t size       = objectSpace.getRepository().size();
 
   for (size_t id = 1; id < size; ++id) {
     std::vector<float> object;
@@ -1555,10 +1558,9 @@ void NGT::Command::rebuild(Args &args) {
 #endif
 }
 
-
 void NGT::Command::preprocessForPQ(Args &args) {
-#ifdef  NGT_QBG_DISABLED
-  NGTThrowException("prep-pq is not implemented.");  
+#ifdef NGT_QBG_DISABLED
+  NGTThrowException("prep-pq is not implemented.");
 #else
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
   NGTThrowException("rebuild is not implemented.");

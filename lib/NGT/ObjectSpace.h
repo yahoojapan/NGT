@@ -27,9 +27,9 @@ class Property;
 class Quantizer {
  public:
   class Query {
-  public:
-  Query():insideObject(0){}
-  Query(NGT::Object *o):insideObject(o){}
+   public:
+    Query() : insideObject(0) {}
+    Query(NGT::Object *o) : insideObject(o) {}
     std::vector<int8_t> lut;
     std::vector<int8_t> quantizedQuery;
     NGT::Object *insideObject;
@@ -39,7 +39,7 @@ class Quantizer {
     float shiftValue;
     size_t genuineSize;
   };
-  Quantizer(): index(0) {}
+  Quantizer() : index(0) {}
   ~Quantizer();
   void open();
   void open(const std::string &path);
@@ -96,8 +96,7 @@ class ObjectDistances : public std::vector<ObjectDistance> {
     }
   }
 
-  void
-  moveFrom(ResultSet &pq) {
+  void moveFrom(ResultSet &pq) {
     this->clear();
     this->resize(pq.size());
     for (int i = pq.size() - 1; i >= 0; i--) {
@@ -107,8 +106,7 @@ class ObjectDistances : public std::vector<ObjectDistance> {
     assert(pq.size() == 0);
   }
 
-  void
-  moveFrom(ResultSet &pq, double (&f)(double)) {
+  void moveFrom(ResultSet &pq, double (&f)(double)) {
     this->clear();
     this->resize(pq.size());
     for (int i = pq.size() - 1; i >= 0; i--) {
@@ -119,8 +117,7 @@ class ObjectDistances : public std::vector<ObjectDistance> {
     assert(pq.size() == 0);
   }
 
-  void
-  moveFrom(ResultSet &pq, unsigned int id) {
+  void moveFrom(ResultSet &pq, unsigned int id) {
     this->clear();
     if (pq.size() == 0) {
       return;
@@ -284,8 +281,8 @@ class ObjectSpace {
   virtual void show(std::ostream &os, PersistentObject &object)           = 0;
   virtual size_t insert(PersistentObject *obj)                            = 0;
 #else
-  virtual size_t insert(Object *obj)                                                           = 0;
-  virtual void deleteAll()                                                                     = 0;
+  virtual size_t insert(Object *obj) = 0;
+  virtual void deleteAll()           = 0;
 #endif
 
   Comparator &getComparator() { return *comparator; }
@@ -314,15 +311,15 @@ class ObjectSpace {
 
   virtual void linearSearch(Object &query, double radius, size_t size, ResultSet &results) = 0;
 
-  virtual std::pair<float, float> getMaxMin(float cut = 0.01, size_t size = 0)                          = 0;
-  virtual const std::type_info &getObjectType()                                                         = 0;
-  virtual void show(std::ostream &os, Object &object)                                                   = 0;
-  virtual size_t getSize()                                                                              = 0;
-  virtual size_t getSizeOfElement()                                                                     = 0;
-  virtual size_t getByteSizeOfObject()                                                                  = 0;
-  virtual Object *allocateNormalizedObject(const std::string &textLine, const std::string &sep)         = 0;
-  virtual Object *allocateNormalizedObject(const std::vector<double> &obj)                              = 0;
-  virtual Object *allocateNormalizedObject(const std::vector<float> &obj)                               = 0;
+  virtual std::pair<float, float> getMaxMin(float cut = 0.01, size_t size = 0)                  = 0;
+  virtual const std::type_info &getObjectType()                                                 = 0;
+  virtual void show(std::ostream &os, Object &object)                                           = 0;
+  virtual size_t getSize()                                                                      = 0;
+  virtual size_t getSizeOfElement()                                                             = 0;
+  virtual size_t getByteSizeOfObject()                                                          = 0;
+  virtual Object *allocateNormalizedObject(const std::string &textLine, const std::string &sep) = 0;
+  virtual Object *allocateNormalizedObject(const std::vector<double> &obj)                      = 0;
+  virtual Object *allocateNormalizedObject(const std::vector<float> &obj)                       = 0;
 #ifdef NGT_HALF_FLOAT
   virtual Object *allocateNormalizedObject(const std::vector<float16> &obj) = 0;
 #endif
@@ -422,9 +419,9 @@ class ObjectSpace {
   bool quantizationIsEnabled() {
     return scalarQuantizationIsEnabled()
 #ifdef NGT_PQ4
-      || pq4IsEnabled()
+           || pq4IsEnabled()
 #endif
-      ;
+        ;
   }
   void setQuantization(float scale, float offset) {
     quantizationScale  = scale;
@@ -596,7 +593,7 @@ class ObjectSpace {
     if (pq4IsEnabled()) {
       try {
         quantizer.open(path);
-      } catch(NGT::Exception &err) {
+      } catch (NGT::Exception &err) {
       }
     }
   }
@@ -764,7 +761,7 @@ class Object : public BaseObject {
   }
 
 #ifdef NGT_PQ4
-  Object(void *p) { vector = static_cast<uint8_t*>(p); }
+  Object(void *p) { vector = static_cast<uint8_t *>(p); }
 #endif
 
   virtual ~Object() { clear(); }

@@ -14,7 +14,6 @@
 // limitations under the License.
 //
 
-
 #include "NGT/defines.h"
 
 #if defined(NGT_NO_AVX) && defined(NGT_PQ4)
@@ -23,18 +22,18 @@
 #include "NGT/PrimitiveComparator.h"
 #include "NGT/ObjectSpace.h"
 
-double 
-NGT::PrimitiveComparator::compareL2(const qint4 *a, const qint4 *b, size_t size) {
-  auto &query = *reinterpret_cast<const NGT::Quantizer::Query*>(a);
+double NGT::PrimitiveComparator::compareL2(const qint4 *a, const qint4 *b, size_t size) {
+  auto &query          = *reinterpret_cast<const NGT::Quantizer::Query *>(a);
   auto &quantizedQuery = query.quantizedQuery;
-  auto &lut = query.lut;
-  auto scale = query.scale;
-  float d = 0.0;
+  auto &lut            = query.lut;
+  auto scale           = query.scale;
+  float d              = 0.0;
   for (size_t i = 0; i < quantizedQuery.size(); i++) {
     float f = static_cast<float>(quantizedQuery[i]);
     float fo;
     if ((i & 0x01) == 0) fo = static_cast<float>(lut[b[i >> 1].lower()]);
-    else fo = static_cast<float>(lut[b[i >> 1].upper()]);
+    else
+      fo = static_cast<float>(lut[b[i >> 1].upper()]);
     f -= fo;
     d += f * f;
   }
@@ -42,36 +41,37 @@ NGT::PrimitiveComparator::compareL2(const qint4 *a, const qint4 *b, size_t size)
   return d;
 }
 
-double 
-NGT::PrimitiveComparator::compareNormalizedCosineSimilarity(const qint4 *a, const qint4 *b, size_t size) {
-  auto &query = *reinterpret_cast<const NGT::Quantizer::Query*>(a);
+double NGT::PrimitiveComparator::compareNormalizedCosineSimilarity(const qint4 *a, const qint4 *b,
+                                                                   size_t size) {
+  auto &query          = *reinterpret_cast<const NGT::Quantizer::Query *>(a);
   auto &quantizedQuery = query.quantizedQuery;
-  auto &lut = query.lut;
+  auto &lut            = query.lut;
   float dp = 0.0;
   for (size_t i = 0; i < quantizedQuery.size(); i++) {
     float fa = static_cast<float>(quantizedQuery[i]);
     float fb;
     if ((i & 0x01) == 0) fb = static_cast<float>(lut[b[i >> 1].lower()]);
-    else fb = static_cast<float>(lut[b[i >> 1].upper()]);
+    else
+      fb = static_cast<float>(lut[b[i >> 1].upper()]);
     dp += fa * fb;
   }
   float d = 1.0 - dp / 127.0 / 127.0 * query.scale * query.scale;
   return d;
 }
 
-double 
-NGT::PrimitiveComparator::compareCosineSimilarity(const qint4 *a, const qint4 *b, size_t size) {
-  auto &query = *reinterpret_cast<const NGT::Quantizer::Query*>(a);
+double NGT::PrimitiveComparator::compareCosineSimilarity(const qint4 *a, const qint4 *b, size_t size) {
+  auto &query          = *reinterpret_cast<const NGT::Quantizer::Query *>(a);
   auto &quantizedQuery = query.quantizedQuery;
-  auto &lut = query.lut;
-  float normA = 0.0;
-  float normB = 0.0;
-  float sum = 0.0;
+  auto &lut            = query.lut;
+  float normA          = 0.0;
+  float normB          = 0.0;
+  float sum            = 0.0;
   for (size_t i = 0; i < quantizedQuery.size(); i++) {
     float fa = static_cast<float>(quantizedQuery[i]);
     float fb;
     if ((i & 0x01) == 0) fb = static_cast<float>(lut[b[i >> 1].lower()]);
-    else fb = static_cast<float>(lut[b[i >> 1].upper()]);
+    else
+      fb = static_cast<float>(lut[b[i >> 1].upper()]);
     normA += fa * fa;
     normB += fb * fb;
     sum += fa * fb;

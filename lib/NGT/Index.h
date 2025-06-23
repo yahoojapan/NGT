@@ -249,8 +249,8 @@ class Index {
             refinementObjectType = ObjectSpace::ObjectType::Bfloat16;
 #endif
           } else {
-            std::cerr << "Invalid object type for refinement in the property. " << it->first << ":" << it->second
-                      << std::endl;
+            std::cerr << "Invalid object type for refinement in the property. " << it->first << ":"
+                      << it->second << std::endl;
           }
         } else {
           std::cerr << "Not found \"RefinementObjectType\"" << std::endl;
@@ -418,7 +418,7 @@ class Index {
 
   class AccuracyTable {
    public:
-    AccuracyTable(){};
+    AccuracyTable() {};
     AccuracyTable(std::vector<std::pair<float, double>> &t) { set(t); }
     AccuracyTable(std::string str) { set(str); }
     void set(std::vector<std::pair<float, double>> &t) { table = t; }
@@ -1020,11 +1020,19 @@ class GraphIndex : public Index,
   virtual void append(const float16 *data, size_t dataSize) { objectSpace->append(data, dataSize); }
 #endif
 #ifdef NGT_REFINEMENT
-  virtual void appendToRefinement(const float *data, size_t dataSize) { refinementObjectSpace->append(data, dataSize); }
-  virtual void appendToRefinement(const double *data, size_t dataSize) { refinementObjectSpace->append(data, dataSize); }
-  virtual void appendToRefinement(const uint8_t *data, size_t dataSize) { refinementObjectSpace->append(data, dataSize); }
+  virtual void appendToRefinement(const float *data, size_t dataSize) {
+    refinementObjectSpace->append(data, dataSize);
+  }
+  virtual void appendToRefinement(const double *data, size_t dataSize) {
+    refinementObjectSpace->append(data, dataSize);
+  }
+  virtual void appendToRefinement(const uint8_t *data, size_t dataSize) {
+    refinementObjectSpace->append(data, dataSize);
+  }
 #ifdef NGT_HALF_FLOAT
-  virtual void appendToRefinement(const float16 *data, size_t dataSize) { refinementObjectSpace->append(data, dataSize); }
+  virtual void appendToRefinement(const float16 *data, size_t dataSize) {
+    refinementObjectSpace->append(data, dataSize);
+  }
 #endif
 #endif
 
@@ -1117,7 +1125,7 @@ class GraphIndex : public Index,
     Object *query = Index::allocateQuery(searchQuery);
     try {
       NGT::SearchQuery sc(searchQuery, *query);
-      GraphIndex::linearSearch(static_cast<SearchContainer&>(sc));
+      GraphIndex::linearSearch(static_cast<SearchContainer &>(sc));
       searchQuery.distanceComputationCount = sc.distanceComputationCount;
       searchQuery.visitCount               = sc.visitCount;
     } catch (Exception &err) {
@@ -1153,7 +1161,7 @@ class GraphIndex : public Index,
 #ifdef NGT_REFINEMENT
       auto expansion = searchQuery.getRefinementExpansion();
       if (expansion < 1.0 || !refinementObjectSpaceIsAvailable()) {
-        GraphIndex::search(static_cast<NGT::SearchContainer&>(sq));
+        GraphIndex::search(static_cast<NGT::SearchContainer &>(sq));
         searchQuery.workingResult = std::move(sq.workingResult);
       } else {
         size_t poffset = 12;
@@ -1163,7 +1171,7 @@ class GraphIndex : public Index,
         auto size = sq.size;
         sq.size *= expansion;
         try {
-          GraphIndex::search(static_cast<NGT::SearchContainer&>(sq));
+          GraphIndex::search(static_cast<NGT::SearchContainer &>(sq));
         } catch (Exception &err) {
           sq.size = size;
           throw err;
@@ -1228,7 +1236,7 @@ class GraphIndex : public Index,
         ros.deleteObject(robject);
       }
 #else
-      GraphIndex::search(static_cast<NGT::SearchContainer&>(sq));
+      GraphIndex::search(static_cast<NGT::SearchContainer &>(sq));
       searchQuery.workingResult = std::move(s.workingResult);
 #endif
       searchQuery.distanceComputationCount = sq.distanceComputationCount;
@@ -1315,7 +1323,7 @@ class GraphIndex : public Index,
     sc.explorationCoefficient = NeighborhoodGraph::property.insertionRadiusCoefficient;
     sc.insertion              = true;
     try {
-      GraphIndex::search(static_cast<NGT::SearchContainer&>(sc));
+      GraphIndex::search(static_cast<NGT::SearchContainer &>(sc));
     } catch (Exception &err) {
       throw err;
     }
@@ -1324,7 +1332,7 @@ class GraphIndex : public Index,
       if (sc.edgeSize != 0) {
         sc.edgeSize = 0; // not prune edges.
         try {
-          GraphIndex::search(static_cast<NGT::SearchContainer&>(sc));
+          GraphIndex::search(static_cast<NGT::SearchContainer &>(sc));
         } catch (Exception &err) {
           throw err;
         }
@@ -1594,9 +1602,7 @@ class GraphIndex : public Index,
   Object *allocateObject(const std::vector<double> &obj) {
     return objectSpace->allocateNormalizedObject(obj);
   }
-  Object *allocateObject(const std::vector<float> &obj) {
-    return objectSpace->allocateNormalizedObject(obj);
-  }
+  Object *allocateObject(const std::vector<float> &obj) { return objectSpace->allocateNormalizedObject(obj); }
 #ifdef NGT_HALF_FLOAT
   Object *allocateObject(const std::vector<float16> &obj) {
     return objectSpace->allocateNormalizedObject(obj);
@@ -1751,9 +1757,9 @@ class GraphAndTreeIndex : public GraphIndex, public DVPTree {
   void alignObjects() {}
 #else
   void alignObjects() {
-    NGT::ObjectSpace &space = getObjectSpace();
+    NGT::ObjectSpace &space     = getObjectSpace();
     NGT::ObjectRepository &repo = space.getRepository();
-    Object **object = repo.getPtr();
+    Object **object             = repo.getPtr();
     std::vector<bool> exist(repo.size(), false);
     std::vector<NGT::Node::ID> leafNodeIDs;
     DVPTree::getAllLeafNodeIDs(leafNodeIDs);
@@ -1771,9 +1777,9 @@ class GraphAndTreeIndex : public GraphIndex, public DVPTree {
       for (size_t id = 1; id < exist.size(); id++) {
         if (!exist[id]) {
           DVPTree::SearchContainer tso(*object[id]);
-          tso.mode = DVPTree::SearchContainer::SearchLeaf;
+          tso.mode   = DVPTree::SearchContainer::SearchLeaf;
           tso.radius = 0.0;
-          tso.size = 1;
+          tso.size   = 1;
           try {
             DVPTree::search(tso);
           } catch (Exception &err) {
@@ -1848,7 +1854,7 @@ class GraphAndTreeIndex : public GraphIndex, public DVPTree {
         continue;
       }
       size_t id = startID;
-      tmpPtr = object[id];
+      tmpPtr    = object[id];
       uncopiedObjects.erase(id);
       do {
         object[id] = object[order[id - 1].second];
@@ -2043,7 +2049,7 @@ class GraphAndTreeIndex : public GraphIndex, public DVPTree {
     sc.useAllNodesInLeaf      = true;
     sc.insertion              = true;
     try {
-       GraphAndTreeIndex::search(static_cast<NGT::SearchContainer&>(sc));
+      GraphAndTreeIndex::search(static_cast<NGT::SearchContainer &>(sc));
     } catch (Exception &err) {
       throw err;
     }
@@ -2051,7 +2057,7 @@ class GraphAndTreeIndex : public GraphIndex, public DVPTree {
         result.size() < repository.size()) {
       if (sc.edgeSize != 0) {
         try {
-          GraphAndTreeIndex::search(static_cast<NGT::SearchContainer&>(sc));
+          GraphAndTreeIndex::search(static_cast<NGT::SearchContainer &>(sc));
         } catch (Exception &err) {
           throw err;
         }
@@ -2215,7 +2221,7 @@ class GraphAndTreeIndex : public GraphIndex, public DVPTree {
 #ifdef NGT_REFINEMENT
       auto expansion = searchQuery.getRefinementExpansion();
       if (expansion < 1.0 || !refinementObjectSpaceIsAvailable()) {
-        GraphAndTreeIndex::search(static_cast<NGT::SearchContainer&>(sq));
+        GraphAndTreeIndex::search(static_cast<NGT::SearchContainer &>(sq));
         searchQuery.workingResult = std::move(sq.workingResult);
       } else {
         size_t poffset = 12;
@@ -2225,7 +2231,7 @@ class GraphAndTreeIndex : public GraphIndex, public DVPTree {
         auto size = sq.size;
         sq.size *= expansion;
         try {
-          GraphAndTreeIndex::search(static_cast<NGT::SearchContainer&>(sq));
+          GraphAndTreeIndex::search(static_cast<NGT::SearchContainer &>(sq));
         } catch (Exception &err) {
           sq.size = size;
           throw err;
@@ -2279,7 +2285,7 @@ class GraphAndTreeIndex : public GraphIndex, public DVPTree {
               MemoryCache::prefetch(static_cast<uint8_t *>(ptr), psize);
 #endif
             }
-            auto &r = rs[idx];
+            auto &r    = rs[idx];
             r.distance = comparator(*robject, *rrepo.get(r.id));
             searchQuery.workingResult.emplace(r);
           }
@@ -2298,12 +2304,12 @@ class GraphAndTreeIndex : public GraphIndex, public DVPTree {
     } catch (Exception &err) {
       if (query != 0) {
 #ifdef NGT_PQ4
-       if (getObjectSpace().pq4IsEnabled() & readOnly) {
-         getObjectSpace().getQuantizer().destructQueryObject(query->getPointer());
-         query->detach();
-       }
+        if (getObjectSpace().pq4IsEnabled() & readOnly) {
+          getObjectSpace().getQuantizer().destructQueryObject(query->getPointer());
+          query->detach();
+        }
 #endif
-       deleteObject(query);
+        deleteObject(query);
       }
       throw err;
     }

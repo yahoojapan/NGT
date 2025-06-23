@@ -62,9 +62,7 @@ class DVPTree {
     RemoveContainer(Object &f, ObjectID i) : Container(f, i) {}
   };
 
-  DVPTree() {
-    initialize();
-  }
+  DVPTree() { initialize(); }
 
   virtual ~DVPTree() {
 #ifndef NGT_SHARED_MEMORY_ALLOCATOR
@@ -274,7 +272,7 @@ class DVPTree {
       r.id       = ln.getObjectIDs(leafNodes.allocator)[i].id;
       r.distance = ln.getObjectIDs(leafNodes.allocator)[i].distance;
 #else
-      r.id = ln.getObjectIDs()[i].id;
+      r.id       = ln.getObjectIDs()[i].id;
       r.distance = ln.getObjectIDs()[i].distance;
 #endif
       rl.push_back(r);

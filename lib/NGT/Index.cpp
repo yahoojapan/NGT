@@ -1218,9 +1218,9 @@ void NGT::GraphIndex::loadIndex(const string &ifile, bool readOnly, NGT::Index::
     try {
 #ifdef NGT_GRAPH_READ_ONLY_GRAPH
       if (readOnly) {
-	GraphIndex::NeighborhoodGraph::loadSearchGraph(ifile);
+        GraphIndex::NeighborhoodGraph::loadSearchGraph(ifile);
       } else {
-	loadGraph(ifile, repository);
+        loadGraph(ifile, repository);
         checkEdgeLengths(1000);
       }
 #else
@@ -1516,7 +1516,7 @@ static size_t searchMultipleQueryForCreation(GraphIndex &neighborhoodGraph, NGT:
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
     job.object = neighborhoodGraph.objectSpace->allocateObject(*repo[oid]);
 #else
-    job.object          = repo[oid];
+    job.object = repo[oid];
 #endif
     job.batchIdx = cnt;
     threads.pushInputQueue(job);
@@ -1571,7 +1571,7 @@ static void insertMultipleSearchResults(GraphIndex &neighborhoodGraph,
         objs.resize(size);
       }
     } // for (size_t idxi ....
-  }   // if (neighborhoodGraph.graphType == NeighborhoodGraph::GraphTypeUDNNG)
+  } // if (neighborhoodGraph.graphType == NeighborhoodGraph::GraphTypeUDNNG)
   // insert resultant objects into the graph as edges
   for (size_t i = 0; i < dataSize; i++) {
     CreateIndexJob &gr = output[i];
@@ -1712,9 +1712,9 @@ bool NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode
   indegree.resize(graph.size());
   size_t removedObjectCount = 0;
   bool valid                = true;
-  auto &comparator = outGraph.objectSpace->getComparator();
-  size_t nOfEdges = 0;
-  size_t nOfDifferentEdges = 0;
+  auto &comparator          = outGraph.objectSpace->getComparator();
+  size_t nOfEdges           = 0;
+  size_t nOfDifferentEdges  = 0;
   for (size_t id = 1; id < graph.size(); id++) {
     if (repo[id] == 0) {
       removedObjectCount++;
@@ -1780,9 +1780,8 @@ bool NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode
             nOfDifferentEdges++;
             if (mode == 'D') {
               std::cerr << "The current edge length is different from the indexed length. "
-                        << std::setprecision(15) << d << ":" << n.distance
-                        << std::setprecision(6) << " " << nOfDifferentEdges
-                        << "/" << nOfEdges << std::endl;
+                        << std::setprecision(15) << d << ":" << n.distance << std::setprecision(6) << " "
+                        << nOfDifferentEdges << "/" << nOfEdges << std::endl;
             }
           }
         }
@@ -2068,8 +2067,8 @@ bool NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode
   std::cerr << "The mean of the edge lengths for 10 edges:\t" << std::setprecision(10) << distance10 << "/"
             << d10count << std::endl;
   if (mode == 'd' || mode == 'D') {
-    std::cerr << "The number of the different length edges:\t" << nOfDifferentEdges 
-              << "/" << nOfEdges << std::endl;
+    std::cerr << "The number of the different length edges:\t" << nOfDifferentEdges << "/" << nOfEdges
+              << std::endl;
   }
   std::cerr
       << "#-nodes,#-edges,#-no-indegree,avg-edges,avg-dist,max-out,min-out,v-out,max-in,min-in,v-in,med-out,"

@@ -1536,8 +1536,8 @@ template <class TYPE> class DynamicLengthVector {
     if (vector != 0) {
       delete[] vector;
     }
-    vector = 0;
-    vectorSize = 0;
+    vector        = 0;
+    vectorSize    = 0;
     allocatedSize = 0;
   }
 
@@ -1600,7 +1600,7 @@ template <class TYPE> class DynamicLengthVector {
     }
     off_t oft = i - begin();
     extend();
-    i = begin() + oft;
+    i          = begin() + oft;
     iterator b = begin();
     for (iterator ci = end(); ci > i && ci != b; ci--) {
       copy(*ci, *(ci - 1));
@@ -2370,11 +2370,9 @@ class Container {
   Container(Object &o, ObjectID i) : object(o), id(i) {}
   Container(ObjectID i) : object(emptyObject()), id(i) {}
   Container(Container &c) : object(c.object), id(c.id) {}
-  bool isEmptyObject() const {
-    return &object == &emptyObject();
-  }
-  static Object& emptyObject() {
-    auto *objptr = reinterpret_cast<Object*>(0);
+  bool isEmptyObject() const { return &object == &emptyObject(); }
+  static Object &emptyObject() {
+    auto *objptr = reinterpret_cast<Object *>(0);
     return *objptr;
   }
   Object &object;
@@ -2507,19 +2505,19 @@ class QueryContainer {
  public:
   template <typename QTYPE> QueryContainer(const std::vector<QTYPE> &q) : query(0) { setQuery(q); }
   QueryContainer(const QueryContainer &qc) {
-    dimension = qc.dimension;
-    queryType = qc.queryType;
+    dimension   = qc.dimension;
+    queryType   = qc.queryType;
     floatVector = 0;
     if (*queryType == typeid(float)) {
-      floatVector = new std::vector<float>(*(static_cast<std::vector<float>*>(qc.query)));
-      query = floatVector;
+      floatVector = new std::vector<float>(*(static_cast<std::vector<float> *>(qc.query)));
+      query       = floatVector;
     } else if (*queryType == typeid(double)) {
-      query = new std::vector<double>(*(static_cast<std::vector<double>*>(qc.query)));
+      query = new std::vector<double>(*(static_cast<std::vector<double> *>(qc.query)));
     } else if (*queryType == typeid(uint8_t)) {
-      query = new std::vector<uint8_t>(*(static_cast<std::vector<uint8_t>*>(qc.query)));
+      query = new std::vector<uint8_t>(*(static_cast<std::vector<uint8_t> *>(qc.query)));
 #ifdef NGT_HALF_FLOAT
     } else if (*queryType == typeid(float16)) {
-      query = new std::vector<float16>(*(static_cast<std::vector<float16>*>(qc.query)));
+      query = new std::vector<float16>(*(static_cast<std::vector<float16> *>(qc.query)));
 #endif
     }
 #ifdef NGT_REFINEMENT
@@ -2549,7 +2547,7 @@ class QueryContainer {
     query     = new std::vector<QTYPE>(q);
     dimension = q.size();
     if (typeid(QTYPE) == typeid(float)) {
-      floatVector = static_cast<std::vector<float>*>(query);
+      floatVector = static_cast<std::vector<float> *>(query);
     } else {
       floatVector = 0;
     }
@@ -2614,8 +2612,8 @@ class QueryContainer {
 class SearchQuery : public NGT::SearchContainer, public NGT::QueryContainer {
  public:
   template <typename QTYPE> SearchQuery(const std::vector<QTYPE> &q) : NGT::QueryContainer(q) {}
-  SearchQuery(SearchQuery &sq, Object &o):
-    SearchContainer(static_cast<SearchContainer&>(sq), o), QueryContainer(sq) {}
+  SearchQuery(SearchQuery &sq, Object &o)
+      : SearchContainer(static_cast<SearchContainer &>(sq), o), QueryContainer(sq) {}
 };
 
 class InsertContainer : public Container {

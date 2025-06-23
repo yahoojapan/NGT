@@ -80,8 +80,8 @@ class Command {
       trial      = args.getl("t", 1);
       {
         beginOfEpsilon = endOfEpsilon = 0.1;
-        stepOfEpsilon = std::numeric_limits<float>::max();
-        std::string epsilon                           = args.getString("e", epsilonDefault.c_str());
+        stepOfEpsilon                 = std::numeric_limits<float>::max();
+        std::string epsilon           = args.getString("e", epsilonDefault.c_str());
         std::vector<std::string> tokens;
         NGT::Common::tokenize(epsilon, tokens, ":");
         if (tokens.size() >= 1) {
@@ -102,8 +102,8 @@ class Command {
 #ifdef NGT_REFINEMENT
       {
         beginOfRefinementExpansion = endOfRefinementExpansion = 0.0;
-        stepOfRefinementExpansion = std::numeric_limits<float>::max();
-        std::string refinement = args.getString("R", "0.0");
+        stepOfRefinementExpansion                             = std::numeric_limits<float>::max();
+        std::string refinement                                = args.getString("R", "0.0");
         std::vector<std::string> tokens;
         NGT::Common::tokenize(refinement, tokens, ":");
         if (tokens.size() >= 1) {
@@ -121,7 +121,8 @@ class Command {
         }
 
         if (beginOfEpsilon != endOfEpsilon && beginOfRefinementExpansion != endOfRefinementExpansion) {
-          NGTThrowException("ngt: Error: Cannot specify both epsilon range and refinementExpansion range simultaneously");
+          NGTThrowException(
+              "ngt: Error: Cannot specify both epsilon range and refinementExpansion range simultaneously");
         }
       }
 #endif

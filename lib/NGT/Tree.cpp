@@ -48,7 +48,7 @@ void DVPTree::insert(InsertContainer &iobj, LeafNode *leafNode) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
     Distance d = comparator(iobj.object, leaf.getPivot(*objectSpace));
 #else
-    Distance d                   = comparator(iobj.object, leaf.getPivot());
+    Distance d = comparator(iobj.object, leaf.getPivot());
 #endif
 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
@@ -61,11 +61,12 @@ void DVPTree::insert(InsertContainer &iobj, LeafNode *leafNode) {
       if (objects[i].distance == d) {
         Distance idd = 0.0;
         ObjectID loid;
-	if (getObjectRepository().isEmpty(objects[i].id)) {
-          std::cerr << "LeafNode::insert: Warning! Found the object that does not exist in the object repository. "
-                    << "ID=" << objects[i].id << ", leaf ID=" << leaf.id.getID() << std::endl;
-          std::cerr << "LeafNode::insert: Warning! Remove the object from the tree. ID="
-                    << objects[i].id << std::endl;
+        if (getObjectRepository().isEmpty(objects[i].id)) {
+          std::cerr
+              << "LeafNode::insert: Warning! Found the object that does not exist in the object repository. "
+              << "ID=" << objects[i].id << ", leaf ID=" << leaf.id.getID() << std::endl;
+          std::cerr << "LeafNode::insert: Warning! Remove the object from the tree. ID=" << objects[i].id
+                    << std::endl;
           try {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
             leaf.removeObject(objects[i].id, 0, leafNodes.allocator);
@@ -73,8 +74,8 @@ void DVPTree::insert(InsertContainer &iobj, LeafNode *leafNode) {
             leaf.removeObject(objects[i].id, 0);
 #endif
           } catch (Exception &e) {
-            std::cerr << "LeafNode::insert: Warning! Cannot remove the object from the tree. :" 
-                      << e.what() << std::endl;
+            std::cerr << "LeafNode::insert: Warning! Cannot remove the object from the tree. :" << e.what()
+                      << std::endl;
           }
           i--;
           continue;
@@ -87,8 +88,8 @@ void DVPTree::insert(InsertContainer &iobj, LeafNode *leafNode) {
             idd = comparator(iobj.object, *getObjectRepository().get(loid));
           }
         } catch (Exception &e) {
-          std::cerr << "LeafNode::insert: Warning! Cannot compare the objects. ID=" 
-                    << objects[i].id << ":" << loid << " :" << e.what() << endl;
+          std::cerr << "LeafNode::insert: Warning! Cannot compare the objects. ID=" << objects[i].id << ":"
+                    << loid << " :" << e.what() << endl;
           continue;
         }
         if (idd == 0.0) {
@@ -174,7 +175,7 @@ Node::ID DVPTree::recombineNodes(InsertContainer &ic, Node::Objects &fs, LeafNod
     ln[cid]->objectIDs.push_back(fid);
 #else
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    ln[cid]->getObjectIDs(leafNodes.allocator)[ln[cid]->objectSize].id = fs[0].id;
+    ln[cid]->getObjectIDs(leafNodes.allocator)[ln[cid]->objectSize].id         = fs[0].id;
     ln[cid]->getObjectIDs(leafNodes.allocator)[ln[cid]->objectSize++].distance = 0.0;
 #else
     ln[cid]->getObjectIDs()[ln[cid]->objectSize].id         = fs[0].id;
@@ -216,7 +217,7 @@ Node::ID DVPTree::recombineNodes(InsertContainer &ic, Node::Objects &fs, LeafNod
       ln[clusterID]->objectIDs.push_back(fid);
 #else
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-      ln[clusterID]->getObjectIDs(leafNodes.allocator)[ln[clusterID]->objectSize].id = fs[i].id;
+      ln[clusterID]->getObjectIDs(leafNodes.allocator)[ln[clusterID]->objectSize].id         = fs[i].id;
       ln[clusterID]->getObjectIDs(leafNodes.allocator)[ln[clusterID]->objectSize++].distance = ld;
 #else
       ln[clusterID]->getObjectIDs()[ln[clusterID]->objectSize].id         = fs[i].id;
@@ -285,7 +286,7 @@ void DVPTree::insertObject(InsertContainer &ic, LeafNode &leaf) {
     leaf.objectIDs.push_back(fid);
 #else
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    leaf.getObjectIDs(leafNodes.allocator)[leaf.objectSize].id = ic.id;
+    leaf.getObjectIDs(leafNodes.allocator)[leaf.objectSize].id         = ic.id;
     leaf.getObjectIDs(leafNodes.allocator)[leaf.objectSize++].distance = 0;
 #else
     leaf.getObjectIDs()[leaf.objectSize].id         = ic.id;
@@ -307,7 +308,7 @@ void DVPTree::insertObject(InsertContainer &ic, LeafNode &leaf) {
     std::sort(leaf.objectIDs.begin(), leaf.objectIDs.end(), LeafNode::ObjectIDs());
 #else
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-    leaf.getObjectIDs(leafNodes.allocator)[leaf.objectSize].id = ic.id;
+    leaf.getObjectIDs(leafNodes.allocator)[leaf.objectSize].id         = ic.id;
     leaf.getObjectIDs(leafNodes.allocator)[leaf.objectSize++].distance = d;
 #else
     leaf.getObjectIDs()[leaf.objectSize].id         = ic.id;
@@ -327,7 +328,7 @@ Node::Objects *DVPTree::getObjects(LeafNode &n, Container &iobj) {
     (*fs)[i].id     = n.getObjectIDs(leafNodes.allocator)[i].id;
 #else
     (*fs)[i].object = getObjectRepository().get(n.getObjectIDs()[i].id);
-    (*fs)[i].id = n.getObjectIDs()[i].id;
+    (*fs)[i].id     = n.getObjectIDs()[i].id;
 #endif
   }
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR

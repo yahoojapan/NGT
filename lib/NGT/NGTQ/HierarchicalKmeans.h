@@ -998,8 +998,8 @@ class HierarchicalKmeans {
 #endif
       if (!stat) {
         std::stringstream msg;
-	msg << "Cannot get the object from the object list file. ID=" << id;
-	NGTThrowException(msg);
+        msg << "Cannot get the object from the object list file. ID=" << id;
+        NGTThrowException(msg);
       }
       float min  = std::numeric_limits<float>::max();
       int minidx = -1;
@@ -1272,16 +1272,16 @@ class HierarchicalKmeans {
     if (numOfClusters == 0) {
       NGTThrowException("HierachicalKmeans:: # of clusters is zero.");
     }
-    size_t numOfFirstClusters = sqrt(numOfClusters);
-    size_t numOfFirstObjects  = sqrt(vectors.size());
-    numOfFirstObjects         = numOfObjectsForEachFirstCluster == 0
-                            ? numOfFirstObjects
-                            : numOfFirstClusters * numOfObjectsForEachFirstCluster;
+    size_t numOfFirstClusters  = sqrt(numOfClusters);
+    size_t numOfFirstObjects   = sqrt(vectors.size());
+    numOfFirstObjects          = numOfObjectsForEachFirstCluster == 0
+                                     ? numOfFirstObjects
+                                     : numOfFirstClusters * numOfObjectsForEachFirstCluster;
     size_t numOfSecondClusters = numOfClusters;
     size_t numOfSecondObjects  = vectors.size();
     numOfSecondObjects         = numOfObjectsForEachSecondCluster == 0
-                             ? numOfSecondObjects
-                             : numOfSecondClusters * numOfObjectsForEachSecondCluster;
+                                     ? numOfSecondObjects
+                                     : numOfSecondClusters * numOfObjectsForEachSecondCluster;
     //auto &quantizer = static_cast<NGTQ::QuantizerInstance<uint8_t>&>(index.getQuantizer());
     //auto &objectSpace = quantizer.globalCodebookIndex.getObjectSpace();
     size_t numOfObjects = vectors.size();

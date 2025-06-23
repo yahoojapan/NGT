@@ -74,91 +74,89 @@ class GraphReconstructor {
     std::cerr << "construct index is not implemented." << std::endl;
     exit(1);
 #else
-  NGT::GraphIndex &outGraph = dynamic_cast<NGT::GraphIndex &>(outIndex.getIndex());
-  size_t rStartRank = 0;
-  std::list<std::pair<size_t, NGT::GraphNode>> tmpGraph;
-  for (size_t id = 1; id < outGraph.repository.size(); id++) {
-    NGT::GraphNode &node = *outGraph.getNode(id);
-    tmpGraph.push_back(std::pair<size_t, NGT::GraphNode>(id, node));
-    if (node.size() > rStartRank) {
-      node.resize(rStartRank);
-    }
-  }
-  size_t removeCount = 0;
-  for (size_t rank = rStartRank;; rank++) {
-    bool edge = false;
-    Timer timer;
-    for (auto it = tmpGraph.begin(); it != tmpGraph.end();) {
-      size_t id = (*it).first;
-      try {
-        NGT::GraphNode &node = (*it).second;
-        if (rank >= node.size()) {
-          it = tmpGraph.erase(it);
-          continue;
-        }
-        edge = true;
-        if (rank >= 1 && node[rank - 1].distance > node[rank].distance) {
-          std::cerr << "distance order is wrong!" << std::endl;
-          std::cerr << id << ":" << rank << ":" << node[rank - 1].id << ":" << node[rank].id << std::endl;
-        }
-        NGT::GraphNode &tn = *outGraph.getNode(id);
-        volatile bool found = false;
-        if (rank < 1000) {
-          for (size_t tni = 0; tni < tn.size() && !found; tni++) {
-            if (tn[tni].id == node[rank].id) {
-              continue;
-            }
-            NGT::GraphNode &dstNode = *outGraph.getNode(tn[tni].id);
-            for (size_t dni = 0; dni < dstNode.size(); dni++) {
-                if ((dstNode[dni].id == node[rank].id) && (dstNode[dni].distance < node[rank].distance)) {
-              found = true;
-              break;
-            }
-          }
-        }
+    NGT::GraphIndex &outGraph = dynamic_cast<NGT::GraphIndex &>(outIndex.getIndex());
+    size_t rStartRank = 0;
+    std::list<std::pair<size_t, NGT::GraphNode>> tmpGraph;
+    for (size_t id = 1; id < outGraph.repository.size(); id++) {
+      NGT::GraphNode &node = *outGraph.getNode(id);
+      tmpGraph.push_back(std::pair<size_t, NGT::GraphNode>(id, node));
+      if (node.size() > rStartRank) {
+        node.resize(rStartRank);
       }
-      else {
+    }
+    size_t removeCount = 0;
+    for (size_t rank = rStartRank;; rank++) {
+      bool edge = false;
+      Timer timer;
+      for (auto it = tmpGraph.begin(); it != tmpGraph.end();) {
+        size_t id = (*it).first;
+        try {
+          NGT::GraphNode &node = (*it).second;
+          if (rank >= node.size()) {
+            it = tmpGraph.erase(it);
+            continue;
+          }
+          edge = true;
+          if (rank >= 1 && node[rank - 1].distance > node[rank].distance) {
+            std::cerr << "distance order is wrong!" << std::endl;
+            std::cerr << id << ":" << rank << ":" << node[rank - 1].id << ":" << node[rank].id << std::endl;
+          }
+          NGT::GraphNode &tn = *outGraph.getNode(id);
+          volatile bool found = false;
+          if (rank < 1000) {
+            for (size_t tni = 0; tni < tn.size() && !found; tni++) {
+              if (tn[tni].id == node[rank].id) {
+                continue;
+              }
+              NGT::GraphNode &dstNode = *outGraph.getNode(tn[tni].id);
+              for (size_t dni = 0; dni < dstNode.size(); dni++) {
+                if ((dstNode[dni].id == node[rank].id) && (dstNode[dni].distance < node[rank].distance)) {
+                  found = true;
+                  break;
+                }
+              }
+            }
+          } else {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(10)
 #endif
-        for (size_t tni = 0; tni < tn.size(); tni++) {
-          if (found) {
-            continue;
-          }
-          if (tn[tni].id == node[rank].id) {
-            continue;
-          }
-          NGT::GraphNode &dstNode = *outGraph.getNode(tn[tni].id);
-          for (size_t dni = 0; dni < dstNode.size(); dni++) {
+            for (size_t tni = 0; tni < tn.size(); tni++) {
+              if (found) {
+                continue;
+              }
+              if (tn[tni].id == node[rank].id) {
+                continue;
+              }
+              NGT::GraphNode &dstNode = *outGraph.getNode(tn[tni].id);
+              for (size_t dni = 0; dni < dstNode.size(); dni++) {
                 if ((dstNode[dni].id == node[rank].id) && (dstNode[dni].distance < node[rank].distance)) {
-            found = true;
+                  found = true;
+                }
+              }
+            }
           }
+          if (!found) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+            outGraph.addEdge(id, node.at(i, outGraph.repository.allocator).id,
+                             node.at(i, outGraph.repository.allocator).distance, true);
+#else
+            tn.push_back(NGT::ObjectDistance(node[rank].id, node[rank].distance));
+#endif
+          } else {
+            removeCount++;
+          }
+        } catch (NGT::Exception &err) {
+          std::cerr << "GraphReconstructor: Warning. Cannot get the node. ID=" << id << ":" << err.what()
+                    << std::endl;
+          it++;
+          continue;
         }
+        it++;
+      }
+      if (edge == false) {
+        break;
       }
     }
-    if (!found) {
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-      outGraph.addEdge(id, node.at(i, outGraph.repository.allocator).id,
-                       node.at(i, outGraph.repository.allocator).distance, true);
-#else
-        tn.push_back(NGT::ObjectDistance(node[rank].id, node[rank].distance));
-#endif
-    } else {
-      removeCount++;
-    }
-  }
-  catch (NGT::Exception &err) {
-    std::cerr << "GraphReconstructor: Warning. Cannot get the node. ID=" << id << ":" << err.what()
-              << std::endl;
-    it++;
-    continue;
-  }
-  it++;
-}
-if (edge == false) {
-  break;
-}
-}
 #endif // NGT_SHARED_MEMORY_ALLOCATOR
   }
 
@@ -189,18 +187,18 @@ if (edge == false) {
   }
 
 #else
-static void insert(NGT::GraphNode &node, size_t edgeID, NGT::Distance edgeDistance) {
-  NGT::ObjectDistance edge(edgeID, edgeDistance);
-  GraphNode::iterator ni = std::lower_bound(node.begin(), node.end(), edge, edgeComp);
-  node.insert(ni, edge);
-}
+  static void insert(NGT::GraphNode &node, size_t edgeID, NGT::Distance edgeDistance) {
+    NGT::ObjectDistance edge(edgeID, edgeDistance);
+    GraphNode::iterator ni = std::lower_bound(node.begin(), node.end(), edge, edgeComp);
+    node.insert(ni, edge);
+  }
 
-static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) {
-  NGT::GraphNode &srcNode = *graph.getNode(srcNodeID);
-  GraphNode::iterator ni =
-      std::lower_bound(srcNode.begin(), srcNode.end(), ObjectDistance(dstNodeID, 0.0), edgeComp);
-  return (ni != srcNode.end()) && ((*ni).id == dstNodeID);
-}
+  static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) {
+    NGT::GraphNode &srcNode = *graph.getNode(srcNodeID);
+    GraphNode::iterator ni =
+        std::lower_bound(srcNode.begin(), srcNode.end(), ObjectDistance(dstNodeID, 0.0), edgeComp);
+    return (ni != srcNode.end()) && ((*ni).id == dstNodeID);
+  }
 #endif
 
   static void adjustPathsEffectively(NGT::GraphIndex &outGraph,
@@ -221,7 +219,7 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
         node.clear(outGraph.repository.allocator);
 #else
-      node.clear();
+        node.clear();
 #endif
       } catch (NGT::Exception &err) {
         std::cerr << "GraphReconstructor: Warning. Cannot get the node. ID=" << id << ":" << err.what()
@@ -229,7 +227,7 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
         tmpGraph.push_back(NGT::GraphNode(outGraph.repository.allocator));
 #else
-      tmpGraph.push_back(NGT::GraphNode());
+        tmpGraph.push_back(NGT::GraphNode());
 #endif
       }
     }
@@ -260,7 +258,7 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
           neighbors[srcNode.at(sni, outGraph.repository.allocator).id] =
               std::pair<uint32_t, float>(sni, srcNode.at(sni, outGraph.repository.allocator).distance);
 #else
-        neighbors[srcNode[sni].id] = std::pair<uint32_t, float>(sni, srcNode[sni].distance);
+          neighbors[srcNode[sni].id] = std::pair<uint32_t, float>(sni, srcNode[sni].distance);
 #endif
         }
 
@@ -269,13 +267,13 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
           NGT::GraphNode &pathNode = tmpGraph[srcNode.at(sni, outGraph.repository.allocator).id - 1];
 #else
-        NGT::GraphNode &pathNode = tmpGraph[srcNode[sni].id - 1];
+          NGT::GraphNode &pathNode = tmpGraph[srcNode[sni].id - 1];
 #endif
           for (size_t pni = 0; pni < pathNode.size(); pni++) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
             auto dstNodeID = pathNode.at(pni, outGraph.repository.allocator).id;
 #else
-          auto dstNodeID = pathNode[pni].id;
+            auto dstNodeID = pathNode[pni].id;
 #endif
             auto dstNode = neighbors.find(dstNodeID);
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
@@ -283,9 +281,9 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
                 && srcNode.at(sni, outGraph.repository.allocator).distance < (*dstNode).second.second
                 && pathNode.at(pni, outGraph.repository.allocator).distance < (*dstNode).second.second) {
 #else
-          if (dstNode != neighbors.end()
-              && srcNode[sni].distance < (*dstNode).second.second
-              && pathNode[pni].distance < (*dstNode).second.second) {
+            if (dstNode != neighbors.end()
+                && srcNode[sni].distance < (*dstNode).second.second
+                && pathNode[pni].distance < (*dstNode).second.second) {
 #endif
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
               candidates.push_back(std::pair<uint32_t, std::pair<uint32_t, uint32_t>>(
@@ -293,8 +291,8 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
                   std::pair<uint32_t, uint32_t>(srcNode.at(sni, outGraph.repository.allocator).id,
                                                 dstNodeID)));
 #else
-            candidates.push_back(std::pair<uint32_t, std::pair<uint32_t, uint32_t>>(
-                (*dstNode).second.first, std::pair<uint32_t, uint32_t>(srcNode[sni].id, dstNodeID)));
+              candidates.push_back(std::pair<uint32_t, std::pair<uint32_t, uint32_t>>(
+                  (*dstNode).second.first, std::pair<uint32_t, uint32_t>(srcNode[sni].id, dstNodeID)));
 #endif
               removeCandidateCount++;
             }
@@ -353,8 +351,8 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
             while (!removeCandidates[idx].empty() && (removeCandidates[idx].back().second ==
                                                       srcNode.at(rank, outGraph.repository.allocator).id)) {
 #else
-          while (!removeCandidates[idx].empty() &&
-                 (removeCandidates[idx].back().second == srcNode[rank].id)) {
+            while (!removeCandidates[idx].empty() &&
+                   (removeCandidates[idx].back().second == srcNode[rank].id)) {
 #endif
               size_t path = removeCandidates[idx].back().first;
               size_t dst  = removeCandidates[idx].back().second;
@@ -370,8 +368,8 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
                        (removeCandidates[idx].back().second ==
                         srcNode.at(rank, outGraph.repository.allocator).id)) {
 #else
-              while (!removeCandidates[idx].empty() &&
-                     (removeCandidates[idx].back().second == srcNode[rank].id)) {
+                while (!removeCandidates[idx].empty() &&
+                       (removeCandidates[idx].back().second == srcNode[rank].id)) {
 #endif
                   removeCandidates[idx].pop_back();
                   if (removeCandidates[idx].empty()) {
@@ -393,7 +391,7 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
           insert(outSrcNode, srcNode.at(rank, outGraph.repository.allocator).id,
                  srcNode.at(rank, outGraph.repository.allocator).distance, outGraph);
 #else
-        insert(outSrcNode, srcNode[rank].id, srcNode[rank].distance);
+          insert(outSrcNode, srcNode[rank].id, srcNode[rank].distance);
 #endif
         } catch (NGT::Exception &err) {
           std::cerr << "GraphReconstructor: Warning. Cannot get the node. ID=" << id << ":" << err.what()
@@ -410,7 +408,7 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
         std::sort(node.begin(outGraph.repository.allocator), node.end(outGraph.repository.allocator));
 #else
-      std::sort(node.begin(), node.end());
+        std::sort(node.begin(), node.end());
 #endif
       } catch (...) {
       }
@@ -444,7 +442,7 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
           auto &edge = node.at(rank, outGraph.repository.allocator);
 #else
-        auto &edge = node[rank];
+          auto &edge = node[rank];
 #endif
           if ((edge.id & 0x80000000) != 0) {
             std::stringstream msg;
@@ -492,8 +490,8 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
           auto dstNodeID       = srcNode.at(rank, outGraph.repository.allocator).id & 0x7FFFFFFF;
           auto dstNodeDistance = srcNode.at(rank, outGraph.repository.allocator).distance;
 #else
-        auto dstNodeID = srcNode[rank].id & 0x7FFFFFFF;
-        auto dstNodeDistance = srcNode[rank].distance;
+          auto dstNodeID       = srcNode[rank].id & 0x7FFFFFFF;
+          auto dstNodeDistance = srcNode[rank].distance;
 #endif
 #ifdef NGT_SHORTCUT_REDUCTION_WITH_ANGLE
           auto dstNodeDistance2 = dstNodeDistance * dstNodeDistance;
@@ -503,7 +501,7 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
             auto pathNodeID = srcNode.at(sni, outGraph.repository.allocator).id;
 #else
-          auto pathNodeID = srcNode[sni].id;
+            auto pathNodeID = srcNode[sni].id;
 #endif
             if ((pathNodeID & 0x80000000) != 0) continue;
 #ifdef NGT_SHORTCUT_REDUCTION_WITH_ANGLE
@@ -511,13 +509,13 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
             auto srcNodeDistance2 = srcNode.at(sni, outGraph.repository.allocator).distance *
                                     srcNode.at(sni, outGraph.repository.allocator).distance;
 #else
-          auto srcNodeDistance2 = srcNode[sni].distance * srcNode[sni].distance;
+            auto srcNodeDistance2 = srcNode[sni].distance * srcNode[sni].distance;
 #endif
 #else
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-          if (srcNode.at(sni, outGraph.repository.allocator).distance >= dstNodeDistance) continue;
+            if (srcNode.at(sni, outGraph.repository.allocator).distance >= dstNodeDistance) continue;
 #else
-          if (srcNode[sni].distance >= dstNodeDistance) continue;
+            if (srcNode[sni].distance >= dstNodeDistance) continue;
 #endif
 #endif
             NGT::GraphNode &pathNode = *outGraph.getNode(pathNodeID);
@@ -525,7 +523,7 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
               auto nodeID = pathNode.at(pni, outGraph.repository.allocator).id;
 #else
-            auto nodeID = pathNode[pni].id;
+              auto nodeID = pathNode[pni].id;
 #endif
               if ((nodeID & 0x80000000) != 0) continue;
               if (nodeID != dstNodeID) continue;
@@ -534,14 +532,14 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
               auto pathNodeDistance2 = pathNode.at(pni, outGraph.repository.allocator).distance *
                                        pathNode.at(pni, outGraph.repository.allocator).distance;
 #else
-            auto pathNodeDistance2 = pathNode[pni].distance * pathNode[pni].distance;
+              auto pathNodeDistance2 = pathNode[pni].distance * pathNode[pni].distance;
 #endif
               auto v1 = srcNodeDistance2 + pathNodeDistance2 - dstNodeDistance2;
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
               auto v2 = 2.0 * srcNode.at(sni, outGraph.repository.allocator).distance *
                         pathNode.at(pni, outGraph.repository.allocator).distance;
 #else
-            auto v2 = 2.0 * srcNode[sni].distance * pathNode[pni].distance;
+              auto v2 = 2.0 * srcNode[sni].distance * pathNode[pni].distance;
 #endif
               auto cosAlpha = v1 / v2;
               if (cosAlpha >= range) {
@@ -549,18 +547,18 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
               }
 #else
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-            if (pathNode.at(pni, outGraph.repository.allocator).distance >= dstNodeDistance) break;
+              if (pathNode.at(pni, outGraph.repository.allocator).distance >= dstNodeDistance) break;
 #else
-            if (pathNode[pni].distance >= dstNodeDistance) break;
+              if (pathNode[pni].distance >= dstNodeDistance) break;
 #endif
 #ifdef NGT_SHORTCUT_REDUCTION_WITH_ADDITIONAL_CONDITION
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-            if (srcNode.at(sni, outGraph.repository.allocator).distance +
-                    pathNode.at(pni, outGraph.repository.allocator).distance >=
-                dstNodeDistance * range)
-              break;
+              if (srcNode.at(sni, outGraph.repository.allocator).distance +
+                      pathNode.at(pni, outGraph.repository.allocator).distance >=
+                  dstNodeDistance * range)
+                break;
 #else
-              if (srcNode[sni].distance + pathNode[pni].distance >= dstNodeDistance * range) break;
+            if (srcNode[sni].distance + pathNode[pni].distance >= dstNodeDistance * range) break;
 #endif
 #endif
 #endif
@@ -574,7 +572,7 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
             srcNode.at(rank, outGraph.repository.allocator).id &= 0x7FFFFFFF;
 #else
-          srcNode[rank].id &= 0x7FFFFFFF;
+            srcNode[rank].id &= 0x7FFFFFFF;
 #endif
           }
         } catch (NGT::Exception &err) {
@@ -591,10 +589,10 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
         std::cerr << "Not implemented yet." << std::endl;
         abort();
 #else
-      NGT::GraphNode &node = *outGraph.getNode(id);
-      node.erase(std::remove_if(node.begin(), node.end(),
-                                [](NGT::ObjectDistance &n) { return (n.id & 0x80000000) != 0; }),
-                 node.end());
+        NGT::GraphNode &node = *outGraph.getNode(id);
+        node.erase(std::remove_if(node.begin(), node.end(),
+                                  [](NGT::ObjectDistance &n) { return (n.id & 0x80000000) != 0; }),
+                   node.end());
 #endif
       } catch (...) {
       }
@@ -626,32 +624,32 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
     std::cerr << "convertToANNG is not implemented for shared memory." << std::endl;
     return;
 #else
-  std::cerr << "convertToANNG begin" << std::endl;
-  for (size_t idx = 0; idx < graph.size(); idx++) {
-    NGT::GraphNode &node = graph[idx];
-    for (auto ni = node.begin(); ni != node.end(); ++ni) {
-      graph[(*ni).id - 1].push_back(NGT::ObjectDistance(idx + 1, (*ni).distance));
+    std::cerr << "convertToANNG begin" << std::endl;
+    for (size_t idx = 0; idx < graph.size(); idx++) {
+      NGT::GraphNode &node = graph[idx];
+      for (auto ni = node.begin(); ni != node.end(); ++ni) {
+        graph[(*ni).id - 1].push_back(NGT::ObjectDistance(idx + 1, (*ni).distance));
+      }
     }
-  }
-  for (size_t idx = 0; idx < graph.size(); idx++) {
-    NGT::GraphNode &node = graph[idx];
-    if (node.size() == 0) {
-      continue;
-    }
-    std::sort(node.begin(), node.end());
-    NGT::ObjectID prev = 0;
-    for (auto it = node.begin(); it != node.end();) {
-      if (prev == (*it).id) {
-        it = node.erase(it);
+    for (size_t idx = 0; idx < graph.size(); idx++) {
+      NGT::GraphNode &node = graph[idx];
+      if (node.size() == 0) {
         continue;
       }
-      prev = (*it).id;
-      it++;
+      std::sort(node.begin(), node.end());
+      NGT::ObjectID prev = 0;
+      for (auto it = node.begin(); it != node.end();) {
+        if (prev == (*it).id) {
+          it = node.erase(it);
+          continue;
+        }
+        prev = (*it).id;
+        it++;
+      }
+      NGT::GraphNode tmp = node;
+      node.swap(tmp);
     }
-    NGT::GraphNode tmp = node;
-    node.swap(tmp);
-  }
-  std::cerr << "convertToANNG end" << std::endl;
+    std::cerr << "convertToANNG end" << std::endl;
 #endif
   }
 
@@ -681,8 +679,8 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
           node.clear(outGraph.repository.allocator);
 #else
-        NGT::GraphNode empty;
-        node.swap(empty);
+          NGT::GraphNode empty;
+          node.swap(empty);
 #endif
         } else {
           NGT::ObjectDistances n = graph[id - 1];
@@ -701,7 +699,7 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
           node.copy(n, outGraph.repository.allocator);
 #else
-        node.swap(n);
+          node.swap(n);
 #endif
         }
       } catch (NGT::Exception &err) {
@@ -746,19 +744,19 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
             n.push_back(NGT::ObjectDistance(id, distance), outGraph.repository.allocator);
 #else
-          if (static_cast<int64_t>(n.size()) >= maxNoOfEdges) {
-            if ((n.back().distance > distance) || (n.back().distance == distance && n.back().id > nodeID)) {
-              NGT::ObjectDistance obj(id, distance);
-              auto ni = std::lower_bound(n.begin(), n.end(), obj);
-              n.insert(ni, obj);
-              n.resize(maxNoOfEdges);
-            }
-          } else {
-            n.emplace_back(NGT::ObjectDistance(id, distance));
             if (static_cast<int64_t>(n.size()) >= maxNoOfEdges) {
-              std::sort(n.begin(), n.end());
+              if ((n.back().distance > distance) || (n.back().distance == distance && n.back().id > nodeID)) {
+                NGT::ObjectDistance obj(id, distance);
+                auto ni = std::lower_bound(n.begin(), n.end(), obj);
+                n.insert(ni, obj);
+                n.resize(maxNoOfEdges);
+              }
+            } else {
+              n.emplace_back(NGT::ObjectDistance(id, distance));
+              if (static_cast<int64_t>(n.size()) >= maxNoOfEdges) {
+                std::sort(n.begin(), n.end());
+              }
             }
-          }
 #endif
           } catch (...) {
           }
@@ -786,19 +784,19 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
         std::sort(n.begin(outGraph.repository.allocator), n.end(outGraph.repository.allocator));
 #else
-      std::sort(n.begin(), n.end());
+        std::sort(n.begin(), n.end());
 #endif
         NGT::ObjectID prev = 0;
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
         for (auto it = n.begin(outGraph.repository.allocator); it != n.end(outGraph.repository.allocator);) {
 #else
-      for (auto it = n.begin(); it != n.end();) {
+        for (auto it = n.begin(); it != n.end();) {
 #endif
           if (prev == (*it).id) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
             it = n.erase(it, outGraph.repository.allocator);
 #else
-          it = n.erase(it);
+            it = n.erase(it);
 #endif
             continue;
           }
@@ -835,148 +833,148 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
     abort();
 #else
 
-  NGT::Timer originalEdgeTimer, reverseEdgeTimer, normalizeEdgeTimer;
+    NGT::Timer originalEdgeTimer, reverseEdgeTimer, normalizeEdgeTimer;
 
-  if (reverseEdgeSize > 10000) {
-    std::cerr << "something wrong. Edge size=" << reverseEdgeSize << std::endl;
-    exit(1);
-  }
-
-  for (size_t id = 1; id < outGraph.repository.size(); id++) {
-    if (id % 1000000 == 0) {
-      std::cerr << "Processed " << id << std::endl;
+    if (reverseEdgeSize > 10000) {
+      std::cerr << "something wrong. Edge size=" << reverseEdgeSize << std::endl;
+      exit(1);
     }
-    try {
-      NGT::GraphNode &node = *outGraph.getNode(id);
-      if (node.size() == 0) {
-        continue;
-      }
-      node.clear();
-      NGT::GraphNode empty;
-      node.swap(empty);
-    } catch (NGT::Exception &err) {
-      std::cerr << "GraphReconstructor: Warning. Cannot get the node. ID=" << id << ":" << err.what()
-                << std::endl;
-      continue;
-    }
-  }
-  NGT::GraphIndex::showStatisticsOfGraph(outGraph);
 
-  std::vector<ObjectDistances> reverse(graph.size() + 1);
-  for (size_t id = 1; id <= graph.size(); ++id) {
-    try {
-      NGT::GraphNode &node = graph[id - 1];
-      if (id % 100000 == 0) {
-        std::cerr << "Processed (summing up) " << id << std::endl;
-      }
-      for (size_t rank = 0; rank < node.size(); rank++) {
-        reverse[node[rank].id].push_back(ObjectDistance(id, node[rank].distance));
-      }
-    } catch (NGT::Exception &err) {
-      std::cerr << "GraphReconstructor: Warning. Cannot get the node. ID=" << id << ":" << err.what()
-                << std::endl;
-      continue;
-    }
-  }
-
-  std::vector<std::pair<size_t, size_t>> reverseSize(graph.size() + 1);
-  reverseSize[0] = std::pair<size_t, size_t>(0, 0);
-  for (size_t rid = 1; rid <= graph.size(); ++rid) {
-    reverseSize[rid] = std::pair<size_t, size_t>(reverse[rid].size(), rid);
-  }
-  std::sort(reverseSize.begin(), reverseSize.end());
-
-
-  std::vector<uint32_t> indegreeCount(graph.size(), 0);
-  size_t zeroCount = 0;
-  for (size_t sizerank = 0; sizerank <= reverseSize.size(); sizerank++) {
-
-    if (reverseSize[sizerank].first == 0) {
-      zeroCount++;
-      continue;
-    }
-    size_t rid = reverseSize[sizerank].second;
-    ObjectDistances &rnode = reverse[rid];
-    for (auto rni = rnode.begin(); rni != rnode.end(); ++rni) {
-      if (indegreeCount[(*rni).id] >= reverseEdgeSize) {
-        continue;
-      }
-      NGT::GraphNode &node = *outGraph.getNode(rid);
-      if (indegreeCount[(*rni).id] > 0 && node.size() >= originalEdgeSize) {
-        continue;
-      }
-
-      node.push_back(NGT::ObjectDistance((*rni).id, (*rni).distance));
-      indegreeCount[(*rni).id]++;
-    }
-  }
-  reverseEdgeTimer.stop();
-  std::cerr << "The number of nodes with zero outdegree by reverse edges=" << zeroCount << std::endl;
-  NGT::GraphIndex::showStatisticsOfGraph(outGraph);
-
-  normalizeEdgeTimer.start();
-  for (size_t id = 1; id < outGraph.repository.size(); id++) {
-    try {
-      NGT::GraphNode &n = *outGraph.getNode(id);
-      if (id % 100000 == 0) {
+    for (size_t id = 1; id < outGraph.repository.size(); id++) {
+      if (id % 1000000 == 0) {
         std::cerr << "Processed " << id << std::endl;
       }
-      std::sort(n.begin(), n.end());
-      NGT::ObjectID prev = 0;
-      for (auto it = n.begin(); it != n.end();) {
-        if (prev == (*it).id) {
-          it = n.erase(it);
+      try {
+        NGT::GraphNode &node = *outGraph.getNode(id);
+        if (node.size() == 0) {
           continue;
         }
-        prev = (*it).id;
-        it++;
+        node.clear();
+        NGT::GraphNode empty;
+        node.swap(empty);
+      } catch (NGT::Exception &err) {
+        std::cerr << "GraphReconstructor: Warning. Cannot get the node. ID=" << id << ":" << err.what()
+                  << std::endl;
+        continue;
       }
-      NGT::GraphNode tmp = n;
-      n.swap(tmp);
-    } catch (NGT::Exception &err) {
-      std::cerr << "GraphReconstructor: Warning. Cannot get the node. ID=" << id << ":" << err.what()
-                << std::endl;
-      continue;
     }
-  }
-  normalizeEdgeTimer.stop();
-  NGT::GraphIndex::showStatisticsOfGraph(outGraph);
+    NGT::GraphIndex::showStatisticsOfGraph(outGraph);
 
-  originalEdgeTimer.start();
-  for (size_t id = 1; id < outGraph.repository.size(); id++) {
-    if (id % 1000000 == 0) {
-      std::cerr << "Processed " << id << std::endl;
+    std::vector<ObjectDistances> reverse(graph.size() + 1);
+    for (size_t id = 1; id <= graph.size(); ++id) {
+      try {
+        NGT::GraphNode &node = graph[id - 1];
+        if (id % 100000 == 0) {
+          std::cerr << "Processed (summing up) " << id << std::endl;
+        }
+        for (size_t rank = 0; rank < node.size(); rank++) {
+          reverse[node[rank].id].push_back(ObjectDistance(id, node[rank].distance));
+        }
+      } catch (NGT::Exception &err) {
+        std::cerr << "GraphReconstructor: Warning. Cannot get the node. ID=" << id << ":" << err.what()
+                  << std::endl;
+        continue;
+      }
     }
-    NGT::GraphNode &node = graph[id - 1];
-    try {
-      NGT::GraphNode &onode = *outGraph.getNode(id);
-      bool stop = false;
-      for (size_t rank = 0; (rank < node.size() && rank < originalEdgeSize) && stop == false; rank++) {
-        switch (mode) {
-        case 'a':
-          if (onode.size() >= originalEdgeSize) {
-            stop = true;
+
+    std::vector<std::pair<size_t, size_t>> reverseSize(graph.size() + 1);
+    reverseSize[0] = std::pair<size_t, size_t>(0, 0);
+    for (size_t rid = 1; rid <= graph.size(); ++rid) {
+      reverseSize[rid] = std::pair<size_t, size_t>(reverse[rid].size(), rid);
+    }
+    std::sort(reverseSize.begin(), reverseSize.end());
+
+
+    std::vector<uint32_t> indegreeCount(graph.size(), 0);
+    size_t zeroCount = 0;
+    for (size_t sizerank = 0; sizerank <= reverseSize.size(); sizerank++) {
+
+      if (reverseSize[sizerank].first == 0) {
+        zeroCount++;
+        continue;
+      }
+      size_t rid             = reverseSize[sizerank].second;
+      ObjectDistances &rnode = reverse[rid];
+      for (auto rni = rnode.begin(); rni != rnode.end(); ++rni) {
+        if (indegreeCount[(*rni).id] >= reverseEdgeSize) {
+          continue;
+        }
+        NGT::GraphNode &node = *outGraph.getNode(rid);
+        if (indegreeCount[(*rni).id] > 0 && node.size() >= originalEdgeSize) {
+          continue;
+        }
+
+        node.push_back(NGT::ObjectDistance((*rni).id, (*rni).distance));
+        indegreeCount[(*rni).id]++;
+      }
+    }
+    reverseEdgeTimer.stop();
+    std::cerr << "The number of nodes with zero outdegree by reverse edges=" << zeroCount << std::endl;
+    NGT::GraphIndex::showStatisticsOfGraph(outGraph);
+
+    normalizeEdgeTimer.start();
+    for (size_t id = 1; id < outGraph.repository.size(); id++) {
+      try {
+        NGT::GraphNode &n = *outGraph.getNode(id);
+        if (id % 100000 == 0) {
+          std::cerr << "Processed " << id << std::endl;
+        }
+        std::sort(n.begin(), n.end());
+        NGT::ObjectID prev = 0;
+        for (auto it = n.begin(); it != n.end();) {
+          if (prev == (*it).id) {
+            it = n.erase(it);
             continue;
           }
-          break;
-        case 'c':
-          break;
+          prev = (*it).id;
+          it++;
         }
-        NGT::Distance distance = node[rank].distance;
-        size_t nodeID = node[rank].id;
-        outGraph.addEdge(id, nodeID, distance, false);
+        NGT::GraphNode tmp = n;
+        n.swap(tmp);
+      } catch (NGT::Exception &err) {
+        std::cerr << "GraphReconstructor: Warning. Cannot get the node. ID=" << id << ":" << err.what()
+                  << std::endl;
+        continue;
       }
-    } catch (NGT::Exception &err) {
-      std::cerr << "GraphReconstructor: Warning. Cannot get the node. ID=" << id << ":" << err.what()
-                << std::endl;
-      continue;
     }
-  }
-  originalEdgeTimer.stop();
-  NGT::GraphIndex::showStatisticsOfGraph(outGraph);
+    normalizeEdgeTimer.stop();
+    NGT::GraphIndex::showStatisticsOfGraph(outGraph);
 
-  std::cerr << "Reconstruction time=" << originalEdgeTimer.time << ":" << reverseEdgeTimer.time << ":"
-            << normalizeEdgeTimer.time << std::endl;
+    originalEdgeTimer.start();
+    for (size_t id = 1; id < outGraph.repository.size(); id++) {
+      if (id % 1000000 == 0) {
+        std::cerr << "Processed " << id << std::endl;
+      }
+      NGT::GraphNode &node = graph[id - 1];
+      try {
+        NGT::GraphNode &onode = *outGraph.getNode(id);
+        bool stop = false;
+        for (size_t rank = 0; (rank < node.size() && rank < originalEdgeSize) && stop == false; rank++) {
+          switch (mode) {
+          case 'a':
+            if (onode.size() >= originalEdgeSize) {
+              stop = true;
+              continue;
+            }
+            break;
+          case 'c':
+            break;
+          }
+          NGT::Distance distance = node[rank].distance;
+          size_t nodeID          = node[rank].id;
+          outGraph.addEdge(id, nodeID, distance, false);
+        }
+      } catch (NGT::Exception &err) {
+        std::cerr << "GraphReconstructor: Warning. Cannot get the node. ID=" << id << ":" << err.what()
+                  << std::endl;
+        continue;
+      }
+    }
+    originalEdgeTimer.stop();
+    NGT::GraphIndex::showStatisticsOfGraph(outGraph);
+
+    std::cerr << "Reconstruction time=" << originalEdgeTimer.time << ":" << reverseEdgeTimer.time << ":"
+              << normalizeEdgeTimer.time << std::endl;
 
 #endif
   }
@@ -991,79 +989,79 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
     abort();
 #else
 
-  NGT::GraphIndex &outGraph = dynamic_cast<NGT::GraphIndex &>(index.getIndex());
+    NGT::GraphIndex &outGraph = dynamic_cast<NGT::GraphIndex &>(index.getIndex());
 
-  // remove all edges in the index.
-  for (size_t id = 1; id < outGraph.repository.size(); id++) {
-    if (id % 1000000 == 0) {
-      std::cerr << "Processed " << id << " nodes." << std::endl;
-    }
-    try {
-      NGT::GraphNode &node = *outGraph.getNode(id);
+    // remove all edges in the index.
+    for (size_t id = 1; id < outGraph.repository.size(); id++) {
+      if (id % 1000000 == 0) {
+        std::cerr << "Processed " << id << " nodes." << std::endl;
+      }
+      try {
+        NGT::GraphNode &node = *outGraph.getNode(id);
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-      node.clear(outGraph.repository.allocator);
+        node.clear(outGraph.repository.allocator);
 #else
-      NGT::GraphNode empty;
-      node.swap(empty);
+        NGT::GraphNode empty;
+        node.swap(empty);
 #endif
-    } catch (NGT::Exception &err) {
+      } catch (NGT::Exception &err) {
+      }
     }
-  }
 
-  for (size_t id = 1; id <= graph.size(); ++id) {
-    size_t edgeCount = 0;
-    try {
-      NGT::ObjectDistances &node = graph[id - 1];
-      NGT::GraphNode &n = *outGraph.getNode(id);
-      NGT::Distance prevDistance = 0.0;
-      assert(n.size() == 0);
-      for (size_t i = 0; i < node.size(); ++i) {
-        NGT::Distance distance = node[i].distance;
-        if (prevDistance > distance) {
-          NGTThrowException("Edge distance order is invalid");
-        }
-        prevDistance = distance;
-        size_t nodeID = node[i].id;
-        if (node[i].id < id) {
-          try {
-            NGT::GraphNode &dn = *outGraph.getNode(nodeID);
-#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-            n.push_back(NGT::ObjectDistance(nodeID, distance), outGraph.repository.allocator);
-            dn.push_back(NGT::ObjectDistance(id, distance), outGraph.repository.allocator);
-#else
-            n.push_back(NGT::ObjectDistance(nodeID, distance));
-            dn.push_back(NGT::ObjectDistance(id, distance));
-#endif
-          } catch (...) {
+    for (size_t id = 1; id <= graph.size(); ++id) {
+      size_t edgeCount = 0;
+      try {
+        NGT::ObjectDistances &node = graph[id - 1];
+        NGT::GraphNode &n          = *outGraph.getNode(id);
+        NGT::Distance prevDistance = 0.0;
+        assert(n.size() == 0);
+        for (size_t i = 0; i < node.size(); ++i) {
+          NGT::Distance distance = node[i].distance;
+          if (prevDistance > distance) {
+            NGTThrowException("Edge distance order is invalid");
           }
-          edgeCount++;
+          prevDistance  = distance;
+          size_t nodeID = node[i].id;
+          if (node[i].id < id) {
+            try {
+              NGT::GraphNode &dn = *outGraph.getNode(nodeID);
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+              n.push_back(NGT::ObjectDistance(nodeID, distance), outGraph.repository.allocator);
+              dn.push_back(NGT::ObjectDistance(id, distance), outGraph.repository.allocator);
+#else
+              n.push_back(NGT::ObjectDistance(nodeID, distance));
+              dn.push_back(NGT::ObjectDistance(id, distance));
+#endif
+            } catch (...) {
+            }
+            edgeCount++;
+          }
+          if (edgeCount >= edgeSize) {
+            break;
+          }
         }
-        if (edgeCount >= edgeSize) {
-          break;
-        }
+      } catch (NGT::Exception &err) {
       }
-    } catch (NGT::Exception &err) {
     }
-  }
 
-  for (size_t id = 1; id < outGraph.repository.size(); id++) {
-    try {
-      NGT::GraphNode &n = *outGraph.getNode(id);
-      std::sort(n.begin(), n.end());
-      NGT::ObjectID prev = 0;
-      for (auto it = n.begin(); it != n.end();) {
-        if (prev == (*it).id) {
-          it = n.erase(it);
-          continue;
+    for (size_t id = 1; id < outGraph.repository.size(); id++) {
+      try {
+        NGT::GraphNode &n = *outGraph.getNode(id);
+        std::sort(n.begin(), n.end());
+        NGT::ObjectID prev = 0;
+        for (auto it = n.begin(); it != n.end();) {
+          if (prev == (*it).id) {
+            it = n.erase(it);
+            continue;
+          }
+          prev = (*it).id;
+          it++;
         }
-        prev = (*it).id;
-        it++;
+        NGT::GraphNode tmp = n;
+        n.swap(tmp);
+      } catch (...) {
       }
-      NGT::GraphNode tmp = n;
-      n.swap(tmp);
-    } catch (...) {
     }
-  }
 #endif
   }
 
@@ -1084,116 +1082,116 @@ static bool hasEdge(NGT::GraphIndex &graph, size_t srcNodeID, size_t dstNodeID) 
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
     NGTThrowException("GraphReconstructor::refineANNG: Not implemented for the shared memory option.");
 #else
-  auto prop = static_cast<GraphIndex &>(index.getIndex()).getGraphProperty();
-  NGT::ObjectRepository &objectRepository = index.getObjectSpace().getRepository();
-  NGT::GraphIndex &graphIndex = static_cast<GraphIndex &>(index.getIndex());
-  size_t nOfObjects = objectRepository.size();
-  bool error = false;
-  std::string errorMessage;
+    auto prop                               = static_cast<GraphIndex &>(index.getIndex()).getGraphProperty();
+    NGT::ObjectRepository &objectRepository = index.getObjectSpace().getRepository();
+    NGT::GraphIndex &graphIndex             = static_cast<GraphIndex &>(index.getIndex());
+    size_t nOfObjects                       = objectRepository.size();
+    bool error                              = false;
+    std::string errorMessage;
 
-  size_t noOfSearchedEdges =
-      noOfEdges < 0 ? -noOfEdges
-                    : (noOfEdges > prop.edgeSizeForCreation ? noOfEdges : prop.edgeSizeForCreation);
-  noOfSearchedEdges++;
-  for (size_t bid = 1; bid < nOfObjects; bid += batchSize) {
-    NGT::ObjectDistances results[batchSize];
-    // search
+    size_t noOfSearchedEdges =
+        noOfEdges < 0 ? -noOfEdges
+                      : (noOfEdges > prop.edgeSizeForCreation ? noOfEdges : prop.edgeSizeForCreation);
+    noOfSearchedEdges++;
+    for (size_t bid = 1; bid < nOfObjects; bid += batchSize) {
+      NGT::ObjectDistances results[batchSize];
+      // search
 #pragma omp parallel for
-    for (size_t idx = 0; idx < batchSize; idx++) {
-      size_t id = bid + idx;
-      if (id % 100000 == 0) {
-        std::cerr << "# of processed objects=" << id
-                  << " objects. vm size=" << NGT::Common::getProcessVmSizeStr() << std::endl;
+      for (size_t idx = 0; idx < batchSize; idx++) {
+        size_t id = bid + idx;
+        if (id % 100000 == 0) {
+          std::cerr << "# of processed objects=" << id
+                    << " objects. vm size=" << NGT::Common::getProcessVmSizeStr() << std::endl;
+        }
+        if (objectRepository.isEmpty(id)) {
+          continue;
+        }
+        NGT::SearchContainer searchContainer(*objectRepository.get(id));
+        searchContainer.setResults(&results[idx]);
+        assert(prop.edgeSizeForCreation > 0);
+        searchContainer.setSize(noOfSearchedEdges);
+        if (accuracy > 0.0) {
+          searchContainer.setExpectedAccuracy(accuracy);
+        } else {
+          searchContainer.setEpsilon(epsilon);
+        }
+        if (exploreEdgeSize != INT_MIN) {
+          searchContainer.setEdgeSize(exploreEdgeSize);
+        }
+        if (!error) {
+          try {
+            index.search(searchContainer);
+          } catch (NGT::Exception &err) {
+#pragma omp critical
+            {
+              error        = true;
+              errorMessage = err.what();
+            }
+          }
+        }
       }
-      if (objectRepository.isEmpty(id)) {
+      if (error) {
+        std::stringstream msg;
+        msg << "GraphReconstructor::refineANNG: " << errorMessage;
+        NGTThrowException(msg);
+      }
+      // outgoing edges
+#pragma omp parallel for
+      for (size_t idx = 0; idx < batchSize; idx++) {
+        size_t id = bid + idx;
+        if (objectRepository.isEmpty(id)) {
+          continue;
+        }
+        NGT::GraphNode &node = *graphIndex.getNode(id);
+        for (auto i = results[idx].begin(); i != results[idx].end(); ++i) {
+          if ((*i).id != id) {
+            node.emplace_back(*i);
+          }
+        }
+        std::sort(node.begin(), node.end());
+        // dedupe
+        ObjectID prev = 0;
+        for (GraphNode::iterator ni = node.begin(); ni != node.end();) {
+          if (prev == (*ni).id) {
+            ni = node.erase(ni);
+            continue;
+          }
+          prev = (*ni).id;
+          ni++;
+        }
+        node.shrink_to_fit();
+      }
+      // incomming edges
+      if (noOfEdges != 0) {
         continue;
       }
-      NGT::SearchContainer searchContainer(*objectRepository.get(id));
-      searchContainer.setResults(&results[idx]);
-      assert(prop.edgeSizeForCreation > 0);
-      searchContainer.setSize(noOfSearchedEdges);
-      if (accuracy > 0.0) {
-        searchContainer.setExpectedAccuracy(accuracy);
-      } else {
-        searchContainer.setEpsilon(epsilon);
-      }
-      if (exploreEdgeSize != INT_MIN) {
-        searchContainer.setEdgeSize(exploreEdgeSize);
-      }
-      if (!error) {
-        try {
-          index.search(searchContainer);
-        } catch (NGT::Exception &err) {
-#pragma omp critical
-          {
-            error = true;
-            errorMessage = err.what();
+      for (size_t idx = 0; idx < batchSize; idx++) {
+        size_t id = bid + idx;
+        if (id % 10000 == 0) {
+          std::cerr << "# of processed objects=" << id << std::endl;
+        }
+        for (auto i = results[idx].begin(); i != results[idx].end(); ++i) {
+          if ((*i).id != id) {
+            NGT::GraphNode &node = *graphIndex.getNode((*i).id);
+            graphIndex.addEdge(node, id, (*i).distance, false);
           }
         }
       }
     }
-    if (error) {
-      std::stringstream msg;
-      msg << "GraphReconstructor::refineANNG: " << errorMessage;
-      NGTThrowException(msg);
-    }
-    // outgoing edges
+    if (noOfEdges > 0) {
+      // prune to build knng
+      size_t nedges = noOfEdges < 0 ? -noOfEdges : noOfEdges;
 #pragma omp parallel for
-    for (size_t idx = 0; idx < batchSize; idx++) {
-      size_t id = bid + idx;
-      if (objectRepository.isEmpty(id)) {
-        continue;
-      }
-      NGT::GraphNode &node = *graphIndex.getNode(id);
-      for (auto i = results[idx].begin(); i != results[idx].end(); ++i) {
-        if ((*i).id != id) {
-          node.emplace_back(*i);
-        }
-      }
-      std::sort(node.begin(), node.end());
-      // dedupe
-      ObjectID prev = 0;
-      for (GraphNode::iterator ni = node.begin(); ni != node.end();) {
-        if (prev == (*ni).id) {
-          ni = node.erase(ni);
+      for (ObjectID id = 1; id < nOfObjects; ++id) {
+        if (objectRepository.isEmpty(id)) {
           continue;
         }
-        prev = (*ni).id;
-        ni++;
-      }
-      node.shrink_to_fit();
-    }
-    // incomming edges
-    if (noOfEdges != 0) {
-      continue;
-    }
-    for (size_t idx = 0; idx < batchSize; idx++) {
-      size_t id = bid + idx;
-      if (id % 10000 == 0) {
-        std::cerr << "# of processed objects=" << id << std::endl;
-      }
-      for (auto i = results[idx].begin(); i != results[idx].end(); ++i) {
-        if ((*i).id != id) {
-          NGT::GraphNode &node = *graphIndex.getNode((*i).id);
-          graphIndex.addEdge(node, id, (*i).distance, false);
+        NGT::GraphNode &node = *graphIndex.getNode(id);
+        if (node.size() > nedges) {
+          node.resize(nedges);
         }
       }
     }
-  }
-  if (noOfEdges > 0) {
-    // prune to build knng
-    size_t nedges = noOfEdges < 0 ? -noOfEdges : noOfEdges;
-#pragma omp parallel for
-    for (ObjectID id = 1; id < nOfObjects; ++id) {
-      if (objectRepository.isEmpty(id)) {
-        continue;
-      }
-      NGT::GraphNode &node = *graphIndex.getNode(id);
-      if (node.size() > nedges) {
-        node.resize(nedges);
-      }
-    }
-  }
 #endif // defined(NGT_SHARED_MEMORY_ALLOCATOR)
   }
 }; // namespace NGT

@@ -232,7 +232,7 @@ class OptimizationParameters {
     globalType                 = QBG::Optimizer::GlobalTypeNone;
     randomizedObjectExtraction = true;
     showClusterInfo            = false;
-    unifiedPQ                   = false;
+    unifiedPQ                  = false;
 
     verbose = false;
   }
@@ -302,13 +302,13 @@ class SearchContainer : public NGT::SearchContainer {
   }
   SearchContainer &operator=(SearchContainer &sc) {
     NGT::SearchContainer::operator=(sc);
-    cutback                       = sc.cutback;
-    graphExplorationSize          = sc.graphExplorationSize;
-    exactResultSize               = sc.exactResultSize;
-    blobExplorationCoefficient    = sc.blobExplorationCoefficient;
-    numOfProbes                   = sc.numOfProbes;
-    refinementExpansion           = sc.refinementExpansion;
-    objectVector                  = sc.objectVector;
+    cutback                    = sc.cutback;
+    graphExplorationSize       = sc.graphExplorationSize;
+    exactResultSize            = sc.exactResultSize;
+    blobExplorationCoefficient = sc.blobExplorationCoefficient;
+    numOfProbes                = sc.numOfProbes;
+    refinementExpansion        = sc.refinementExpansion;
+    objectVector               = sc.objectVector;
     return *this;
   }
   void setCutback(float c) { cutback = c; }
@@ -573,12 +573,11 @@ class Index : public NGTQ::Index {
                      size_t dataSize = 0,          // data size
                      bool verbose    = false);
 
-  static void append(const std::string &indexName, // index file
+  static void append(const std::string &indexName,  // index file
                      NGT::ObjectSpace &objectSpace, // object space including objects
                      bool verbose = false);
 
-  static void preprocessingForNGT(std::string &indexPath, std::string &objectPath, 
-                                  bool verbose = false);
+  static void preprocessingForNGT(std::string &indexPath, std::string &objectPath, bool verbose = false);
 
   static void appendBinary(const std::string &indexName, // index file
                            const std::string &data,      // data file
@@ -975,7 +974,7 @@ class Index : public NGTQ::Index {
       objects.emplace_back(object);
       size_t rsize = qbg.quantizedBlobGraph[gidx + 1].ids.size();
       if (rate <= 0.0) {
-	rsize += qbgSearchContainer.size;
+        rsize += qbgSearchContainer.size;
       } else {
         rsize *= 1.0 + rate;
       }
@@ -997,14 +996,14 @@ class Index : public NGTQ::Index {
       std::vector<std::pair<std::vector<float>, size_t>> objects;
       size_t rsize = qbg.quantizedBlobGraph[gidx + 1].ids.size();
       if (rate <= 0.0) {
-	rsize += qbgSearchContainer.size;
+        rsize += qbgSearchContainer.size;
       } else {
         rsize *= 1.0 + rate;
       }
       rsize = ((rsize + 15) / 16) * 16;
       rsize -= qbg.quantizedBlobGraph[gidx + 1].ids.size();
       for (auto &id : nearestNeighbors[gidx]) {
-	if (objects.size() == rsize) break;
+        if (objects.size() == rsize) break;
         if (blob.find(id) == blob.end()) {
           std::vector<float> object;
           qbg.getQuantizer().objectList.get(id, object);
@@ -1049,8 +1048,7 @@ class Index : public NGTQ::Index {
   template <typename T>
   std::tuple<NGT::Distance, NGT::Distance>
   judge(NGTQG::QuantizedNode &ivi, size_t k, NGT::Distance radius,
-        NGTQ::QuantizedObjectDistance::DistanceLookupTableUint8 &lut,
-        T &result, size_t &foundCount
+        NGTQ::QuantizedObjectDistance::DistanceLookupTableUint8 &lut, T &result, size_t &foundCount
         ,
         void *query = 0, std::unique_ptr<NGTQ::BooleanSet> *checkedIDs = 0) {
     auto noOfObjects = ivi.ids.size();
@@ -1313,7 +1311,7 @@ class Index : public NGTQ::Index {
         NGTQ::QuantizedObjectDistance::DistanceLookupTableUint8 &lut = lookupTable;
 #else
       {
-        auto blobID = blobs[idx].id;
+        auto blobID     = blobs[idx].id;
         auto subspaceID = quantizedBlobGraph[blobID].subspaceID;
         auto luti = luts.find(subspaceID);
         if (luti == luts.end()) {
@@ -1353,7 +1351,7 @@ class Index : public NGTQ::Index {
       }
     }
     deleteObject(query);
-  }    // namespace QBG
+  } // namespace QBG
 
   void searchInOneStep(QBG::SearchContainer &searchContainer) {
     auto &globalIndex = getQuantizer().globalCodebookIndex;
@@ -1383,7 +1381,7 @@ class Index : public NGTQ::Index {
       msg << "The specified index is not now searchable. ";
       NGTThrowException(msg);
     }
-    auto parameterSize = searchContainer.size;
+    auto parameterSize            = searchContainer.size;
     auto parameterExactResultSize = searchContainer.size;
     if (searchContainer.refinementExpansion >= 1.0) {
       parameterSize *= searchContainer.refinementExpansion;
@@ -1391,7 +1389,7 @@ class Index : public NGTQ::Index {
       parameterExactResultSize = 0;
     }
 
-    auto &quantizer = getQuantizer();
+    auto &quantizer   = getQuantizer();
     auto &globalIndex = quantizer.globalCodebookIndex;
     auto &globalGraph = static_cast<NGT::GraphAndTreeIndex &>(globalIndex.getIndex());
     auto &objectSpace = globalIndex.getObjectSpace();
@@ -1404,7 +1402,7 @@ class Index : public NGTQ::Index {
     }
 
     const auto requestedSize = parameterSize;
-    searchContainer.size = std::numeric_limits<uint32_t>::max();
+    searchContainer.size     = std::numeric_limits<uint32_t>::max();
 
     // setup edgeSize
     size_t edgeSize = globalGraph.getEdgeSize(searchContainer);
@@ -1440,7 +1438,7 @@ class Index : public NGTQ::Index {
     size_t explorationSize = 1;
     auto &quantizedObjectDistance = quantizer.getQuantizedObjectDistance();
     std::unordered_map<size_t, NGTQ::QuantizedObjectDistance::DistanceLookupTableUint8> luts;
-    auto dimension = getQuantizer().globalCodebookIndex.getObjectSpace().getDimension();
+    auto dimension                  = getQuantizer().globalCodebookIndex.getObjectSpace().getDimension();
     std::vector<float> rotatedQuery = searchContainer.objectVector;
     if (rotatedQuery.size() < dimension) {
       if (rotatedQuery.size() == quantizer.property.genuineDimension ||
@@ -1454,13 +1452,13 @@ class Index : public NGTQ::Index {
       resizedQuery = std::move(tmp);
     }
     quantizedObjectDistance.rotation->mul(rotatedQuery.data());
-      NGT::Distance radius = searchContainer.radius;
-      if (requestedSize >= std::numeric_limits<int32_t>::max()) {
-        radius *= searchContainer.explorationCoefficient;
-      }
+    NGT::Distance radius = searchContainer.radius;
+    if (requestedSize >= std::numeric_limits<int32_t>::max()) {
+      radius *= searchContainer.explorationCoefficient;
+    }
     NGT::ReadOnlyGraphNode *nodes = globalGraph.searchRepository.data();
     NGT::ObjectDistance target;
-    const size_t prefetchSize = objectSpace.getPrefetchSize();
+    const size_t prefetchSize   = objectSpace.getPrefetchSize();
     const size_t prefetchOffset = objectSpace.getPrefetchOffset();
 #ifdef NGTQBG_COARSE_BLOB
     NGTQ::QuantizedObjectDistance::DistanceLookupTableUint8 lookupTable;
@@ -1469,159 +1467,160 @@ class Index : public NGTQ::Index {
     for (;;) {
       if (untracedNodes.empty() || untracedNodes.top().distance > explorationRadius) {
         explorationSize++;
-          NGT::Distance blobDistance = std::numeric_limits<NGT::Distance>::max();
+        NGT::Distance blobDistance = std::numeric_limits<NGT::Distance>::max();
 #ifdef NGTQBG_COARSE_BLOB
-          auto graphNodeID = currentNearestBlob.id;
-          auto &graphNodeToInvertedIndexEntries = quantizer.getGraphNodeToInvertedIndexEntries();
-          auto beginIvtID = graphNodeToInvertedIndexEntries[graphNodeID - 1] + 1;
-          auto endIvtID = graphNodeToInvertedIndexEntries[graphNodeID] + 1;
-          for (auto blobID = beginIvtID; blobID < endIvtID; blobID++) {
-            auto subspaceID = quantizedBlobGraph[blobID].subspaceID;
-            quantizedObjectDistance.createDistanceLookup(rotatedQuery.data(), subspaceID, lookupTable);
-            NGTQ::QuantizedObjectDistance::DistanceLookupTableUint8 &lut = lookupTable;
+        auto graphNodeID                      = currentNearestBlob.id;
+        auto &graphNodeToInvertedIndexEntries = quantizer.getGraphNodeToInvertedIndexEntries();
+        auto beginIvtID = graphNodeToInvertedIndexEntries[graphNodeID - 1] + 1;
+        auto endIvtID   = graphNodeToInvertedIndexEntries[graphNodeID] + 1;
+        for (auto blobID = beginIvtID; blobID < endIvtID; blobID++) {
+          auto subspaceID = quantizedBlobGraph[blobID].subspaceID;
+          quantizedObjectDistance.createDistanceLookup(rotatedQuery.data(), subspaceID, lookupTable);
+          NGTQ::QuantizedObjectDistance::DistanceLookupTableUint8 &lut = lookupTable;
 #else
-          {
-            auto blobID     = currentNearestBlob.id;
-            auto subspaceID = quantizedBlobGraph[blobID].subspaceID;
-            auto luti = luts.find(subspaceID);
-            if (luti == luts.end()) {
-              luts.insert(
-                  std::make_pair(subspaceID, NGTQ::QuantizedObjectDistance::DistanceLookupTableUint8()));
-              luti = luts.find(subspaceID);
-              quantizedObjectDistance.initialize((*luti).second);
-              quantizedObjectDistance.createDistanceLookup(rotatedQuery.data(), subspaceID, (*luti).second);
-            }
-            NGTQ::QuantizedObjectDistance::DistanceLookupTableUint8 &lut = (*luti).second;
+        {
+          auto blobID     = currentNearestBlob.id;
+          auto subspaceID = quantizedBlobGraph[blobID].subspaceID;
+          auto luti = luts.find(subspaceID);
+          if (luti == luts.end()) {
+            luts.insert(
+                std::make_pair(subspaceID, NGTQ::QuantizedObjectDistance::DistanceLookupTableUint8()));
+            luti = luts.find(subspaceID);
+            quantizedObjectDistance.initialize((*luti).second);
+            quantizedObjectDistance.createDistanceLookup(rotatedQuery.data(), subspaceID, (*luti).second);
+          }
+          NGTQ::QuantizedObjectDistance::DistanceLookupTableUint8 &lut = (*luti).second;
 #endif
-            size_t foundCount;
-            NGT::Distance bd;
-            std::tie(bd, radius) =
-                judge(quantizedBlobGraph[blobID], requestedSize, radius, lut, results, foundCount);
+          size_t foundCount;
+          NGT::Distance bd;
+          std::tie(bd, radius) =
+              judge(quantizedBlobGraph[blobID], requestedSize, radius, lut, results, foundCount);
 #ifdef NGTQBG_COARSE_BLOB
-        if (bd < blobDistance) {
-          blobDistance = bd;
-        }
-#else
+          if (bd < blobDistance) {
             blobDistance = bd;
+          }
+#else
+          blobDistance = bd;
 #endif
-      }
+        }
 
 #ifdef NGTQBG_MIN
-      if (blobDistance > radius * searchContainer.explorationCoefficient) {
-        break;
-      }
-#endif
-      if (explorationSize > searchContainer.graphExplorationSize) {
-        break;
-      }
-      if (discardedObjects.empty()) {
-        break;
-      }
-      currentNearestBlob = discardedObjects.top();
-      discardedObjects.pop();
-      explorationRadius = searchContainer.blobExplorationCoefficient * currentNearestBlob.distance;
-      continue;
-    }
-    target = untracedNodes.top();
-    untracedNodes.pop();
-
-    auto *neighbors = &nodes[target.id];
-    auto *neighborptr = &(*neighbors)[0];
-    size_t neighborSize = neighbors->size() < edgeSize ? neighbors->size() : edgeSize;
-    auto *neighborendptr = neighborptr + neighborSize;
-
-#ifdef NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
-    NGT::ObjectRepository &objectRepository = quantizer.globalCodebookIndex.getObjectSpace().getRepository();
-    pair<uint32_t, NGT::PersistentObject *> nsPtrs[neighborSize];
-#else
-        pair<uint32_t, NGT::PersistentObject *> *nsPtrs[neighborSize];
-#endif
-    size_t nsPtrsSize = 0;
-#ifndef PREFETCH_DISABLE
-    for (; neighborptr < neighborendptr; ++neighborptr) {
-#ifdef NGT_VISIT_COUNT
-      searchContainer.visitCount++;
-#endif
-#ifdef NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
-      if (!distanceChecked[*neighborptr]) {
-        nsPtrs[nsPtrsSize].first = *neighborptr;
-        nsPtrs[nsPtrsSize].second = objectRepository.get(*neighborptr);
-        distanceChecked.insert(*neighborptr);
-#else
-      if (!distanceChecked[(*(neighborptr)).first]) {
-        distanceChecked.insert((*(neighborptr)).first);
-        nsPtrs[nsPtrsSize] = neighborptr;
-#endif
-        if (nsPtrsSize < prefetchOffset) {
-#ifdef NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
-          unsigned char *ptr = reinterpret_cast<unsigned char *>(nsPtrs[nsPtrsSize].second);
-#else
-          unsigned char *ptr = reinterpret_cast<unsigned char *>(nsPtrs[nsPtrsSize]->second);
-#endif
-          NGT::MemoryCache::prefetch(ptr, prefetchSize);
+        if (blobDistance > radius * searchContainer.explorationCoefficient) {
+          break;
         }
-        nsPtrsSize++;
-      }
-    }
 #endif
-#ifdef PREFETCH_DISABLE
-    for (; neighborptr < neighborendptr; ++neighborptr) {
-#else
-        for (size_t idx = 0; idx < nsPtrsSize; idx++) {
-#endif
-#ifdef PREFETCH_DISABLE
-      if (distanceChecked[(*(neighborptr)).first]) {
+        if (explorationSize > searchContainer.graphExplorationSize) {
+          break;
+        }
+        if (discardedObjects.empty()) {
+          break;
+        }
+        currentNearestBlob = discardedObjects.top();
+        discardedObjects.pop();
+        explorationRadius = searchContainer.blobExplorationCoefficient * currentNearestBlob.distance;
         continue;
       }
-      distanceChecked.insert((*(neighborptr)).first);
-#else
+      target = untracedNodes.top();
+      untracedNodes.pop();
+
+      auto *neighbors   = &nodes[target.id];
+      auto *neighborptr = &(*neighbors)[0];
+      size_t neighborSize = neighbors->size() < edgeSize ? neighbors->size() : edgeSize;
+      auto *neighborendptr = neighborptr + neighborSize;
 
 #ifdef NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
-          auto *neighborptr = &nsPtrs[idx];
+      NGT::ObjectRepository &objectRepository =
+          quantizer.globalCodebookIndex.getObjectSpace().getRepository();
+      pair<uint32_t, NGT::PersistentObject *> nsPtrs[neighborSize];
 #else
-          auto *neighborptr = nsPtrs[idx];
+      pair<uint32_t, NGT::PersistentObject *> *nsPtrs[neighborSize];
 #endif
-          if (idx + prefetchOffset < nsPtrsSize) {
+      size_t nsPtrsSize = 0;
+#ifndef PREFETCH_DISABLE
+      for (; neighborptr < neighborendptr; ++neighborptr) {
+#ifdef NGT_VISIT_COUNT
+        searchContainer.visitCount++;
+#endif
 #ifdef NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
-            unsigned char *ptr = reinterpret_cast<unsigned char *>(nsPtrs[idx + prefetchOffset].second);
+        if (!distanceChecked[*neighborptr]) {
+          nsPtrs[nsPtrsSize].first  = *neighborptr;
+          nsPtrs[nsPtrsSize].second = objectRepository.get(*neighborptr);
+          distanceChecked.insert(*neighborptr);
 #else
-            unsigned char *ptr = reinterpret_cast<unsigned char *>((*(nsPtrs[idx + prefetchOffset])).second);
+        if (!distanceChecked[(*(neighborptr)).first]) {
+          distanceChecked.insert((*(neighborptr)).first);
+          nsPtrs[nsPtrsSize] = neighborptr;
+#endif
+          if (nsPtrsSize < prefetchOffset) {
+#ifdef NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
+            unsigned char *ptr = reinterpret_cast<unsigned char *>(nsPtrs[nsPtrsSize].second);
+#else
+            unsigned char *ptr = reinterpret_cast<unsigned char *>(nsPtrs[nsPtrsSize]->second);
 #endif
             NGT::MemoryCache::prefetch(ptr, prefetchSize);
           }
+          nsPtrsSize++;
+        }
+      }
+#endif
+#ifdef PREFETCH_DISABLE
+      for (; neighborptr < neighborendptr; ++neighborptr) {
+#else
+      for (size_t idx = 0; idx < nsPtrsSize; idx++) {
+#endif
+#ifdef PREFETCH_DISABLE
+        if (distanceChecked[(*(neighborptr)).first]) {
+          continue;
+        }
+        distanceChecked.insert((*(neighborptr)).first);
+#else
+
+#ifdef NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
+        auto *neighborptr = &nsPtrs[idx];
+#else
+        auto *neighborptr = nsPtrs[idx];
+#endif
+        if (idx + prefetchOffset < nsPtrsSize) {
+#ifdef NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
+          unsigned char *ptr = reinterpret_cast<unsigned char *>(nsPtrs[idx + prefetchOffset].second);
+#else
+          unsigned char *ptr = reinterpret_cast<unsigned char *>((*(nsPtrs[idx + prefetchOffset])).second);
+#endif
+          NGT::MemoryCache::prefetch(ptr, prefetchSize);
+        }
 #endif
 #ifdef NGT_DISTANCE_COMPUTATION_COUNT
-      searchContainer.distanceComputationCount++;
+        searchContainer.distanceComputationCount++;
 #endif
-      NGT::Distance distance = objectSpace.getComparator()(searchContainer.object, *neighborptr->second);
-      NGT::ObjectDistance r;
-      r.set(neighborptr->first, distance);
-      untracedNodes.push(r);
-      if (distance < currentNearestBlob.distance) {
-        discardedObjects.push(currentNearestBlob);
-        currentNearestBlob = r;
-        explorationRadius = searchContainer.blobExplorationCoefficient * currentNearestBlob.distance;
-      } else {
-        discardedObjects.push(r);
+        NGT::Distance distance = objectSpace.getComparator()(searchContainer.object, *neighborptr->second);
+        NGT::ObjectDistance r;
+        r.set(neighborptr->first, distance);
+        untracedNodes.push(r);
+        if (distance < currentNearestBlob.distance) {
+          discardedObjects.push(currentNearestBlob);
+          currentNearestBlob = r;
+          explorationRadius  = searchContainer.blobExplorationCoefficient * currentNearestBlob.distance;
+        } else {
+          discardedObjects.push(r);
+        }
       }
     }
-  }
 
-  if (searchContainer.resultIsAvailable()) {
-    if (parameterExactResultSize > 0) {
-      NGT::ObjectDistances &qresults = searchContainer.getResult();
-      refineDistances(quantizer, results, qresults, parameterExactResultSize, resizedQuery);
+    if (searchContainer.resultIsAvailable()) {
+      if (parameterExactResultSize > 0) {
+        NGT::ObjectDistances &qresults = searchContainer.getResult();
+        refineDistances(quantizer, results, qresults, parameterExactResultSize, resizedQuery);
+      } else {
+        searchContainer.getResult().moveFrom(results);
+      }
     } else {
-      searchContainer.getResult().moveFrom(results);
+      if (parameterExactResultSize > 0) {
+        refineDistances(quantizer, results, searchContainer.workingResult, parameterExactResultSize,
+                        resizedQuery);
+      } else {
+        searchContainer.workingResult = std::move(results);
+      }
     }
-  } else {
-    if (parameterExactResultSize > 0) {
-      refineDistances(quantizer, results, searchContainer.workingResult, parameterExactResultSize,
-                      resizedQuery);
-    } else {
-      searchContainer.workingResult = std::move(results);
-    }
-  }
 #endif
   }
 
@@ -1823,15 +1822,15 @@ class Index : public NGTQ::Index {
       if (access(QBG::Index::getBlobFile(indexPath).c_str(), F_OK) == 0) {
         const std::string comcp =
             "cp -f " + QBG::Index::getBlobFile(indexPath) + " " + QBG::Index::getStoredBlobFile(indexPath);
-	auto stat = system(comcp.c_str());
+        auto stat = system(comcp.c_str());
         if (stat == -1) {
           std::cerr << "Warning. Cannot execute cp. " << comcp << std::endl;
         } else if (WIFEXITED(stat)) {
           int exitStatus = WEXITSTATUS(stat);
           if (exitStatus != 0) {
-            std::cerr << "Warning. Cannot cp the blob. " <<  exitStatus << std::endl;
+            std::cerr << "Warning. Cannot cp the blob. " << exitStatus << std::endl;
           }
-	}
+        }
       }
       char *s = getenv("NGT_NOT_REMOVE_WORKSPACE");
       if (s == 0) {
@@ -2017,8 +2016,8 @@ class Index : public NGTQ::Index {
       const std::string dst = indexPath + "/" + NGTQ::Quantizer::getGlobalFile() + ".bak";
       if (rename(src.c_str(), dst.c_str()) == -1) {
         std::stringstream msg;
-        msg << "Error! Moving is failed. " << src << ":" << dst << " " << errno 
-	    << ":" << std::strerror(errno);
+        msg << "Error! Moving is failed. " << src << ":" << dst << " " << errno << ":"
+            << std::strerror(errno);
         NGTThrowException(msg);
       }
       NGT::Index::appendFromTextObjectFile(dst, blobs, dataSize);
@@ -2034,7 +2033,7 @@ class Index : public NGTQ::Index {
       graphOptimizer.set(numOfOutgoingEdges, numOfIncomingEdges, numOfQueries, numOfResultantObjects);
       const std::string rmcom = "rm -rf " + dst;
       try {
-	graphOptimizer.execute(dst, src);
+        graphOptimizer.execute(dst, src);
       } catch (NGT::Exception &err) {
         if (system(rmcom.c_str()) == -1) {
           std::cerr << "Warning. remove is failed. \"" << rmcom << "\"" << std::endl;
@@ -2158,12 +2157,12 @@ class Index : public NGTQ::Index {
     return getPrefix(indexPath) + getThirdCentroidSuffix();
   }
 #else
-static const std::string getBlobFile(std::string indexPath) {
-  return getPrefix(indexPath) + getThirdCentroidSuffix();
-}
-static const std::string getQuantizerCodebookFile(std::string indexPath) {
-  return getPrefix(indexPath) + getSecondCentroidSuffix();
-}
+  static const std::string getBlobFile(std::string indexPath) {
+    return getPrefix(indexPath) + getThirdCentroidSuffix();
+  }
+  static const std::string getQuantizerCodebookFile(std::string indexPath) {
+    return getPrefix(indexPath) + getSecondCentroidSuffix();
+  }
 #endif
   static const std::string getCodebookIndexFile(std::string indexPath) {
     return getPrefix(indexPath) + get3rdTo2ndSuffix();

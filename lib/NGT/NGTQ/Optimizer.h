@@ -51,15 +51,13 @@ class Optimizer {
 
   void initialize();
 
-  static void extractSubvector(vector<vector<float>> &vectors,
-                               vector<vector<float>> &subvectors,
+  static void extractSubvector(vector<vector<float>> &vectors, vector<vector<float>> &subvectors,
                                size_t start, size_t size) {
     subvectors.clear();
     extractAndAppendSubvector(vectors, subvectors, start, size);
   }
 
-  static void extractAndAppendSubvector(vector<vector<float>> &vectors,
-                                        vector<vector<float>> &subvectors,
+  static void extractAndAppendSubvector(vector<vector<float>> &vectors, vector<vector<float>> &subvectors,
                                         size_t start, size_t size) {
     size_t origSize = subvectors.size();
     subvectors.resize(origSize + vectors.size());
@@ -135,7 +133,7 @@ class Optimizer {
     vector<vector<float>> residualVectors;
 
     NGT::Property property;
-    property.objectType = NGT::Index::Property::ObjectType::Float;
+    property.objectType   = NGT::Index::Property::ObjectType::Float;
     property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeL2;
     if (globalCentroid[0].size() != vectors[0].size()) {
       std::cerr << "optimizer: Warning. The dimension is inconsistency. " << globalCentroid[0].size() << ":"
@@ -303,15 +301,13 @@ class Optimizer {
     }
   }
 
-  static void optimizeRotationForUnifiedPQ(size_t iteration, vector<vector<float>> &vectors, Matrix<float> &xt,
-                                          Matrix<float> &R, Matrix<float> &minR,
-                                          vector<NGT::Clustering::Cluster> &minLocalClusters,
-                                          NGT::Clustering::ClusteringType clusteringType,
-                                          NGT::Clustering::InitializationMode initMode, size_t numberOfClusters,
-                                          size_t numberOfSubvectors, size_t subvectorSize, size_t clusterIteration,
-                                          bool clusterSizeConstraint, float clusterSizeConstraintCoefficient,
-                                          size_t convergenceLimitTimes, double &minDistortion,
-                                          NGT::Timer &timelimitTimer, float timelimit, bool rotation) {
+  static void optimizeRotationForUnifiedPQ(
+      size_t iteration, vector<vector<float>> &vectors, Matrix<float> &xt, Matrix<float> &R,
+      Matrix<float> &minR, vector<NGT::Clustering::Cluster> &minLocalClusters,
+      NGT::Clustering::ClusteringType clusteringType, NGT::Clustering::InitializationMode initMode,
+      size_t numberOfClusters, size_t numberOfSubvectors, size_t subvectorSize, size_t clusterIteration,
+      bool clusterSizeConstraint, float clusterSizeConstraintCoefficient, size_t convergenceLimitTimes,
+      double &minDistortion, NGT::Timer &timelimitTimer, float timelimit, bool rotation) {
     if (numberOfClusters <= 1) {
       std::stringstream msg;
       msg << "Optimizer::optimize: # of clusters is zero or one. " << numberOfClusters;
@@ -346,7 +342,7 @@ class Optimizer {
       size_t reassign;
       if (clusteringType == 'k') {
         reassign =
-          kmeansClustering(initMode, subVectors, numberOfClusters, clusters, clusterSizeConstraint, 0);
+            kmeansClustering(initMode, subVectors, numberOfClusters, clusters, clusterSizeConstraint, 0);
       } else {
         reassign = kmeansClusteringWithNGT(initMode, subVectors, numberOfClusters, clusters,
                                            clusterSizeConstraint, 0);
@@ -356,19 +352,19 @@ class Optimizer {
       extractQuantizedVector(subQuantizedVectors, clusters);
       if (subQuantizedVectors.size() != (vectors.size() * numberOfSubvectors)) {
         std::stringstream msg;
-        msg << "# of the sub vectors is invalid. " << subQuantizedVectors.size() << ":" 
+        msg << "# of the sub vectors is invalid. " << subQuantizedVectors.size() << ":"
             << (vectors.size() * numberOfSubvectors);
         NGTThrowException(msg);
       }
       if (subQuantizedVectors[0].size() != subvectorSize) {
         std::stringstream msg;
-        msg << "The dimensionality of the sub vector is invalid. " << subQuantizedVectors[0].size() 
-            << ":" << subvectorSize;
+        msg << "The dimensionality of the sub vector is invalid. " << subQuantizedVectors[0].size() << ":"
+            << subvectorSize;
         NGTThrowException(msg);
       }
       // 入力部分ベクトルと量子化部分ベクトルを比較して量子化誤差の計算
 #ifdef ERROR_CALCULATION
-      double d              = squareDistance(subQuantizedVectors, subVectors);
+      double d           = squareDistance(subQuantizedVectors, subVectors);
       subvectorDistances = d;
 #endif
       ////////////////
@@ -388,9 +384,9 @@ class Optimizer {
       }
       distance = sqrt(distance / numberOfSubvectors);
       if (minDistortion > distance) {
-        minDistortion = distance;
-        minR          = R;
-        minIt         = it;
+        minDistortion    = distance;
+        minR             = R;
+        minIt            = it;
         minLocalClusters = clusters;
       }
       if (it + 1 > iteration || it - minIt > convergenceLimitTimes) {
@@ -418,8 +414,7 @@ class Optimizer {
 
   void optimize(vector<vector<float>> &vectors,
                 Matrix<float> &reposition, vector<Matrix<float>> &rs,
-                vector<vector<vector<NGT::Clustering::Cluster>>> &localClusters,
-                vector<double> &errors) {
+                vector<vector<vector<NGT::Clustering::Cluster>>> &localClusters, vector<double> &errors) {
     if (vectors.size() == 0) {
       NGTThrowException("the vector is empty");
     }
@@ -458,9 +453,9 @@ class Optimizer {
   }
 
   void optimizeForUnifiedPQ(vector<vector<float>> &vectors,
-                           Matrix<float> &reposition, vector<Matrix<float>> &rs,
-                           vector<vector<vector<NGT::Clustering::Cluster>>> &localClusters,
-                           vector<double> &errors) {
+                            Matrix<float> &reposition, vector<Matrix<float>> &rs,
+                            vector<vector<vector<NGT::Clustering::Cluster>>> &localClusters,
+                            vector<double> &errors) {
     if (vectors.size() == 0) {
       NGTThrowException("the vector is empty");
     }
@@ -484,16 +479,16 @@ class Optimizer {
       Matrix<float> optr;
       localClusters[ri].resize(numberOfSubvectors);
       optimizeRotationForUnifiedPQ(iteration,
-                                  vectors,
-                                  xt,
-                                  rs[ri],
-                                  optr,
-                                  localClusters[ri][0], clusteringType, imode, numberOfClusters,
-                                  numberOfSubvectors,
-                                  subvectorSize,
-                                  clusterIteration,
-                                  clusterSizeConstraint, clusterSizeConstraintCoefficient, convergenceLimitTimes,
-                                  errors[ri], timelimitTimer, timelimit, rotation);
+                                   vectors,
+                                   xt,
+                                   rs[ri],
+                                   optr,
+                                   localClusters[ri][0], clusteringType, imode, numberOfClusters,
+                                   numberOfSubvectors,
+                                   subvectorSize,
+                                   clusterIteration,
+                                   clusterSizeConstraint, clusterSizeConstraintCoefficient,
+                                   convergenceLimitTimes, errors[ri], timelimitTimer, timelimit, rotation);
       timer.stop();
       for (size_t i = 1; i < localClusters[ri].size(); i++) {
         localClusters[ri][i] = localClusters[ri][0];

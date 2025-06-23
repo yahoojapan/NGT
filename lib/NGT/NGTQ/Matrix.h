@@ -337,7 +337,7 @@ template <typename T> class Matrix {
         }
 #else
         T &sum = tmpmtx[r * nc + c];
-        sum = 0;
+        sum    = 0;
         for (size_t p = 0; p < col; p++) {
           sum += matrix[r * col + p] * mtx.matrix[p * mtx.col + c];
         }

@@ -939,7 +939,7 @@ class Optimizer {
         prop.dynamicEdgeSizeRate = rate.first;
         prevBase = base;
         base     = adjustBaseSearchEdgeSize(queries, searchParameters, gtStream, baseAccuracyRange, margin,
-                                        prevBase.first);
+                                            prevBase.first);
         std::cerr << "adjustRateSearchEdgeSize: Base: base=" << prevBase.first << "->" << base.first
                   << ",rate=" << prevRate.first << "->" << rate.first << std::endl;
         if (prevBase.first == base.first) {
@@ -948,7 +948,7 @@ class Optimizer {
         prop.dynamicEdgeSizeBase = base.first;
         prevRate = rate;
         rate     = adjustRateSearchEdgeSize(queries, searchParameters, gtStream, rateAccuracyRange, margin,
-                                        prevRate.first);
+                                            prevRate.first);
         std::cerr << "adjustRateSearchEdgeSize: Rate base=" << prevBase.first << "->" << base.first
                   << ",rate=" << prevRate.first << "->" << rate.first << std::endl;
         if (prevRate.first == rate.first) {

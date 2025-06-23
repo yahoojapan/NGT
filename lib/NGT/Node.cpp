@@ -241,7 +241,7 @@ LeafNode::removeObject(size_t id, size_t replaceId) {
 #else
       if (getObjectIDs()[idx].id == replaceId) {
 #endif
-        replaceId = 0;
+        replaceId      = 0;
         replaceIdFound = true;
         break;
       }
@@ -310,7 +310,7 @@ bool InternalNode::verify(Repository<InternalNode> &internalNodes, Repository<Le
     size_t nid    = getChildren(allocator)[i].getID();
     ID::Type type = getChildren(allocator)[i].getType();
 #else
-    size_t nid = getChildren()[i].getID();
+    size_t nid    = getChildren()[i].getID();
     ID::Type type = getChildren()[i].getType();
 #endif
     size_t size = type == ID::Leaf ? lsize : isize;

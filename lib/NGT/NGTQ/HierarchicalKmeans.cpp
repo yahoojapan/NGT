@@ -142,7 +142,7 @@ void QBG::HierarchicalKmeans::treeBasedTopdownClustering(std::string prefix, QBG
 }
 
 void QBG::HierarchicalKmeans::threeLayerClustering(std::string prefix, QBG::Index &index) {
-  auto &quantizer = static_cast<NGTQ::QuantizerInstance<uint8_t> &>(index.getQuantizer());
+  auto &quantizer   = static_cast<NGTQ::QuantizerInstance<uint8_t> &>(index.getQuantizer());
   auto &objectSpace = quantizer.globalCodebookIndex.getObjectSpace();
   {
     std::cerr << "Three layer clustering..." << std::endl;
@@ -160,7 +160,7 @@ void QBG::HierarchicalKmeans::threeLayerClustering(std::string prefix, QBG::Inde
         numOfThirdClusters = index.getQuantizer().property.globalCentroidLimit;
       }
     }
-    auto &quantizer = static_cast<NGTQ::QuantizerInstance<uint8_t> &>(index.getQuantizer());
+    auto &quantizer           = static_cast<NGTQ::QuantizerInstance<uint8_t> &>(index.getQuantizer());
     QBGObjectList &objectList = quantizer.objectList;
     if (numOfObjects == 0) {
       numOfObjects = objectList.size() - 1;
@@ -172,14 +172,14 @@ void QBG::HierarchicalKmeans::threeLayerClustering(std::string prefix, QBG::Inde
     if (numOfThirdClusters == 0 || numOfObjects == 0) {
       NGTThrowException("numOfThirdClusters or numOfObjects are zero");
     }
-    numOfThirdObjects = numOfThirdObjects == 0 ? numOfObjects : numOfThirdObjects;
+    numOfThirdObjects   = numOfThirdObjects == 0 ? numOfObjects : numOfThirdObjects;
     numOfSecondClusters = numOfSecondClusters == 0 ? numOfThirdClusters : numOfSecondClusters;
     numOfFirstClusters =
         numOfFirstClusters == 0 ? static_cast<size_t>(sqrt(numOfSecondClusters)) : numOfFirstClusters;
     numOfSecondObjects = numOfSecondObjects == 0 ? numOfSecondClusters * 100 : numOfSecondObjects;
     numOfSecondObjects = numOfSecondObjects > numOfObjects ? numOfObjects : numOfSecondObjects;
-    numOfFirstObjects = numOfFirstObjects == 0 ? numOfFirstClusters * 2000 : numOfFirstObjects;
-    numOfFirstObjects = numOfFirstObjects > numOfSecondObjects ? numOfSecondObjects : numOfFirstObjects;
+    numOfFirstObjects  = numOfFirstObjects == 0 ? numOfFirstClusters * 2000 : numOfFirstObjects;
+    numOfFirstObjects  = numOfFirstObjects > numOfSecondObjects ? numOfSecondObjects : numOfFirstObjects;
 
 
     if (numOfFirstObjects < numOfFirstClusters) {
@@ -327,7 +327,7 @@ void QBG::HierarchicalKmeans::threeLayerClustering(std::string prefix, QBG::Inde
         }
         for (auto mit = thirdFlatClusters[cidx].members.begin(); mit != thirdFlatClusters[cidx].members.end();
              ++mit) {
-          size_t vid = (*mit).vectorID;
+          size_t vid  = (*mit).vectorID;
           cindex[vid] = idx;
         }
         idx++;

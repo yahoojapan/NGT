@@ -219,8 +219,8 @@ void NeighborhoodGraph::Search::innerProductQint4(NeighborhoodGraph &graph, NGT:
   graph.searchReadOnlyGraph<PrimitiveComparator::InnerProductQint4, DistanceCheckedSet>(sc, seeds);
 }
 void NeighborhoodGraph::Search::normalizedCosineSimilarityQint4(NeighborhoodGraph &graph,
-                                                                 NGT::SearchContainer &sc,
-                                                                 ObjectDistances &seeds) {
+                                                                NGT::SearchContainer &sc,
+                                                                ObjectDistances &seeds) {
   graph.searchReadOnlyGraph<PrimitiveComparator::NormalizedCosineSimilarityQint4, DistanceCheckedSet>(sc,
                                                                                                       seeds);
 }
@@ -394,22 +394,26 @@ void NeighborhoodGraph::Search::normalizedCosineSimilarityQsint8ForLargeDataset(
 }
 #ifdef NGT_PQ4
 void NeighborhoodGraph::Search::l2Qint4ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc,
-                                                      ObjectDistances &seeds) {
+                                                       ObjectDistances &seeds) {
   graph.searchReadOnlyGraph<PrimitiveComparator::L2Qint4, DistanceCheckedSetForLargeDataset>(sc, seeds);
 }
-void NeighborhoodGraph::Search::cosineSimilarityQint4ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc,
+void NeighborhoodGraph::Search::cosineSimilarityQint4ForLargeDataset(NeighborhoodGraph &graph,
+                                                                     NGT::SearchContainer &sc,
                                                                      ObjectDistances &seeds) {
-  graph.searchReadOnlyGraph<PrimitiveComparator::CosineSimilarityQint4, DistanceCheckedSetForLargeDataset>(sc, seeds);
+  graph.searchReadOnlyGraph<PrimitiveComparator::CosineSimilarityQint4, DistanceCheckedSetForLargeDataset>(
+      sc, seeds);
 }
-void NeighborhoodGraph::Search::innerProductQint4ForLargeDataset(NeighborhoodGraph &graph, NGT::SearchContainer &sc,
+void NeighborhoodGraph::Search::innerProductQint4ForLargeDataset(NeighborhoodGraph &graph,
+                                                                 NGT::SearchContainer &sc,
                                                                  ObjectDistances &seeds) {
-  graph.searchReadOnlyGraph<PrimitiveComparator::InnerProductQint4, DistanceCheckedSetForLargeDataset>(sc, seeds);
+  graph.searchReadOnlyGraph<PrimitiveComparator::InnerProductQint4, DistanceCheckedSetForLargeDataset>(sc,
+                                                                                                       seeds);
 }
 void NeighborhoodGraph::Search::normalizedCosineSimilarityQint4ForLargeDataset(NeighborhoodGraph &graph,
                                                                                NGT::SearchContainer &sc,
                                                                                ObjectDistances &seeds) {
-  graph.searchReadOnlyGraph<PrimitiveComparator::NormalizedCosineSimilarityQint4, DistanceCheckedSetForLargeDataset>(sc,
-                                                                                                      seeds);
+  graph.searchReadOnlyGraph<PrimitiveComparator::NormalizedCosineSimilarityQint4,
+                            DistanceCheckedSetForLargeDataset>(sc, seeds);
 }
 #endif
 #endif
@@ -674,7 +678,7 @@ void NeighborhoodGraph::searchReadOnlyGraph(NGT::SearchContainer &sc, ObjectDist
           results.push(result);
           if (results.size() > sc.size) {
             results.pop();
-            sc.radius         = results.top().distance;
+            sc.radius = results.top().distance;
 #ifdef RESULT_DEFINED_RANGE
             if (sizeBackup != 0) {
               explorationRadius = sc.radius;
@@ -704,7 +708,7 @@ void NeighborhoodGraph::searchReadOnlyGraph(NGT::SearchContainer &sc, ObjectDist
     sc.workingResult = std::move(results);
   }
 }
-#else                       // NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
+#else                              // NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
 template <typename COMPARATOR, typename CHECK_LIST>
 void NeighborhoodGraph::searchReadOnlyGraph(NGT::SearchContainer &sc, ObjectDistances &seeds) {
   if (sc.explorationCoefficient == 0.0) {
@@ -733,13 +737,13 @@ void NeighborhoodGraph::searchReadOnlyGraph(NGT::SearchContainer &sc, ObjectDist
   Distance explorationRadius;
   float explorationCoefficient;
   if (sizeBackup != 0) {
-    explorationRadius = sc.radius;
+    explorationRadius      = sc.radius;
     explorationCoefficient = 1.0;
     if (results.size() >= sc.size) {
       explorationRadius = results.top().distance;
     }
   } else {
-    explorationRadius = sc.explorationCoefficient * sc.radius;
+    explorationRadius      = sc.explorationCoefficient * sc.radius;
     explorationCoefficient = sc.explorationCoefficient;
   }
 #else
@@ -798,7 +802,7 @@ void NeighborhoodGraph::searchReadOnlyGraph(NGT::SearchContainer &sc, ObjectDist
             results.push_pop(result);
             sc.radius = results.top().distance;
 #ifdef RESULT_DEFINED_RANGE
-	    explorationRadius = explorationCoefficient * sc.radius;
+            explorationRadius = explorationCoefficient * sc.radius;
 #else
             explorationRadius = sc.explorationCoefficient * sc.radius;
 #endif
@@ -825,7 +829,7 @@ void NeighborhoodGraph::searchReadOnlyGraph(NGT::SearchContainer &sc, ObjectDist
     sc.workingResult = std::move(results);
   }
 }
-#endif                      // NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
+#endif        // NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
 
 #endif
 
@@ -873,13 +877,13 @@ void NeighborhoodGraph::search(NGT::SearchContainer &sc, ObjectDistances &seeds)
   Distance explorationRadius;
   float explorationCoefficient;
   if (sizeBackup != 0) {
-    explorationRadius = sc.radius;
+    explorationRadius      = sc.radius;
     explorationCoefficient = 1.0;
     if (results.size() >= sc.size) {
       explorationRadius = results.top().distance;
     }
   } else {
-    explorationRadius = sc.explorationCoefficient * sc.radius;
+    explorationRadius      = sc.explorationCoefficient * sc.radius;
     explorationCoefficient = sc.explorationCoefficient;
   }
 #else
@@ -937,9 +941,9 @@ void NeighborhoodGraph::search(NGT::SearchContainer &sc, ObjectDistances &seeds)
     size_t poft = prefetchOffset < neighborSize ? prefetchOffset : neighborSize;
     for (size_t i = 0; i < poft; i++) {
       if (!distanceChecked[(*(neighborptr + i)).id]) {
-	if (objectRepository.isEmpty((*(neighborptr + i)).id)) {
-	  continue;
-	}
+        if (objectRepository.isEmpty((*(neighborptr + i)).id)) {
+          continue;
+        }
         unsigned char *ptr = reinterpret_cast<unsigned char *>(objectRepository.get((*(neighborptr + i)).id));
         MemoryCache::prefetch(ptr, prefetchSize);
       }
@@ -951,9 +955,9 @@ void NeighborhoodGraph::search(NGT::SearchContainer &sc, ObjectDistances &seeds)
 #endif
       if ((neighborptr + prefetchOffset < neighborendptr) &&
           !distanceChecked[(*(neighborptr + prefetchOffset)).id]) {
-	if (objectRepository.isEmpty((*(neighborptr + prefetchOffset)).id)) {
-	  continue;
-	}
+        if (objectRepository.isEmpty((*(neighborptr + prefetchOffset)).id)) {
+          continue;
+        }
         unsigned char *ptr =
             reinterpret_cast<unsigned char *>(objectRepository.get((*(neighborptr + prefetchOffset)).id));
         MemoryCache::prefetch(ptr, prefetchSize);
@@ -970,9 +974,9 @@ void NeighborhoodGraph::search(NGT::SearchContainer &sc, ObjectDistances &seeds)
 #endif
 
       if (objectRepository.isEmpty(neighbor.id)) {
-	std::cerr << "Graph::search: Warning! The desitination of the edge does not exist."
-		  << " Node ID=" << target.id << " ID=" << neighbor.id << std::endl;
-	continue;
+        std::cerr << "Graph::search: Warning! The desitination of the edge does not exist."
+                  << " Node ID=" << target.id << " ID=" << neighbor.id << std::endl;
+        continue;
       }
       Distance distance = comparator(sc.object, *objectRepository.get(neighbor.id));
       sc.distanceComputationCount++;
@@ -986,9 +990,9 @@ void NeighborhoodGraph::search(NGT::SearchContainer &sc, ObjectDistances &seeds)
               if (results.size() > sc.size) {
                 results.pop();
               }
-              sc.radius         = results.top().distance;
+              sc.radius = results.top().distance;
 #ifdef RESULT_DEFINED_RANGE
-	      explorationRadius = explorationCoefficient * sc.radius;
+              explorationRadius = explorationCoefficient * sc.radius;
 #else
               explorationRadius = sc.explorationCoefficient * sc.radius;
 #endif
@@ -1155,7 +1159,7 @@ void NeighborhoodGraph::removeEdgesReliably(ObjectID id) {
 #else
         GraphNode::iterator ei = std::lower_bound(n.begin(), n.end(), obj);
         if ((ei == n.end()) || ((*ei).id != obj.id)) {
-          auto idx = distance(n.begin(), ei);
+          auto idx   = distance(n.begin(), ei);
           bool found = false;
           for (int i = idx - 1; i >= 0 && found == false; i--) {
             if (n[idx - 1].distance != n[i].distance) break;
@@ -1193,7 +1197,7 @@ void NeighborhoodGraph::removeEdgesReliably(ObjectID id) {
 #else
         GraphNode::iterator ei = std::lower_bound(n.begin(), n.end(), obj);
         if ((ei == n.end()) || ((*ei).id != obj.id)) {
-          auto idx = distance(n.begin(), ei);
+          auto idx   = distance(n.begin(), ei);
           bool found = false;
           for (int i = idx - 1; i >= 0 && found == false; i--) {
             if (n[idx - 1].distance != n[i].distance) break;
@@ -1210,7 +1214,6 @@ void NeighborhoodGraph::removeEdgesReliably(ObjectID id) {
             n.insert(ei, obj);
             insertionB = true;
           }
-
         }
 #endif
       }
@@ -1315,7 +1318,7 @@ class TruncationSearchThread : public NGT::Thread {
   virtual int run() {
     NGT::ThreadPool<TruncationSearchJob, TruncationSearchSharedData *, TruncationSearchThread>::Thread
         &poolThread                = (NGT::ThreadPool<TruncationSearchJob, TruncationSearchSharedData *,
-                                       TruncationSearchThread>::Thread &)*this;
+                                                      TruncationSearchThread>::Thread &)*this;
     TruncationSearchSharedData &sd = *poolThread.getSharedData();
     for (;;) {
       TruncationSearchJob job;

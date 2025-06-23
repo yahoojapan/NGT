@@ -16,11 +16,10 @@
 
 #include "NGT/NGTQ/QuantizedBlobGraph.h"
 
-void 
-QBG::Index::append(const std::string &indexName, // index file
-                   const std::string &data,      // data file
-                   size_t dataSize,          // data size
-                   bool verbose) {
+void QBG::Index::append(const std::string &indexName, // index file
+                        const std::string &data,      // data file
+                        size_t dataSize,              // data size
+                        bool verbose) {
   NGT::StdOstreamRedirector redirector(!verbose);
   redirector.begin();
   QBG::Index index(indexName);
@@ -80,10 +79,9 @@ QBG::Index::append(const std::string &indexName, // index file
   redirector.end();
 }
 
-void 
-QBG::Index::append(const std::string &indexName, // index file
-                   NGT::ObjectSpace &objectSpace, // object space including objects
-                   bool verbose) {
+void QBG::Index::append(const std::string &indexName,  // index file
+                        NGT::ObjectSpace &objectSpace, // object space including objects
+                        bool verbose) {
   NGT::StdOstreamRedirector redirector(!verbose);
   redirector.begin();
   QBG::Index index(indexName);
@@ -120,11 +118,10 @@ QBG::Index::append(const std::string &indexName, // index file
   redirector.end();
 }
 
-void
-QBG::Index::appendBinary(const std::string &indexName, // index file
-                         const std::string &data,      // data file
-                         size_t dataSize,          // data size
-                         bool verbose) {
+void QBG::Index::appendBinary(const std::string &indexName, // index file
+                              const std::string &data,      // data file
+                              size_t dataSize,              // data size
+                              bool verbose) {
   NGT::StdOstreamRedirector redirector(!verbose);
   redirector.begin();
   QBG::Index index(indexName);
@@ -170,9 +167,7 @@ QBG::Index::appendBinary(const std::string &indexName, // index file
   redirector.end();
 }
 
-
-void
-QBG::Index::preprocessingForNGT(std::string &indexPath, std::string &objectPath, bool verbose) {
+void QBG::Index::preprocessingForNGT(std::string &indexPath, std::string &objectPath, bool verbose) {
   NGT::Property prop;
   {
     if (verbose) {
@@ -199,11 +194,11 @@ QBG::Index::preprocessingForNGT(std::string &indexPath, std::string &objectPath,
 
   QBG::BuildParameters buildParameters;
   buildParameters.creation.localClusterDataType = NGTQ::ClusterDataTypePQ4;
-  buildParameters.creation.genuineDimension = prop.dimension;
+  buildParameters.creation.genuineDimension     = prop.dimension;
   buildParameters.creation.dimension = ((buildParameters.creation.genuineDimension + 15) / 16) * 16;
-  buildParameters.creation.numOfSubvectors = prop.dimension;
-  buildParameters.creation.distanceType = NGTQ::DistanceType::DistanceTypeL2;
-  buildParameters.creation.genuineDataType = ObjectFile::DataTypeFloat;
+  buildParameters.creation.numOfSubvectors  = prop.dimension;
+  buildParameters.creation.distanceType     = NGTQ::DistanceType::DistanceTypeL2;
+  buildParameters.creation.genuineDataType  = ObjectFile::DataTypeFloat;
   buildParameters.creation.globalObjectType = NGT::ObjectSpace::ObjectType::Float;
 
   std::string qbgIndexPath = indexPath + "/" + NGT::Quantizer::getQbgIndex();
@@ -215,7 +210,7 @@ QBG::Index::preprocessingForNGT(std::string &indexPath, std::string &objectPath,
   if (verbose) {
     std::cerr << "qbg: appending..." << std::endl;
   }
-  size_t dataSize = 0;
+  size_t dataSize  = 0;
   std::string mode = "";
   QBG::Index::append(qbgIndexPath, objectPath, dataSize, verbose);
 
@@ -225,7 +220,7 @@ QBG::Index::preprocessingForNGT(std::string &indexPath, std::string &objectPath,
   optimizer.unifiedPQ     = true;
   optimizer.rotation      = false;
   optimizer.repositioning = false;
-  optimizer.globalType = QBG::Optimizer::GlobalTypeZero;
+  optimizer.globalType    = QBG::Optimizer::GlobalTypeZero;
 
   if (verbose) {
     std::cerr << "qbg: optimizing..." << std::endl;

@@ -387,7 +387,7 @@ class QbgCliBuildParameters : public QBG::BuildParameters {
 #ifdef NGTQG_NO_ROTATION
     char positionMode = args.getChar("P", 'n');
 #else
-    char positionMode     = args.getChar("P", 'r');
+    char positionMode = args.getChar("P", 'r');
 #endif
     switch (positionMode) {
     case 'r':
@@ -702,8 +702,8 @@ void QBG::CLI::appendQG(NGT::Args &args) {
     msg << usage << endl;
     NGTThrowException(msg);
   }
-  QBG::Index::appendFromObjectRepository(indexPath, indexPath + "/" + 
-                                         NGTQG::Index::getQGDirectoryName(), false);
+  QBG::Index::appendFromObjectRepository(indexPath, indexPath + "/" + NGTQG::Index::getQGDirectoryName(),
+                                         false);
 }
 
 
@@ -1612,9 +1612,7 @@ void QBG::CLI::rebuild(NGT::Args &args) {
   }
 }
 
-void
-QBG::CLI::preprocessForNGT(NGT::Args &args)
-{
+void QBG::CLI::preprocessForNGT(NGT::Args &args) {
   const std::string usage = "Usage: qbg prep index object-list-file";
   args.parse("v");
   std::string indexPath;

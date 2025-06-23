@@ -401,7 +401,7 @@ class LeafNode : public Node {
 #else
     objectSize = 0;
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-    objectIDs  = allocator.getOffset(new (allocator) Object[LeafObjectsSizeMax]);
+    objectIDs = allocator.getOffset(new (allocator) Object[LeafObjectsSizeMax]);
 #else
     objectIDs = new NGT::ObjectDistance[LeafObjectsSizeMax];
 #endif

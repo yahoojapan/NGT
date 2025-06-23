@@ -112,7 +112,7 @@ class PrimitiveComparator {
     __m256 sum256 = _mm256_add_ps(_mm512_extractf32x8_ps(sum512, 0), _mm512_extractf32x8_ps(sum512, 1));
     __m128 sum128 = _mm_add_ps(_mm256_extractf128_ps(sum256, 0), _mm256_extractf128_ps(sum256, 1));
 #elif defined(NGT_AVX2)
-    __m256 sum256    = _mm256_setzero_ps();
+    __m256 sum256 = _mm256_setzero_ps();
     __m256 v;
     while (a < last) {
       v      = _mm256_sub_ps(_mm256_loadu_ps(a), _mm256_loadu_ps(b));
@@ -126,7 +126,7 @@ class PrimitiveComparator {
     }
     __m128 sum128 = _mm_add_ps(_mm256_extractf128_ps(sum256, 0), _mm256_extractf128_ps(sum256, 1));
 #else
-    __m128 sum128    = _mm_setzero_ps();
+    __m128 sum128 = _mm_setzero_ps();
     __m128 v;
     while (a < last) {
       v      = _mm_sub_ps(_mm_loadu_ps(a), _mm_loadu_ps(b));
@@ -175,12 +175,12 @@ class PrimitiveComparator {
     __m256 v;
     while (a < last) {
       v      = _mm256_sub_ps(_mm256_cvtph_ps(_mm_loadu_si128(reinterpret_cast<const __m128i *>(a))),
-                        _mm256_cvtph_ps(_mm_loadu_si128(reinterpret_cast<const __m128i *>(b))));
+                             _mm256_cvtph_ps(_mm_loadu_si128(reinterpret_cast<const __m128i *>(b))));
       sum256 = _mm256_add_ps(sum256, _mm256_mul_ps(v, v));
       a += 8;
       b += 8;
       v      = _mm256_sub_ps(_mm256_cvtph_ps(_mm_loadu_si128(reinterpret_cast<const __m128i *>(a))),
-                        _mm256_cvtph_ps(_mm_loadu_si128(reinterpret_cast<const __m128i *>(b))));
+                             _mm256_cvtph_ps(_mm_loadu_si128(reinterpret_cast<const __m128i *>(b))));
       sum256 = _mm256_add_ps(sum256, _mm256_mul_ps(v, v));
       a += 8;
       b += 8;
@@ -309,7 +309,7 @@ class PrimitiveComparator {
         __m256i x1 = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const *)u8a));
         __m256i x2   = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const *)u8b));
         __m256i xi16 = _mm256_subs_epi16(x1, x2);
-        sum256       = _mm256_add_epi32(sum256, _mm256_madd_epi16(xi16, xi16));
+        sum256 = _mm256_add_epi32(sum256, _mm256_madd_epi16(xi16, xi16));
         u8a += 16;
         u8b += 16;
         x1 = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const *)u8a));
@@ -345,8 +345,8 @@ class PrimitiveComparator {
 
   inline static double compareL2(const qsint8 *a, const qsint8 *b, size_t size) {
 
-    auto *i8a = reinterpret_cast<const int8_t *>(a);
-    auto *i8b = reinterpret_cast<const int8_t *>(b);
+    auto *i8a        = reinterpret_cast<const int8_t *>(a);
+    auto *i8b        = reinterpret_cast<const int8_t *>(b);
     const auto *last = i8a + size;
 
 #if defined(__AVX512BW__)
@@ -373,7 +373,7 @@ class PrimitiveComparator {
 #if defined(__AVX512VL__)
         __m256i mi8a = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(i8a));
         __m256i mi8b = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(i8b));
-        __mmask32 m = _mm256_cmplt_epi8_mask(mi8a, mi8b);
+        __mmask32 m  = _mm256_cmplt_epi8_mask(mi8a, mi8b);
         __m256i x =
             _mm256_add_epi8(_mm256_maskz_sub_epi8(m, mi8b, mi8a), _mm256_maskz_sub_epi8(~m, mi8a, mi8b));
         __m512i xi16 = _mm512_cvtepu8_epi16(x);
@@ -394,15 +394,15 @@ class PrimitiveComparator {
     {
       const auto *lastgroup = last - 31;
       while (i8a < lastgroup) {
-        __m256i x1 = _mm256_cvtepi8_epi16(_mm_loadu_si128((__m128i const *)i8a));
-        __m256i x2 = _mm256_cvtepi8_epi16(_mm_loadu_si128((__m128i const *)i8b));
+        __m256i x1   = _mm256_cvtepi8_epi16(_mm_loadu_si128((__m128i const *)i8a));
+        __m256i x2   = _mm256_cvtepi8_epi16(_mm_loadu_si128((__m128i const *)i8b));
         __m256i xi16 = _mm256_sub_epi16(x1, x2);
-        sum256 = _mm256_add_epi32(sum256, _mm256_madd_epi16(xi16, xi16));
+        sum256       = _mm256_add_epi32(sum256, _mm256_madd_epi16(xi16, xi16));
         i8a += 16;
         i8b += 16;
         x1 = _mm256_cvtepi8_epi16(_mm_loadu_si128((__m128i const *)i8a));
-        x2 = _mm256_cvtepi8_epi16(_mm_loadu_si128((__m128i const *)i8b));
-        xi16 = _mm256_subs_epi16(x1, x2);
+        x2     = _mm256_cvtepi8_epi16(_mm_loadu_si128((__m128i const *)i8b));
+        xi16   = _mm256_subs_epi16(x1, x2);
         sum256 = _mm256_add_epi32(sum256, _mm256_madd_epi16(xi16, xi16));
         i8a += 16;
         i8b += 16;
@@ -416,12 +416,12 @@ class PrimitiveComparator {
 #if defined(__AVX512BW__) && defined(__AVX512VL__)
         __m128i mi8a = _mm_loadu_si128(reinterpret_cast<const __m128i *>(i8a));
         __m128i mi8b = _mm_loadu_si128(reinterpret_cast<const __m128i *>(i8b));
-        __mmask16 m = _mm_cmplt_epi8_mask(mi8a, mi8b);
-        __m128i x = _mm_add_epi8(_mm_maskz_sub_epi8(m, mi8b, mi8a), _mm_maskz_sub_epi8(~m, mi8a, mi8b));
+        __mmask16 m  = _mm_cmplt_epi8_mask(mi8a, mi8b);
+        __m128i x    = _mm_add_epi8(_mm_maskz_sub_epi8(m, mi8b, mi8a), _mm_maskz_sub_epi8(~m, mi8a, mi8b));
         __m256i xi16 = _mm256_cvtepu8_epi16(x);
 #else
         __m256i x1 = _mm256_cvtepi8_epi16(_mm_loadu_si128((__m128i const *)i8a));
-        __m256i x2 = _mm256_cvtepi8_epi16(_mm_loadu_si128((__m128i const *)i8b));
+        __m256i x2   = _mm256_cvtepi8_epi16(_mm_loadu_si128((__m128i const *)i8b));
         __m256i xi16 = _mm256_sub_epi16(x1, x2);
 #endif
         sum256 = _mm256_add_epi32(sum256, _mm256_madd_epi16(xi16, xi16));
@@ -431,7 +431,7 @@ class PrimitiveComparator {
     }
 
     const __m256i value0 = _mm256_set1_epi32(0);
-    __m256i tmp1 = _mm256_hadd_epi32(sum256, value0);
+    __m256i tmp1         = _mm256_hadd_epi32(sum256, value0);
     __m256i tmp2 = _mm256_hadd_epi32(tmp1, value0);
     double s = _mm256_extract_epi32(tmp2, 0) + _mm256_extract_epi32(tmp2, 4);
     return s;
@@ -716,7 +716,7 @@ class PrimitiveComparator {
     }
     __m128 sum128 = _mm_add_ps(_mm256_extractf128_ps(sum256, 0), _mm256_extractf128_ps(sum256, 1));
 #else
-    __m128 sum128  = _mm_setzero_ps();
+    __m128 sum128 = _mm_setzero_ps();
     while (a < last) {
       sum128 = _mm_add_ps(sum128, _mm_mul_ps(_mm_loadu_ps(a), _mm_loadu_ps(b)));
       a += 4;
@@ -885,7 +885,7 @@ class PrimitiveComparator {
       while (a < lastgroup) {
         __m256i ma = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(a));
         __m256i mb = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(b));
-        sum256 = _mm256_dpbusd_epi32(sum256, mb, ma);
+        sum256     = _mm256_dpbusd_epi32(sum256, mb, ma);
         a += 32;
         b += 32;
       }
@@ -955,20 +955,20 @@ class PrimitiveComparator {
 #elif defined(NGT_AVX2)
     __m256 normA = _mm256_setzero_ps();
     __m256 normB = _mm256_setzero_ps();
-    __m256 sum = _mm256_setzero_ps();
+    __m256 sum   = _mm256_setzero_ps();
     __m256 am, bm;
     while (a < last) {
-      am = _mm256_loadu_ps(a);
-      bm = _mm256_loadu_ps(b);
+      am    = _mm256_loadu_ps(a);
+      bm    = _mm256_loadu_ps(b);
       normA = _mm256_add_ps(normA, _mm256_mul_ps(am, am));
       normB = _mm256_add_ps(normB, _mm256_mul_ps(bm, bm));
-      sum = _mm256_add_ps(sum, _mm256_mul_ps(am, bm));
+      sum   = _mm256_add_ps(sum, _mm256_mul_ps(am, bm));
       a += 8;
       b += 8;
     }
     __m128 am128 = _mm_add_ps(_mm256_extractf128_ps(normA, 0), _mm256_extractf128_ps(normA, 1));
     __m128 bm128 = _mm_add_ps(_mm256_extractf128_ps(normB, 0), _mm256_extractf128_ps(normB, 1));
-    __m128 s128 = _mm_add_ps(_mm256_extractf128_ps(sum, 0), _mm256_extractf128_ps(sum, 1));
+    __m128 s128  = _mm_add_ps(_mm256_extractf128_ps(sum, 0), _mm256_extractf128_ps(sum, 1));
 #else
     __m128 am128 = _mm_setzero_ps();
     __m128 bm128 = _mm_setzero_ps();
@@ -1024,24 +1024,24 @@ class PrimitiveComparator {
 #elif defined(NGT_AVX2)
     __m256 normA = _mm256_setzero_ps();
     __m256 normB = _mm256_setzero_ps();
-    __m256 sum = _mm256_setzero_ps();
+    __m256 sum   = _mm256_setzero_ps();
     __m256 am, bm;
     while (a < last) {
-      am = _mm256_cvtph_ps(_mm_loadu_si128(reinterpret_cast<const __m128i *>(a)));
-      bm = _mm256_cvtph_ps(_mm_loadu_si128(reinterpret_cast<const __m128i *>(b)));
+      am    = _mm256_cvtph_ps(_mm_loadu_si128(reinterpret_cast<const __m128i *>(a)));
+      bm    = _mm256_cvtph_ps(_mm_loadu_si128(reinterpret_cast<const __m128i *>(b)));
       normA = _mm256_add_ps(normA, _mm256_mul_ps(am, am));
       normB = _mm256_add_ps(normB, _mm256_mul_ps(bm, bm));
-      sum = _mm256_add_ps(sum, _mm256_mul_ps(am, bm));
+      sum   = _mm256_add_ps(sum, _mm256_mul_ps(am, bm));
       a += 8;
       b += 8;
     }
     __m128 am128 = _mm_add_ps(_mm256_extractf128_ps(normA, 0), _mm256_extractf128_ps(normA, 1));
     __m128 bm128 = _mm_add_ps(_mm256_extractf128_ps(normB, 0), _mm256_extractf128_ps(normB, 1));
-    __m128 s128 = _mm_add_ps(_mm256_extractf128_ps(sum, 0), _mm256_extractf128_ps(sum, 1));
+    __m128 s128  = _mm_add_ps(_mm256_extractf128_ps(sum, 0), _mm256_extractf128_ps(sum, 1));
 #else
-    __m128 am128   = _mm_setzero_ps();
-    __m128 bm128   = _mm_setzero_ps();
-    __m128 s128    = _mm_setzero_ps();
+    __m128 am128 = _mm_setzero_ps();
+    __m128 bm128 = _mm_setzero_ps();
+    __m128 s128  = _mm_setzero_ps();
     __m128 am, bm;
     while (a < last) {
       __m128i va = _mm_load_si128(reinterpret_cast<const __m128i *>(a));
@@ -1137,7 +1137,7 @@ class PrimitiveComparator {
 #ifdef NGT_PQ4
   inline static double compareNormalizedCosineSimilarity(const qint4 *a, const qint4 *b, size_t size) {
     auto v = 1.0 - compareDotProduct(a, b, size);
-    v = v < 0.0 ? 0 : v;
+    v      = v < 0.0 ? 0 : v;
     return v;
   }
 #endif
