@@ -26,22 +26,6 @@ double NGT::PrimitiveComparator::compareL2(const qint4 *a, const qint4 *b, size_
   auto &query = *reinterpret_cast<const NGT::Quantizer::Query *>(a);
   auto &lut   = query.lut;
   auto scale  = query.scale;
-#if 0  ///########################################
-  {
-    auto &quantizedQuery = query.quantizedQuery;
-    float d = 0.0;
-    for (size_t i = 0; i < quantizedQuery.size(); i++) {
-      float f = static_cast<float>(quantizedQuery[i]);
-      float fo;
-      if ((i & 0x01) == 0) fo = static_cast<float>(lut[b[i >> 1].lower()]);
-      else fo = static_cast<float>(lut[b[i >> 1].upper()]);
-      f -= fo;
-      d += f * f;
-    }
-    d = sqrt(d / (255.5 * 255.5) * scale * scale);
-    //return d;
-  }
-#endif ///########################################
   auto *s8a           = static_cast<const int8_t *>(query.quantizedQuery.data());
   auto *u8b           = reinterpret_cast<const uint8_t *>(b);
   const uint8_t *last = u8b + size;

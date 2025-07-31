@@ -49,7 +49,8 @@ class Command {
       beginOfEpsilon = endOfEpsilon = stepOfEpsilon = 0.1;
       accuracy                                      = 0.0;
 #ifdef NGT_REFINEMENT
-      beginOfRefinementExpansion = endOfRefinementExpansion = stepOfRefinementExpansion = 0.0;
+      beginOfRefinementExpansion = endOfRefinementExpansion = 0.0;
+      stepOfRefinementExpansion                             = std::numeric_limits<float>::max();
 #endif
 #ifdef RESULT_DEFINED_RANGE
       expandedSizeByEpsilon = false;
