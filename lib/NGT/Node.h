@@ -140,7 +140,6 @@ class Node {
 #endif
 };
 
-
 class InternalNode : public Node {
  public:
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
@@ -384,7 +383,6 @@ class InternalNode : public Node {
   Distance *borders;
 #endif
 };
-
 
 class LeafNode : public Node {
  public:

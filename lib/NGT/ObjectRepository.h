@@ -196,9 +196,7 @@ class ObjectRepository : public Repository<Object> {
     }
   }
 
-  Object *allocateObject() {
-    return (Object *)new Object(paddedByteSize);
-  }
+  Object *allocateObject() { return (Object *)new Object(paddedByteSize); }
 
   // This method is called during search to generate query.
   // Therefore the object is not persistent.
@@ -421,9 +419,7 @@ class ObjectRepository : public Repository<Object> {
   }
 #endif
 
-  void deleteObject(Object *po) {
-    delete po;
-  }
+  void deleteObject(Object *po) { delete po; }
 
  private:
   void extractObject(void *object, std::vector<double> &d) {

@@ -170,8 +170,6 @@ bool ngtqg_quantize(const char *indexPath, NGTQGQuantizationParameters parameter
   }
 }
 
-
-
 uint32_t qbg_get_result_size(QBGObjectDistances results, NGTError error) {
   return ngt_get_result_size(results, error);
 }
@@ -203,19 +201,19 @@ bool qbg_create(const char *indexPath, QBGConstructionParameters *parameters, NG
     if (property.dimension == 0) {
       property.dimension = parameters->dimension;
     }
-    property.genuineDimension    = parameters->dimension;
-    property.globalRange         = 0;
-    property.localRange          = 0;
-    property.globalCentroidLimit = parameters->number_of_blobs;
-    property.localCentroidLimit  = 16;
-    property.localDivisionNo     = parameters->number_of_subvectors;
+    property.genuineDimension          = parameters->dimension;
+    property.globalRange               = 0;
+    property.localRange                = 0;
+    property.globalCentroidLimit       = parameters->number_of_blobs;
+    property.localCentroidLimit        = 16;
+    property.localDivisionNo           = parameters->number_of_subvectors;
     property.singleLocalCodebook       = false;
     property.centroidCreationMode      = NGTQ::CentroidCreationModeStaticLayer;
     property.localCentroidCreationMode = NGTQ::CentroidCreationModeStatic;
     property.localIDByteSize           = 1;
-    property.dataType        = static_cast<NGTQ::DataType>(parameters->internal_data_type);
-    property.genuineDataType = static_cast<ObjectFile::DataType>(parameters->data_type);
-    property.distanceType    = static_cast<NGTQ::DistanceType>(parameters->distance_type);
+    property.dataType                  = static_cast<NGTQ::DataType>(parameters->internal_data_type);
+    property.genuineDataType           = static_cast<ObjectFile::DataType>(parameters->data_type);
+    property.distanceType              = static_cast<NGTQ::DistanceType>(parameters->distance_type);
 
     globalProperty.edgeSizeForCreation        = 10;
     globalProperty.edgeSizeForSearch          = 40;

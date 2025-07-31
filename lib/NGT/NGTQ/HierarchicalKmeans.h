@@ -295,7 +295,7 @@ class HierarchicalKmeans {
           randomObjectIDXs = leafNode.members;
           while (randomObjectIDXs.size() < numOfRandomObjects) {
             double random = ((double)rand() + 1.0) / ((double)RAND_MAX + 2.0);
-            uint32_t idx = floor(leafNode.members.size() * random);
+            uint32_t idx  = floor(leafNode.members.size() * random);
             if (idx >= leafNode.members.size()) {
               std::cerr << "Internal error. " << idx << ":" << leafNode.members.size() << std::endl;
               abort();
@@ -338,7 +338,7 @@ class HierarchicalKmeans {
           HKInternalNode &internalNode = static_cast<HKInternalNode &>(*node);
           for (auto &child : internalNode.children) {
             if (nodes[child.first]->leaf) {
-              HKLeafNode &leafNode = static_cast<HKLeafNode &>(*nodes[child.first]);
+              HKLeafNode &leafNode   = static_cast<HKLeafNode &>(*nodes[child.first]);
               centroids[leafNode.id] = child.second;
             }
           }
@@ -457,7 +457,6 @@ class HierarchicalKmeans {
       nodeIDs[idx] = nodeID;
     }
 
-
     for (size_t idx = 0; idx < batch.size(); idx++) {
       auto id              = batch[idx];
       HKLeafNode &leafNode = static_cast<HKLeafNode &>(*nodes[nodeIDs[idx]]);
@@ -536,7 +535,7 @@ class HierarchicalKmeans {
         aggregateObjects(leafNode, vectors, objectSpace, objectList);
         size_t nClusters = round(static_cast<float>(leafNode.members.size()) / numOfRemainingVectors *
                                  numOfRemainingClusters);
-        nClusters = nClusters == 0 ? 1 : nClusters;
+        nClusters        = nClusters == 0 ? 1 : nClusters;
         numOfRemainingVectors -= leafNode.members.size();
         numOfRemainingClusters -= nClusters;
         NGT::Clustering clustering(initMode, NGT::Clustering::ClusteringTypeKmeansWithoutNGT, 1000,
@@ -577,9 +576,9 @@ class HierarchicalKmeans {
           }
         }
         HKLeafNode &leafNode = static_cast<HKLeafNode &>(*nodes[nidx]);
-        size_t nClusters = round(static_cast<float>(leafNode.members.size()) / numOfRemainingVectors *
-                                 numOfRemainingClusters);
-        nClusters = nClusters == 0 ? 1 : nClusters;
+        size_t nClusters     = round(static_cast<float>(leafNode.members.size()) / numOfRemainingVectors *
+                                     numOfRemainingClusters);
+        nClusters            = nClusters == 0 ? 1 : nClusters;
         numOfRemainingVectors -= leafNode.members.size();
         numOfRemainingClusters -= nClusters;
         leafNodes.push_back(std::make_pair(nidx, nClusters));
@@ -631,7 +630,6 @@ class HierarchicalKmeans {
                               std::vector<std::vector<NGT::Clustering::Cluster>> &lowerClusters,
                               size_t numOfLowerClusters,
                               std::vector<NGT::Clustering::Cluster> &flatClusters) {
-
 
     flatClusters.clear();
     flatClusters.reserve(numOfLowerClusters);
@@ -725,8 +723,7 @@ class HierarchicalKmeans {
 
 #else
   static void subclustering(std::vector<NGT::Clustering::Cluster> &upperClusters, size_t numOfLowerClusters,
-                            size_t numOfObjects,
-                            NGT::ObjectSpace &objectSpace, QBGObjectList &objectList,
+                            size_t numOfObjects, NGT::ObjectSpace &objectSpace, QBGObjectList &objectList,
                             NGT::Clustering::InitializationMode initMode,
                             std::vector<std::vector<NGT::Clustering::Cluster>> &lowerClusters,
                             size_t maximumIteration = 1000) {
@@ -840,8 +837,7 @@ class HierarchicalKmeans {
   }
 
   static void subclustering(std::vector<NGT::Clustering::Cluster> &upperClusters, size_t numOfLowerClusters,
-                            size_t numOfObjects,
-                            NGT::ObjectSpace &objectSpace, QBGObjectList &objectList,
+                            size_t numOfObjects, NGT::ObjectSpace &objectSpace, QBGObjectList &objectList,
                             NGT::Clustering::InitializationMode initMode,
                             std::vector<NGT::Clustering::Cluster> &flatLowerClusters,
                             size_t maximumIteration = 1000) {
@@ -1288,7 +1284,6 @@ class HierarchicalKmeans {
     if (numOfSecondObjects > numOfObjects) {
       numOfSecondObjects = numOfObjects;
     }
-
 
     NGT::Clustering firstClustering(initMode, NGT::Clustering::ClusteringTypeKmeansWithoutNGT,
                                     maximumIteration);

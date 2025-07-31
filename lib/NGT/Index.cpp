@@ -28,7 +28,6 @@
 using namespace std;
 using namespace NGT;
 
-
 void Index::version(ostream &os) {
   os << "libngt:" << endl;
   Version::get(os);
@@ -36,9 +35,7 @@ void Index::version(ostream &os) {
 
 string Index::getVersion() { return Version::getVersion(); }
 
-size_t Index::getDimension() {
-  return static_cast<NGT::GraphIndex &>(getIndex()).getProperty().dimension;
-}
+size_t Index::getDimension() { return static_cast<NGT::GraphIndex &>(getIndex()).getProperty().dimension; }
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
 NGT::Index::Index(NGT::Property &prop, const string &database) : redirect(false) {
@@ -445,7 +442,7 @@ void NGT::Index::insertFromRefinementObjectFile() {
 
 void NGT::Index::appendFromTextObjectFile(const std::string &indexPath, const std::string &data,
                                           size_t dataSize, bool append, bool refinement, size_t threadSize) {
-//#define APPEND_TEST
+  //#define APPEND_TEST
 
   NGT::Index index(indexPath);
   index.appendFromTextObjectFile(data, dataSize, append, refinement);
@@ -465,7 +462,7 @@ void NGT::Index::appendFromTextObjectFile(const std::string &data, size_t dataSi
   if (maxMag > 0.0) maxMagSkip = true;
   std::vector<float> addedElement;
   size_t dim = prop.dimension;
-  bool warn = false;
+  bool warn  = false;
   if (append && prop.distanceType == NGT::ObjectSpace::DistanceType::DistanceTypeInnerProduct) {
     NGT::Timer timer;
     timer.start();
@@ -895,8 +892,7 @@ void NGT::Index::createIndex(size_t threadNumber, size_t sizeOfRepository) {
     InsertionOrder insertionOrder;
     NGT::Property prop;
     getProperty(prop);
-    if (prop.objectType == NGT::ObjectSpace::ObjectType::Qsuint8
-    ) {
+    if (prop.objectType == NGT::ObjectSpace::ObjectType::Qsuint8) {
       auto &ros = getRefinementObjectSpace();
       auto &os  = getObjectSpace();
       if (&ros != 0 && ros.getRepository().size() > os.getRepository().size()) {
@@ -1059,7 +1055,7 @@ int CreateIndexThread::run() {
       break;
     }
     ObjectDistances *rs = new ObjectDistances;
-    Object &obj = *job.object;
+    Object &obj         = *job.object;
     try {
       if (graphIndex.NeighborhoodGraph::property.graphType == NeighborhoodGraph::GraphTypeKNNG) {
         graphIndex.searchForKNNGInsertion(obj, job.id, *rs); // linear search
@@ -1081,7 +1077,7 @@ int CreateIndexThread::run() {
 class BuildTimeController {
  public:
   BuildTimeController(GraphIndex &graph, NeighborhoodGraph::Property &prop) : property(prop) {
-    noOfInsertedObjects = graph.objectSpace->getRepository().size() - graph.repository.size();
+    noOfInsertedObjects            = graph.objectSpace->getRepository().size() - graph.repository.size();
     interval                       = 10000;
     count                          = interval;
     edgeSizeSave                   = property.edgeSizeForCreation;
@@ -1294,7 +1290,7 @@ void NGT::GraphIndex::initialize(const string &allocator, NGT::Property &prop) {
 #endif
   setProperty(prop);
 }
-#else                   // NGT_SHARED_MEMORY_ALLOCATOR
+#else // NGT_SHARED_MEMORY_ALLOCATOR
 NGT::GraphIndex::GraphIndex(const string &database, bool rdOnly, NGT::Index::OpenType openType)
     : readOnly(rdOnly) {
   NGT::Property prop;
@@ -1445,7 +1441,6 @@ void GraphIndex::extractSparseness(InsertionOrder &insertionOrder) {
       insertionOrder.push_back(length[id].second);
     }
   }
-
 }
 
 void GraphIndex::extractInsertionOrder(InsertionOrder &insertionOrder) {
@@ -2560,9 +2555,9 @@ void GraphAndTreeIndex::createIndex(const vector<pair<NGT::Object *, size_t>> &o
               ids.push_back(InsertionResult());
               continue;
             }
-            job.id      = 0;
-            job.results = 0;
-            job.object  = objects[idx].first;
+            job.id       = 0;
+            job.results  = 0;
+            job.object   = objects[idx].first;
             job.batchIdx = ids.size();
             // insert an empty entry to prepare.
             ids.push_back(InsertionResult(job.id, false, 0.0));
@@ -2612,12 +2607,12 @@ void GraphAndTreeIndex::createIndex(const vector<pair<NGT::Object *, size_t>> &o
               ids[output[idxi].batchIdx].identical = true;
               ids[output[idxi].batchIdx].id        = objs[0].id;
               ids[output[idxi].batchIdx].distance  = objs[0].distance;
-              output[idxi].id = 0;
+              output[idxi].id                      = 0;
             } else {
               assert(output[idxi].id == 0);
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
               PersistentObject *obj = GraphIndex::objectSpace->allocatePersistentObject(*output[idxi].object);
-              output[idxi].id = GraphIndex::objectSpace->insert(obj);
+              output[idxi].id       = GraphIndex::objectSpace->insert(obj);
 #else
               output[idxi].id = GraphIndex::objectSpace->insert(output[idxi].object);
 #endif
@@ -2897,4 +2892,3 @@ bool GraphAndTreeIndex::verify(vector<uint8_t> &status, bool info, char mode) {
   }
   return valid;
 }
-

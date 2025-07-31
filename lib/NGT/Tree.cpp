@@ -384,7 +384,7 @@ void DVPTree::removeEmptyNodes(InternalNode &inode) {
     LeafNode *ln = new LeafNode;
 #endif
     ln->parent = target->parent;
-    ln->pivot = PersistentObject::allocate(*objectSpace);
+    ln->pivot  = PersistentObject::allocate(*objectSpace);
     insertNode(ln);
 
     InternalNode &in = *(InternalNode *)getNode(ln->parent);

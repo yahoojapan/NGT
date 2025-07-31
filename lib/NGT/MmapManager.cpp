@@ -123,7 +123,7 @@ bool MmapManager::openMemory(const std::string &filePath) {
     }
 
     const std::string controlFile = filePath + MMAP_CNTL_FILE_SUFFIX;
-    _impl->filePath = filePath;
+    _impl->filePath               = filePath;
 
     int32_t fd;
 
@@ -133,7 +133,7 @@ bool MmapManager::openMemory(const std::string &filePath) {
       throw MmapManagerException("file open error" + err_str);
     }
 
-    errno = 0;
+    errno           = 0;
     boot_st *boot_p = (boot_st *)mmap(NULL, MMAP_CNTL_FILE_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (boot_p == MAP_FAILED) {
       const std::string err_str = getErrorStr(errno);
@@ -249,7 +249,7 @@ off_t MmapManager::alloc(const size_t size, const bool not_reuse_flag) {
           _impl->mmapCntlHead->reuse_type == REUSE_DATA_QUEUE_PLUS) {
         off_t ret_offset;
         reuse_state_t reuse_state = REUSE_STATE_OK;
-        ret_offset = reuse(alloc_size, reuse_state);
+        ret_offset                = reuse(alloc_size, reuse_state);
         if (reuse_state != REUSE_STATE_ALLOC) {
           return ret_offset;
         }
@@ -271,7 +271,7 @@ off_t MmapManager::alloc(const size_t size, const bool not_reuse_flag) {
     }
 
     const off_t file_offset = _impl->mmapCntlHead->active_unit * _impl->mmapCntlHead->base_size;
-    const off_t ret_p = file_offset + (unit_header->break_p + sizeof(chunk_head_st));
+    const off_t ret_p       = file_offset + (unit_header->break_p + sizeof(chunk_head_st));
 
     chunk_head_st *chunk_head =
         (chunk_head_st *)(unit_header->break_p +
@@ -313,7 +313,7 @@ void *MmapManager::getAbsAddr(off_t p) const {
   if (p < 0) {
     return NULL;
   }
-  const uint16_t unit_id = p / _impl->mmapCntlHead->base_size;
+  const uint16_t unit_id  = p / _impl->mmapCntlHead->base_size;
   const off_t file_offset = unit_id * _impl->mmapCntlHead->base_size;
   const off_t ret_p       = p - file_offset;
 
@@ -325,7 +325,7 @@ off_t MmapManager::getRelAddr(const void *p) const {
   const uint16_t unit_id          = chunk_head->unit_id;
 
   const off_t file_offset = unit_id * _impl->mmapCntlHead->base_size;
-  off_t ret_p = (off_t)((char *)p - (char *)_impl->mmapDataAddr[unit_id]);
+  off_t ret_p             = (off_t)((char *)p - (char *)_impl->mmapDataAddr[unit_id]);
   ret_p += file_offset;
 
   return ret_p;

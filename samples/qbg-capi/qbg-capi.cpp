@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
   std::cerr << "create an empty index..." << std::endl;
   QBGConstructionParameters constructionParameters;
   qbg_initialize_construction_parameters(&constructionParameters);
-  constructionParameters.dimension          = dimension;
+  constructionParameters.dimension            = dimension;
   constructionParameters.number_of_subvectors = 64;
   constructionParameters.number_of_blobs      = 0;
   if (!qbg_create(indexPath.c_str(), &constructionParameters, err)) {

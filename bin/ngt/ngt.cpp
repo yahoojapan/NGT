@@ -20,7 +20,6 @@
 #define NGT_VERSION_FOR_HEADER
 #include "NGT/Version.h"
 
-
 #ifndef BUILD_DATE
 #define BUILD_DATE "-"
 #endif

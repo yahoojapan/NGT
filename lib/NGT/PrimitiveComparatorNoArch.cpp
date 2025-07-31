@@ -46,7 +46,7 @@ double NGT::PrimitiveComparator::compareNormalizedCosineSimilarity(const qint4 *
   auto &query          = *reinterpret_cast<const NGT::Quantizer::Query *>(a);
   auto &quantizedQuery = query.quantizedQuery;
   auto &lut            = query.lut;
-  float dp = 0.0;
+  float dp             = 0.0;
   for (size_t i = 0; i < quantizedQuery.size(); i++) {
     float fa = static_cast<float>(quantizedQuery[i]);
     float fb;

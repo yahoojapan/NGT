@@ -195,7 +195,7 @@ void QBG::Index::preprocessingForNGT(std::string &indexPath, std::string &object
   QBG::BuildParameters buildParameters;
   buildParameters.creation.localClusterDataType = NGTQ::ClusterDataTypePQ4;
   buildParameters.creation.genuineDimension     = prop.dimension;
-  buildParameters.creation.dimension = ((buildParameters.creation.genuineDimension + 15) / 16) * 16;
+  buildParameters.creation.dimension        = ((buildParameters.creation.genuineDimension + 15) / 16) * 16;
   buildParameters.creation.numOfSubvectors  = prop.dimension;
   buildParameters.creation.distanceType     = NGTQ::DistanceType::DistanceTypeL2;
   buildParameters.creation.genuineDataType  = ObjectFile::DataTypeFloat;
@@ -213,7 +213,6 @@ void QBG::Index::preprocessingForNGT(std::string &indexPath, std::string &object
   size_t dataSize  = 0;
   std::string mode = "";
   QBG::Index::append(qbgIndexPath, objectPath, dataSize, verbose);
-
 
   QBG::Optimizer optimizer;
 

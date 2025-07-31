@@ -191,6 +191,7 @@ typedef std::vector<uint32_t> ReadOnlyGraphNode;
 #else
 class ReadOnlyGraphNode : public std::vector<std::pair<uint32_t, PersistentObject *>> {
   typedef std::vector<std::pair<uint32_t, PersistentObject *>> PARENT;
+
  public:
   ReadOnlyGraphNode() : reservedSize(0), usedSize(0) {}
   void reserve(size_t s) {
@@ -219,7 +220,7 @@ class ReadOnlyGraphNode : public std::vector<std::pair<uint32_t, PersistentObjec
   size_t reservedSize;
   size_t usedSize;
 };
-#endif                                                    // NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
+#endif // NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
 
 class SearchGraphRepository : public std::vector<ReadOnlyGraphNode> {
  public:
@@ -643,9 +644,7 @@ class NeighborhoodGraph {
       case NeighborhoodGraph::GraphTypeANNG: p.set("GraphType", "ANNG"); break;
       case NeighborhoodGraph::GraphTypeBKNNG: p.set("GraphType", "BKNNG"); break;
       case NeighborhoodGraph::GraphTypeONNG: p.set("GraphType", "ONNG"); break;
-      case NeighborhoodGraph::GraphTypeIANNG:
-        p.set("GraphType", "IANNG");
-        break;
+      case NeighborhoodGraph::GraphTypeIANNG: p.set("GraphType", "IANNG"); break;
       case NeighborhoodGraph::GraphTypeRANNG: p.set("GraphType", "RANNG"); break;
       case NeighborhoodGraph::GraphTypeRIANNG: p.set("GraphType", "RIANNG"); break;
       default:
@@ -794,9 +793,7 @@ class NeighborhoodGraph {
     case GraphTypeRANNG: insertANNGNode(id, objects); break;
     case GraphTypeIANNG:
     case GraphTypeRIANNG: insertIANNGNode(id, objects); break;
-    case GraphTypeONNG:
-      insertONNGNode(id, objects);
-      break;
+    case GraphTypeONNG: insertONNGNode(id, objects); break;
     case GraphTypeKNNG: insertKNNGNode(id, objects); break;
     case GraphTypeBKNNG: insertBKNNGNode(id, objects); break;
     case GraphTypeNone: NGTThrowException("NGT::insertNode: GraphType is not specified."); break;
@@ -1132,7 +1129,6 @@ class DistanceCheckedSet : public unordered_set<ObjectID> {
                   DistanceCheckedSetForLargeDataset &distanceChecked);
 #endif
 
-
   int getEdgeSize() { return property.edgeSizeForCreation; }
 
   ObjectRepository &getObjectRepository() { return objectSpace->getRepository(); }
@@ -1153,7 +1149,6 @@ class DistanceCheckedSet : public unordered_set<ObjectID> {
     repository.clear();
 #endif
   }
-
 
  protected:
   void addBKNNGEdge(ObjectID target, ObjectID addID, Distance addDistance) {

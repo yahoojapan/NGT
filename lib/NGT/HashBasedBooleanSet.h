@@ -30,7 +30,6 @@ template <typename TYPE> class HashBasedBooleanSet {
 
   std::unordered_set<TYPE> _stlHash;
 
-
   inline uint32_t _hash1(const TYPE value) { return value & _mask; }
 
  public:

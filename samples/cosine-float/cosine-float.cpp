@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
   // index construction
   try {
     NGT::Property property;
-    property.dimension = 128;
+    property.dimension    = 128;
     property.objectType   = NGT::ObjectSpace::ObjectType::Float;
     property.distanceType = NGT::Index::Property::DistanceType::DistanceTypeCosine;
     NGT::Index::create(indexPath, property);

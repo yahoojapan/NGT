@@ -35,7 +35,6 @@
 #include "NGT/Thread.h"
 #include "NGT/Graph.h"
 
-
 namespace NGT {
 
 class Property;
@@ -635,9 +634,10 @@ class Index {
     getIndex().getSeeds(sc, seeds, n);
   }
   virtual void remove(ObjectID id, bool force = false) {
-  try {
-    getRefinementObjectSpace().remove(id);
-    } catch(...) {}
+    try {
+      getRefinementObjectSpace().remove(id);
+    } catch (...) {
+    }
     getIndex().remove(id, force);
   }
   virtual void exportIndex(const std::string &file) { getIndex().exportIndex(file); }
@@ -736,8 +736,7 @@ class Index {
   bool redirect;
 };
 
-class GraphIndex : public Index,
-                   public NeighborhoodGraph {
+class GraphIndex : public Index, public NeighborhoodGraph {
  public:
   class GraphStatistics {
    public:
@@ -917,7 +916,7 @@ class GraphIndex : public Index,
     initialize(allocator, prop);
   }
   void initialize(const std::string &allocator, NGT::Property &prop);
-#else                   // NGT_SHARED_MEMORY_ALLOCATOR
+#else // NGT_SHARED_MEMORY_ALLOCATOR
   GraphIndex(const std::string &database, bool rdOnly = false,
              Index::OpenType openType = Index::OpenTypeNone);
   GraphIndex(NGT::Property &prop) : readOnly(false) { initialize(prop); }
@@ -1195,7 +1194,7 @@ class GraphIndex : public Index,
           msg << "Invalid query object type.";
           NGTThrowException(msg);
         }
-        sq.size = size;
+        sq.size          = size;
         auto &comparator = getRefinementObjectSpace().getComparator();
         if (sq.resultIsAvailable()) {
           auto &results = sq.getResult();
@@ -1972,7 +1971,7 @@ class GraphAndTreeIndex : public GraphIndex, public DVPTree {
     so.size                   = 2;
     so.radius                 = 0.0;
     so.explorationCoefficient = 1.1;
-    so.insertion = true;
+    so.insertion              = true;
     ObjectDistances seeds;
     seeds.push_back(ObjectDistance(id, 0.0));
     GraphIndex::search(so, seeds);
@@ -1991,7 +1990,7 @@ class GraphAndTreeIndex : public GraphIndex, public DVPTree {
       GraphIndex::search(so, seeds);
       for (size_t i = 0; i < results.size(); i++) {
         try {
-          auto *robj = GraphIndex::objectSpace->getRepository().get(results[i].id);
+          auto *robj          = GraphIndex::objectSpace->getRepository().get(results[i].id);
           results[i].distance = GraphIndex::objectSpace->compareWithL1(*obj, *robj);
         } catch (Exception &err) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
@@ -2255,7 +2254,7 @@ class GraphAndTreeIndex : public GraphIndex, public DVPTree {
           msg << "Invalid query object type.";
           NGTThrowException(msg);
         }
-        sq.size = size;
+        sq.size          = size;
         auto &comparator = getRefinementObjectSpace().getComparator();
         if (sq.resultIsAvailable()) {
           auto &results = sq.getResult();
@@ -2497,7 +2496,7 @@ void NGT::Index::appendWithPreprocessing(const T *data, size_t dataSize, bool ap
   }
   NGT::Property prop;
   getProperty(prop);
-  float maxMag = prop.maxMagnitude;
+  float maxMag    = prop.maxMagnitude;
   bool maxMagSkip = false;
   if (maxMag > 0.0) maxMagSkip = true;
   std::vector<float> addedElement;

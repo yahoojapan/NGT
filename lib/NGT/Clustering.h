@@ -39,7 +39,6 @@ using namespace std;
 #include <omp.h>
 #include <random>
 
-
 namespace NGT {
 
 class Clustering {
@@ -356,7 +355,7 @@ class Clustering {
       // get d^2 and sort
 #pragma omp parallel for
       for (size_t vi = 0; vi < vectors.size(); vi++) {
-        auto vit = vectors.begin() + vi;
+        auto vit    = vectors.begin() + vi;
         double mind = DBL_MAX;
         for (auto cit = clusters.begin(); cit != clusters.end(); ++cit) {
           double d = distanceL2(*vit, (*cit).centroid);
@@ -382,7 +381,6 @@ class Clustering {
       }
     }
   }
-
 
   static void assign(std::vector<std::vector<float>> &vectors, std::vector<Cluster> &clusters,
                      size_t clusterSize = std::numeric_limits<size_t>::max(), bool clear = true) {
@@ -464,9 +462,7 @@ class Clustering {
     }
 
     moveFartherObjectsToEmptyClusters(clusters);
-
   }
-
 
   static void moveFartherObjectsToEmptyClusters(std::vector<Cluster> &clusters) {
     size_t emptyClusterCount = 0;
@@ -635,7 +631,6 @@ class Clustering {
       }
       moveFartherObjectsToEmptyClusters(clusters);
     }
-
   }
 
   static double calculateCentroid(std::vector<std::vector<float>> &vectors, std::vector<Cluster> &clusters) {
@@ -681,7 +676,6 @@ class Clustering {
       }
       os << std::endl;
     }
-
   }
 
   double kmeansWithoutNGT(std::vector<std::vector<float>> &vectors, std::vector<Cluster> &clusters,
@@ -694,7 +688,7 @@ class Clustering {
     size_t i;
     for (i = 0; i < maximumIteration; i++) {
       assign(vectors, clusters, clusterSize);
-                     // centroid is recomputed.
+      // centroid is recomputed.
       // diff is distance between the current centroids and the previous centroids.
       auto d = calculateCentroid(vectors, clusters);
       if (d == diff) {
@@ -739,8 +733,6 @@ class Clustering {
     return diff == 0;
   }
 
-
-
   double kmeansWithNGT(NGT::Index &index, std::vector<std::vector<float>> &vectors, size_t numberOfClusters,
                        std::vector<Cluster> &clusters, float epsilon) {
     size_t clusterSize = std::numeric_limits<size_t>::max();
@@ -760,7 +752,7 @@ class Clustering {
     size_t i;
     for (i = 0; i < maximumIteration; i++) {
       assignWithNGT(index, vectors, clusters, resultSize, epsilon, clusterSize);
-                     // centroid is recomputed.
+      // centroid is recomputed.
       // diff is distance between the current centroids and the previous centroids.
       double prevDiff                   = diff;
       std::vector<Cluster> prevClusters = clusters;
@@ -871,7 +863,6 @@ class Clustering {
     return diff;
   }
 
-
   static double calculateMSE(std::vector<std::vector<float>> &vectors, std::vector<Cluster> &clusters) {
     double mse   = 0.0;
     size_t count = 0;
@@ -918,7 +909,6 @@ class Clustering {
     }
     return d / (double)vectors.size();
   }
-
 
   void setupInitialClusters(std::vector<std::vector<float>> &vectors, size_t numberOfClusters,
                             std::vector<Cluster> &clusters) {
@@ -971,13 +961,9 @@ class Clustering {
 
     setupInitialClusters(vectors, numberOfClusters, clusters);
     switch (clusteringType) {
-    case ClusteringTypeKmeansWithoutNGT:
-      return kmeansWithoutNGT(vectors, numberOfClusters, clusters);
-      break;
+    case ClusteringTypeKmeansWithoutNGT: return kmeansWithoutNGT(vectors, numberOfClusters, clusters); break;
 #ifndef NGT_SHARED_MEMORY_ALLOCATOR
-    case ClusteringTypeKmeansWithNGT:
-      return kmeansWithNGT(vectors, numberOfClusters, clusters);
-      break;
+    case ClusteringTypeKmeansWithNGT: return kmeansWithNGT(vectors, numberOfClusters, clusters); break;
 #endif
     default:
       std::stringstream msg;
@@ -985,7 +971,6 @@ class Clustering {
       NGTThrowException(msg);
     }
   }
-
 
   static void evaluate(std::vector<std::vector<float>> &vectors, std::vector<Cluster> &clusters, char mode,
                        std::vector<size_t> centroidIds = std::vector<size_t>()) {
@@ -1002,8 +987,7 @@ class Clustering {
       }
     } else {
       switch (mode) {
-      case 'e':
-        break;
+      case 'e': break;
       case '2':
       default:
         std::cout << "ML2=" << calculateML2FromSpecifiedCentroids(vectors, clusters, centroidIds)

@@ -16,7 +16,6 @@
 
 #pragma once
 
-
 #ifdef _OPENMP
 #include <omp.h>
 #else
@@ -637,9 +636,7 @@ class ObjectSpaceRepository : public ObjectSpace, public ObjectRepository {
     }
     return (Object *)po;
   }
-  void deleteObject(PersistentObject *po) {
-    delete po;
-  }
+  void deleteObject(PersistentObject *po) { delete po; }
 #endif // NGT_SHARED_MEMORY_ALLOCATOR
 
   void copy(Object &objecta, Object &objectb) { objecta.copy(objectb, getByteSizeOfObject()); }
@@ -937,7 +934,7 @@ class ObjectSpaceRepository : public ObjectSpace, public ObjectRepository {
   float computeMaxMagnitude(NGT::ObjectID beginID = 1) {
     float maxMag          = 0.0;
     ObjectRepository &rep = *this;
-    auto nOfThreads = omp_get_max_threads();
+    auto nOfThreads       = omp_get_max_threads();
     std::vector<float> maxm(nOfThreads, 0.0);
 #pragma omp parallel for
     for (size_t idx = beginID; idx < rep.size(); idx++) {

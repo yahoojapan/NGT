@@ -233,9 +233,9 @@ class ObjectSpace {
     DistanceTypeSparseJaccard    = 8,
     DistanceTypeNormalizedL2     = 9,
     DistanceTypeInnerProduct     = 10,
-    DistanceTypeDotProduct = 11,
-    DistanceTypePoincare   = 100, // added by Nyapicom
-    DistanceTypeLorentz    = 101  // added by Nyapicom
+    DistanceTypeDotProduct       = 11,
+    DistanceTypePoincare         = 100, // added by Nyapicom
+    DistanceTypeLorentz          = 101  // added by Nyapicom
   };
 
   enum ObjectType {

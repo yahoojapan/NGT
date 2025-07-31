@@ -521,7 +521,6 @@ template <class TYPE> void StaticObjectFile<TYPE>::closeMultipleStreams() {
   _objectFiles.clear();
 }
 
-
 template <class TYPE> bool StaticObjectFile<TYPE>::get(size_t id, TYPE &data, NGT::ObjectSpace *objectSpace) {
   std::vector<float> record;
   bool stat = get(id, record, objectSpace);

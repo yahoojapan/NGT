@@ -19,7 +19,6 @@
 #include "Thread.h"
 #include "Index.h"
 
-
 using namespace std;
 using namespace NGT;
 
@@ -526,8 +525,7 @@ void NeighborhoodGraph::setupDistances(NGT::SearchContainer &sc, ObjectDistances
 }
 
 void NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &seeds, ResultSet &results,
-                                   UncheckedSet &unchecked, DistanceCheckedSet &distanceChecked)
-{
+                                   UncheckedSet &unchecked, DistanceCheckedSet &distanceChecked) {
   std::sort(seeds.begin(), seeds.end());
 
   for (ObjectDistances::iterator ri = seeds.begin(); ri != seeds.end(); ri++) {
@@ -543,7 +541,7 @@ void NeighborhoodGraph::setupSeeds(NGT::SearchContainer &sc, ObjectDistances &se
   }
 
   for (ObjectDistances::iterator ri = seeds.begin(); ri != seeds.end(); ri++) {
-    #if !defined(NGT_GRAPH_CHECK_VECTOR) || defined(NGT_GRAPH_CHECK_BOOLEANSET)
+#if !defined(NGT_GRAPH_CHECK_VECTOR) || defined(NGT_GRAPH_CHECK_BOOLEANSET)
     distanceChecked.insert((*ri).id);
 #else
     distanceChecked[(*ri).id] = 1;
@@ -636,9 +634,9 @@ void NeighborhoodGraph::searchReadOnlyGraph(NGT::SearchContainer &sc, ObjectDist
     if (target.distance > explorationRadius) {
       break;
     }
-    auto *neighbors   = &nodes[target.id];
-    auto *neighborptr = &(*neighbors)[0];
-    size_t neighborSize = neighbors->size() < edgeSize ? neighbors->size() : edgeSize;
+    auto *neighbors                    = &nodes[target.id];
+    auto *neighborptr                  = &(*neighbors)[0];
+    size_t neighborSize                = neighbors->size() < edgeSize ? neighbors->size() : edgeSize;
     auto *neighborendptr               = neighborptr + neighborSize;
     ObjectRepository &objectRepository = getObjectRepository();
     pair<uint32_t, PersistentObject *> nsPtrs[neighborSize];
@@ -708,7 +706,7 @@ void NeighborhoodGraph::searchReadOnlyGraph(NGT::SearchContainer &sc, ObjectDist
     sc.workingResult = std::move(results);
   }
 }
-#else                              // NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
+#else // NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
 template <typename COMPARATOR, typename CHECK_LIST>
 void NeighborhoodGraph::searchReadOnlyGraph(NGT::SearchContainer &sc, ObjectDistances &seeds) {
   if (sc.explorationCoefficient == 0.0) {
@@ -761,9 +759,9 @@ void NeighborhoodGraph::searchReadOnlyGraph(NGT::SearchContainer &sc, ObjectDist
     if (target.distance > explorationRadius) {
       break;
     }
-    auto *neighbors   = &nodes[target.id];
-    auto *neighborptr = &(*neighbors)[0];
-    size_t neighborSize = neighbors->size() < edgeSize ? neighbors->size() : edgeSize;
+    auto *neighbors      = &nodes[target.id];
+    auto *neighborptr    = &(*neighbors)[0];
+    size_t neighborSize  = neighbors->size() < edgeSize ? neighbors->size() : edgeSize;
     auto *neighborendptr = neighborptr + neighborSize;
     pair<uint32_t, PersistentObject *> *nsPtrs[neighborSize];
     size_t nsPtrsSize = 0;
@@ -829,7 +827,7 @@ void NeighborhoodGraph::searchReadOnlyGraph(NGT::SearchContainer &sc, ObjectDist
     sc.workingResult = std::move(results);
   }
 }
-#endif        // NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
+#endif // NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
 
 #endif
 
@@ -932,11 +930,11 @@ void NeighborhoodGraph::search(NGT::SearchContainer &sc, ObjectDistances &seeds)
     neighborptr = &(*neighbors)[0];
 #endif
 #endif
-    neighborendptr = neighborptr;
-  size_t neighborSize = neighbors->size() < edgeSize ? neighbors->size() : edgeSize;
-  neighborendptr += neighborSize;
+    neighborendptr      = neighborptr;
+    size_t neighborSize = neighbors->size() < edgeSize ? neighbors->size() : edgeSize;
+    neighborendptr += neighborSize;
 #ifdef NGT_GRAPH_BETTER_FIRST_RESTORE
-  neighborendptr -= position;
+    neighborendptr -= position;
 #endif
     size_t poft = prefetchOffset < neighborSize ? prefetchOffset : neighborSize;
     for (size_t i = 0; i < poft; i++) {
@@ -1518,7 +1516,6 @@ int NeighborhoodGraph::truncateEdgesOptimally(ObjectID id, GraphNode &results, s
           }
           output.pop_front();
         }
-
       }
     }
 

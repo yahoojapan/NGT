@@ -34,9 +34,9 @@ class QbgCliBuildParameters : public QBG::BuildParameters {
   }
 
   void getCreationParameters() {
-    creation.numOfObjects = args.getl("n", 0);
-    creation.threadSize   = args.getl("p", 24);
-    creation.dimension    = args.getl("d", 0);
+    creation.numOfObjects                   = args.getl("n", 0);
+    creation.threadSize                     = args.getl("p", 24);
+    creation.dimension                      = args.getl("d", 0);
     auto clusterDataType                    = args.getString("C", "-");
     creation.scalarQuantizationClippingRate = args.getf("r", 0.0);
     creation.scalarQuantizationNoOfSamples  = args.getl("V", 0);
@@ -90,7 +90,6 @@ class QbgCliBuildParameters : public QBG::BuildParameters {
     }
     creation.globalInsertionRadiusCoefficient = args.getf("e", 0.1) + 1.0;
     creation.localInsertionRadiusCoefficient  = creation.globalInsertionRadiusCoefficient;
-
 
     transform(clusterDataType.begin(), clusterDataType.end(), clusterDataType.begin(), ::tolower);
     if (clusterDataType == "-" || clusterDataType == "pq4") {
@@ -146,9 +145,7 @@ class QbgCliBuildParameters : public QBG::BuildParameters {
       case '2': creation.distanceType = NGTQ::DistanceType::DistanceTypeL2; break;
       case '1': creation.distanceType = NGTQ::DistanceType::DistanceTypeL1; break;
       case 'a': creation.distanceType = NGTQ::DistanceType::DistanceTypeAngle; break;
-      case 'C':
-        creation.distanceType = NGTQ::DistanceType::DistanceTypeNormalizedCosine;
-        break;
+      case 'C': creation.distanceType = NGTQ::DistanceType::DistanceTypeNormalizedCosine; break;
       case 'E': creation.distanceType = NGTQ::DistanceType::DistanceTypeL2; break;
       case 'i': creation.distanceType = NGTQ::DistanceType::DistanceTypeInnerProduct; break;
       default:
@@ -164,8 +161,7 @@ class QbgCliBuildParameters : public QBG::BuildParameters {
       creation.dimension = ((creation.genuineDimension + 15) / 16) * 16;
     }
     creation.dimensionOfSubvector = args.getl("Q", 0);
-    if (creation.numOfSubvectors == 0 && (creation.localClusterDataType == NGTQ::ClusterDataTypeSQSU8
-                                          )) {
+    if (creation.numOfSubvectors == 0 && (creation.localClusterDataType == NGTQ::ClusterDataTypeSQSU8)) {
       creation.numOfSubvectors = creation.dimension;
     }
     {
@@ -403,9 +399,7 @@ class QbgCliBuildParameters : public QBG::BuildParameters {
       optimization.repositioning = true;
       break;
     case 'n':
-    default:
-      optimization.rotation      = false;
-      optimization.repositioning = false;
+    default: optimization.rotation = false; optimization.repositioning = false;
     }
     char globalType = args.getChar("G", '-');
     switch (globalType) {
@@ -444,7 +438,6 @@ class SearchParameters : public NGT::Command::SearchParameters {
   float endOfResultExpansion;
   float stepOfResultExpansion;
 };
-
 
 void QBG::CLI::buildQG(NGT::Args &args) {
   const std::string usage = "Usage: qbg build-qg [-Q dimension-of-subvector] [-E max-number-of-edges] index";
@@ -706,8 +699,6 @@ void QBG::CLI::appendQG(NGT::Args &args) {
                                          false);
 }
 
-
-
 void QBG::CLI::info(NGT::Args &args) {
   const string usage = "Usage: qbg index";
 
@@ -885,7 +876,7 @@ void QBG::CLI::search(NGT::Args &args) {
   char outputMode = args.getChar("o", '-');
   float epsilon   = 0.1;
 
-  char searchMode = args.getChar("M", 'n');
+  char searchMode                   = args.getChar("M", 'n');
   NGTQ::DataType refinementDataType = NGTQ::DataTypeAny;
   {
     char refinement = args.getChar("R", '-');
@@ -1014,9 +1005,7 @@ void QBG::CLI::search(NGT::Args &args) {
           NGT::Timer timer;
           timer.start();
           switch (searchMode) {
-          case 'n':
-            index.searchInTwoSteps(searchContainer);
-            break;
+          case 'n': index.searchInTwoSteps(searchContainer); break;
           case 'g':
           default: index.searchInOneStep(searchContainer); break;
           }
@@ -1294,7 +1283,6 @@ void QBG::CLI::expandBlob(NGT::Args &args) {
   QBG::Index::expandBlob(indexPath, clusterCentroidsPath, ngtSearchContainer, qbgSearchContainer, rate,
                          refinementDataType, verbose);
 }
-
 
 void QBG::CLI::buildIndex(NGT::Args &args) {
   const std::string usage =
@@ -1633,8 +1621,6 @@ void QBG::CLI::preprocessForNGT(NGT::Args &args) {
   QBG::Index::preprocessingForNGT(indexPath, objectPath, verbose);
 }
 
-
-
 void QBG::CLI::hierarchicalKmeans(NGT::Args &args) {
   const std::string usage = "qbg kmeans -O #-of-objects -B x1:y1,x2,y2,x3 index [prefix] [object-ID-file]";
   std::string indexPath;
@@ -1667,7 +1653,6 @@ void QBG::CLI::hierarchicalKmeans(NGT::Args &args) {
   }
 
   HierarchicalKmeans hierarchicalKmeans(buildParameters);
-
 
   hierarchicalKmeans.clustering(indexPath, prefix, objectIDsFile);
 
@@ -1986,7 +1971,6 @@ void QBG::CLI::gtRange(NGT::Args &args) {
   }
 }
 
-
 void QBG::CLI::optimize(NGT::Args &args) {
 
   string usage = "Usage: qbg optimize -n number-of-clusters -m number-of subspaces [-O t|f] [-s t|f] [-I "
@@ -2026,7 +2010,6 @@ void QBG::CLI::optimize(NGT::Args &args) {
   }
 
   QBG::Optimizer optimizer(buildParameters);
-
 
   if (invector.empty() || ofile.empty() || global.empty()) {
     optimizer.optimize(indexPath);

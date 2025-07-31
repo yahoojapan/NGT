@@ -898,7 +898,7 @@ class CompactString {
 class BooleanSet {
  public:
   BooleanSet(size_t s) {
-    size = (s >> 6) + 1;           // 2^6=64
+    size = (s >> 6) + 1; // 2^6=64
     size = ((size >> 2) << 2) + 4;
     bitvec.resize(size);
   }
@@ -911,7 +911,6 @@ class BooleanSet {
   std::vector<uint64_t> bitvec;
   uint64_t size;
 };
-
 
 class PropertySet : public std::map<std::string, std::string> {
  public:
@@ -1473,7 +1472,6 @@ template <class TYPE> class DynamicLengthVector {
     }
   }
 
-
   void deserializeAsText(std::istream &is, ObjectSpace *objectspace = 0) {
     clear();
     size_t s;
@@ -1483,7 +1481,6 @@ template <class TYPE> class DynamicLengthVector {
       Serializer::readAsText(is, (*this)[i]);
     }
   }
-
 
   size_t size() const { return vectorSize; }
 
@@ -1656,7 +1653,6 @@ template <class TYPE> class DynamicLengthVector {
     }
   }
 
-
   void deserializeAsText(std::istream &is, ObjectSpace *objectspace = 0) {
     clear();
     size_t s;
@@ -1666,7 +1662,6 @@ template <class TYPE> class DynamicLengthVector {
       Serializer::readAsText(is, (*this)[i]);
     }
   }
-
 
   void serialize(std::ofstream &os, NGT::ObjectSpace *objspace = 0) {
     uint32_t sz = size();
@@ -1715,7 +1710,6 @@ template <class TYPE> class DynamicLengthVector {
 };
 
 #endif // NGT_SHARED_MEMORY_ALLOCATOR
-
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
 class ObjectSpace;
@@ -2046,7 +2040,6 @@ template <class TYPE> class PersistentRepository {
 
 class ObjectSpace;
 
-
 template <class TYPE> class Repository : public std::vector<TYPE *> {
  public:
   static TYPE *allocate() { return new TYPE; }
@@ -2357,7 +2350,7 @@ class ObjectDistance {
     return is;
   }
   uint32_t id;
-  float         distance;
+  float distance;
 };
 
 #pragma pack()
@@ -2438,8 +2431,8 @@ class SearchContainer : public NGT::Container {
     workingResult            = sc.workingResult;
     useAllNodesInLeaf        = sc.useAllNodesInLeaf;
     expectedAccuracy         = sc.expectedAccuracy;
-    visitCount = sc.visitCount;
-    insertion = sc.insertion;
+    visitCount               = sc.visitCount;
+    insertion                = sc.insertion;
 #ifdef RESULT_DEFINED_RANGE
     expandedSizeByEpsilon = sc.expandedSizeByEpsilon;
 #endif
@@ -2455,7 +2448,7 @@ class SearchContainer : public NGT::Container {
         -1; // dynamically prune the edges during search. -1 means following the index property. 0 means using all edges.
     useAllNodesInLeaf = false;
     expectedAccuracy  = -1.0;
-    insertion = false;
+    insertion         = false;
 #ifdef RESULT_DEFINED_RANGE
     expandedSizeByEpsilon = false;
 #endif
@@ -2480,7 +2473,6 @@ class SearchContainer : public NGT::Container {
   }
 
   ResultPriorityQueue &getWorkingResult() { return workingResult; }
-
 
   size_t size;
   Distance radius;
@@ -2640,4 +2632,3 @@ template <> class numeric_limits<NGT::quint8> {
   static bool is_specialized() { return true; }
 };
 } // namespace std
-

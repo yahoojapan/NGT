@@ -20,7 +20,6 @@
 
 #include <immintrin.h>
 
-
 namespace NGT {
 
 class MemoryCache {
@@ -104,7 +103,7 @@ class PrimitiveComparator {
     __m512 sum512 = _mm512_setzero_ps();
     while (a < last) {
       __m512 v = _mm512_sub_ps(_mm512_loadu_ps(a), _mm512_loadu_ps(b));
-      sum512 = _mm512_add_ps(sum512, _mm512_mul_ps(v, v));
+      sum512   = _mm512_add_ps(sum512, _mm512_mul_ps(v, v));
       a += 16;
       b += 16;
     }
@@ -163,7 +162,7 @@ class PrimitiveComparator {
     while (a < last) {
       __m512 v = _mm512_sub_ps(_mm512_cvtph_ps(_mm256_loadu_si256(reinterpret_cast<const __m256i *>(a))),
                                _mm512_cvtph_ps(_mm256_loadu_si256(reinterpret_cast<const __m256i *>(b))));
-      sum512 = _mm512_add_ps(sum512, _mm512_mul_ps(v, v));
+      sum512   = _mm512_add_ps(sum512, _mm512_mul_ps(v, v));
       a += 16;
       b += 16;
     }
@@ -203,7 +202,7 @@ class PrimitiveComparator {
     }
 #endif
     __m128 tmp = _mm_hadd_ps(sum128, _mm_set1_ps(0));
-    double s = _mm_cvtss_f32(_mm_shuffle_ps(tmp, tmp, _MM_SHUFFLE(0, 0, 0, 0))) +
+    double s   = _mm_cvtss_f32(_mm_shuffle_ps(tmp, tmp, _MM_SHUFFLE(0, 0, 0, 0))) +
                _mm_cvtss_f32(_mm_shuffle_ps(tmp, tmp, _MM_SHUFFLE(0, 0, 0, 1)));
     return sqrt(s);
     //return s;
@@ -274,13 +273,13 @@ class PrimitiveComparator {
       while (u8a < lastgroup) {
         __m512i mu8a = _mm512_loadu_si512(reinterpret_cast<const __m512i *>(u8a));
         __m512i mu8b = _mm512_loadu_si512(reinterpret_cast<const __m512i *>(u8b));
-        __mmask64 m = _mm512_cmplt_epu8_mask(mu8a, mu8b);
+        __mmask64 m  = _mm512_cmplt_epu8_mask(mu8a, mu8b);
         __m512i x =
             _mm512_add_epi8(_mm512_maskz_subs_epu8(m, mu8b, mu8a), _mm512_maskz_subs_epu8(~m, mu8a, mu8b));
         __m512i xi16 = _mm512_cvtepu8_epi16(_mm512_extracti32x8_epi32(x, 0));
-        sum512 = _mm512_add_epi32(sum512, _mm512_madd_epi16(xi16, xi16));
-        xi16 = _mm512_cvtepu8_epi16(_mm512_extracti32x8_epi32(x, 1));
-        sum512 = _mm512_add_epi32(sum512, _mm512_madd_epi16(xi16, xi16));
+        sum512       = _mm512_add_epi32(sum512, _mm512_madd_epi16(xi16, xi16));
+        xi16         = _mm512_cvtepu8_epi16(_mm512_extracti32x8_epi32(x, 1));
+        sum512       = _mm512_add_epi32(sum512, _mm512_madd_epi16(xi16, xi16));
         u8a += 64;
         u8b += 64;
       }
@@ -294,7 +293,7 @@ class PrimitiveComparator {
         __m256i x =
             _mm256_add_epi8(_mm256_maskz_subs_epu8(m, mu8b, mu8a), _mm256_maskz_subs_epu8(~m, mu8a, mu8b));
         __m512i xi16 = _mm512_cvtepu8_epi16(x);
-        sum512 = _mm512_add_epi32(sum512, _mm512_madd_epi16(xi16, xi16));
+        sum512       = _mm512_add_epi32(sum512, _mm512_madd_epi16(xi16, xi16));
         u8a += 32;
         u8b += 32;
       }
@@ -306,15 +305,15 @@ class PrimitiveComparator {
     {
       const unsigned char *lastgroup = last - 31;
       while (u8a < lastgroup) {
-        __m256i x1 = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const *)u8a));
+        __m256i x1   = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const *)u8a));
         __m256i x2   = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const *)u8b));
         __m256i xi16 = _mm256_subs_epi16(x1, x2);
-        sum256 = _mm256_add_epi32(sum256, _mm256_madd_epi16(xi16, xi16));
+        sum256       = _mm256_add_epi32(sum256, _mm256_madd_epi16(xi16, xi16));
         u8a += 16;
         u8b += 16;
-        x1 = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const *)u8a));
-        x2   = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const *)u8b));
-        xi16 = _mm256_subs_epi16(x1, x2);
+        x1     = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const *)u8a));
+        x2     = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const *)u8b));
+        xi16   = _mm256_subs_epi16(x1, x2);
         sum256 = _mm256_add_epi32(sum256, _mm256_madd_epi16(xi16, xi16));
         u8a += 16;
         u8b += 16;
@@ -327,10 +326,10 @@ class PrimitiveComparator {
       const unsigned char *lastgroup = last - 15;
 
       while (u8a < lastgroup) {
-        __m256i x1 = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const *)u8a));
+        __m256i x1   = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const *)u8a));
         __m256i x2   = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const *)u8b));
         __m256i xi16 = _mm256_subs_epi16(x1, x2);
-        sum256 = _mm256_add_epi32(sum256, _mm256_madd_epi16(xi16, xi16));
+        sum256       = _mm256_add_epi32(sum256, _mm256_madd_epi16(xi16, xi16));
         u8a += 16;
         u8b += 16;
       }
@@ -338,8 +337,8 @@ class PrimitiveComparator {
 
     const __m256i value0 = _mm256_set1_epi32(0);
     __m256i tmp1         = _mm256_hadd_epi32(sum256, value0);
-    __m256i tmp2 = _mm256_hadd_epi32(tmp1, value0);
-    double s = _mm256_extract_epi32(tmp2, 0) + _mm256_extract_epi32(tmp2, 4);
+    __m256i tmp2         = _mm256_hadd_epi32(tmp1, value0);
+    double s             = _mm256_extract_epi32(tmp2, 0) + _mm256_extract_epi32(tmp2, 4);
     return s;
   }
 
@@ -356,13 +355,13 @@ class PrimitiveComparator {
       while (i8a < lastgroup) {
         __m512i mi8a = _mm512_loadu_si512(reinterpret_cast<const __m512i *>(i8a));
         __m512i mi8b = _mm512_loadu_si512(reinterpret_cast<const __m512i *>(i8b));
-        __mmask64 m = _mm512_cmplt_epi8_mask(mi8a, mi8b);
+        __mmask64 m  = _mm512_cmplt_epi8_mask(mi8a, mi8b);
         __m512i x =
             _mm512_add_epi8(_mm512_maskz_subs_epi8(m, mi8b, mi8a), _mm512_maskz_sub_epi8(~m, mi8a, mi8b));
         __m512i xi16 = _mm512_cvtepu8_epi16(_mm512_extracti32x8_epi32(x, 0));
-        sum512 = _mm512_add_epi32(sum512, _mm512_madd_epi16(xi16, xi16));
-        xi16 = _mm512_cvtepu8_epi16(_mm512_extracti32x8_epi32(x, 1));
-        sum512 = _mm512_add_epi32(sum512, _mm512_madd_epi16(xi16, xi16));
+        sum512       = _mm512_add_epi32(sum512, _mm512_madd_epi16(xi16, xi16));
+        xi16         = _mm512_cvtepu8_epi16(_mm512_extracti32x8_epi32(x, 1));
+        sum512       = _mm512_add_epi32(sum512, _mm512_madd_epi16(xi16, xi16));
         i8a += 64;
         i8b += 64;
       }
@@ -378,7 +377,7 @@ class PrimitiveComparator {
             _mm256_add_epi8(_mm256_maskz_sub_epi8(m, mi8b, mi8a), _mm256_maskz_sub_epi8(~m, mi8a, mi8b));
         __m512i xi16 = _mm512_cvtepu8_epi16(x);
 #else
-        __m512i x1 = _mm512_cvtepi8_epi16(_mm256_loadu_si256(reinterpret_cast<__m256i const *>(i8a)));
+        __m512i x1   = _mm512_cvtepi8_epi16(_mm256_loadu_si256(reinterpret_cast<__m256i const *>(i8a)));
         __m512i x2   = _mm512_cvtepi8_epi16(_mm256_loadu_si256(reinterpret_cast<__m256i const *>(i8b)));
         __m512i xi16 = _mm512_sub_epi16(x1, x2);
 #endif
@@ -400,7 +399,7 @@ class PrimitiveComparator {
         sum256       = _mm256_add_epi32(sum256, _mm256_madd_epi16(xi16, xi16));
         i8a += 16;
         i8b += 16;
-        x1 = _mm256_cvtepi8_epi16(_mm_loadu_si128((__m128i const *)i8a));
+        x1     = _mm256_cvtepi8_epi16(_mm_loadu_si128((__m128i const *)i8a));
         x2     = _mm256_cvtepi8_epi16(_mm_loadu_si128((__m128i const *)i8b));
         xi16   = _mm256_subs_epi16(x1, x2);
         sum256 = _mm256_add_epi32(sum256, _mm256_madd_epi16(xi16, xi16));
@@ -420,7 +419,7 @@ class PrimitiveComparator {
         __m128i x    = _mm_add_epi8(_mm_maskz_sub_epi8(m, mi8b, mi8a), _mm_maskz_sub_epi8(~m, mi8a, mi8b));
         __m256i xi16 = _mm256_cvtepu8_epi16(x);
 #else
-        __m256i x1 = _mm256_cvtepi8_epi16(_mm_loadu_si128((__m128i const *)i8a));
+        __m256i x1   = _mm256_cvtepi8_epi16(_mm_loadu_si128((__m128i const *)i8a));
         __m256i x2   = _mm256_cvtepi8_epi16(_mm_loadu_si128((__m128i const *)i8b));
         __m256i xi16 = _mm256_sub_epi16(x1, x2);
 #endif
@@ -432,8 +431,8 @@ class PrimitiveComparator {
 
     const __m256i value0 = _mm256_set1_epi32(0);
     __m256i tmp1         = _mm256_hadd_epi32(sum256, value0);
-    __m256i tmp2 = _mm256_hadd_epi32(tmp1, value0);
-    double s = _mm256_extract_epi32(tmp2, 0) + _mm256_extract_epi32(tmp2, 4);
+    __m256i tmp2         = _mm256_hadd_epi32(tmp1, value0);
+    double s             = _mm256_extract_epi32(tmp2, 0) + _mm256_extract_epi32(tmp2, 4);
     return s;
   }
 
@@ -833,8 +832,8 @@ class PrimitiveComparator {
     {
       const auto *lastgroup = last - 15;
       while (a < lastgroup) {
-        __m128i ma = _mm_loadu_si128(reinterpret_cast<const __m128i *>(a));
-        __m128i mb = _mm_loadu_si128(reinterpret_cast<const __m128i *>(b));
+        __m128i ma   = _mm_loadu_si128(reinterpret_cast<const __m128i *>(a));
+        __m128i mb   = _mm_loadu_si128(reinterpret_cast<const __m128i *>(b));
         __m128i malo = _mm_cvtepi8_epi16(ma);
         __m128i mahi = _mm_cvtepi8_epi16(_mm_bsrli_si128(ma, 8));
         __m128i mblo = _mm_cvtepi8_epi16(mb);
@@ -900,13 +899,13 @@ class PrimitiveComparator {
       while (a < lastgroup) {
         __m128i ma = _mm_loadu_si128(reinterpret_cast<const __m128i *>(a));
         __m128i mb = _mm_loadu_si128(reinterpret_cast<const __m128i *>(b));
-        sum128 = _mm_dpbusd_epi32(sum128, mb, ma);
+        sum128     = _mm_dpbusd_epi32(sum128, mb, ma);
         a += 16;
         b += 16;
       }
     }
     __m128i tmp = _mm_hadd_epi32(sum128, _mm_set1_epi32(0));
-    double sum = _mm_extract_epi32(tmp, 0) + _mm_extract_epi32(tmp, 1);
+    double sum  = _mm_extract_epi32(tmp, 0) + _mm_extract_epi32(tmp, 1);
 #else
     double sum = 0.0;
     for (size_t loc = 0; loc < size; loc++) {

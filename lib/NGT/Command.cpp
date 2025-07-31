@@ -31,7 +31,6 @@ using namespace std;
 #include "NGTQ/ObjectFile.h"
 #endif
 
-
 NGT::Command::CreateParameters::CreateParameters(Args &args) {
   args.parse("v");
   try {
@@ -47,8 +46,8 @@ NGT::Command::CreateParameters::CreateParameters(Args &args) {
   } catch (...) {
   }
 
-  property.edgeSizeForCreation = args.getl("E", 10);
-  property.edgeSizeForSearch   = args.getl("S", 40);
+  property.edgeSizeForCreation        = args.getl("E", 10);
+  property.edgeSizeForSearch          = args.getl("S", 40);
   property.batchSizeForCreation       = args.getl("b", 200);
   property.insertionRadiusCoefficient = args.getf("e", 0.1) + 1.0;
   property.truncationThreshold        = args.getl("t", 0);
@@ -220,7 +219,6 @@ NGT::Command::CreateParameters::CreateParameters(Args &args) {
     }
   }
 
-
   char epsilonType = args.getChar("M", '-');
   switch (epsilonType) {
   case 'q': property.epsilonType = NGT::Property::EpsilonType::EpsilonTypeByQuery; break;
@@ -287,7 +285,6 @@ void NGT::Command::create(Args &args) {
     NGTThrowException(msg);
   }
 }
-
 
 void appendTextVectors(std::string &indexPath, std::string &data, size_t dataSize, char appendMode,
                        std::string &destination, size_t ioSearchSize, float ioEpsilon, bool verbose) {
@@ -442,7 +439,6 @@ void NGT::Command::append(Args &args) {
     cerr << "thread size=" << threadSize << endl;
     cerr << "dimension=" << dimension << endl;
   }
-
 
   char appendMode  = args.getChar("m", 't');
   auto destination = args.getString("D", "o");
@@ -711,7 +707,6 @@ void NGT::Command::search(NGT::Index &index, NGT::Command::SearchParameters &sea
   }
 }
 
-
 void NGT::Command::search(Args &args) {
   const string usage =
       "Usage: ngt search [-i index-type(g|t|s)] [-n result-size] [-e epsilon] [-E edge-size] "
@@ -758,7 +753,6 @@ void NGT::Command::search(Args &args) {
     NGTThrowException(msg);
   }
 }
-
 
 void NGT::Command::remove(Args &args) {
   const string usage = "Usage: ngt remove [-d object-ID-type(f|d)] [-m f] index(input) object-ID(input)";
@@ -1047,8 +1041,8 @@ void NGT::Command::reconstructGraph(Args &args) {
     NGTThrowException(msg);
   }
 
-  char mode   = args.getChar("m", 'S');
-  char srmode = args.getChar("P", '-');
+  char mode            = args.getChar("m", 'S');
+  char srmode          = args.getChar("P", '-');
   size_t nOfQueries    = args.getl("q", 100); // # of query objects
   size_t nOfResults    = args.getl("n", 20);  // # of resultant objects
   double gtEpsilon     = args.getf("e", 0.1);
@@ -1118,7 +1112,6 @@ void NGT::Command::optimizeSearchParameters(Args &args) {
 
   size_t nOfQueries = args.getl("q", 100); // # of query objects
   size_t nOfResults = args.getl("n", 20);  // # of resultant objects
-
 
   try {
     NGT::GraphOptimizer graphOptimizer(false);
@@ -1235,7 +1228,6 @@ void NGT::Command::repair(Args &args) {
       removedIDs.insert(id);
     }
   }
-
 
   std::cerr << "aggregate objects from the tree." << std::endl;
   std::set<ObjectID> ids;
@@ -1377,7 +1369,6 @@ void NGT::Command::repair(Args &args) {
   }
 }
 
-
 void NGT::Command::optimizeNumberOfEdgesForANNG(Args &args) {
   const string usage =
       "Usage: ngt optimize-#-of-edges [-q #-of-queries] [-k #-of-retrieved-objects] "
@@ -1410,7 +1401,6 @@ void NGT::Command::optimizeNumberOfEdgesForANNG(Args &args) {
             << std::endl;
   std::cout << "Successfully completed." << std::endl;
 }
-
 
 void NGT::Command::info(Args &args) {
   const string usage = "Usage: ngt info [-E #-of-edges] [-m a|e|h|p] index";
@@ -1451,7 +1441,6 @@ void NGT::Command::info(Args &args) {
     cerr << usage << endl;
   }
 }
-
 
 void NGT::Command::exportGraph(Args &args) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)

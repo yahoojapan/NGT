@@ -18,15 +18,12 @@
 
 #include "Command.h"
 
-
 #define NGT_LOG_BASED_OPTIMIZATION
 
 namespace NGT {
 class Optimizer {
  public:
-
-  Optimizer(NGT::Index &i, size_t n = 10) : index(i), nOfResults(n) {
-  }
+  Optimizer(NGT::Index &i, size_t n = 10) : index(i), nOfResults(n) {}
   ~Optimizer() {}
 
   class MeasuredValue {
@@ -107,7 +104,8 @@ class Optimizer {
     search(index, is, gtStream, sp, acc);
   }
 
-    static void search(NGT::Index &index, std::istream &queries, std::istream &gtStream, Command::SearchParameters &sp, std::vector<MeasuredValue> &acc) {
+  static void search(NGT::Index &index, std::istream &queries, std::istream &gtStream,
+                     Command::SearchParameters &sp, std::vector<MeasuredValue> &acc) {
     sp.stepOfEpsilon = 1.0;
     std::stringstream resultStream;
     NGT::Command::search(index, sp, queries, resultStream);
@@ -267,7 +265,7 @@ class Optimizer {
         NGTThrowException(msg);
       }
       size_t id = NGT::Common::strtol(result[1]);
-      distance = NGT::Common::strtod(result[2]);
+      distance  = NGT::Common::strtod(result[2]);
       try {
         gt.insert(id);
       } catch (...) {
@@ -491,8 +489,8 @@ class Optimizer {
                 msg << "result format is wrong. [" << line << "]";
                 NGTThrowException(msg);
               }
-              size_t rank = NGT::Common::strtol(result[0]);
-              size_t id = NGT::Common::strtol(result[1]);
+              size_t rank     = NGT::Common::strtol(result[0]);
+              size_t id       = NGT::Common::strtol(result[1]);
               double distance = NGT::Common::strtod(result[2]);
               totalDistance += distance;
               if (gt.count(id) != 0) {
@@ -574,7 +572,7 @@ class Optimizer {
       if (fromOver < accuracyRangeTo) {
         startEpsilon = fromOverEpsilon;
         for (count = 0;; count++) {
-          float epsilon = round((startEpsilon + epsilonStep * count) * 100.0F) / 100.0F;
+          float epsilon     = round((startEpsilon + epsilonStep * count) * 100.0F) / 100.0F;
           sp.beginOfEpsilon = sp.endOfEpsilon = toOverEpsilon = epsilon;
           if (epsilon > 0.25F) {
             std::stringstream msg;
@@ -735,7 +733,7 @@ class Optimizer {
               for (;;) {
                 try {
                   auto values = measure(queries, gtStream, searchParameters, accuracyRange, margin);
-                  time = values.meanTime;
+                  time        = values.meanTime;
                   break;
                 } catch (NGT::Exception &err) {
                   if (err.getMessage().find("Error!! Epsilon") != std::string::npos &&
@@ -804,7 +802,6 @@ class Optimizer {
     return base.first;
   }
 
-
   std::pair<size_t, double> adjustRateSearchEdgeSize(std::stringstream &queries,
                                                      Command::SearchParameters &searchParameters,
                                                      std::stringstream &gtStream,
@@ -846,7 +843,7 @@ class Optimizer {
               for (;;) {
                 try {
                   auto values = measure(queries, gtStream, searchParameters, accuracyRange, margin);
-                  time = values.meanTime;
+                  time        = values.meanTime;
                   break;
                 } catch (NGT::Exception &err) {
                   if (err.getMessage().find("Error!! Epsilon") != std::string::npos &&
@@ -899,12 +896,9 @@ class Optimizer {
     }
   }
 
-
-
   std::pair<size_t, size_t> adjustSearchEdgeSize(std::pair<float, float> baseAccuracyRange,
                                                  std::pair<float, float> rateAccuracyRange, size_t querySize,
                                                  double epsilon, float margin = 0.2) {
-
 
     std::stringstream queries;
     std::stringstream gtStream;
@@ -937,18 +931,18 @@ class Optimizer {
     for (;;) {
       try {
         prop.dynamicEdgeSizeRate = rate.first;
-        prevBase = base;
-        base     = adjustBaseSearchEdgeSize(queries, searchParameters, gtStream, baseAccuracyRange, margin,
-                                            prevBase.first);
+        prevBase                 = base;
+        base = adjustBaseSearchEdgeSize(queries, searchParameters, gtStream, baseAccuracyRange, margin,
+                                        prevBase.first);
         std::cerr << "adjustRateSearchEdgeSize: Base: base=" << prevBase.first << "->" << base.first
                   << ",rate=" << prevRate.first << "->" << rate.first << std::endl;
         if (prevBase.first == base.first) {
           break;
         }
         prop.dynamicEdgeSizeBase = base.first;
-        prevRate = rate;
-        rate     = adjustRateSearchEdgeSize(queries, searchParameters, gtStream, rateAccuracyRange, margin,
-                                            prevRate.first);
+        prevRate                 = rate;
+        rate = adjustRateSearchEdgeSize(queries, searchParameters, gtStream, rateAccuracyRange, margin,
+                                        prevRate.first);
         std::cerr << "adjustRateSearchEdgeSize: Rate base=" << prevBase.first << "->" << base.first
                   << ",rate=" << prevRate.first << "->" << rate.first << std::endl;
         if (prevRate.first == rate.first) {
@@ -1046,7 +1040,6 @@ class Optimizer {
     }
   }
 
-
   void outputObject(std::ostream &os, std::vector<float> &v, NGT::Property &prop) {
     for (auto i = v.begin(); i != v.end(); ++i) {
       os << *i;
@@ -1091,8 +1084,7 @@ class Optimizer {
         v.push_back(d);
       }
     } break;
-    case NGT::ObjectSpace::ObjectType::Qsuint8:
-    {
+    case NGT::ObjectSpace::ObjectType::Qsuint8: {
       auto *obj = static_cast<uint8_t *>(index.getObjectSpace().getObject(id));
       index.getObjectSpace().dequantizeFromQint8(v, obj);
     } break;
@@ -1306,7 +1298,7 @@ class Optimizer {
       distance[0].second    = accuracyRangeFrom;
       distance[last].first  = xto;
       distance[last].second = accuracyRangeTo;
-      double area = 0.0;
+      double area           = 0.0;
       for (size_t i = 0; i < distance.size() - 1; ++i) {
         area +=
             ((distance[i].first + distance[i + 1].first) * (distance[i + 1].second - distance[i].second)) /
@@ -1326,7 +1318,7 @@ class Optimizer {
       visit[0].second    = accuracyRangeFrom;
       visit[last].first  = xto;
       visit[last].second = accuracyRangeTo;
-      double area = 0.0;
+      double area        = 0.0;
       for (size_t i = 0; i < visit.size() - 1; ++i) {
         area += ((visit[i].first + visit[i + 1].first) * (visit[i + 1].second - visit[i].second)) / 2.0;
       }
@@ -1344,7 +1336,7 @@ class Optimizer {
       time[0].second    = accuracyRangeFrom;
       time[last].first  = xto;
       time[last].second = accuracyRangeTo;
-      double area = 0.0;
+      double area       = 0.0;
       for (size_t i = 0; i < time.size() - 1; ++i) {
         area += ((time[i].first + time[i + 1].first) * (time[i + 1].second - time[i].second)) / 2.0;
       }
@@ -1546,7 +1538,7 @@ class Optimizer {
         auto pair = map.find(epsilon);
         if (pair == map.end()) {
           NGT::Command::SearchParameters searchParameters;
-          searchParameters.outputMode = 'e';
+          searchParameters.outputMode     = 'e';
           searchParameters.beginOfEpsilon = searchParameters.endOfEpsilon = epsilon;
           queryStream.clear();
           queryStream.seekg(0, std::ios_base::beg);

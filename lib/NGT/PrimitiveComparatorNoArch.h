@@ -80,8 +80,8 @@ class PrimitiveComparator {
 #endif
 
   inline static double compareL2(const qsint8 *a, const qsint8 *b, size_t size) {
-    auto *i8a = reinterpret_cast<const int8_t *>(a);
-    auto *i8b = reinterpret_cast<const int8_t *>(b);
+    auto *i8a  = reinterpret_cast<const int8_t *>(a);
+    auto *i8b  = reinterpret_cast<const int8_t *>(b);
     double sum = 0.0;
     for (size_t loc = 0; loc < size; loc++) {
       auto sub = static_cast<int>(*i8a) - static_cast<int>(*i8b);

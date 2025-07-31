@@ -20,7 +20,6 @@
 #include "NGT/ObjectRepository.h"
 #include "NGT/NGTQ/QuantizedBlobGraph.h"
 
-
 NGT::Distance NGT::ObjectSpace::compareWithL1(NGT::Object &o1, NGT::Object &o2) {
   auto dim = getPaddedDimension();
   NGT::Distance d;
@@ -153,7 +152,6 @@ void NGT::Quantizer::quantizeToPq4(std::vector<float> &vector, std::vector<uint8
   }
 }
 
-
 void *NGT::Quantizer::constructQueryObject(std::vector<float> &query, ObjectSpace &objectSpace) {
   auto *quantizedQuery = new NGT::Quantizer::Query;
   setQuantizedQuery(query, *quantizedQuery, objectSpace);
@@ -239,7 +237,7 @@ void NGT::Quantizer::setQuantizedQuery(std::vector<float> &query, NGT::Quantizer
   } else {
     for (size_t i = 0; i < qQuery.lut.size(); i++) {
       //float fv = std::round((centroids[i] - qQuery.offset) / qQuery.scale * 255.5);
-      float fv = std::round((centroids[i] - qQuery.offset) / qQuery.scale * 127.5);
+      float fv      = std::round((centroids[i] - qQuery.offset) / qQuery.scale * 127.5);
       fv            = fv < -128.0 ? -128.0 : fv;
       fv            = fv > 127.0 ? 127.0 : fv;
       qQuery.lut[i] = static_cast<uint8_t>(fv);
@@ -257,9 +255,9 @@ void NGT::Quantizer::setQuantizedQuery(std::vector<float> &query, NGT::Quantizer
   qQuery.genuineSize = objectSpace.getDimension();
   qQuery.quantizedQuery.resize(objectSpace.getPaddedDimension() * 2, 0);
   for (size_t i = 0; i < query.size(); i++) {
-    float fv = std::round((query[i] - qQuery.offset) / qQuery.scale * 127.5);
-    fv = fv < -128.0 ? -128.0 : fv;
-    fv = fv > 127.0 ? 127.0 : fv;
+    float fv                 = std::round((query[i] - qQuery.offset) / qQuery.scale * 127.5);
+    fv                       = fv < -128.0 ? -128.0 : fv;
+    fv                       = fv > 127.0 ? 127.0 : fv;
     qQuery.quantizedQuery[i] = static_cast<int8_t>(fv);
   }
   qQuery.shiftValue = 0.0;
@@ -275,8 +273,8 @@ void NGT::Quantizer::setQuantizedQuery(NGT::Quantizer::Query &qQuery) {
   if (centroids.size() == 0) {
     NGTThrowException("Fatal error! Something wrong.");
   }
-  float min = centroidMin;
-  float max = centroidMax;
+  float min     = centroidMin;
+  float max     = centroidMax;
   qQuery.offset = min;
   qQuery.scale  = max - min;
   qQuery.lut.resize(centroids.size());
@@ -299,7 +297,7 @@ void NGT::Quantizer::destructQueryObject(void *c) {
 NGT::Distance NGT::Quantizer::compareL2(void *a, void *b, size_t s) {
   auto *ao = reinterpret_cast<qint4 *>(a);
   auto *bo = reinterpret_cast<qint4 *>(b);
-  float d = 0.0;
+  float d  = 0.0;
   for (size_t i = 0; i < s; i++) {
     float fa = centroids[ao[i].lower()];
     float fb = centroids[bo[i].lower()];
@@ -315,8 +313,8 @@ NGT::Distance NGT::Quantizer::compareL2(void *a, void *b, size_t s) {
 }
 
 NGT::Distance NGT::Quantizer::compareCosineSimilarity(void *a, void *b, size_t s) {
-  auto *ao = reinterpret_cast<qint4 *>(a);
-  auto *bo = reinterpret_cast<qint4 *>(b);
+  auto *ao    = reinterpret_cast<qint4 *>(a);
+  auto *bo    = reinterpret_cast<qint4 *>(b);
   float normA = 0.0;
   float normB = 0.0;
   float sum   = 0.0;
@@ -337,8 +335,8 @@ NGT::Distance NGT::Quantizer::compareCosineSimilarity(void *a, void *b, size_t s
 }
 
 NGT::Distance NGT::Quantizer::compareNormalizedCosineSimilarity(void *a, void *b, size_t s) {
-  auto *ao = reinterpret_cast<qint4 *>(a);
-  auto *bo = reinterpret_cast<qint4 *>(b);
+  auto *ao  = reinterpret_cast<qint4 *>(a);
+  auto *bo  = reinterpret_cast<qint4 *>(b);
   float sum = 0.0;
   for (size_t i = 0; i < s; i++) {
     float fa = centroids[ao[i].lower()];
@@ -352,7 +350,6 @@ NGT::Distance NGT::Quantizer::compareNormalizedCosineSimilarity(void *a, void *b
   return d < 0.0 ? -d : d;
 }
 
-
 void NGT::Quantizer::create(const std::string &indexPath, NGT::Property &prop) {
 
   if (prop.objectType != NGT::ObjectSpace::Qint4) {
@@ -361,11 +358,10 @@ void NGT::Quantizer::create(const std::string &indexPath, NGT::Property &prop) {
     NGTThrowException(msg);
   }
 
-
   QBG::BuildParameters buildParameters;
   buildParameters.creation.localClusterDataType = NGTQ::ClusterDataTypePQ4;
   buildParameters.creation.genuineDimension     = prop.dimension;
-  buildParameters.creation.dimension = ((buildParameters.creation.genuineDimension + 15) / 16) * 16;
+  buildParameters.creation.dimension       = ((buildParameters.creation.genuineDimension + 15) / 16) * 16;
   buildParameters.creation.numOfSubvectors = buildParameters.creation.dimension;
   switch (prop.distanceType) {
   case NGT::ObjectSpace::DistanceTypeL2:

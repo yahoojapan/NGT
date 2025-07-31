@@ -18,7 +18,6 @@
 
 #include "NGT/defines.h"
 
-
 #if defined(NGT_NO_AVX)
 #include "NGT/PrimitiveComparatorNoArch.h"
 #elif defined(__x86_64__)
@@ -276,8 +275,6 @@ class PrimitiveComparator::LorentzBfloat16 {
   }
 };
 #endif
-
-
 
 #ifdef NGT_PQ4
 class PrimitiveComparator::L2Qint4 {

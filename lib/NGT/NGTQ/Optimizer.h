@@ -29,18 +29,13 @@
 
 #include "Matrix.h"
 
-
 namespace QBG {
 class BuildParameters;
 class OptimizationParameters;
 
 class Optimizer {
  public:
-  enum GlobalType {
-    GlobalTypeNone = 0,
-    GlobalTypeZero = 1,
-    GlobalTypeMean = 2
-  };
+  enum GlobalType { GlobalTypeNone = 0, GlobalTypeZero = 1, GlobalTypeMean = 2 };
 
   Optimizer() { initialize(); }
 
@@ -273,9 +268,9 @@ class Optimizer {
       }
       distance = sqrt(distance / numberOfSubvectors);
       if (minDistortion > distance) {
-        minDistortion = distance;
-        minR          = R;
-        minIt         = it;
+        minDistortion    = distance;
+        minR             = R;
+        minIt            = it;
         minLocalClusters = localClusters;
       }
       if (it + 1 > iteration || it - minIt > convergenceLimitTimes) {
@@ -412,8 +407,7 @@ class Optimizer {
     }
   }
 
-  void optimize(vector<vector<float>> &vectors,
-                Matrix<float> &reposition, vector<Matrix<float>> &rs,
+  void optimize(vector<vector<float>> &vectors, Matrix<float> &reposition, vector<Matrix<float>> &rs,
                 vector<vector<vector<NGT::Clustering::Cluster>>> &localClusters, vector<double> &errors) {
     if (vectors.size() == 0) {
       NGTThrowException("the vector is empty");
@@ -436,15 +430,8 @@ class Optimizer {
       }
       timer.start();
       Matrix<float> optr;
-      optimizeRotation(iteration,
-                       vectors,
-                       xt,
-                       rs[ri],
-                       optr,
-                       localClusters[ri], clusteringType, imode, numberOfClusters,
-                       numberOfSubvectors,
-                       subvectorSize,
-                       clusterIteration,
+      optimizeRotation(iteration, vectors, xt, rs[ri], optr, localClusters[ri], clusteringType, imode,
+                       numberOfClusters, numberOfSubvectors, subvectorSize, clusterIteration,
                        clusterSizeConstraint, clusterSizeConstraintCoefficient, convergenceLimitTimes,
                        errors[ri], timelimitTimer, timelimit, rotation);
       timer.stop();
@@ -452,8 +439,8 @@ class Optimizer {
     }
   }
 
-  void optimizeForUnifiedPQ(vector<vector<float>> &vectors,
-                            Matrix<float> &reposition, vector<Matrix<float>> &rs,
+  void optimizeForUnifiedPQ(vector<vector<float>> &vectors, Matrix<float> &reposition,
+                            vector<Matrix<float>> &rs,
                             vector<vector<vector<NGT::Clustering::Cluster>>> &localClusters,
                             vector<double> &errors) {
     if (vectors.size() == 0) {
@@ -478,16 +465,9 @@ class Optimizer {
       timer.start();
       Matrix<float> optr;
       localClusters[ri].resize(numberOfSubvectors);
-      optimizeRotationForUnifiedPQ(iteration,
-                                   vectors,
-                                   xt,
-                                   rs[ri],
-                                   optr,
-                                   localClusters[ri][0], clusteringType, imode, numberOfClusters,
-                                   numberOfSubvectors,
-                                   subvectorSize,
-                                   clusterIteration,
-                                   clusterSizeConstraint, clusterSizeConstraintCoefficient,
+      optimizeRotationForUnifiedPQ(iteration, vectors, xt, rs[ri], optr, localClusters[ri][0], clusteringType,
+                                   imode, numberOfClusters, numberOfSubvectors, subvectorSize,
+                                   clusterIteration, clusterSizeConstraint, clusterSizeConstraintCoefficient,
                                    convergenceLimitTimes, errors[ri], timelimitTimer, timelimit, rotation);
       timer.stop();
       for (size_t i = 1; i < localClusters[ri].size(); i++) {

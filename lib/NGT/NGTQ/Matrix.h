@@ -44,8 +44,6 @@ void sgeqrf_(int *m, int *n, float *a, int *lda, float *tau, float *work, int *l
 void sorgqr_(int *m, int *n, int *k, float *a, int *lda, float *tau, float *work, int *lwork, int *info);
 }
 
-
-
 template <typename T> class Matrix {
  public:
   Matrix(size_t r = 0, size_t c = 0, const float *v = 0) : row(r), col(c), matrix(0) { construct(r, c, v); }
@@ -271,9 +269,7 @@ template <typename T> class Matrix {
     mulBlas(m, true);
   }
 
-
   void mul(const Matrix<T> &mtx) { mulBlas(mtx); }
-
 
   void mulBlas(const Matrix<T> &mtx, bool transpose = false) {
     char transa = 'N';
@@ -313,7 +309,6 @@ template <typename T> class Matrix {
 #else
   void mul(const Matrix<T> &mtx) { mulNaive(mtx); }
 #endif
-
 
   void mulNaive(const Matrix<T> &mtx) {
 #ifdef MATRIX_TRACE
@@ -502,7 +497,7 @@ template <typename T> class Matrix {
     sd.allocate(m, 1);
     u.allocate(m, m);
     v.allocate(n, n);
-       // S       U               VT
+    // S       U               VT
     gesvd(&jobu, &jobvt, &m, &n, svda.matrix, &lda, sd.matrix, u.matrix, &ldu, v.matrix, &ldvt, work, &lwork,
           &info);
     s.diag(sd);

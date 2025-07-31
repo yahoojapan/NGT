@@ -228,7 +228,7 @@ class GraphOptimizer {
     std::vector<std::pair<size_t, size_t>> mins;
     NGT::ObjectSpace &objectSpace = index.getObjectSpace();
     int maxSize                   = objectSpace.getByteSizeOfObject() * 4;
-    maxSize = maxSize < 64 * 28 ? maxSize : 64 * 28;
+    maxSize                       = maxSize < 64 * 28 ? maxSize : 64 * 28;
     for (int trial = 0; trial < 10; trial++) {
       size_t minps = 0;
       size_t minpo = 0;
@@ -322,7 +322,8 @@ class GraphOptimizer {
           if (undirectedGraphConversion) {
             NGT::GraphReconstructor::convertToANNG(graph);
           }
-          NGT::GraphReconstructor::reconstructGraph(graph, *graphIndex, numOfOutgoingEdges, numOfIncomingEdges, maxNumOfEdges);
+          NGT::GraphReconstructor::reconstructGraph(graph, *graphIndex, numOfOutgoingEdges,
+                                                    numOfIncomingEdges, maxNumOfEdges);
           timer.stop();
           std::cerr << "Optimizer::execute: Graph reconstruction time=" << timer.time << " (sec) "
                     << std::endl;
@@ -589,7 +590,6 @@ class GraphOptimizer {
 
       auto optimizedEdge = NGT::GraphOptimizer::optimizeNumberOfEdgesForANNG(index, parameter);
 
-
       NGT::GraphIndex &graph = static_cast<NGT::GraphIndex &>(index.getIndex());
       size_t noOfEdges       = (optimizedEdge.first + 10) / 5 * 5;
       if (noOfEdges > parameter.maxNoOfEdges) {
@@ -597,7 +597,7 @@ class GraphOptimizer {
       }
 
       NGT::NeighborhoodGraph::Property &prop = graph.getGraphProperty();
-      prop.edgeSizeForCreation = noOfEdges;
+      prop.edgeSizeForCreation               = noOfEdges;
       static_cast<NGT::GraphIndex &>(index.getIndex()).saveProperty(indexPath);
       optimizedEdge.first = noOfEdges;
       redirector.end();

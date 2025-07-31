@@ -66,16 +66,13 @@ class GraphReconstructor {
     }
   }
 
-
-
-
   static void adjustPaths(NGT::Index &outIndex) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
     std::cerr << "construct index is not implemented." << std::endl;
     exit(1);
 #else
     NGT::GraphIndex &outGraph = dynamic_cast<NGT::GraphIndex &>(outIndex.getIndex());
-    size_t rStartRank = 0;
+    size_t rStartRank         = 0;
     std::list<std::pair<size_t, NGT::GraphNode>> tmpGraph;
     for (size_t id = 1; id < outGraph.repository.size(); id++) {
       NGT::GraphNode &node = *outGraph.getNode(id);
@@ -101,7 +98,7 @@ class GraphReconstructor {
             std::cerr << "distance order is wrong!" << std::endl;
             std::cerr << id << ":" << rank << ":" << node[rank - 1].id << ":" << node[rank].id << std::endl;
           }
-          NGT::GraphNode &tn = *outGraph.getNode(id);
+          NGT::GraphNode &tn  = *outGraph.getNode(id);
           volatile bool found = false;
           if (rank < 1000) {
             for (size_t tni = 0; tni < tn.size() && !found; tni++) {
@@ -201,9 +198,7 @@ class GraphReconstructor {
   }
 #endif
 
-  static void adjustPathsEffectively(NGT::GraphIndex &outGraph,
-                                     size_t minNoOfEdges)
-  {
+  static void adjustPathsEffectively(NGT::GraphIndex &outGraph, size_t minNoOfEdges) {
     Timer timer;
     timer.start();
     std::vector<NGT::GraphNode> tmpGraph;
@@ -277,13 +272,12 @@ class GraphReconstructor {
 #endif
             auto dstNode = neighbors.find(dstNodeID);
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
-            if (dstNode != neighbors.end()
-                && srcNode.at(sni, outGraph.repository.allocator).distance < (*dstNode).second.second
-                && pathNode.at(pni, outGraph.repository.allocator).distance < (*dstNode).second.second) {
+            if (dstNode != neighbors.end() &&
+                srcNode.at(sni, outGraph.repository.allocator).distance < (*dstNode).second.second &&
+                pathNode.at(pni, outGraph.repository.allocator).distance < (*dstNode).second.second) {
 #else
-            if (dstNode != neighbors.end()
-                && srcNode[sni].distance < (*dstNode).second.second
-                && pathNode[pni].distance < (*dstNode).second.second) {
+            if (dstNode != neighbors.end() && srcNode[sni].distance < (*dstNode).second.second &&
+                pathNode[pni].distance < (*dstNode).second.second) {
 #endif
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
               candidates.push_back(std::pair<uint32_t, std::pair<uint32_t, uint32_t>>(
@@ -414,7 +408,6 @@ class GraphReconstructor {
       }
     }
   }
-
 
   static void removeShortcutEdges(NGT::GraphIndex &outGraph, int &removeCount, float range,
                                   size_t nOfThreads = 0) {
@@ -558,7 +551,7 @@ class GraphReconstructor {
                   dstNodeDistance * range)
                 break;
 #else
-            if (srcNode[sni].distance + pathNode[pni].distance >= dstNodeDistance * range) break;
+              if (srcNode[sni].distance + pathNode[pni].distance >= dstNodeDistance * range) break;
 #endif
 #endif
 #endif
@@ -600,8 +593,7 @@ class GraphReconstructor {
   }
 
   static void removeShortcutEdges(NGT::GraphIndex &outGraph, const std::string &outIndexPath, float range,
-                                  size_t nOfThreads, size_t minNoOfEdges)
-  {
+                                  size_t nOfThreads, size_t minNoOfEdges) {
     Timer timer;
     timer.start();
     timer.stop();
@@ -615,9 +607,7 @@ class GraphReconstructor {
               << NGT::Common::getProcessVmPeakStr() << ":" << NGT::Common::getSystemHWMStr() << std::endl;
 
     removeShortcutEdges(outGraph, removeCandidateCount, range, nOfThreads);
-
   }
-
 
   static void convertToANNG(std::vector<NGT::ObjectDistances> &graph) {
 #if defined(NGT_SHARED_MEMORY_ALLOCATOR)
@@ -823,8 +813,6 @@ class GraphReconstructor {
     outGraph.getProperty().set(prop);
   }
 
-
-
   static void reconstructGraphWithConstraint(std::vector<NGT::ObjectDistances> &graph,
                                              NGT::GraphIndex &outGraph, size_t originalEdgeSize,
                                              size_t reverseEdgeSize, char mode = 'a') {
@@ -883,7 +871,6 @@ class GraphReconstructor {
       reverseSize[rid] = std::pair<size_t, size_t>(reverse[rid].size(), rid);
     }
     std::sort(reverseSize.begin(), reverseSize.end());
-
 
     std::vector<uint32_t> indegreeCount(graph.size(), 0);
     size_t zeroCount = 0;
@@ -948,7 +935,7 @@ class GraphReconstructor {
       NGT::GraphNode &node = graph[id - 1];
       try {
         NGT::GraphNode &onode = *outGraph.getNode(id);
-        bool stop = false;
+        bool stop             = false;
         for (size_t rank = 0; (rank < node.size() && rank < originalEdgeSize) && stop == false; rank++) {
           switch (mode) {
           case 'a':
@@ -957,8 +944,7 @@ class GraphReconstructor {
               continue;
             }
             break;
-          case 'c':
-            break;
+          case 'c': break;
           }
           NGT::Distance distance = node[rank].distance;
           size_t nodeID          = node[rank].id;

@@ -181,7 +181,6 @@ void QBG::HierarchicalKmeans::threeLayerClustering(std::string prefix, QBG::Inde
     numOfFirstObjects  = numOfFirstObjects == 0 ? numOfFirstClusters * 2000 : numOfFirstObjects;
     numOfFirstObjects  = numOfFirstObjects > numOfSecondObjects ? numOfSecondObjects : numOfFirstObjects;
 
-
     if (numOfFirstObjects < numOfFirstClusters) {
       std::stringstream msg;
       msg << "# of objects for the first should be larger than # of the first clusters. " << numOfFirstObjects
@@ -662,8 +661,8 @@ void QBG::HierarchicalKmeans::clustering(std::string indexPath, std::string pref
         prefix += "/" + QBG::Index::getHierarchicalClusteringPrefix();
         std::cerr << prefix << " is used" << std::endl;
       }
-      auto &quantizer   = static_cast<NGTQ::QuantizerInstance<uint8_t> &>(index.getQuantizer());
-      auto &objectSpace = quantizer.globalCodebookIndex.getObjectSpace();
+      auto &quantizer        = static_cast<NGTQ::QuantizerInstance<uint8_t> &>(index.getQuantizer());
+      auto &objectSpace      = quantizer.globalCodebookIndex.getObjectSpace();
       size_t paddedDimension = objectSpace.getPaddedDimension();
       size_t dimension       = objectSpace.getDimension();
       if (paddedDimension != dimension) {

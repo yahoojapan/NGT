@@ -16,8 +16,6 @@
 
 #include "NGT/SharedMemoryAllocator.h"
 
-
-
 void *operator new(size_t size, SharedMemoryAllocator &allocator) {
   void *addr = allocator.allocate(size);
 #ifdef MEMORY_ALLOCATOR_INFO

@@ -55,7 +55,7 @@ void QBG::Optimizer::setParameters(QBG::OptimizationParameters &param) {
   randomizedObjectExtraction       = param.randomizedObjectExtraction;
   showClusterInfo                  = param.showClusterInfo;
   unifiedPQ                        = param.unifiedPQ;
-  verbose = param.verbose;
+  verbose                          = param.verbose;
 #endif
 }
 
@@ -413,7 +413,6 @@ void QBG::Optimizer::optimize(vector<vector<float>> &vectors, vector<vector<floa
 
   generateResidualObjects(globalCentroid, vectors);
 
-
   timelimitTimer.start();
 
   Matrix<float> reposition;
@@ -423,15 +422,14 @@ void QBG::Optimizer::optimize(vector<vector<float>> &vectors, vector<vector<floa
     for (size_t didx = 0; didx < numberOfSubvectors; didx++) {
       for (size_t sdidx = 0; sdidx < subvectorSize; sdidx++) {
         size_t srcidx = didx + sdidx * numberOfSubvectors;
-        auto col = dstidx;
-        auto row = srcidx;
+        auto col      = dstidx;
+        auto row      = srcidx;
         reposition.set(row, col, 1.0);
         dstidx++;
       }
     }
     std::cerr << "optimize: Each axis was repositioned." << std::endl;
   }
-
 
   vector<vector<vector<NGT::Clustering::Cluster>>> localClustersSet;
 
@@ -538,7 +536,6 @@ void QBG::Optimizer::optimize(std::string invector, std::string ofile, std::stri
   std::cerr << "optimize: Not implemented." << std::endl;
   abort();
 #else
-
 
   vector<vector<float>> vectors;
 #ifdef NGT_CLUSTERING
@@ -684,8 +681,8 @@ size_t QBG::Optimizer::convertObjectsFromInnerProductToL2(const std::string inde
   size_t count = 0;
   try {
     QBG::Index index(indexPath);
-    auto &quantizer = index.getQuantizer();
-    auto dim        = quantizer.property.genuineDimension;
+    auto &quantizer  = index.getQuantizer();
+    auto dim         = quantizer.property.genuineDimension;
     auto &objectList = quantizer.objectList;
     if (objectList.size() <= 1) {
       NGTThrowException("optimize: No objects");
@@ -775,8 +772,8 @@ size_t QBG::Optimizer::normalizeObjectsForCosine(const std::string indexPath, si
   size_t count = 0;
   try {
     QBG::Index index(indexPath);
-    auto &quantizer = index.getQuantizer();
-    auto dim        = quantizer.property.genuineDimension;
+    auto &quantizer  = index.getQuantizer();
+    auto dim         = quantizer.property.genuineDimension;
     auto &objectList = quantizer.objectList;
     if (objectList.size() <= 1) {
       NGTThrowException("optimize: No objects");
