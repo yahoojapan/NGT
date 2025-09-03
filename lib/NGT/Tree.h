@@ -24,6 +24,7 @@
 #include <vector>
 #include <stack>
 #include <set>
+#include <unordered_map>
 
 namespace NGT {
 
@@ -438,7 +439,8 @@ class DVPTree {
 #endif
   }
 
-  void getAllObjectIDs(std::set<ObjectID> &ids) {
+  void getAllObjectIDs(std::set<ObjectID> &ids, bool duplicationCheck = false) {
+    std::unordered_map<ObjectID, size_t> duplicatedIDs;
     for (size_t i = 0; i < leafNodes.size(); i++) {
       if (leafNodes[i] != 0) {
         LeafNode &ln = *leafNodes[i];
@@ -450,7 +452,29 @@ class DVPTree {
         for (size_t idx = 0; idx < ln.objectSize; ++idx) {
           auto ret = ids.insert(objs[idx].id);
           if (ret.second == false) {
-            std::cerr << "Warning! Duplicated ID in the tree. ID=" << objs[idx].id << std::endl;
+            duplicatedIDs[objs[idx].id]++;
+          }
+        }
+      }
+    }
+    for (const auto &id : duplicatedIDs) {
+      std::cerr << "Warning! Duplicated ID in the tree. ID=" << id.first << " X " << id.second << std::endl;
+    }
+    if (!duplicationCheck || duplicatedIDs.empty()) {
+      return;
+    }
+    for (size_t i = 0; i < leafNodes.size(); i++) {
+      if (leafNodes[i] != 0) {
+        LeafNode &ln = *leafNodes[i];
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+        auto objs = ln.getObjectIDs(leafNodes.allocator);
+#else
+        auto objs = ln.getObjectIDs();
+#endif
+        for (size_t idx = 0; idx < ln.objectSize; ++idx) {
+          if (duplicatedIDs.count(objs[idx].id) != 0) {
+            std::cerr << "Duplicated ID=" << objs[idx].id << ", leaf ID=" << i
+                      << ", index in the leaf=" << idx << std::endl;
           }
         }
       }

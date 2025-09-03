@@ -1231,7 +1231,7 @@ void NGT::Command::repair(Args &args) {
 
   std::cerr << "aggregate objects from the tree." << std::endl;
   std::set<ObjectID> ids;
-  graphAndTreeIndex.DVPTree::getAllObjectIDs(ids);
+  graphAndTreeIndex.DVPTree::getAllObjectIDs(ids, true);
   size_t idsSize = ids.size() == 0 ? 0 : (*ids.rbegin()) + 1;
   if (objSize < idsSize) {
     std::cerr << "The sizes of the repository and tree are inconsistent. " << objSize << ":" << idsSize

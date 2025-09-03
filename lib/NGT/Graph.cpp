@@ -445,7 +445,10 @@ void NeighborhoodGraph::setupDistances(NGT::SearchContainer &sc, ObjectDistances
 #endif
   for (size_t i = 0; i < seedSize; i++) {
     if (objectRepository.isEmpty(seeds[i].id)) {
-      cerr << "setupseeds:warning! unavailable object:" << seeds[i].id << "." << endl;
+      cerr << "setupseeds:warning! unavailable object(1):" << seeds[i].id << "." << endl;
+      cerr << "  Increasing the epsilon (EpsilonForCreation) value during index creation may help avoid this "
+              "warning."
+           << endl;
       seeds[i].distance = std::numeric_limits<float>::max();
       continue;
     }
@@ -495,7 +498,10 @@ void NeighborhoodGraph::setupDistances(NGT::SearchContainer &sc, ObjectDistances
 #endif
   for (size_t i = 0; i < seedSize; i++) {
     if (objectRepository.isEmpty(seeds[i].id)) {
-      cerr << "setupseeds:warning! unavailable object:" << seeds[i].id << "." << endl;
+      cerr << "setupseeds:warning! unavailable object(2):" << seeds[i].id << "." << endl;
+      cerr << "  Increasing the epsilon (EpsilonForCreation) value during index creation may help avoid this "
+              "warning."
+           << endl;
       seeds[i].distance = std::numeric_limits<float>::max();
       continue;
     }

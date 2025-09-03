@@ -37,7 +37,7 @@
 
 #include <sys/time.h>
 #include <fcntl.h>
-#if __linux__
+#if defined(__linux__)
 #include <sys/sysinfo.h>
 #endif
 
@@ -431,7 +431,7 @@ class Common {
     return val;
   }
 
-#if __linux__
+#if defined(__linux__)
   static unsigned long getTotalRam() {
     struct sysinfo info;
     sysinfo(&info);
@@ -492,7 +492,7 @@ class Common {
   static int getProcessVmRSS() { return strtol(getProcessStatus("VmRSS")); }
   static int getProcessVmHWM() { return strtol(getProcessStatus("VmHWM")); }
   static int getSystemHWM() {
-#if __linux__
+#if defined(__linux__)
     struct sysinfo info;
     sysinfo(&info);
     return info.totalram / 1024;
@@ -2386,6 +2386,9 @@ class ResultSet : public std::vector<ObjectDistance> {
   }
   void push_pop(const ObjectDistance &o) {
     emplace_back(o);
+#if !defined(__linux__)
+    push_heap(begin(), end());
+#endif
     pop_heap(begin(), end());
     pop_back();
   }
