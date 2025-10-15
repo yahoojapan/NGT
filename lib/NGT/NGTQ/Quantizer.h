@@ -55,13 +55,10 @@
 #define NGTQG_PREFETCH
 #if defined(NGT_AVX512)
 #define NGTQG_AVX512
-#warning "AVX512 is available for NGTQG"
 #elif defined(NGT_AVX2)
 #define NGTQG_AVX2
-#warning "AVX2 is available for NGTQG"
 #else
 #undef NGTQG_PREFETCH
-#warning "SIMD is not available for NGTQG. NGTQG might not work well."
 #endif
 
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
@@ -784,6 +781,13 @@ enum ClusterDataType {
   ClusterDataTypeSQS8T = 9
 };
 
+enum GraphType {
+  GraphTypeNone            = 0,
+  GraphTypeGraph           = 1,
+  GraphTypeBlobGraph       = 2,
+  GraphTypeObjectBlobGraph = 3
+};
+
 class Property {
  public:
   Property() {
@@ -822,6 +826,7 @@ class Property {
     scalarQuantizationClippingRate = 0.01;
     scalarQuantizationNoOfSamples  = 0;
     maxMagnitude                   = -1.0;
+    graphType                      = GraphTypeBlobGraph;
   }
 
   void save(const string &path) {
@@ -860,6 +865,7 @@ class Property {
     prop.set("ScalarQuantizationClippingRate", scalarQuantizationClippingRate);
     prop.set("ScalarQuantizationNoOfSamples", scalarQuantizationNoOfSamples);
     prop.set("MaxMagnitude", maxMagnitude);
+    prop.set("GraphType", graphType);
     prop.save(path + "/prf");
   }
 
@@ -926,6 +932,7 @@ class Property {
         prop.getf("ScalarQuantizationClippingRate", scalarQuantizationClippingRate);
     scalarQuantizationNoOfSamples = prop.getl("ScalarQuantizationNoOfSamples", scalarQuantizationNoOfSamples);
     maxMagnitude                  = prop.getf("MaxMagnitude", maxMagnitude);
+    graphType                     = (GraphType)prop.getl("GraphType", graphType);
   }
 
   size_t getDataSize() {
@@ -1013,6 +1020,7 @@ class Property {
   float scalarQuantizationClippingRate;
   size_t scalarQuantizationNoOfSamples;
   float maxMagnitude;
+  GraphType graphType;
 };
 
 #ifdef NGTQ_DISTANCE_ANGLE
@@ -2413,7 +2421,6 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
         } else {
           tmpmin = _mm512_reduce_min_ps(distance);
         }
-        //std::cerr << "tmpmin=" << tmpmin << std::endl;
         if (min > tmpmin) min = tmpmin;
       }
 #endif
@@ -2457,7 +2464,7 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
     return min;
 #endif
   }
-#else /// NGTQ_TOTAL_SCALE_OFFSET_COMPRESSION  ////////////////////////////////////////
+#else
 #ifndef NGT_AVX512
 #error "AVX512 is *NOT* defined. *INDIVIDUAL* scale offset compression is available only for AVX512!"
 #endif
@@ -2492,7 +2499,6 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
       auto *lastgroup256 = localID + range256;
       __m512 distance    = _mm512_setzero_ps();
 #if defined(NGTQG_AVX512)
-      //__m512i depu16 = _mm512_setzero_si512();
       auto *lastgroup512 = localID + range512;
       while (localID < lastgroup512) {
         __m512i lookupTable = _mm512_loadu_si512((__m512i const *)lut);
@@ -2527,13 +2533,11 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
       while (localID < lastgroup256) {
         __m256i lookupTable = _mm256_loadu_si256((__m256i const *)lut);
         _mm_prefetch(&localID[0] + 64 * 8, _MM_HINT_T0);
-        //std::cerr << "obj=" << (int)(localID[0] & 0x0f) << "," << (int)((localID[0] >> 4) & 0x0f) << std::endl;
         __m256i packedobj = _mm256_cvtepu8_epi16(_mm_loadu_si128((__m128i const *)&localID[0]));
         __m256i lo        = _mm256_and_si256(packedobj, mask256x0F);
         __m256i hi        = _mm256_slli_epi16(_mm256_and_si256(packedobj, mask256xF0), 4);
         __m256i obj       = _mm256_or_si256(lo, hi);
-        //std::cerr << "LUT=" << (int)*lut << "," << (int)*(lut+1) << std::endl;
-        __m256i vtmp = _mm256_shuffle_epi8(lookupTable, obj);
+        __m256i vtmp      = _mm256_shuffle_epi8(lookupTable, obj);
 
 #if defined(NGTQG_AVX512)
         __m512 d     = _mm512_cvtepi32_ps(_mm512_cvtepu8_epi32(_mm256_extracti32x4_epi32(vtmp, 0)));
@@ -2553,10 +2557,6 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
       }
 
 #if defined(NGTQG_AVX512)
-      //__m512i lo = _mm512_cvtepu16_epi32(_mm512_extracti64x4_epi64(depu16, 0));
-      //__m512i hi = _mm512_cvtepu16_epi32(_mm512_extracti64x4_epi64(depu16, 1));
-      //__m512 scale = _mm512_broadcastss_ps(*reinterpret_cast<__m128*>(&distanceLUT.scales[0]));
-      //distance = _mm512_mul_ps(distance, scale);
       distance = _mm512_add_ps(distance, _mm512_set1_ps(distanceLUT.totalOffset));
 #if defined(NGTQG_DOT_PRODUCT)
       float one = 1.0;
@@ -2578,7 +2578,6 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
         } else {
           tmpmin = _mm512_reduce_min_ps(distance);
         }
-        //std::cerr << "tmpmin=" << tmpmin << std::endl;
         if (min > tmpmin) min = tmpmin;
       }
 #endif
@@ -2619,7 +2618,7 @@ template <typename T> class QuantizedObjectDistanceFloat : public QuantizedObjec
     return min;
 #endif
   }
-#endif /// NGTQ_TOTAL_SCALE_OFFSET_COMPRESSION  ////////////////////////////////////////
+#endif
 
 #else
 #ifdef NGTQBG_MIN
@@ -2959,14 +2958,6 @@ class ScalarQuantizedInt8ObjectDistance : public NonLocalQuantizedObjectDistance
     if (query == 0) {
       NGTThrowException("Fatal inner error! The specified query is invalid..");
     }
-#if 0
-    std::cerr << "q size=" << queryList.size() << std::endl;
-    std::cerr << "qs=";
-    for (size_t i = 0; i < queryList.size(); i++) {
-      std::cerr << queryList[i] << " ";
-    }
-    std::cerr << std::endl;
-#endif
 #ifdef NGTQBG_MIN
     float min = std::numeric_limits<float>::max();
 #endif
@@ -2983,7 +2974,6 @@ class ScalarQuantizedInt8ObjectDistance : public NonLocalQuantizedObjectDistance
     }
 #elif defined(DIST1)
     size_t bsize = 192 * 1024 * 0.5 / dimension;
-    //size_t bsize = 20;
     for (size_t bi = 0; bi < noOfObjects; bi += bsize) {
       for (size_t qi = 0; qi < queryList.size(); qi++) {
         if (qi + 1 < queryList.size()) {
@@ -3009,7 +2999,6 @@ class ScalarQuantizedInt8ObjectDistance : public NonLocalQuantizedObjectDistance
 
   inline double operator()(NGT::Object &object, size_t objectID, void *l) {
     NGTThrowException("Not implemented.");
-    //return getL2DistanceFloat(object, objectID, static_cast<T*>(l));
     return 0.0;
   }
   inline double operator()(NGT::Object &object, size_t objectID, void *l, DistanceLookupTable &distanceLUT) {
@@ -3022,7 +3011,6 @@ class ScalarQuantizedInt8ObjectDistance : public NonLocalQuantizedObjectDistance
   void createDistanceLookup(void *objectPtr, size_t objectID, DistanceLookupTableUint8 &distanceLUT) {}
 
   uint8_t *generateRearrangedObjects(NGTQ::InvertedIndexEntry<uint16_t> &invertedIndexObjects) {
-    //ScalarQuantizedInt8ObjectProcessingStream processingStream(localDivisionNo, invertedIndexObjects.size(), &typeid(OT), quantizer);
     ScalarQuantizedInt8ObjectProcessingStream processingStream(localDivisionNo, invertedIndexObjects.size(),
                                                                &typeid(QT), quantizer);
     processingStream.arrange(invertedIndexObjects);
@@ -3069,7 +3057,6 @@ class ScalarQuantizedInt8ObjectDistance : public NonLocalQuantizedObjectDistance
   }
 
   float (ScalarQuantizedInt8ObjectDistance<QT, OT>::*comparePtr)(void *, void *, size_t);
-  //float (*comparePtr)(void *, void*, size_t);
 };
 
 #endif
@@ -3399,7 +3386,7 @@ class GenerateResidualObjectFloat : public GenerateResidualObject {
       subObject[d] =
           static_cast<double>(subVector[d]) - static_cast<double>(quantizationCodebookSubvector[d]);
     }
-#endif /// /////////////////////
+#endif
     size_t idx            = localCodebookNo == 1 ? 0 : di;
     NGT::Object *localObj = localCodebookIndexes[idx]->allocateObject(subVector, localDimension);
     localObjs[idx].push_back(pair<NGT::Object *, size_t>(localObj, 0));
@@ -3680,6 +3667,10 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
           refinementObjectSpaceForObjectList = new NGT::ObjectSpaceRepository<NGT::float16, double>(
               objectList.pseudoDimension, typeid(NGT::float16), distanceType, property.maxMagnitude);
           break;
+        case DataTypeUint8:
+          refinementObjectSpaceForObjectList = new NGT::ObjectSpaceRepository<uint8_t, double>(
+              objectList.pseudoDimension, typeid(uint8_t), distanceType, property.maxMagnitude);
+          break;
         default:
           stringstream msg;
           msg << "Invalid refinement data type for the object list. " << property.genuineDataType;
@@ -3688,7 +3679,7 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
         }
       } catch (NGT::Exception &err) {
         stringstream msg;
-        msg << "Fatal inner error. Cannot set up the refinmentObjectSpac for the object liste. "
+        msg << "Fatal inner error. Cannot set up the refinmentObjectSpace for the object list. "
             << err.what();
         NGTThrowException(msg);
       }
@@ -4419,7 +4410,6 @@ template <typename LOCAL_ID_TYPE> class QuantizerInstance : public Quantizer {
           sc.radius = FLT_MAX;
           sc.setEpsilon(0.1);
           globalCodebookIndex.search(sc);
-          //std::cerr << "insert:Eval: ";
           if (result[0].id == ids[idx].id) {
             identicalObjectCount++;
           } else {

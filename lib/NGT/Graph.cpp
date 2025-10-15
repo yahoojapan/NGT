@@ -978,7 +978,7 @@ void NeighborhoodGraph::search(NGT::SearchContainer &sc, ObjectDistances &seeds)
 #endif
 
       if (objectRepository.isEmpty(neighbor.id)) {
-        std::cerr << "Graph::search: Warning! The desitination of the edge does not exist."
+        std::cerr << "Graph::search: Warning! The destination of the edge does not exist."
                   << " Node ID=" << target.id << " ID=" << neighbor.id << std::endl;
         continue;
       }
@@ -1173,6 +1173,11 @@ void NeighborhoodGraph::removeEdgesReliably(ObjectID id) {
             if (n[idx + 1].distance != n[i].distance) break;
             if (n[i].id == obj.id) found = true;
           }
+          if (found == false) {
+            for (int k = idx + 1; k < (static_cast<int>(n.size())) && found == false; k++) {
+              if (n[idx + 1].distance != n[k].distance) break;
+            }
+          }
           if (found) {
             std::cerr << "Warning! The distances calculated earlier are different now, "
                       << "therefore the index might be inconsistent." << std::endl;
@@ -1210,6 +1215,11 @@ void NeighborhoodGraph::removeEdgesReliably(ObjectID id) {
           for (int i = idx + 1; i < (static_cast<int>(n.size()) - 1) && found == false; i++) {
             if (n[idx + 1].distance != n[i].distance) break;
             if (n[i].id == obj.id) found = true;
+          }
+          if (found == false) {
+            for (int k = idx + 1; k < static_cast<int>(n.size()) && found == false; k++) {
+              if (n[idx + 1].distance != n[k].distance) break;
+            }
           }
           if (found) {
             std::cerr << "Warning! The distances calculated earlier are different now, "

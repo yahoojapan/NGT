@@ -205,7 +205,6 @@ class PrimitiveComparator {
     double s   = _mm_cvtss_f32(_mm_shuffle_ps(tmp, tmp, _MM_SHUFFLE(0, 0, 0, 0))) +
                _mm_cvtss_f32(_mm_shuffle_ps(tmp, tmp, _MM_SHUFFLE(0, 0, 0, 1)));
     return sqrt(s);
-    //return s;
   }
 #endif
 
@@ -228,7 +227,6 @@ class PrimitiveComparator {
     __m128 tmp    = _mm_hadd_ps(sum128, _mm_set1_ps(0));
     double d      = _mm_cvtss_f32(_mm_shuffle_ps(tmp, tmp, _MM_SHUFFLE(0, 0, 0, 0))) +
                _mm_cvtss_f32(_mm_shuffle_ps(tmp, tmp, _MM_SHUFFLE(0, 0, 0, 1)));
-    //return sqrt(d);
     return d;
   }
 #endif
@@ -239,9 +237,7 @@ class PrimitiveComparator {
     const unsigned char *lastgroup = last - 7;
     const __m128i zero             = _mm_setzero_si128();
     while (a < lastgroup) {
-      //__m128i x1 = _mm_cvtepu8_epi16(*reinterpret_cast<__m128i const*>(a));
       __m128i x1 = _mm_cvtepu8_epi16(_mm_loadu_si128((__m128i const *)a));
-      //__m128i x2 = _mm_cvtepu8_epi16(*reinterpret_cast<__m128i const*>(b));
       __m128i x2 = _mm_cvtepu8_epi16(_mm_loadu_si128((__m128i const *)b));
       x1         = _mm_subs_epi16(x1, x2);
       __m128i v  = _mm_mullo_epi16(x1, x1);
@@ -828,7 +824,6 @@ class PrimitiveComparator {
     }
     __m128i sum128 = _mm_add_epi32(_mm256_extracti128_si256(sum256, 0), _mm256_extracti128_si256(sum256, 1));
 #endif
-    //__m128i sum128 = _mm_setzero_si128();
     {
       const auto *lastgroup = last - 15;
       while (a < lastgroup) {

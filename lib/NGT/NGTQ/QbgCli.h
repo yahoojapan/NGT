@@ -47,6 +47,9 @@ class CLI {
   void buildQG(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
   void appendQG(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
   void searchQG(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
+#ifdef NGTQ_OBGRAPH
+  void setBlobID(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
+#endif
   void info(NGT::Args &args) { std::cerr << "not implemented." << std::endl; };
 #else
   void create(NGT::Args &args);
@@ -70,6 +73,9 @@ class CLI {
   void buildQG(NGT::Args &args);
   void appendQG(NGT::Args &args);
   void searchQG(NGT::Args &args);
+#ifdef NGTQ_OBGRAPH
+  void setBlobID(NGT::Args &args);
+#endif
   void info(NGT::Args &args);
 #endif
 
@@ -137,6 +143,10 @@ class CLI {
       appendQG(args);
     } else if (command == "search-qg") {
       searchQG(args);
+#ifdef NGTQ_OBGRAPH
+    } else if (command == "set-blob-id") {
+      setBlobID(args);
+#endif
     } else if (command == "info") {
       info(args);
     } else if (command == "-h") {

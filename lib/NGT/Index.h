@@ -1951,6 +1951,29 @@ class GraphAndTreeIndex : public GraphIndex, public DVPTree {
       }
       throw err;
     }
+    try {
+      GraphIndex::getNode(id);
+    } catch (Exception &err) {
+#ifdef NGT_SHARED_MEMORY_ALLOCATOR
+      GraphIndex::objectSpace->deleteObject(obj);
+#endif
+      if (force) {
+        try {
+          DVPTree::removeNaively(id);
+        } catch (...) {
+        }
+        try {
+          GraphIndex::remove(id, force);
+        } catch (...) {
+        }
+        std::stringstream msg;
+        msg << err.what()
+            << " Even though the node could not be found, the object could be removed from the indices "
+               "if it existed in them.";
+        NGTThrowException(msg);
+      }
+      throw err;
+    }
     if (NeighborhoodGraph::repository.isEmpty(id)) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
       GraphIndex::objectSpace->deleteObject(obj);
@@ -1984,38 +2007,42 @@ class GraphAndTreeIndex : public GraphIndex, public DVPTree {
         msg << "Not found the specified id. (1) ID=" << id;
         NGTThrowException(msg);
       }
-      so.radius = FLT_MAX;
-      so.size   = 50;
-      results.clear();
-      GraphIndex::search(so, seeds);
-      for (size_t i = 0; i < results.size(); i++) {
-        try {
-          auto *robj          = GraphIndex::objectSpace->getRepository().get(results[i].id);
-          results[i].distance = GraphIndex::objectSpace->compareWithL1(*obj, *robj);
-        } catch (Exception &err) {
+      for (size_t it = 0, rsize = 10; it < 3 && results.empty(); it++, rsize *= 5) {
+        so.radius = FLT_MAX;
+        so.size   = rsize;
+        results.clear();
+        GraphIndex::search(so, seeds);
+        for (size_t i = 0; i < results.size(); i++) {
+          try {
+            auto *robj          = GraphIndex::objectSpace->getRepository().get(results[i].id);
+            results[i].distance = GraphIndex::objectSpace->compareWithL1(*obj, *robj);
+          } catch (Exception &err) {
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR
-          GraphIndex::objectSpace->deleteObject(obj);
+            GraphIndex::objectSpace->deleteObject(obj);
 #endif
-          std::stringstream msg;
-          msg << "remove: Fatal Inner Error! Cannot get an object. ID=" << id;
-          NGTThrowException(msg);
+            std::stringstream msg;
+            msg << "remove: Fatal Inner Error! Cannot get an object. ID=" << id;
+            NGTThrowException(msg);
+          }
         }
-      }
-      std::sort(results.begin(), results.end());
-      results.resize(2);
-      for (auto i = results.begin(); i != results.end(); ++i) {
-        if ((*i).distance != 0.0) {
-          results.resize(distance(results.begin(), i));
-          break;
+        std::sort(results.begin(), results.end());
+        results.resize(2);
+        for (auto i = results.begin(); i != results.end(); ++i) {
+          if ((*i).distance != 0.0) {
+            results.resize(distance(results.begin(), i));
+            break;
+          }
+        }
+        if (results.size() == 0) {
+          std::cerr << "remove: Warning! Cannot find any same object. " << id << ":" << it << std::endl;
         }
       }
       if (results.size() == 0) {
-#ifdef NGT_SHARED_MEMORY_ALLOCATOR
-        GraphIndex::objectSpace->deleteObject(obj);
-#endif
-        std::stringstream msg;
-        msg << "Not found the specified id. (2) ID=" << id;
-        NGTThrowException(msg);
+        std::cerr << "remove: Warning! Cannot find the specified node through search. "
+                     "Since this situation is weird, the index might become inconsistent. "
+                     "Anyway, the removal process continues."
+                  << std::endl;
+        results.emplace_back(NGT::ObjectDistance(id, 0.0));
       }
     }
 #ifdef NGT_SHARED_MEMORY_ALLOCATOR

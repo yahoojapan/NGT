@@ -58,6 +58,9 @@ class QuantizedNode {
   uint32_t subspaceID;
   std::vector<uint32_t> ids;
   void *objects;
+#ifdef NGTQ_OBGRAPH
+  std::vector<std::vector<uint32_t>> blobIDs; // 各オブジェクトの最近傍k個のオブジェクトが属しているブロブのID
+#endif
 };
 
 typedef QuantizedNode RearrangedQuantizedObjectSet;
@@ -68,7 +71,8 @@ class QuantizedGraphRepository : public std::vector<QuantizedNode> {
  public:
   QuantizedGraphRepository(NGTQ::Index &quantizedIndex)
       : quantizer(quantizedIndex.getQuantizer()),
-        numOfSubspaces(quantizedIndex.getQuantizer().property.localDivisionNo) {}
+        numOfSubspaces(quantizedIndex.getQuantizer().property.localDivisionNo),
+        graphType(quantizedIndex.getQuantizer().property.graphType) {}
   ~QuantizedGraphRepository() {}
 
   void *get(size_t id) { return PARENT::at(id).objects; }
@@ -173,6 +177,11 @@ class QuantizedGraphRepository : public std::vector<QuantizedNode> {
       uint32_t sid = (*i).subspaceID;
       NGT::Serializer::write(os, sid);
       NGT::Serializer::write(os, (*i).ids);
+#ifdef NGTQ_OBGRAPH
+      if (graphType == NGTQ::GraphTypeObjectBlobGraph) {
+        NGT::Serializer::write(os, (*i).blobIDs);
+      }
+#endif
 #ifdef NGT_IVI
       size_t streamSize = quantizer.getQuantizedObjectDistance().getSizeOfCluster((*i).ids.size());
 #else
@@ -198,6 +207,11 @@ class QuantizedGraphRepository : public std::vector<QuantizedNode> {
         NGT::Serializer::read(is, sid);
         (*i).subspaceID = sid;
         NGT::Serializer::read(is, (*i).ids);
+#ifdef NGTQ_OBGRAPH
+        if (graphType == NGTQ::GraphTypeObjectBlobGraph) {
+          NGT::Serializer::read(is, (*i).blobIDs);
+        }
+#endif
 #ifdef NGT_IVI
         size_t streamSize = quantizer.getQuantizedObjectDistance().getSizeOfCluster((*i).ids.size());
 #else
@@ -235,8 +249,11 @@ class QuantizedGraphRepository : public std::vector<QuantizedNode> {
     deserialize(is);
   }
 
+  void setGraphType(NGTQ::GraphType gt) { graphType = gt; }
+
   NGTQ::Quantizer &quantizer;
   size_t numOfSubspaces;
+  NGTQ::GraphType graphType;
 };
 
 class Index : public NGT::Index {
@@ -245,6 +262,9 @@ class Index : public NGT::Index {
       : NGT::Index(indexPath, rdOnly, NGT::Index::OpenTypeNone), readOnly(rdOnly), path(indexPath),
         quantizedIndex(indexPath + "/" + getQGDirectoryName(), rdOnly), quantizedGraph(quantizedIndex) {
     {
+#ifdef NGTQ_OBGRAPH
+      quantizedGraph.setGraphType(NGTQ::GraphTypeGraph);
+#endif
       struct stat st;
       std::string qgpath(path + "/qg/grp");
       if (stat(qgpath.c_str(), &st) == 0) {

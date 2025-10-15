@@ -30,9 +30,8 @@ double NGT::PrimitiveComparator::compareL2(const qint4 *a, const qint4 *b, size_
   auto *u8b           = reinterpret_cast<const uint8_t *>(b);
   const uint8_t *last = u8b + size;
 #if defined(NGT_AVX512)
-  const __m512i mask512x0F = _mm512_set1_epi16(0x000f);
-  const __m512i mask512xF0 = _mm512_set1_epi16(0x00f0);
-  //std::cerr << "lut.size=" << lut.size() << std::endl;
+  const __m512i mask512x0F          = _mm512_set1_epi16(0x000f);
+  const __m512i mask512xF0          = _mm512_set1_epi16(0x00f0);
   __m512i lookupTable512            = _mm512_loadu_si512((__m512i const *)lut.data());
   const unsigned char *lastgroup512 = last - 31;
   __m512i sum512                    = _mm512_setzero_si512();
@@ -108,8 +107,7 @@ double NGT::PrimitiveComparator::compareL2(const qint4 *a, const qint4 *b, size_
   __m256i tmp1         = _mm256_hadd_epi32(sum256, value0);
   __m256i tmp2         = _mm256_hadd_epi32(tmp1, value0);
   double s             = _mm256_extract_epi32(tmp2, 0) + _mm256_extract_epi32(tmp2, 4);
-  //s = sqrt(s / (255.0 * 255.0) * scale * scale);
-  s = sqrt(s) / 255.0 * scale;
+  s                    = sqrt(s) / 255.0 * scale;
   return s;
 }
 
@@ -153,8 +151,7 @@ double NGT::PrimitiveComparator::compareDotProduct(const qint4 *a, const qint4 *
     __m256i hilo      = _mm256_or_si256(lo, hi);
     __m256i bobj      = _mm256_shuffle_epi8(lookupTable256, hilo);
     __m256i aobj      = _mm256_loadu_si256((__m256i const *)s8a);
-    //sum256     = _mm256_dpbusd_epi32(sum256, aobj, bobj);
-    sum256 = _mm256_dpbusd_epi32(sum256, bobj, aobj);
+    sum256            = _mm256_dpbusd_epi32(sum256, bobj, aobj);
     s8a += 32;
     s8b += 16;
   }
@@ -182,7 +179,6 @@ double NGT::PrimitiveComparator::compareDotProduct(const qint4 *a, const qint4 *
     __m256i prodhi = _mm256_mullo_epi16(a16hi, b16hi);
     sum256         = _mm256_add_epi32(sum256, _mm256_cvtepi16_epi32(_mm256_extracti128_si256(prodhi, 0)));
     sum256         = _mm256_add_epi32(sum256, _mm256_cvtepi16_epi32(_mm256_extracti128_si256(prodhi, 1)));
-    //s8a += 32;
     s8a += 32;
     s8b += 16;
   }

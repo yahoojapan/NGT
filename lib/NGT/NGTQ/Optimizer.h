@@ -246,7 +246,6 @@ class Optimizer {
         extractQuantizedVector(subQuantizedVectors[m], clusters);
         assert(subQuantizedVectors[m].size() == vectors.size());
         assert(subQuantizedVectors[m][0].size() == subvectorSize);
-        // 入力部分ベクトルと量子化部分ベクトルを比較して量子化誤差の計算
 #ifdef ERROR_CALCULATION
         double d              = squareDistance(subQuantizedVectors[m], subVectors);
         subvectorDistances[m] = d;
@@ -357,7 +356,6 @@ class Optimizer {
             << subvectorSize;
         NGTThrowException(msg);
       }
-      // 入力部分ベクトルと量子化部分ベクトルを比較して量子化誤差の計算
 #ifdef ERROR_CALCULATION
       double d           = squareDistance(subQuantizedVectors, subVectors);
       subvectorDistances = d;

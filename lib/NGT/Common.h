@@ -1085,6 +1085,23 @@ template <typename TYPE> void writeAsText(std::ostream &os, TYPE *v, size_t s) {
   }
 }
 
+template <typename TYPE> void write(std::ostream &os, const std::vector<std::vector<TYPE>> &v) {
+  unsigned int s = v.size();
+  write(os, s);
+  for (unsigned int i = 0; i < s; i++) {
+    Serializer::write(os, v[i]);
+  }
+}
+
+template <typename TYPE> void writeAsText(std::ostream &os, const std::vector<std::vector<TYPE>> &v) {
+  unsigned int s = v.size();
+  os << s << " ";
+  for (unsigned int i = 0; i < s; i++) {
+    Serializer::writeAsText(os, v[i]);
+    os << " ";
+  }
+}
+
 template <typename TYPE> void read(std::istream &is, std::vector<TYPE> &v) {
   v.clear();
   unsigned int s;
@@ -1142,6 +1159,26 @@ template <typename TYPE> void readAsText(std::istream &is, TYPE *v, size_t s) {
     TYPE val;
     Serializer::readAsText(is, val);
     v[i] = val;
+  }
+}
+
+template <typename TYPE> void read(std::istream &is, std::vector<std::vector<TYPE>> &v) {
+  v.clear();
+  unsigned int s;
+  read(is, s);
+  v.resize(s);
+  for (unsigned int i = 0; i < s; i++) {
+    Serializer::read(is, v[i]);
+  }
+}
+
+template <typename TYPE> void readAsText(std::istream &is, std::vector<std::vector<TYPE>> &v) {
+  v.clear();
+  unsigned int s;
+  is >> s;
+  v.resize(s);
+  for (unsigned int i = 0; i < s; i++) {
+    Serializer::readAsText(is, v[i]);
   }
 }
 
@@ -2614,6 +2651,13 @@ class SearchQuery : public NGT::SearchContainer, public NGT::QueryContainer {
 class InsertContainer : public Container {
  public:
   InsertContainer(Object &f, ObjectID i) : Container(f, i) {}
+};
+
+template <class T, class Container = std::vector<T>, class Compare = std::greater<T>>
+struct PriorityQueue : std::priority_queue<T, Container, Compare> {
+  using std::priority_queue<T, Container, Compare>::c;
+  //using std::priority_queue<T, Container, Compare>::value_comp; ////-/ 比較も欲しければ
+  void pop_back() { c.pop_back(); }
 };
 
 } // namespace NGT

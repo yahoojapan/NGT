@@ -228,7 +228,6 @@ void NGT::Quantizer::setQuantizedQuery(std::vector<float> &query, NGT::Quantizer
   qQuery.lut.resize(centroids.size());
   if (qQuery.shift) {
     for (size_t i = 0; i < qQuery.lut.size(); i++) {
-      //float fv = std::round((centroids[i] - qQuery.offset) / qQuery.scale * 255.5);
       float fv      = std::round((centroids[i] - qQuery.offset) / qQuery.scale * 127.5 + 128.0);
       fv            = fv < 0.0 ? 0.0 : fv;
       fv            = fv >= 256.0 ? 255 : fv;
@@ -236,7 +235,6 @@ void NGT::Quantizer::setQuantizedQuery(std::vector<float> &query, NGT::Quantizer
     }
   } else {
     for (size_t i = 0; i < qQuery.lut.size(); i++) {
-      //float fv = std::round((centroids[i] - qQuery.offset) / qQuery.scale * 255.5);
       float fv      = std::round((centroids[i] - qQuery.offset) / qQuery.scale * 127.5);
       fv            = fv < -128.0 ? -128.0 : fv;
       fv            = fv > 127.0 ? 127.0 : fv;

@@ -246,14 +246,12 @@ template <typename T> class Matrix {
     for (size_t r = 0; r < nr; r++) {
       for (size_t c = 0; c < nc; c++) {
         m[c * nr + r] = *msrc++;
-        //std::cerr << r * nc + c << std::endl;
       }
     }
 #else
     for (size_t c = 0; c < nc; c++) {
       for (size_t r = 0; r < nr; r++) {
         m[r * nc + c] = *msrc++;
-        //std::cerr << r * nc + c << std::endl;
       }
     }
 #endif

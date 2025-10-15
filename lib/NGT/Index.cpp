@@ -442,7 +442,6 @@ void NGT::Index::insertFromRefinementObjectFile() {
 
 void NGT::Index::appendFromTextObjectFile(const std::string &indexPath, const std::string &data,
                                           size_t dataSize, bool append, bool refinement, size_t threadSize) {
-  //#define APPEND_TEST
 
   NGT::Index index(indexPath);
   index.appendFromTextObjectFile(data, dataSize, append, refinement);
@@ -895,7 +894,7 @@ void NGT::Index::createIndex(size_t threadNumber, size_t sizeOfRepository) {
     if (prop.objectType == NGT::ObjectSpace::ObjectType::Qsuint8) {
       auto &ros = getRefinementObjectSpace();
       auto &os  = getObjectSpace();
-      if (&ros != 0 && ros.getRepository().size() > os.getRepository().size()) {
+      if (static_cast<void *>(&ros) != 0 && ros.getRepository().size() > os.getRepository().size()) {
         if (os.getRepository().size() <= 1) {
           if (ros.getRepository().size() < 100) {
             std::cerr << "Warning! # of refinement objects is too small. " << ros.getRepository().size()
@@ -1713,6 +1712,11 @@ bool NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode
   for (size_t id = 1; id < graph.size(); id++) {
     if (repo[id] == 0) {
       removedObjectCount++;
+      try {
+        outGraph.getNode(id);
+        std::cerr << "Warning! The removed node exists in the graph. ID=" << id << std::endl;
+      } catch (...) {
+      }
       continue;
     }
     NGT::GraphNode *node = 0;
@@ -1748,6 +1752,8 @@ bool NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode
     if (mode == 'd' || mode == 'D') {
       if (!repo.isEmpty(id)) {
         obj = repo.get(id);
+      } else {
+        std::cerr << "This graph node dose not exist in the object repository! " << id << std::endl;
       }
     }
     for (size_t i = 0; i < esize; i++) {
@@ -1756,6 +1762,14 @@ bool NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode
 #else
       NGT::ObjectDistance &n = (*node)[i];
 #endif
+      NGT::ObjectDistance *prevn = nullptr;
+      if (i > 0) {
+#if defined(NGT_SHARED_MEMORY_ALLOCATOR)
+        prevn = &(*node).at(i - 1, graph.allocator);
+#else
+        prevn = &(*node)[i - 1];
+#endif
+      }
       if (std::isnan(n.distance)) {
         stringstream msg;
         msg << "Index::showStatisticsOfGraph: Fatal inner error! The graph has a node with nan distance. "
@@ -1767,7 +1781,24 @@ bool NGT::GraphIndex::showStatisticsOfGraph(NGT::GraphIndex &outGraph, char mode
         valid = false;
         continue;
       }
+      if (id == n.id) {
+        std::cerr << "Warning: Found an edge to itself! " << id << std::endl;
+        valid = false;
+        continue;
+      }
+      if (i > 0 && n.id == prevn->id) {
+        std::cerr << "Warning: Found identical IDs " << id << ":" << i << ":" << n.id << std::endl;
+      }
       if (mode == 'd' || mode == 'D') {
+        try {
+          outGraph.getNode(n.id);
+        } catch (NGT::Exception &err) {
+          std::cerr << "Warning: The graph node of the edge destination does not exist! " << n.id
+                    << std::endl;
+        }
+        if (repo.isEmpty(n.id)) {
+          std::cerr << "Warning: The object of the edge destination does not exist! " << n.id << std::endl;
+        }
         if (!repo.isEmpty(id) && !repo.isEmpty(n.id)) {
           nOfEdges++;
           float d = comparator(*obj, *repo.get(n.id));

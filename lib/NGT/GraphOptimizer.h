@@ -510,7 +510,6 @@ class GraphOptimizer {
     NGT::GraphIndex &graphIndex             = static_cast<NGT::GraphIndex &>(index.getIndex());
     NGT::GraphAndTreeIndex &treeIndex       = static_cast<NGT::GraphAndTreeIndex &>(index.getIndex());
     NGT::GraphRepository &graphRepository   = graphIndex.NeighborhoodGraph::repository;
-    //float targetAccuracy = parameter.targetAccuracy + FLT_EPSILON;
 
     std::vector<std::vector<float>> queries;
     optimizer.extractAndRemoveRandomQueries(parameter.noOfQueries, queries);

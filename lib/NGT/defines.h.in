@@ -30,6 +30,7 @@
 #cmakedefine NGT_BFLOAT_ENABLED
 #cmakedefine NGT_GRAPH_COMPACT_READ_ONLY_GRAPH
 #cmakedefine NGT_ENABLE_TIME_SEED_FOR_RANDOM
+#cmakedefine NGTQ_OBGRAPH
 // End of cmake defines
 
 //////////////////////////////////////////////////////////////////////////
@@ -82,8 +83,6 @@
 #undef NGT_AVX512
 #else
 #if defined(__AVX512F__) && defined(__AVX512DQ__)
-#if defined(__AVX512VNNI__)
-#endif
 #define NGT_AVX512
 #elif defined(__AVX2__)
 #define NGT_AVX2

@@ -536,9 +536,7 @@ bool StaticObjectFile<TYPE>::get(size_t id, std::vector<float> &data, NGT::Objec
   if (size() <= id) {
     return false;
   }
-  //uint64_t offset_pos = (id * (sizeof(RecordStruct) + _fileHead.recordSize)) + sizeof(FileHeadStruct);
   uint64_t offset_pos = id * _recordSize + sizeof(FileHeadStruct);
-  //offset_pos += sizeof(RecordStruct);
   _stream.seekg(offset_pos, std::ios::beg);
   if (!_stream.fail()) {
     switch (_type) {

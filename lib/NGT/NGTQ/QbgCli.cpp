@@ -699,6 +699,73 @@ void QBG::CLI::appendQG(NGT::Args &args) {
                                          false);
 }
 
+#ifdef NGTQ_OBGRAPH
+void QBG::CLI::setBlobID(NGT::Args &args) {
+  const string usage = "Usage: qbg set-blob-id index";
+
+  string indexPath;
+  try {
+    indexPath = args.get("#1");
+  } catch (...) {
+    std::stringstream msg;
+    msg << "No index is specified." << std::endl;
+    msg << usage << std::endl;
+    NGTThrowException(msg);
+  }
+
+  string ngtPath;
+  try {
+    ngtPath = args.get("#2");
+  } catch (...) {
+  }
+
+  float resultExpansion             = args.getf("p", 0.0);
+  size_t nOfProbes                  = args.getl("P", 10);
+  float epsilon                     = args.getf("e", 0.1);
+  float blobEpsilon                 = args.getf("B", 0.05);
+  size_t outEdge                    = args.getl("o", 5);
+  size_t inEdge                     = args.getl("i", 0);
+  size_t inRank                     = args.getl("I", 0);
+  size_t explorationSize            = args.getf("N", 256);
+  float threshold                   = args.getf("T", 0.5);
+  char mode                         = args.getChar("m", '-');
+  NGTQ::DataType refinementDataType = NGTQ::DataTypeAny;
+  {
+    char refinement = args.getChar("R", '-');
+    switch (refinement) {
+    case 'f': refinementDataType = NGTQ::DataTypeFloat; break;
+#ifdef NGT_HALF_FLOAT
+    case 'h': refinementDataType = NGTQ::DataTypeFloat16; break;
+#endif
+    case 'x': refinementDataType = NGTQ::DataTypeNone; break;
+    case '-': refinementDataType = NGTQ::DataTypeAny; break;
+    default:
+      std::stringstream msg;
+      msg << "Command::CreateParameters: Error: Invalid refinement data type. " << refinement;
+      NGTThrowException(msg);
+    }
+  }
+
+  if (!ngtPath.empty()) {
+    QBG::Index::setBlobIDsFromGraph(indexPath, ngtPath, refinementDataType);
+  } else {
+    QBG::SearchContainer searchContainer;
+    searchContainer.setRefinementExpansion(resultExpansion);
+    searchContainer.setNumOfProbes(nOfProbes);
+    searchContainer.setEpsilon(epsilon);
+    searchContainer.setBlobEpsilon(blobEpsilon);
+    searchContainer.setGraphExplorationSize(explorationSize);
+    if (mode == '-') {
+      QBG::Index::setBlobIDsFromONNGBySearch(indexPath, searchContainer, outEdge, inEdge, inRank,
+                                             refinementDataType);
+    } else {
+      QBG::Index::setBlobIDsFromExtGraphBySearch(indexPath, searchContainer, outEdge, inEdge, threshold,
+                                                 refinementDataType);
+    }
+  }
+}
+#endif
+
 void QBG::CLI::info(NGT::Args &args) {
   const string usage = "Usage: qbg index";
 
@@ -871,11 +938,9 @@ void QBG::CLI::search(NGT::Args &args) {
     NGTThrowException(msg);
   }
 
-  bool verbose    = args.getBool("v");
-  size_t size     = args.getl("n", 20);
-  char outputMode = args.getChar("o", '-');
-  float epsilon   = 0.1;
-
+  bool verbose                      = args.getBool("v");
+  size_t size                       = args.getl("n", 20);
+  char outputMode                   = args.getChar("o", '-');
   char searchMode                   = args.getChar("M", 'n');
   NGTQ::DataType refinementDataType = NGTQ::DataTypeAny;
   {
@@ -893,19 +958,15 @@ void QBG::CLI::search(NGT::Args &args) {
       NGTThrowException(msg);
     }
   }
-  if (args.getString("e", "none") == "-") {
-    // linear search
-    epsilon = FLT_MAX;
-  } else {
-    epsilon = args.getf("e", 0.1);
-  }
   float blobEpsilon      = args.getf("B", 0.05);
   size_t edgeSize        = args.getl("E", 0);
   float cutback          = args.getf("C", 0.0);
   size_t explorationSize = args.getf("N", 256);
   size_t nOfProbes       = 0;
   float resultExpansion  = -1;
+  float epsilon          = -1;
   size_t nOfTrials       = args.getl("T", 1);
+  size_t dynamicOption   = 0;
   if (nOfTrials != 1) {
     std::cerr << "# of trials=" << nOfTrials << std::endl;
   }
@@ -918,22 +979,35 @@ void QBG::CLI::search(NGT::Args &args) {
     endOfParameter   = 0.0;
     stepOfParameter  = 1;
     vector<string> tokens;
+    size_t vcounter = 0;
     if (args.getString("p", "-").find_first_of(':') == std::string::npos) {
       resultExpansion = args.getf("p", 0.0);
+    } else {
+      vcounter++;
+      dynamicOption = 1;
+      NGT::Common::tokenize(args.getString("p", "-"), tokens, ":");
     }
     if (args.getString("P", "-").find_first_of(':') == std::string::npos) {
       nOfProbes = args.getl("P", 10);
-    }
-    if (resultExpansion < 0 && nOfProbes == 0) {
-      std::cerr << "Cannot specify both -p and -P as a fluctuating value. -P is prioritized." << std::endl;
-      NGT::Common::tokenize(args.getString("p", "-"), tokens, ":");
-      resultExpansion = NGT::Common::strtod(tokens[0]);
-      tokens.clear();
-    }
-    if (resultExpansion < 0) {
-      NGT::Common::tokenize(args.getString("p", "-"), tokens, ":");
-    } else if (nOfProbes == 0) {
+    } else {
+      vcounter++;
+      dynamicOption = 2;
       NGT::Common::tokenize(args.getString("P", "-"), tokens, ":");
+    }
+    if (args.getString("e", "-").find_first_of(':') == std::string::npos) {
+      if (args.getString("e", "none") == "-") {
+        epsilon = FLT_MAX;
+      } else {
+        epsilon = args.getf("e", 0.1);
+      }
+    } else {
+      vcounter++;
+      dynamicOption = 3;
+      NGT::Common::tokenize(args.getString("e", "-"), tokens, ":");
+    }
+
+    if (vcounter >= 2) {
+      NGTThrowException("Error: Cannot specify both -p and -P as fluctuating values.");
     }
     if (tokens.size() >= 2) {
       beginOfParameter = NGT::Common::strtod(tokens[0]);
@@ -990,14 +1064,13 @@ void QBG::CLI::search(NGT::Args &args) {
           auto query = queryVector;
           searchContainer.setObjectVector(query);
           searchContainer.setResults(&objects);
-          auto re = resultExpansion;
-          if (re < 0.0) re = parameter;
+          auto re = dynamicOption == 1 ? parameter : resultExpansion;
+          auto np = dynamicOption == 2 ? parameter : nOfProbes;
+          auto e  = dynamicOption == 3 ? parameter : epsilon;
           searchContainer.setRefinementExpansion(re);
-          auto np = nOfProbes;
-          if (np == 0) np = parameter;
           searchContainer.setNumOfProbes(np);
+          searchContainer.setEpsilon(e);
           searchContainer.setSize(size);
-          searchContainer.setEpsilon(epsilon);
           searchContainer.setBlobEpsilon(blobEpsilon);
           searchContainer.setEdgeSize(edgeSize);
           searchContainer.setCutback(cutback);
@@ -1006,6 +1079,9 @@ void QBG::CLI::search(NGT::Args &args) {
           timer.start();
           switch (searchMode) {
           case 'n': index.searchInTwoSteps(searchContainer); break;
+#ifdef NGTQ_OBGRAPH
+          case 'o': index.searchOBGraph(searchContainer); break;
+#endif
           case 'g':
           default: index.searchInOneStep(searchContainer); break;
           }
@@ -1020,14 +1096,10 @@ void QBG::CLI::search(NGT::Args &args) {
             cout << "# Index Type="
                  << "----" << endl;
             cout << "# Size=" << size << endl;
-            cout << "# Epsilon=" << epsilon << endl;
+            cout << "# Epsilon=" << e << endl;
             cout << "# Refinement expansion=" << re << endl;
             cout << "# # of probes=" << np << endl;
-            if (nOfProbes == 0) {
-              cout << "# Factor=" << np << endl;
-            } else if (resultExpansion < 0.0) {
-              cout << "# Factor=" << re << endl;
-            }
+            cout << "# Factor=" << parameter << endl;
             cout << "# Distance Computation=" << index.getQuantizer().distanceComputationCount << endl;
             cout << "# Query Time (msec)=" << timer.time * 1000.0 << endl;
           } else if (outputMode == 't' || outputMode == 'T') {

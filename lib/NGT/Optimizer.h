@@ -1504,7 +1504,6 @@ class Optimizer {
       searchParameters.size       = nOfResults;
       searchParameters.outputMode = 'e';
       searchParameters.edgeSize   = 0; // get the best accuracy by using all edges
-      //searchParameters.indexType = 's'; // linear search
       extractQueries(queries, queryStream);
       NGT::Optimizer::createGroundTruth(index, maxEpsilon, searchParameters, queryStream, gtStream);
     }
@@ -1584,7 +1583,6 @@ class Optimizer {
       }
       prev = *i;
     }
-
     return epsilonAccuracyMap;
   }
 

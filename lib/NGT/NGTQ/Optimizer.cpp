@@ -526,8 +526,6 @@ void QBG::Optimizer::optimize(vector<vector<float>> &vectors, vector<vector<floa
     r = std::move(rs[0]);
   }
 
-  //-/size_t pos = std::distance(std::find(ofile.rbegin(), ofile.rend(), '.'), ofile.rend()) - 1;
-
 #endif
 }
 
